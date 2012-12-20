@@ -1,0 +1,122 @@
+ nam nvram
+
+* Copyright 1993 by Microware Systems Corporation.
+* All Rights Reserved
+* Reproduced Under License
+
+*   This source code is the proprietary confidential property of
+* Microware Systems Corporation, and is provided to the licensee
+* for documentation and educational purposes only.  Reproduction,
+* publication, or any form of distribution to any party other than
+* the licensee is strictly prohibited.
+
+********************************
+* Edition History
+*  #   date   Comments													by
+* -- -------- --------------------------------------------------------	---
+* 01 93/09/10 history started....										wwb
+* 02 93/10/05 Adapt for 165 NVRam (LSBytes on longwords)				ats
+*              ---- OS-9/68K V3.0 Release ----
+*
+
+ use defsfile
+ use <nvram.m>
+
+Edition equ 02
+
+ psect NVRam,0,0,Edition,0,0
+
+
+*
+* nwck16: 'C' entry point for new checksum calculation against
+*             shadowed NVRAM
+*
+* passed:	d0 = address of shadowed NVRAM area
+*			d1 = size (bytes) of area to checksum
+*
+* returned:	d0 = checksum of area
+*
+nwck16:
+ link a5,#0
+ movem.l d1/a0,-(sp)
+ move.l d0,a0
+ lsr #1,d1 convert size to words from bytes
+ ext.l d1
+ move.l #0,d0 preset accumulator
+ subq.l #1,d1 predecrement for loop
+nwcloop
+ rol.w #1,d0 rotate accumulator
+ add.w (a0)+,d0 add in field
+ dbf d1,nwcloop repeat for all words
+ rol.w #1,d0
+ neg.w d0
+ movem.l (sp)+,d1/a0
+ unlk a5
+ rts
+
+*
+* GoodNVR: verify NVram integrity
+*
+* Returned:		ccr - Z bit is set if NVram is good
+*
+GoodNVR:
+ movem.l d0-d3/a0,-(sp) save registers
+ move.l #NVRAMBase,a0
+ NVRGetW NVR_NEWSYNC,a0,d1,d3 get new sync code
+ cmpi.w #NVRNEWSYNC,d1 check new sync code
+ bne.s gnvrx if no good, exit
+ NVRGetW NVR_VERSION,a0,d1,d3 get version
+ cmpi.w #NVR_VER_MIN,d1 check if less than minimum
+ blt.s badnvrx
+ cmpi.w #NVR_VER_MAX,d1 check if more than maximum
+ bgt.s badnvrx
+ move.l #NVR_SIZE,d1
+ lsr #2,d1 convert size to longwords from bytes
+ ext.l d1
+ move.l #0,d0 preset accumulator
+ subq.l #1,d1 predecrement for loop
+
+csloop
+ NVRGetL 0,a0,d2,d3 get two 16-bit fields
+ ifndef	LWNVR
+  lea 4(a0),a0 increment address
+ else	LWNVR
+  lea 4*4(a0),a0 increment address
+ endc	LWNVR
+ rol.w #1,d0 rotate accumulator
+ swap d2 get first word of longword
+ add.w d2,d0 add in field
+ rol.w #1,d0 rotate accumulator
+ swap d2 get second word of longword
+ add.w d2,d0 add in field
+ dbf d1,csloop repeat for all longwords
+
+ tst.w d0 test for good checksum
+gnvrx
+ movem.l (sp)+,d0-d3/a0 restore registers
+ rts 
+badnvrx
+ moveq #1,d0 clear Z bit
+ bra.s gnvrx and exit
+
+*
+* goodnvr: 'C' entry point for above routine
+*
+* returned:	d0 = nonzero if NVram integrity is good
+*			   = zero if not good
+*
+goodnvr:
+ link a5,#0
+ bsr GoodNVR
+ beq gnt
+ moveq.l #0,d0
+ bra gnx
+
+gnt
+ moveq.l #1,d0
+gnx
+ unlk a5
+ rts
+
+ ends
+

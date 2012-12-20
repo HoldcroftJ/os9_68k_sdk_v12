@@ -1,0 +1,1575 @@
+ nam OSK 68000 Bootstrap Module
+********************************
+* OS-9/68K - Bootstrap ROM
+
+* Copyright 1983, 1984, 1985, 1986, 1987, 1988, 1989, 1990, 1991, 1992,
+* 1993, 1994, 1996, 1997 by Microware Systems Corporation.
+* All Rights Reserved
+* Reproduced Under License
+
+*   This source code is the proprietary confidential property of
+* Microware Systems Corporation, and is provided to the licensee
+* for documentation and educational purposes only.  Reproduction,
+* publication, or any form of distribution to any party other than
+* the licensee is strictly prohibited.
+
+********************************
+* Edition History
+*  #   date   Comments													by
+* -- -------- --------------------------------------------------------	---
+* 01 12-20-83 Initial version developed from oskp1 source.				rfd
+* 02 01-25-84 Fix "Extract" bug.										lac
+* 03 01-27-84 converted for use with debugger.							lac
+* 04 02-24-84 changed diskport reference to mzr to sysdisk.				wgp
+* 04 02-27-84 moved call to debug init after initial msg.				wgp
+* 05 03-06-84 Installed changes for Mot non-VME system.					rfd
+* 06 03-08-84 Added DiskVect for interrupt driven boot.					res
+* 07 04-18-84 Added 16 bytes of reserved storage area for I/O.			WGP
+* 08 07-02-84 Strengthened ROM block test, added CP_08 conds.			rfd
+* 09 08-02-84 Added mod for Force system, at same time removed
+*             some large system dependent code to files in
+*             system directory (replaced with use file).				WGP
+* 10 08-28-84 Added code at SysReset to reset (a7) after fail.			rfd
+* 11 09-10-84 Made bra to Debug call SysReset if no debugger.			rfd
+* 12 10-01-84 Extended Search45 loop accept long count.					rfd
+* 13 10-18-84 made search accept RAM and ROM lists, removed all
+*             VMEBug conditionals, removed LoRAM references.
+*             Minor code enhancements (lea -> addq) etc.  Added
+*             version number to print with OS-9 header.					WGP
+* 14 11-05-84 Made boot.a generic. All system dependent code
+*             now resides in "sysinit.a" file for each type of
+*             system. Fixed bug in search routine.						WGP
+* 15 12-12-84 Added code to sense processor type (68000/010).			rfd
+* 16 01-03-85 Added external enable switch for debugger.				res
+* 17 06-19-85 Passed MPUType byte to OS-9 kernel.						rfd
+* 18 07-22-85 Updated startup prompt to print V1.2.						res
+*              ---- OS-9/68K V1.2 Release ---- 
+* 19 11-20-85 Changed CPU type determination to include 68020.			rfd
+*             Added code to enable 68020 on-chip cache.					rfd
+* 20 12-13-85 Added CallDBug byte for sysinit to use as a				res
+*             debugger enable/disable flag.
+* 21 07-21-86 Fixed RstDebug so that debugger doesn't loop.				rfd
+* 22 07-21-86 Made RstDebug defined when Debugger is excluded.			rfd
+*              ---- OS-9/68K V2.0 Release ---- 
+* 23 03-17-87 Reset trap handler pointer for bus errors when filling	wwb
+*             found block.
+* 24 04-10-87 Added sysglob macro.										wwb
+* 25 05-05-87 Converted for sysglob defined in systype.d,				wwb
+*             added 68020 conditional usage of vbr to sysglob.
+* 26 05-19-87 Updated name strings to reflect 2.1 release.				wwb
+*              ---- OS-9/68K V2.1 Release ---- 
+* 27 09-10-87 Added usage of vbr to vector initialization.				wwb
+* 28 11-20-87 Fixed vbr/exception jump table setup problem.				wwb
+* 29 01-27-88 Removed version number from startup string.				wwb
+*              ---- OS-9/68K V2.2 Release ---- 
+* 30 02-21-88 Added (rfd's) changes for 68070.							wwb
+* 31 06-14-88 removed cache enabling code.								wwb
+* 32 06-21-88 added 68030 detection.									wwb
+* 33 07-15-88 fixed stack correction bug (ed.32).						wwb
+* 34 07-27-88 removed "rom can't be zero" code.							wwb
+* 35 10-14-88 added quick-start code.									wwb
+* 36 10-25-88 rearranged debug call before entering kernel.				wwb
+* 37          skipped (testing version)
+* 38          skipped (testing version)
+* 39 01-12-89 added ROMBUG conditionals for debugger control.			wwb
+*             fixed (potential) problem with growth method.
+* 40 01-13-89 make InitData call only when DEBUGGER included.			wwb
+*             added branch table entry for InChChek.					wwb
+* 41 01-19-89 redid ed.39 growth method (parity problems).				wwb
+* 42 02-10-89 removed "included/excluded" conditionals (now done		wwb
+*             via "ifdef").
+* 43 02-13-89 made QuikStart available when debugger disabled.			wwb
+*             (RstDebug)
+* 44 02-14-89 made call to "SysBoot" 32-bit pc relative jsr.			jal
+* 45 02-15-89 made all external bra/bsr calls allow 32-bit				wwb
+*             pc relative reaching.
+* 46 02-27-89 fixed conditional problem for ed.45.						wwb
+*              ---- OS-9/68K V2.3 Release ---- 
+* 47 06-22-89 added MANUAL_RAM, REJECT0 conditionals.					wwb
+* 48 10-23-89 added 683XX family support.								wwb
+*             changed MPUType to be long-word (was byte).				wwb
+* 49 11-13-89 changed MPUType to be a long/byte depending upon			wwb
+*             CPUTyp:  this change is required until all the
+*             debuggers are updated.  If the CPUTyp is 68300,
+*             then MPUTyp is a LONG, else it's a BYTE.
+* 50 11-22-89 undid ed49 now that all debuggers are up to speed.		wwb
+* 51 02-28-90 added 68040 support.										wwb
+*             NOTE: Untested due to lack of hardware.
+* 52 04-16-90 added VBRBase and TRANSLATE to global constants.			wwb
+*              ---- CD-RTOS V1.1 Release ---- 
+* 53 07-18-90 Fixed problem with size of debugger globals (see			wwb
+*             notes below on ROMBUG vs CBOOT usage).
+*              ---- OS-9/68K V2.4 Release ---- 
+* 54 02-07-91 made memory patternizing faster for '040 (move16).		wwb
+*              ---- OS-9/68K V2.4 68040 Release ---- 
+*              ---- OS-9/68K V2.4.3 Release ----
+* 55 07-15-92 reworked 68040 move16 nop ERRATA.							wwb
+*             added NOMOVE16 conditional.								wwb
+* 56 12-01-92 removed ERRATA040 conditional: code required always if	wwb
+*             we are to support all masks.
+* 57 01-15-93 made rom static area (put into romlist) check for 0.		wwb
+* 58 02-11-93 Added MBUGTRC conditional to preserve trace and illegal   ats
+*             instruction (break) vectors during jump table build.
+*             This allows MBug to retain control for breaks and traces
+*             within ROMBUG. However, ROMBUG traces and breaks and
+*             illegal instruction processing does not occur unless the
+*             user patches the ROMBUG vectors back in manually. Also
+*             added CR/LF before posting bootstrap message so it looks
+*             better when ROMBUG is 'booted' from MBug. Finally, added
+*             position relocation computation for adjusting RAM-based
+*             vectors when the ROM is linked at one address but loaded
+*             and run at another (with help from MBug). The relocation
+*             factor is saved in the vsect for ROMBUG initialization.
+* 59 03-10-93 made memory tester more robust for hardware that insists	wwb
+*             that it not return Bus Error, even tho' no ram installed.
+*             Added CPUTyp==68010 as a VBR supported mpu.				wwb
+*             DebugInit now always called (no call to UseDebug) - this	wwb
+*             allows you to bring up the system without calling the
+*             debugger during boot-time and still be able to use the
+*             debugger during OS operation.
+* 60 06-05-93 CPUTyp reworked for 683XX families: 68300 - 68309 are		wwb
+*             converted to 68000, 68330 - 68399 are 68300.
+* 61 06-15-93 added 68302 special case for vector table init.			wwb
+*             The 68302 RESERVES vectors 60 - 63.  If the CPUTyp value
+*             in systype.d is set to 68302, we have to skip over these
+*             vectors (if we are writing vectors to ram).
+* 62 07-09-93 moved constants declarations into "bootglob.d" -			wwb
+*             this allows boot.a/disklink.a/others(?) to share the
+*             globals constants.
+* 63 07/23/93 If MBUGTRC defined, CPU test to distinguish between 020   ats
+*             and 030 failed. Reworked illegal inst vector/jump table
+*             entry for MBUGTRC.
+*              ---- OS-9/68K V3.0 Release ----
+* 64 04/19/94 More CPUTyp work: 68310 thru 68329 are now considered		wwb
+*             defined as 68000 cores.  Also added 68307 case to reserve
+*             vectors 60-63 (ala 68302).
+*              ---- OS-9/68K V3.0.1 Release ----
+* 65 04/20/94 Started 68060 mods.										wwb
+* 66 04/28/94 Lengthened some short branches that went out-of-range     ats
+*             when MBUGTRC was defined.
+* 67 12/12/94 added 1.12.1.1:  adding nop's to mem search routines for	wwb
+*             68040/68060 (non-serialized accesses with parasitic
+*             capacitance).
+*              ---- OS-9/68K V3.0.2 Beta Release ----
+*              ---- OS-9/68K V3.0.2 Beta_2 Release ----
+*              ---- OS-9/68K V3.0.2 Release ----
+* 68 04/18/96 reworked pc-relative references to externals in vector	wwb
+*             entries so that >32K spans can be accommodated.
+*              ---- OS-9/68K V3.0.3 Release ----
+* 69 07/21/97 skipped for custom version.								wwb
+* 70 07/21/97 started mods for improved boot speed options.				wwb
+*
+Edition equ 70 current edition number
+
+
+Type set (Prgrm<<8)+Objct
+Revs set (ReEnt<<8)+0
+ psect Boot,Type,Revs,Edition,0,SysReset
+
+ use defsfile
+ use <ldbra.m>
+
+
+ pag
+****+***************************
+* Conditional assembly notes:
+*
+* The following conditional assembly options are available:
+*
+* Flag       Usage
+* ---------  ----------------------------------------------
+* DEBUGGER   invokes code for primitive "rom debugger"
+*
+* VARGLOBE   determines whether the size of the rom global
+*            data area is fixed at 4K (label not defined) or
+*            determined dynamically (label defined).
+*            This label is "internal" to this code, in that
+*            it will be switched ON if either CBOOT or ROMBUG
+*            is defined.
+*
+* ROMBUG     invokes code for sysdbg-style debugger.  If defined
+*            then it will vause VARGLOBE to become defined.
+*            It will also cause the rombug "initialize data"
+*            routine to be called.
+*
+* CBOOT      if defined, then is will cause VARGLOBE to become
+*            defined.
+*
+* PARITY     invokes code to initialize parity-ram.
+*
+* RAMVects   invokes code to initialize "vectors in ram"
+*
+* MBUGTRC	 invokes code to preserve trace and illegal instruction
+*			 (break) vectors for MBug tracing of ROMBUG.
+*
+*
+* MANUAL_RAM indicates that ram memory MUST be manually enabled.
+*            This is usually done in SysInit, thus the 32-bit
+*            "bra" to SysInit will not work if the ram has not
+*            been enabled.  To allow operation in this situation,
+*            define MANUAL_RAM, and the call to SysInit will be
+*            a straight "bra" instruction.  This means that the
+*            bra target MUST be within a 16-bit offset.
+*
+* REJECT0    this allows the memory search routine to reject
+*            special memory that responds with contents of 0.
+*
+* NOMOVE16   makes PARITY init be done without using MOVE16
+*            (68040's only) - generally beneficial only on broken
+*            hardware.
+*
+* NOIRQ_SEVERE  informs boot code to NOT mask interrupts before
+*            calling OEM SysInit routine (see boot speed options)
+*
+* FIXED_CPUTYP  informs boot code to use a static expression
+*            (CPUTyp-68000) to flag the CPU type in use, otherwise
+*            the boot code determines the type dynamically.
+*
+* These options are invoked via "ifdef" statements.  To define the
+* conditional, you can define it in the systype.d file, or have it
+* defined via the "-a" option of the assembler (e.g. RFLAGS macro
+* in makefile.)
+*
+
+********************
+* Boot Speed and System Start options
+*
+* The following boot speed options can be implemented to improve overall
+* system startup time.  Typically, these options are most useful for
+* systems where the target configuration is "well defined", and unlikely
+* to change.  Typically, these types of systems are embedded system
+* products (e.g. pagers).
+*
+* The following boot speed options are available:
+*
+*  - Exact memory definition:  the system ram/rom are static, and presumed
+*    to be functional.  In this case the boot code will accept the rom
+*    memory lists "as is", and pass these to the kernel without probing.
+*
+*  - Init module search: enabling this option informs the kernel that it
+*    should accept the first Init module found (instead of searching all
+*    rom areas for the highest revision Init module).
+*
+*  - Warm Start:  the warm-start option informs the kernel that it
+*    should accept romed modules by validating their module header only
+*    (instead of a full module CRC check).
+*
+*  - Allow interrupts:  normally the boot code and kernel cold-start masks
+*    interrupts for the duration of the system start (with the exception
+*    of calls to the boot drivers themselves).  Systems that have a well
+*    defined interrupt system (i.e. calmed completely by SysInit hardware
+*    initialization) AND have a requirement to respond to an installed
+*    interrupt handler during system startup can enable this option to
+*    prevent the boot code and kernel cold-start from masking interrupts.
+*    Typically, this option is useful for systems that have (say) a
+*    requirement to handle a power-fail interrupt during system startup.
+*    NOTE: normally, interrupts are masked to level 7 *prior* to calling
+*    the OEM SysInit routine (where the "no interrupts flag would normally
+*    be set).  If the system requirements are such that interrupts are
+*    not maskable even through SysInit, then the conditional assembly
+*    flag NOIRQ_SEVERE should be defined to prevent the initial masking.
+*
+*  - Calling debugger:  this option delays the initial call to the
+*    debugger during boot time.  This improves boot speed by postponing
+*    the debugger data initialization and .stb module searches until an
+*    explicit call is made to the debugger (e.g. the system will boot up
+*    without the debugger being called, but a subsequent ABORT switch
+*    option will then drop the system into the debugger.
+*
+*  - Cpu type:  this option (invoked via the FIXED_CPUTYP conditional)
+*    informs the boot code to use a static definition (CPUTyp-68000)
+*    for the cpu in use, as opposed to dynamically determining the cpu
+*    in use (results in a small code/speed saving).
+*
+*  - Skip parity init:  this option informs the boot code to skip memory
+*    parity initialization.  This option is useful for systems that (say)
+*    require memory parity initialization on a power-up reset condition
+*    but not on other restarts.  SysInit code would, in this example,
+*    determine how the system started, and set this flag to disable
+*    the memory parity init if the restart was not a power-on condition.
+*    The boot's memory parity initialization code must be included by
+*    defining the PARITY conditional for this functionality to exist.
+*
+*  - Quiet boot:  this option informs the boot code that it should not
+*    print any of the standard banners during boot time.  As polled
+*    I/O is typically used to output these messages (e.g, "OS-9 Bootstrap")
+*    these informational messages can cause a minor slowing of the
+*    system boot speed.  Note that there is no centralized control for
+*    checking of this flag:  each boot component that wishes to output
+*    a status message is required to check this flag to see whether a
+*    message should be supressed or not.  In the case of fatal errors
+*    that prevent the system from booting, it is up to the particular
+*    boot component to decide whether an error message should be issued
+*    or not.
+*  
+* It should also be noted that defining the PARITY flag will slow system
+* boot time, as the boot code will then patternize all of ram memory.
+* Systems that don't need parity initialized memory should not define PARITY
+* if they wish to have optimal booting speed.
+*
+* The boot speed options will be typically set during the (OEM) SysInit
+* routine, by setting the applicable flags in the USP register.  The
+* USP register is used to hold boot options while SysInit is run (due
+* to the fact that SysInit is allowed to use any of the Dn/An registers),
+* and once SysInit returns to this (boot.a) code, these startup options
+* are then copied to the Crystal vsect variable.  If OEM code wishes to
+* set additional flags (beyond those set at SysInit time - e.g. in SInitTwo
+* or in specialized boot drivers), then those flags should be set using
+* Crystal.  When the boot code calls into the kernel, the value of Crystal
+* is passed also to indicate the system startup method.
+*
+* Systems that wish to speed the boot process by enabling caching should do
+* so during SInitTwo.  Instruction caching being enabled should rarely
+* present problems.  Data caching enabling will require that any boot
+* drivers that use DMA be updated so that they ensure that there are no
+* cache coherancy issues.
+*
+*    [NOTE: 68349 users should NOT attempt to enable instruction caching,
+*    as there are silicon problems with PC relative addressing and caching
+*    Please refer to the Motorola Errata for details on this issue].
+*
+
+
+********************
+* sysglob macro
+*   Get system global storage ptr.
+*
+ ifndef sysglob
+sysglob macro
+ ifne \#-1
+ fail sysglob: requires one (A-reg) argument
+ endc
+ ifne \L1-2
+ fail sysglob: argument must be an A register"
+ endc
+ ifdef CPU_VBR
+ movec vbr,\1
+ movea.l (\1),\1
+ else
+ movea.l 0.w,\1
+ endc CPU_VBR
+ endm
+ endc sysglob
+
+
+********************
+* 32-bit pc relative reaching macro
+*
+reach32 macro
+ ifne \#-1
+ fail reach32: requires target label argument
+ endc
+* this macro allows calls to labels that are outside the
+* range of 16-bit relative addressing
+bt_\1 movem.l a0-a1,-(a7) save a0, carve "rts" space
+ movea.l #\1-*-8,a0 get offset of routine
+ lea.l (pc,a0.l),a0 compute actual address
+ move.l a0,4(a7) set on stack
+ movea.l (a7)+,a0 restore a0
+ rts call external routine 
+ endm
+
+
+********************
+* Default conditionals setup
+*
+
+* determine whether 683XX CPUTyp is 68000 or 68300 family.
+*
+ ifge CPUTyp-68301
+ iflt CPUTyp-68400
+
+* CPUTyp specified as being 68301 through 68399 processor (CPUTyp set
+* to 68300 means CPU32 family)
+
+ iflt CPUTyp-68329
+* determine whether 68302 or 68307 processor (reserves vectors 60 - 63)
+*
+ ifeq (CPUTyp-68302)*(CPUTyp-68307)
+RESVECT_60_63 set 1 define vectors are reserved
+ endc CPUTyp (68302)
+
+* CPUTyp set to 68301-68329 range - make 68000
+CPUTyp set 68000 indicate correct processor core
+ else
+
+ ifge CPUTyp-68330
+* CPU32 or CPU32+ (aka CPU030) processor core
+CPUTyp set 68300 indicate CPU32 style core
+ endc CPUTyp(68330-68399)
+
+ endc CPUTyp(68301-68329)
+ endc CPUTyp(<68400)
+ endc CPUTyp(>=68301)
+
+* Definition for "cpu with vbr support".
+*
+ ifeq (CPUTyp-68010)*(CPUTyp-68020)*(CPUTyp-68030)*(CPUTyp-68300)*(CPUTyp-68040)*(CPUTyp-68060)
+CPU_VBR equ 1 define label to say "supports non-zero VBR"
+ endc
+
+* Define whether global data is fixed size (old method) or not
+*
+ ifdef CBOOT
+VARGLOBE set 1 define label if using CBOOT booting code
+ endc
+ ifdef ROMBUG
+VARGLOBE set 1 define label if using ROMBUG debugger
+ endc
+
+* set "a debugger in use" flag if any debugger in use
+ ifdef DEBUGGER
+USING_DEBUGGER set 1 define that a debugger is in use
+ endc
+ ifdef ROMBUG
+USING_DEBUGGER set 1 define that a debugger is in use
+ endc
+
+* define the default abort-switch vector (mainly for ROMBUG)
+ ifndef ABORTVECT
+ABORTVECT equ 31 abort switch default is auto-level 7
+ endc ABORTVECT
+
+* define the default boot/kernel globals (if not using ROMBUG or CBOOT)
+ ifndef VARGLOBE
+SysRAM equ 8192 size of RAM reserved for OS-9 globals
+ endc VARGLOBE
+ 
+* define Vector Base Register for system
+ ifndef VBRBase
+VBRBase equ 0 vectors at 0
+ endc
+
+* define address translation constant for dma-style booters
+ ifndef TRANSLATE
+TRANSLATE equ 0 no address translation for DMA
+ endc
+
+* jump table offsets
+
+hand_ill equ (4-2)*10+6 "illegal instruction" handler offset
+hand_fmt equ (14-2)*10+6 "format error" handler offset
+
+
+********************************
+* BootStrap Memory Definitions
+*   RAM beginning at Mem.Beg has this format
+
+ vsect
+ ds.b 254*10 exception jump tbl (must be first)
+
+MPUType: ds.l 1 microprocessor (68000/68010/etc)
+Crystal: ds.l 1 growth method
+RelFctr: ds.l 1 relocation factor
+TotRAM: ds.l 1 total RAM found in system
+Access: ds.l 1 access address of startup Bus Error
+SaveMem ds.l 1 storage for save of memory contents
+IOReserv: ds.l 30 reserved 120 bytes for primitive IO use
+ ends
+
+
+********************************
+* Do not remove or move
+*
+Author: dc.b "{{{{{{{--}}}}}}}"
+        dc.b "from the disk of"
+        dc.b " Robert Doggett "
+        dc.b "      and       "
+        dc.b "  Warren Brown  "
+        dc.b "{{{{{{{++}}}}}}}"
+
+* BootStrap Global Data and Constants
+*
+* This included file contains the BootStrap global ROM constants.
+*
+ use <bootglob.d>
+
+ align
+
+********************************
+* Execution entry points
+
+ opt -e
+Reset: bra SysReset Dead Start initialization
+ bra bt_InChar input one character (and convert to upper case if old debugger)
+ bra bt_OutChar output one character
+ bra Extract primitive memory request
+
+ ifdef USING_DEBUGGER
+
+ bra RstDebug invoke system level debugger
+
+ else (no rom debugger)
+
+ bra QuikStart no system level debugger, restart system quickly
+
+ endc USING_DEBUGGER
+
+ bra OutHex output a nibble (d0.n) in hex
+ bra Out1Hex output a byte (d0.b) in hex format
+ bra Out2Hex output a word (d0.w) as 2 hex digits
+ bra Out4Hex output a long (d0.l) as four hex digits
+ bra bt_InChChek input one character (unblocked, no echo)
+ opt e
+
+ ifdef USING_DEBUGGER
+
+RstDebug move sr,-(a7) save SR before changed
+ bsr bt_UseDebug debugger enabled ?
+ beq QuikStart restart (quickly) if not
+ move (a7)+,sr restore ccr
+ bra bt_Debug call Debugger
+
+ else
+
+RstDebug bra SysReset
+
+ endc USING_DEBUGGER
+
+
+********************************
+* Message Strings
+*
+StartMsg dc.b "OS-9/68K System Bootstrap",0
+BootErr  dc.b "Boot failed, error status $",0
+ModulErr dc.b "Kernel has bad module header",0
+ExcptErr dc.b "Exception Error, vector offset $",0
+ErrPC    dc.b " addr $",0
+BusErr   dc.b "Illegal Bus Trap during RAM search at address: $",0
+FatalErr dc.b "Fatal System Error; rebooting system",0
+
+* RAM test pattern codes
+*
+Pattern1 equ $5a5a5a5a
+Pattern2 equ $a5a5a5a5
+InitPatt equ $FEEDC0DE
+
+
+ ttl Coldstart Routines
+ pag
+********************************
+* Routine SysReset
+*   System Dead Start.  Must reset any hardware not cleared by a RESET
+* instruction.  Initializes exception vectors.  Finds system RAM and
+* ROM.  Calls SysBoot to locate the operating system module.  Executes
+* the module found.
+
+* Warmstart restart entry point
+*
+QuikStart moveq.l #0,d0 sweep reg
+ bset.l #B_QuikVal,d0 set warmstart flag
+ movea.l d0,a0 move to An reg
+ bra.s ResetCom enter common code
+
+* Panic (ColdStart) restart entry
+*
+SysReset movea.w #0,a0 cold start
+
+ResetCom equ *
+
+ ifndef NOIRQ_SEVERE
+
+ ori.w #IntMask,sr disable interrupts
+
+ endc NOIRQ_SEVERE
+
+ move.l a0,usp save growth method from SysInit
+
+
+********************************
+* First call to sysinit routines
+*
+* SysInit routine may use any Dn/An registers.  USP must be preserved.
+*
+ ifdef MANUAL_RAM
+
+ bra SysInit call for hardware dependent system initialization
+
+ else
+
+ reach32 SysInit call for hardware dependant system initialization
+
+ endc MANUAL_RAM
+
+* SysInit routine must return via bra to the following label
+*
+SysRetrn: sysglob a7 re-set initial SSP ptr
+
+ movea.l MemList(pc),a5 get boot global pointer
+
+* clear all boot global memory.
+* for speed of boot, we will make 2 optimizations:
+*  a) we will not explictly clear the first 2540 bytes, as they are the
+*     jump table area, which will be setup after this clearing.
+*  b) the clear loop assumes that memory starts/ends on a 16-byte boundary,
+*     which is the normal minimum allocation size for OS-9.
+*
+skipjmptbl equ (254*10)&$fffffff0 skip over jump table (line aligned)
+
+ moveq.l #0,d0 sweep regs
+ moveq.l #0,d1
+ moveq.l #0,d2
+ moveq.l #0,d3
+
+ ifdef VARGLOBE
+
+* NOTE:  these run-time calculations are necessary due to
+*        linker external reference limitations
+
+ move.l #(dsize+IntrptStk+D_End),d4 size of globals
+
+ else
+
+ move.l #SysRAM,d4 clear 8k for system 
+
+ endc VARGLOBE
+
+ lea.l (a5,d4.l),a0 point at top of area to clear
+ subi.l #skipjmptbl,d4 jump table is at beginning of area (skip clearing)
+ lsr.w #4,d4 make line (16-byte) count
+ subq.l #1,d4 form dbra counter
+
+SysRes10 movem.l d0-d3,-(a0) clear line
+ dbra d4,SysRes10
+
+* record startup method
+*
+ move.l usp,a0 get growth method
+ move.l a0,Crystal(a5) save it
+
+* check for Interrupts Unmasked request from SysInit
+*
+ move.l a0,d0 copy startup flags
+ btst.l #B_NoIRQMask,d0 request to unmask interrupts?
+ beq.s SysRes12 ..no; continue (irqs assumed masked)
+ andi.w #IntEnab,sr unmask all interrupts
+
+* compute position relative difference
+*
+SysRes12 move.l #Reset,d3 get (a local) linked address
+ lea.l Reset(pc),a4 get position relative address
+ sub.l d3,a4 compute difference
+ move.l a4,d4 save for later adjustment in vector table
+ move.l d4,RelFctr(a5) and for ROMBUG
+ 
+* Build system exception tables and (if required) RAM vectors
+*
+ lea.l BadExcpt(pc),a0 bad exception handler
+ movea.l a5,a1 exception jmp table beginning
+
+ ifdef CPU_VBR
+
+ movec vbr,a2 copy exception vectors base
+ adda.w #T_BusErr,a2 point at bus error vector
+
+ else
+
+ movea.w #T_BusErr,a2 hardware exception vector ptr
+
+ endc CPU_VBR
+
+ moveq.l #T_BusErr,d2 initialize vector counter
+ move.w #253,d0 number of entries minus one
+
+ ifdef RAMVects
+
+* vectors are in RAM
+*
+ add.l d4,-4(a2) adjust reset pc in new vector table
+
+ ifdef USING_DEBUGGER
+* debugger in use (vectors are in RAM)
+*
+ movea.l #VectTbl-*-8,a3 point at bus error vector entry (allows >32K span)
+ lea.l 8(pc,a3.l),a3
+ swap d3 setup linked address for easy test
+SysRes20 equ *
+
+ ifdef MBUGTRC
+
+ cmpi.w #T_IllIns,d2
+ bne.s NotIll0 if not illegal inst vector, go on
+ move.l a1,d5 save jump table address for later
+ bra.s SysRes21 and don't copy ill inst vect (for BKPT)
+NotIll0 cmpi.w #T_Trace,d2
+ beq.s SysRes21 dont copy trace vect
+
+ endc MBUGTRC
+
+ ifdef RESVECT_60_63
+
+ cmpi.w #T_VctIRQ-(4*4),d2 vector lower than #60?
+ blo.s SysRes20_a ..yes; write the vector
+ cmpi.w #T_VctIRQ,d2 vector higher than #63?
+ blo.s SysRes21 ..no; skip vector init
+SysRes20_a equ *
+
+ endc RESVECT_60_63
+
+ move.l (a3),(a2) copy vector to RAM
+ cmp.w (a2),d3 check if vect base is same as linked address
+ bne.s SysRes21 if not, forget it
+ add.l d4,(a2) otherwise, adjust it
+SysRes21 addq.l #4,a3
+
+  else
+
+* debugger not in use (vectors are in RAM)
+*
+SysRes20 equ *
+
+ ifdef MBUGTRC
+
+ cmpi.w #T_IllIns,d2
+ bne.s NotIll0 if not illegal inst vector, go on
+ move.l a1,d5 save jump table address for later
+ bra.s SysRes21 and don't copy ill inst vect (for BKPT)
+
+NotIll0 cmpi.w #T_Trace,d2
+ beq.s SysRes21 dont copy trace vect
+
+ endc MBUGTRC
+
+ ifdef RESVECT_60_63
+
+ cmpi.w #T_VctIRQ-(4*4),d2 vector lower than #60?
+ blo.s SysRes20_a ..yes; write the vector
+ cmpi.w #T_VctIRQ,d2 vector higher than #63?
+ blo.s SysRes21 ..no; skip vector init
+SysRes20_a equ *
+
+ endc RESVECT_60_63
+
+ move.l a1,(a2) put vector in RAM
+
+SysRes21 equ *
+
+ endc USING_DEBUGGER
+
+ else
+* vectors are in ROM
+*
+SysRes20 equ *
+
+ endc RAMVects
+
+* build Jump Table entries (vectors 2 - 255)
+*
+ move.w #$4878,(a1)+ build "pea #n,-(a7)" instr
+ move.w d2,(a1)+ fill in #n (vector number)
+ move.w #$4EF9,(a1)+ build "jmp #m" instr
+ move.l a0,(a1)+ fill in #m (exception handler)
+ addq.l #4,a2 bump vector pointer
+ addq.l #4,d2 bump vector counter
+ dbra d0,SysRes20 make default for all vectors
+
+ ifdef ROMBUG
+
+* perform data initialization
+*
+ movea.l #InitData-*-8,a1 calc 32-bit pc relative address (no jump table)
+ jsr (pc,a1) perform non-zero data initialization
+
+ endc ROMBUG
+
+* Determine CPU type
+* (68000/68010/68020/68030/68040/68060/68070/683XX)
+*
+
+ ifdef FIXED_CPUTYP
+
+* use static cpu definition
+*
+ move.l #CPUTyp-68000,d0 get (biased) CPU value
+
+ else
+
+* determine cpu dynamically
+*
+ lea.l CPUTyp10(pc),a1 get address trap continuation pt
+ move.l a1,16(a5) take over jmp table entry
+ move.l a7,d7 copy stack ptr
+ move.l d7,d6 and again
+
+ ifeq (CPUTyp-68040)*(CPUTyp-68060)
+
+ nop ensure writes complete (serialization issue)
+
+ endc CPUTyp(68040/68060)
+
+ jmp CPUTyp10+1(pc) generate address trap (continue at CPUTyp10)
+CPUTyp10 move.l a0,16(a5) reset addr trap jmp tbl entry
+ sub.l a7,d7 calculate number of bytes on stack
+ moveq.l #0,d0 default CPU = 68000
+ cmpi.b #18,d7 68000/68008 in use?
+ beq CPUTyp30 yes; continue
+ moveq.l #10,d0 default CPU = 68010 
+ cmpi.b #62,d7 68010 in use?
+ beq CPUTyp30 yes; continue
+ moveq.l #70,d0 default CPU = 68070
+ cmpi.b #38,d7 68070 in use ?
+ beq CPUTyp30 yes; continue
+ move.l #300,d0 default CPU = 68300 family
+ cmpi.b #28,d7 683XX in use ?
+ beq.s CPUTyp30 yes; continue
+ cmpi.b #16,d7 68040 or 68060 in use ?
+ beq.s CPUTyp18 yes; continue
+ moveq.l #99,d0 default unknown CPU code
+ cmpi.b #36,d7 68020 or 68030 in use?
+ beq.s CPUTyp20 yes; continue
+ cmpi.b #96,d7 68020 or 68030 in use?
+ bne.s CPUTyp30 no; set CPU code=99 (unknown)
+CPUTyp20 move.l hand_ill(a5),a0 save "illegal instr" handler
+ move.l hand_fmt(a5),a1 save "format error" handler
+ lea.l CPUTyp20_b(pc),a2 68020 continuation point
+ move.l a2,hand_fmt(a5) set in jmp table
+ lea.l CPUTyp20_a(pc),a2 68030 continuation point
+ move.l a2,hand_ill(a5) set in jump table
+
+ ifdef MBUGTRC
+
+ movec vbr,a3
+ move.l T_IllIns(a3),a4 save MBUGS vector
+ move.l d5,T_IllIns(a3) plug in jump table address
+
+** cannot breakpoint until below
+ endc MBUGTRC
+
+ moveq.l #20,d0 default CPU code = 68020
+ dc.l $06fa0000 detect cpu type (does NOT continue in-line)
+ dc.l $0002ffff
+
+CPUTyp18 move.l hand_ill(a5),a0 save "illegal instruction" handler
+ lea.l CPUTyp19(pc),a1 get continuation point
+ move.l a1,hand_ill(a5) set it into jump table
+
+ ifdef MBUGTRC
+
+ movec vbr,a3
+ move.l T_IllIns(a3),a4 save MBUGS vector
+ move.l d5,T_IllIns(a3) plug in jump table address
+
+** cannot breakpoint until below
+ endc MBUGTRC
+
+ moveq.l #60,d0 default CPU = 68060
+ movec msp,a1 detect cpu type
+ moveq.l #40,d0 ..no trap. must be 68040
+CPUTyp19 move.l a0,hand_ill(a5) restore "illegal instruction" handler
+
+ ifdef MBUGTRC
+
+ move.l a4,T_IllIns(a3) restore MBUG's vector
+** can now breakpoint again
+
+ endc MBUGTRC
+
+ bra.s CPUTyp30 go record the cpu type
+
+CPUTyp20_a moveq.l #30,d0 CPU code = 68030
+
+CPUTyp20_b move.l a1,hand_fmt(a5) restore "format error" handler
+ move.l a0,hand_ill(a5) restore "illegal instr" handler
+
+ ifdef MBUGTRC
+ move.l a4,T_IllIns(a3) restore MBUG's vector
+
+** can now breakpoint again
+ endc MBUGTRC
+
+CPUTyp30 move.l d6,a7 reset stack ptr
+
+ endc FIXED_CPUTYP
+
+ move.l d0,MPUType(a5) set MPU type in use
+
+ ifdef USING_DEBUGGER
+
+ bsr bt_DbugInit let debug initialize
+
+ endc USING_DEBUGGER
+
+
+********************************
+* Second call to sysinit routines
+*
+* All registers used in SInitTwo must be preserved
+*
+ bsr bt_SInitTwo call hardware dependent code again
+
+* re-check to see if SInitTwo requested interrupt unmasking
+*
+ move.l Crystal(a5),d0 get configuration flags
+ btst.l #B_NoIRQMask,d0 request to unmask interrupts?
+ beq.s SysRes32 ..no; continue (irqs assumed masked)
+ andi.w #IntEnab,sr unmask all interrupts
+
+* print console message
+*
+SysRes32 bsr bt_ConsInit initialize console hardware
+
+* check to see if Quiet mode requested
+*
+ btst.l #B_Quiet,d0 issue normal progress messages?
+ bne.s SysRes33 ..no; skip startup message
+ bsr PrintCR force a new line
+ lea.l StartMsg(pc),a0
+ bsr PrintLn print startup message
+SysRes33 equ *
+
+
+ pag
+********************************
+* RAM/ROM Search routine
+*   Searchs system address space for RAM and ROM
+*
+*    Register use:
+* d0.l=temp for RAM contents  (a0)=temp; Bus Error continuation pt
+* d1.l=search block size      (a1)=memlist pointer
+* d2.l=current block type     (a2)=current block ptr
+* d3.l=current block size     (a3)=beginning of current block
+* d4.b=last block type        (a4)=last block ptr
+* d5.b=ROM search flag        (a5)=bootrom's global static
+* d6.l=chunk mask
+* d7.l=stack frame ptr
+
+* ROM Search Flag bit number
+*
+ROMSrchF equ 0
+
+* block type values
+*
+EMPBLK equ 0 block is empty
+RAMBLK equ 1 block contains RAM
+ROMBLK equ 2 block contains ROM
+
+ ifdef VARGLOBE
+
+ move.l #(dsize+IntrptStk+D_End),TotRAM(a5) set initial total RAM
+
+ else
+
+ move.l #SysRAM,TotRAM(a5) set initial total RAM to 8k
+
+ endc VARGLOBE
+
+ move.l Crystal(a5),d0 get system growth method(s)
+ btst.l #B_OKRam,d0 accept RAM lists "as is"?
+ beq.s ProbeSearch ..no, build them by probing
+
+* accept memory lists without qualification
+*
+* it is expected that the lists are reasonable
+* vis-a-vis block resolution, non-overlapping, etc....
+*
+ lea.l MemList(pc),a1 get pointer to memory search list(s)
+ suba.l a4,a4 oldblock=0 for start
+ move.l (a1)+,d0 get start address
+
+ ifdef VARGLOBE
+
+ add.l #(dsize+IntrptStk+D_End),d0 reserve system memory
+
+ else
+
+ add.l #SysRAM,d0 reserved system memory
+
+ endc VARGLOBE
+
+QSearch20 move.l (a1)+,d3 get end address of block
+ movea.l d0,a3 start of block
+ sub.l d0,d3 get block size
+ move.l a4,(a3) build linked list of free ram
+ move.l d3,4(a3) save size of segment
+ move.l a3,a4 save last block ptr
+ add.l d3,TotRAM(a5) update total ram count
+
+ ifdef PARITY
+
+* check for parity initialization
+*
+ move.l Crystal(a5),d0 get configuration flags
+ btst.l #B_SkipParity,d0 skip parity initialization?
+ bne.s QSearch25 ..yes; do so
+ bsr Parity_Init go initialize memory parity
+QSearch25 equ *
+
+ endc PARITY
+
+ move.l (a1)+,d0 get next block start
+ bne.s QSearch20 continue till exhausted
+
+* check to see if ROM lists to be built or accepted
+*
+ move.l Crystal(a5),d0 get configuration flags
+ btst.l #B_OKRom,d0 accept ROM lists "as is"?
+ beq.s Search_ROM ..no; go build by probing
+
+* accept ROM lists, build the rom area lists on the stack
+*
+QSearch50 move.l (a1)+,d0 get rom area start
+ beq Search99 ..exit if no more
+ move.l (a1)+,d1 get rom area end
+ sub.l d0,d1 find block size
+ movem.l d0-d1,-(a7) build rom area list
+ bra.s QSearch50 continue till done
+
+
+* build RAM lists by probing
+*
+ProbeSearch move.l ChunkSiz(pc),d6 get chunk size
+ subq.l #1,d6 chunksize-1
+ not.l d6 mask for chunksize
+ moveq.l #ROMSrchF,d5 set not searching ROM flag (start in RAM)
+ suba.l a4,a4 oldblk=0 for start
+ lea.l BusTrap(pc),a0 get bus trap handler for RAM search
+ move.l a0,6(a5) set it in jump table
+ move.l a7,d7 save stack frame ptr
+
+ ifdef USING_DEBUGGER
+
+ clr.b trapflag(a5) clear sys debugger trap flag
+
+ endc USING_DEBUGGER
+
+ lea.l MemList(pc),a1 get pointer to memory search list
+ move.l (a1)+,d0 get first memory block to check
+
+ ifdef VARGLOBE
+
+ add.l #(dsize+IntrptStk+D_End),d0 reserve system memory
+
+ else
+
+ add.l #SysRAM,d0 reserve system memory
+
+ endc VARGLOBE
+
+ bra.s Search04 enter search loop
+
+Search02 move.l (a1)+,d0 get memory block to check
+ bne.s Search04 branch if not end of list
+ bset.l #ROMSrchF,d5 set doing ROM search and test for all done
+ bne Search90 bra if all done
+
+* check to see if ROM lists to be probed or accepted
+*
+ move.l Crystal(a5),d0 get configuration flags
+ btst.l #B_OKRom,d0 accept ROM lists "as is"?
+ bne.s QSearch50 ..yes; do so
+
+* build ROM lists by probing
+*
+Search_ROM move.l (a1)+,d0 get memory block to check
+
+Search04 moveq.l #EMPBLK,d2 current type=empty
+ moveq.l #0,d3 current blksize=0
+ moveq.l #EMPBLK,d4 oldtype=empty
+ movea.l d0,a2 blkptr to block start addr
+ movea.l d0,a3 blkbeg same as block start
+ move.l ChunkSiz(pc),d1 get chunk size
+ add.l d0,d1 get block end
+ and.l d6,d1 make even block end
+ sub.l d0,d1 get block size to next even block
+Search10 lea.l Search11(pc),a0 ignore bus trap
+ move.l (a2),d0 save current contents
+ move.l 4(a2),SaveMem(a5) save next location (for bus disturbance)
+ btst.l #ROMSrchF,d5 in system "ROM" RAM?
+ bne.s Search20 found ROM block if so
+Search11 lea.l Search40(pc),a0 empty block if bus trap
+ move.l #Pattern1,(a2) store first test pattern
+ move.l #Pattern2,4(a2) disturb bus
+
+ ifeq (CPUTyp-68040)*(CPUTyp-68060)
+
+ nop ensure writes complete (serialization issue)
+
+ endc CPUTyp(68040/68060)
+
+ cmpi.l #Pattern1,(a2) did test pattern store?
+ bne.s Search20 found ROM block if not
+ lea.l BadBoot3(pc),a0 bus traps are illegal now
+ move.l #Pattern2,(a2) store second test pattern
+ move.l #Pattern1,4(a2) disturb bus
+
+ ifeq (CPUTyp-68040)*(CPUTyp-68060)
+
+ nop ensure writes complete (serialization issue)
+
+ endc CPUTyp(68040/68060)
+
+ cmpi.l #Pattern2,(a2) did it store?
+ bne.s Search20 found ROM block if not
+ move.l d0,(a2) replace original contents
+ move.l SaveMem(a5),4(a2)
+ btst.l #ROMSrchF,d5 in system "ROM" RAM?
+ beq.s Search30 found RAM block if not
+
+* Really ROM, or just empty block?
+*
+Search20 lea.l BadBoot3(pc),a0 bus traps are illegal now
+ cmp.l (a2),d0 contents same as originally?
+ bne.s Search40 assume empty block if not
+
+ ifdef REJECT0
+
+* this code can be included if you want to ignore "rom memory
+* whose contents are 0"
+
+ tst.l (a2) zero value in ROM?
+ bne.s Search25 accept ROM if not
+ cmp.b #ROMBLK,d4 was last block ROM also?
+ bne.s Search40 assume empty block if not
+
+ endc REJECT0
+
+Search25 moveq.l #ROMBLK,d2 type=ROM
+ bra.s Search40
+
+Search30 moveq.l #RAMBLK,d2 type=RAM
+
+Search40 lea.l BadBoot3(pc),a0 bus traps are illegal now
+ cmp.b d2,d4 same type as last block?
+ beq Search80 update block size if so
+ cmp.b #RAMBLK,d4 was last block RAM?
+ bne.s Search50 branch if not
+ move.l a4,(a3) build linked list of free RAM
+ move.l d3,4(a3) save size of segment
+ move.l a3,a4 save last block ptr
+ add.l d3,TotRAM(a5) update total RAM count
+
+ ifdef PARITY
+
+* check to see if parity init disabled
+*
+ move.l Crystal(a5),d0 get configuration flags
+ btst.l #B_SkipParity,d0 skip parity init?
+ bne.s Search45 ..yes; do so
+ bsr Parity_Init initialize memory parity
+Search45 equ *
+
+ endc PARITY
+
+ bra.s Search60 continue
+
+Search50 cmp.b #ROMBLK,d4 was last block ROM?
+ bne.s Search60 branch if not
+ move.l d3,-(a7) save ROM block size
+ move.l a3,-(a7) save ROM block ptr
+ move.l a7,d7 save new stack frame ptr
+Search60 movea.l a2,a3 save block beginning ptr
+ moveq.l #0,d3 clear block size
+ move.b d2,d4 save block type
+
+Search80 cmpa.l (a1),a2 searched complete list entry?
+ blo.s Search85 branch if not
+ addq.l #4,a1 else bump to next list entry
+ bra Search02 and go back for more
+
+Search85 moveq.l #EMPBLK,d2 default type to empty block
+ adda.l d1,a2 move to next block
+ cmpa.l (a1),a2 still in list entry?
+ bhs.s Search88 branch if not
+ add.l d1,d3 update current block size
+ move.l ChunkSiz(pc),d1 get chunk size
+ bra Search10 repeat till end of block
+
+Search88 move.l a2,d0 get actual end address in data reg
+ sub.l (a1),d0 find difference in size
+ sub.l d0,d1 adjust current block size by end difference
+ add.l d1,d3 update current block size
+ bra Search40 record last block
+
+BusTrap move.l 6(a7),Access(a5) save access address
+ cmpi.l #10,MPUType(a5) check processor type
+ blo.s BusTrapExit branch if 68000/68008
+ beq.s BusTrap10 branch if 68010
+ cmpi.l #20,MPUType(a5)
+ beq.s BusTrap20 branch if 68020
+ cmpi.l #30,MPUType(a5)
+ beq.s BusTrap20 branch if 68030
+ cmpi.l #40,MPUType(a5)
+ beq.s BusTrap40 branch if 68040
+ cmpi.l #60,MPUType(a5)
+ beq.s BusTrap60 branch if 68060
+ cmpi.l #300,MPUType(a5)
+ beq.s BusTrap300 branch if 68300 family
+ move.l 24(a7),Access(a5) save 68070 access address
+ bra.s BusTrapExit exit
+
+BusTrap10 move.l 14(a7),Access(a5) save 68010 access address
+ bra.s BusTrapExit exit
+
+BusTrap20 move.l 20(a7),Access(a5) save 68020/68030 access address
+ bra.s BusTrapExit exit
+
+BusTrap40 move.l 24(a7),Access(a5) save 68040 access address
+ bra.s BusTrapExit exit
+
+BusTrap60 move.l 12(a7),Access(a5) save 68060 access address
+ bra.s BusTrapExit exit
+
+BusTrap300 move.l 12(a7),Access(a5) save 683XX access address
+
+BusTrapExit movea.l d7,a7 reset stack frame ptr
+ jmp (a0) execute error exit
+
+
+ ifdef PARITY
+
+********************
+* Memory parity initialization routines
+*
+* d3.l = size of block
+* (a3) = block start address
+*
+* NOTE: the first 2 longs of the block must not be touched - they
+*       contain the free memory list structure.
+*
+Parity_Init: equ *
+
+ move.l #InitPatt,d0 get initialization pattern
+
+ ifndef NOMOVE16
+
+ cmpi.l #40,MPUType(a5) is this a 68040
+ beq.s ParInit040 ..yes; enter loop
+ cmpi.l #60,MPUType(a5) is this a 68060
+ bne.s ParInit.Std ..no; use generic loop
+
+* patternize 68040/68060 memory using move16
+*
+* ASSUMES memory block is on Line boundary and count is multiple
+* of line size.
+*
+ParInit040 cmpi.l #48,d3 needs to be more than 3 lines
+ bmi.s ParInit.Std ..if not, use std loop
+ movem.l d3/a0/a3,-(a7) save regs
+ move.l d0,8(a3) finish 1st line
+ move.l d0,$c(a3)
+ move.l d0,$10(a3) complete 2nd line (1st full line)
+ move.l d0,$14(a3)
+ move.l d0,$18(a3)
+ move.l d0,$1c(a3)
+ lea.l $20(a3),a3 point to next line
+ lsr.l #4,d3 get number of lines
+ subq.l #3,d3 count manual lines & dbra counter
+ lea.l -16(a3),a0 point at 1st full line
+ nop need nop prior to move16 sequence (old mask issue)
+ParInit042 move16 (a0)+,(a3)+ init the line
+ ldbra d3,ParInit042
+ movem.l (a7)+,d3/a0/a3 restore regs
+ rts return
+
+ endc NOMOVE16
+ 
+* patternize memory using standard moves
+*
+ParInit.Std move.l d0,$8(a3) finish first line
+ move.l d0,$c(a3)
+ movem.l d3/d5-d7/a3,-(a7) save regs
+ lea.l (a3,d3.l),a3 point at end of area to clear
+ lsr.l #4,d3 divide by 16 bytes/line
+ beq.s ParInit50 exit if just one line
+ subq.l #2,d3 subtract one for dbra and one for initial line
+ move.l d0,d5 load up pattern
+ move.l d0,d6
+ move.l d0,d7
+ParInit45 movem.l d0/d5-d7,-(a3) init RAM to insure good parity
+ ldbra d3,ParInit45
+ParInit50 movem.l (a7)+,d3/d5-d7/a3 restore regs
+ rts
+
+ endc PARITY
+
+
+********************
+* End of memory search routines.
+*
+Search90 lea.l BadExcpt(pc),a0 get exception error routine
+ move.l a0,6(a5) reset Bus Error exception
+
+Search99 equ *
+
+ ifdef USING_DEBUGGER
+
+ move.l Crystal(a5),d0 get configuration flags
+ btst.l #B_NoDebugCall,d0 delay debugger call?
+ bne.s Ndb3 ..yes; continue
+ bsr bt_UseDebug do we use debugger
+ beq.s Ndb3 branch if not
+ bsr bt_Debug enter debugger
+Ndb3 equ *
+
+ endc USING_DEBUGGER
+
+ pag
+********************************
+* Bootstrap operating system
+
+* Calling conventions for disk boot subroutine ("SysBoot"):
+*
+* Passed: (a1)=Boot ROM entry point
+*         (a3)=Port address from DiskPort
+*         (a4)=system free RAM list
+*         (a5)=exception jump tbl ptr
+*         (a6)=operating system global data ptr (4k scratch memory)
+*         (a7)=system ROM map (SysBoot has return addr first)
+* Returns: (a0)=ptr to an executable module with a valid header
+*          (a4)=possibly updated free RAM list
+*          (a5)=must be intact
+*          (a7)=possibly updated system ROM list
+*          cc=carry set, d1.w=error status if bootstrap failed
+
+Boot: lea.l Reset(pc),a1 get Boot ROM entry pt
+ movea.l DiskPort(pc),a3 get device port addr
+ sysglob a6 get system global data ptr
+ bsr bt_SysBoot execute Bootstrap routine(s)
+ bcs.s BadBoot1 abort if boot failed
+
+* Check module ID and header parity
+*
+ move.l a0,-(a7) save module ptr
+ cmpi.w #M$ID12,(a0) are sync bytes good ID?
+ bne BadBoot2 abort if not
+ moveq.l #M$Parity,d1 get format zero byte count
+ asr.w #1,d1 make word count
+ moveq.l #-1,d2 init parity
+Boot10 move.w (a0)+,d0 get next header word
+ eor.w d0,d2 accumulate it
+ dbra d1,Boot10 loop through header bytes
+ movea.l (a7)+,a0 retrieve module ptr
+ bne.s BadBoot2 abort if bad parity
+
+* add system globals to system rom list
+*
+ ifdef VARGLOBE
+
+ move.l #(dsize+IntrptStk+D_End),-(a7) set size of boot globals
+
+ else
+
+ move.l #SysRAM,-(a7) set size of boot globals
+
+ endc VARGLOBE
+
+ move.l MemList(pc),-(a7) set address in rom list
+ bne.s Boot50 ..not 0, continue
+
+* adjust rom static area due to start address of 0 - this is NOT
+* a major problem as we are only marking things out so that the
+* kernel won't try to use the rom's memory...
+*
+ move.l #16,(a7) set (fake) start address of 16
+ subi.l #16,4(a7) adjust size accordingly.
+
+* initialize registers for entry to kernel
+*
+Boot50 move.l TotRAM(a5),d0 get total RAM size
+ move.l MPUType(a5),d1 pass cpu type to OS-9 kernel
+ moveq.l #0,d2 default clear trapflag for kernel
+ move.l Crystal(a5),d3 pass growth method to OS-9 kernel
+ moveq.l #0,d4 return other registers clear (for future use)
+ moveq.l #0,d5
+ moveq.l #0,d6
+ moveq.l #0,d7
+ adda.l M$Exec(a0),a0 obtain (kernel) execution entry pt
+ lea.l Reset(pc),a1 get Boot ROM entry pt
+ movea.l d7,a2
+ movea.l d7,a3
+ sysglob a6 get system global data ptr
+
+ ifdef USING_DEBUGGER
+
+ move.b trapflag(a5),d2 get trapflag for kernel; are we debugging?
+ beq.s SkipDbg branch around debug call if not
+ bsr bt_Debug call debugger
+ move.b trapflag(a5),d2 reinit in case user disabled debugger
+SkipDbg equ *
+
+ endc USING_DEBUGGER
+
+* The Kernel is jumped to, and does not return.
+* Registers passed to system kernel:
+* Passed: d0.l=total RAM found in system
+*         d1.l=MPUType (68000/68010/68020/68030/68040/68060/68070/683XX)
+*         d2.b=trapflag for system debug
+*         d3.l=system startup method
+*         d4-d7=clear
+*         (a0)=garbage (kernel entry point)
+*         (a1)=Boot ROM entry point
+*         a2-a3=clear
+*         (a4)=system free RAM list
+*         (a5)=exception jump tbl ptr
+*         (a6)=operating system global data ptr (4k scratch memory)
+*         (a7)=system ROM map (SysBoot has return addr first)
+*
+
+ jmp (a0) enter operating system kernel
+
+BadBoot1 lea.l BootErr(pc),a0 get bootstrap error message
+ bsr PrintStr print it
+ move.w d1,d0 get error status
+ bsr Out2Hex print it
+ bsr PrintCR
+
+DeadEnd movem.l d0-d7/a0-a7,-(a7) save all regs
+ bsr RstDebug print registers
+ bra SysReset reset system and try again
+
+BadBoot2 lea.l ModulErr(pc),a0 get bad module error message
+
+BadBoot bsr PrintLn print it
+ bra.s DeadEnd didn't make it
+
+BadBoot3 lea.l BusErr(pc),a0 get Illegal Bus Trap error message
+ bsr PrintStr print it
+ move.l Access(a5),d0 get msb of access address
+ bsr.s Out4Hex print it
+ bsr PrintCR and carriage return
+ bra.s DeadEnd reset system and try again
+
+ ttl Simple Memory Request Routine
+ pag
+********************************
+* Subroutine Extract
+*   Allocate Memory from free list (for bootstrapped data)
+*
+* Passed: d0.l=amount of memory desired
+*         (a4)=system free RAM list
+* Returns: d0.l=amount of memory granted
+*          (a2)=ptr to memory
+*          cc=carry set, d1.w=error code if not enough memory
+* Destroys: d1
+*
+Extract: move.l a4,-(a7) save regs
+ move.l ChunkSiz(pc),d1
+ subq.l #1,d1
+ add.l d1,d0 round request up to nearest chunk
+ not.l d1
+ and.l d1,d0
+ movea.l a7,a2 get ptr to initial ptr
+ bra.s Extrac20
+
+Extrac10 movea.l a4,a2 move predecessor ptr
+ movea.l (a4),a4 move to next lower block
+Extrac20 tst.l (a4) search for lowest memory block
+ bne.s Extrac10 loop until found
+ cmp.l 4(a4),d0 enough memory in block?
+ bhs.s ExtracER abort if not
+ sub.l d0,4(a4) allocate block
+ add.l d0,(a2) adjust predecessor ptr
+ movea.l (a2),a2 get residue ptr
+ clr.l (a2) make it end ptr
+ move.l 4(a4),4(a2) get it's size
+ movea.l a4,a2 return ptr to block
+Extrac90 movea.l (a7)+,a4 restore free list ptr
+ rts return
+
+ExtracER move.w #E$MemFul,d1 get error code
+ ori.b #Carry,ccr return carry set
+ bra.s Extrac90 abort
+
+ ttl Exception Handling Routines
+ pag
+**********************************
+* Routine BadExcpt
+*   Handler for unexpected exception.  Prints error message
+* on system console, and crashes system.
+
+BadExcpt: ori.w #IntMask,sr disable interrupts
+ movem.l d0-d7/a0-a6,-(a7) save regs
+ lea.l ExcptErr(pc),a0 get error message ptr
+ bsr.s PrintStr print it
+ move.w R$a7+2(a7),d0 get vector offset
+ bsr.s Out2Hex print hex word
+ lea.l ErrPC(pc),a0 get message ptr
+ bsr.s PrintStr print it
+ move.l R$pc(a7),d0 get msb of pc
+ bsr.s Out4Hex print it
+ bsr.s PrintCR and carriage return
+ lea.l FatalErr(pc),a0 get reboot message
+ bra BadBoot print it and restart system
+
+ ttl I/O routines
+ pag
+********************************
+* Subroutines Out4Hex, Out2Hex, Out1Hex, OutHex
+*   Output hex byte or bytes to system console
+
+* Passed: d0=nibble/byte/word/long to print
+* Returns: none
+* Destroys: none
+
+Out4Hex: swap d0 get high order word
+ bsr.s Out2Hex print word
+ swap d0 get low order word
+
+Out2Hex: ror.l #8,d0 get MS byte
+ bsr.s Out1Hex print it
+ rol.l #8,d0 get LS byte
+
+Out1Hex: ror.l #4,d0 get MS nybble
+ bsr.s OutHex output it
+ rol.l #4,d0 get LS nybble
+
+OutHex: move.l d0,-(a7) save d0
+ andi.b #$0F,d0 Mask it
+ cmpi.b #9,d0 Check range
+ bls.s OutHex20
+ addi.b #7,d0 adjust for A-F
+OutHex20 addi.b #'0',d0 convert to ASCII
+ bsr.s bt_OutChar output it
+ move.l (a7)+,d0 restore d0
+ rts
+
+********************************
+* Subroutine PrintLn, PrintStr
+*   Output strings to system sonsole
+
+* Passed: (a0)=ptr to string to print
+* Returns: none
+* Destroys: d0/a0
+
+PrintLn bsr.s PrintStr print string
+
+PrintCR: moveq.l #C$CR,d0 print end of line string
+ bra.s bt_OutChar
+
+PrintS10 bsr.s bt_OutChar
+
+PrintStr: move.b (a0)+,d0
+ bne.s PrintS10 repeat until end of string
+ rts
+
+********************
+* External Calls Vectoring
+*
+* these "internal vectors" provide the means for this code to
+* call external routines that are greater than 16-bit offsets.
+
+ reach32 ConsInit perform initial console device initialization
+
+ reach32 InChar input one character (converted to upper case)
+
+ reach32 OutChar output one character
+
+ reach32 InChChek input one character (unblocked, no echo)
+
+ reach32 UseDebug test for debugger enabled
+
+ reach32 SInitTwo call system initialization, part 2
+
+ reach32 SysBoot call bootstrap routines
+ 
+ ifdef USING_DEBUGGER
+* debugger specific calls
+
+ reach32 DbugInit initialize debugger
+
+ reach32 Debug call debugger
+
+ endc USING_DEBUGGER
+
+ ends
+

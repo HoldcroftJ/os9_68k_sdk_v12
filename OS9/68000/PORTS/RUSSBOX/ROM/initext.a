@@ -1,0 +1,223 @@
+ nam initext.a
+ ttl initext.a - Sysinit extension module
+**************************************************
+* Copyright 1989, 1990, 1991 by Microware Systems Corporation.
+* All Rights Reserved
+* Reproduced Under License
+*
+*   This source code is the proprietary confidential property of
+* Microware Systems Corporation, and is provided to the licensee
+* for documentation and educational purposes only.  Reproduction,
+* publication, or any form of distribution to any party other than
+* the licensee is strictly prohibited.
+
+********************************
+* Editon History
+*  #    Date      Comments                                      by
+* -- --------- ------------------------------------------------ ---
+* 01 10-15-85  Initial version, will be an example for ROMPAK   Rwb
+* 02 01-26-90  Added inhouse code to turn off the arcnet card   Rwb
+* 03 03-08-90  Added inhouse code to init the mVme327 card      Rwb
+* 04 04-13-90  Changes INHOUSE to INHOUSEXT                     Rwb
+*               ---- CD-RTOS V1.1 Release ----
+*               ---- OS-9/68K V2.4 Release ----
+* 05 11-21-90  skipped: 141 DevPak version.                     wwb
+* 06 12-13-90  No longer will do the mVme327 reset.             Rwb
+* 07 02-19-91  Made "berr" handler restore sr trace bits.       wwb
+* 08 02-20-91  Made hwprobe not attempt save of BE vector.      wwb
+*              (memory parity issue).
+* 09 07-02-91  Fixed restoration of SR for 68000/008.           wwb
+*               ---- OS-9/68K V2.4.3 Release ----
+*               ---- OS-9/68K V3.0 Release ----
+*               ---- OS-9/68K V3.1 Release ----
+*
+Edition equ 9 current edition number
+
+********************
+* InitExt:  system initialization extension routines.
+*
+* These routines are called by the SysInit (calls RP_SInit) and
+* SInitTwo (calls RP_SInit2) routines of the bootstrap rom.
+* They are provided so that special system initialization requirements
+* can be added to a system WITHOUT making a new bootstrap rom image.
+*
+* To "invoke" this code, the following steps should be taken:
+*
+*  a) include ROMPAK1 and/or ROMPAK2 macros at the appropriate
+*     places in sysinit.a:
+*       - ROMPAK1 is usually placed at the end of SysInit:
+*       - ROMPAK2 is usually placed at the end of SInitTwo:
+*  b) assemble/link this file and merge the result on the end of
+*     your normal "bootrom" image.
+*
+
+ use defsfile
+
+ ifdef INHOUSEXT
+ ifndef ShortIOBase
+ShortIOBase equ $FFFF0000
+ endc
+Arcnet equ ShortIOBase+$8800 the address of the arcnet board
+N_IMASK equ 0 Arcnet board 9026 status register
+N_CTL equ 2 Arcnet irq enable and 9026 reset register
+IRQ_NONE equ 0 no irqs allowed
+RESET9026 equ %00100000 reset bit ( 100ms delay 0>1>0 )
+
+ endc INHOUSEXT
+
+Typ_Lang set (Prgrm<<8)+Objct
+Attr_Rev set (ReEnt<<8)+0
+ psect initext,Typ_Lang,Attr_Rev,Edition,0,Entry
+
+********************
+* Sync Code and Entry Branch Table
+*
+Entry
+ dc.l 1801546857 sync code
+ bra RP_SInit extension to sysinit
+ bra RP_SInit2 extension to sysinit2
+
+********************
+* RP_SInit:
+*
+*  This is the routine that is called from SysInit.  The CPU performs
+*  very little before it reaches this routine.  It is primarily used to
+*  reset hardware that might interfere with the startup of the system.
+*
+*  This routine is called by the ROMPAK1 macro in "rompak.m".
+*
+* NOTES:  1. The vector table (for "vectors in ram") and the
+*            exception jump table have NOT yet been setup.
+*            If exceptions are expected in this routine, then they
+*            must be dealt with by this code.
+*         2. Registers d0-d7, a0-a6 can be trashed by this routine.
+*            All other registers (e.g. vbr, usp, sp) must be intact.
+* 
+RP_SInit:
+ ifdef INHOUSEXT
+*
+*  this code will probe for the presence of the mb2470 arcnet card and
+*   if it is found, it will execute code to reset the board.
+*
+ movem.l d0-d1/a0-a1,-(sp) save a few registers
+ move.l #Arcnet,d0	see if it is present
+ movea.l d0,a0 keep a copy, in case it is.
+  bsr hwprobe see if board is there.
+ tst.l d0
+  beq.s tbldone not present!
+
+*  arcnet board is present, lets reset it
+ move.b #RESET9026,N_CTL(a0) set the reset for the chip
+  bsr deadloop
+
+* that should have been long enough, now send out a string of commands
+ clr.l d1
+ lea.l cleartbl(pc),a1
+sendtbl
+ move.w (a1)+,d1  get a byte
+ cmpi.w #-1,d1 end of the table?
+  beq.s tbldone yes, just leave
+ move.w (a1)+,d0 data for the port
+ move.b d0,(a0,d1.w) put one byte out to board
+  bra.s sendtbl 
+
+* done or not present
+tbldone
+ movem.l (sp)+,d0-d1/a0-a1
+  rts
+ else
+* default: simpy return to SysInit
+  rts
+ endc INHOUSEXT
+
+********************
+* RP_SInit2:
+*  This is the routine that is called from SInitTwo.  The CPU has constructed
+*  the RAM vectors ( if included ) and the exception jump tables.  This would
+*  be a place to install handlers for boards that generate unsolicited
+*  interrupts that would cause the system to fail it's boot proceedure.
+*
+*  This routine is called by the ROMPAK2 macro in "rompak.m".
+*
+* NOTES:  1. This routine should preserve all registers.  If you are
+*            using the "rompak.m" macros, then this is accomplished
+*            for you in the ROMPAK2 macro.
+*
+RP_SInit2:
+  rts
+
+ ifdef INHOUSEXT
+ ifndef RAMVects
+ FAIL Code requires RAM vectors.
+ endc
+*
+*  hardware probe:   see if a board is present
+*
+*  Usage:  hwprobe( address )
+*
+*  Returns:  True if board present, False if not
+*
+hwprobe: 
+ movem.l d7/a0-a3,-(sp)
+  ifeq (CPUTyp-68020)*(CPUTyp-68030)*(CPUTyp-68040)*(CPUTyp-68300)
+ movec vbr,a0 load up the VBR register, to locate the vectors
+ else
+ movea.l #0,a0 no vbr to load, vectors at 0
+ endc
+*  must install our own bus error trap 
+* movea.l 8(a0),a1 address of jump table entry for bus error
+ lea.l berr(pc),a2 the continuation point
+ move.l a2,8(a0) swap our vector into the vector table
+* set up for the probe
+ movea.l d0,a3 address to probe
+ move.l a7,d7 preserve current stack pointer
+ moveq.l #1,d0 assume present
+
+ tst.b (a3) touch the board -- arrives at hwcontin in any event
+hwcontin
+* move.l a1,8(a0) returns bus error handler routine to the jump table
+ movem.l (sp)+,d7/a0-a3
+  rts
+
+*
+*  If board not present, we come here.
+*  NOTE that a "rom breakpoint" cannot be set at "berr".  Set one
+*  at berr_cantrap instead.
+*
+berr
+ sub.l a7,d7 calculate number of bytes on stack
+ cmpi.b #18,d7 68000/68008 in use?
+ beq.s berr000 ..yes; bra on
+ move.w 0(a7),sr restore sr (mainly for Trace bits)
+ bra.s berr_cantrap enter main
+
+berr000 move.w 8(a7),sr restore 68000 sr
+
+berr_cantrap: adda.l d7,a7  restore the stack
+ clr.l d0 board not present
+  jmp hwcontin(pc)
+
+cleartbl
+ 	dc.w	N_CTL,0				| IRQ line off, no network connection
+	dc.w	N_IMASK,IRQ_NONE	| disable controller IRQ.
+	dc.w	-1,-1				| (*  eot  *)
+
+**********************************
+*  dead time loop
+deadloop:
+ move.l d0,-(sp)
+ move.l #$FFFF,d0
+dead1
+ subq.l #1,d0
+  beq.s dead2
+ movem.l d0-d6/a0-a6,-(sp)	bus oriented activity that takes up time
+ nop
+ movem.l (sp)+,d0-d6/a0-a6
+ nop
+  bra.s dead1
+dead2
+ move.l (sp)+,d0
+  rts
+
+ endc INHOUSEXT
+ ends

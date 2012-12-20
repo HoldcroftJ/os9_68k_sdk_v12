@@ -1,0 +1,398 @@
+******************************************************************************
+* SysInit and related hardware dependent routines
+******************************************************************************
+** Copyright 1995, 1996 by Microware Systems Corporation                    **
+** Reproduced Under License                                                 **
+**                                                                          **
+** This source code is the proprietary confidential property of             **
+** Microware Systems Corporation, and is provided to licensee               **
+** solely for documentation and educational purposes. Reproduction,         **
+** publication, or distribution in any form to any party other than         **
+** the licensee is strictly prohibited.                                     **
+******************************************************************************
+** Edition History:                                                         **
+** #   Date     Comments                                          By        **
+** --- -------- ------------------------------------------------- --------- **
+**  01 09/06/95 Metamorphosis from related code                   rws       **
+**  02 12/12/95 Added code to turn off watchdog timer (MC68328    rws       **
+**              masksets 0G58E and 1G58E have watchdog timer                **
+**              enabled upon power-up).                                     **
+**  03 05/14/96 Updated copyright date.                           ats       **
+**              ---- OS-9/68K MC68328 Support Beta1 Release ----            **
+**  04 07/08/96 Conditionalize abort switch debounce code         ats       **
+**              (only used on prototype ADSs).                              **
+**  05 08/02/96 General cleanup.                                  ats       **
+**              ---- OS-9/68K MC68328 Support Beta2 Release ----            **
+**  06 02/02/97 changed to pass over RomBug on bootup             ecm       **
+**  07 07/26/99 Changed PortsC/K for PCMCIA use.                  rkw       **
+******************************************************************************
+
+ nam System Initialize
+ ttl Hardware dependant routines for M68328 Eval Board
+
+Edition equ 06 current edition number
+
+ use <defsfile>
+
+********************
+* Debugger usage
+*
+ ifdef ROMBUG
+USING_DEBUGGER set 1 define smart debugger in use
+ endc
+
+ psect sysinit,0,0,Edition,0,0
+
+ use <rompak.m>
+ use <sysglob.m>
+
+********************
+* SysInit:  perform system specific initialization (part 1)
+*
+SysInit:
+
+* ensure Software Watchdog Timer is OFF
+ movea.l #TCTLMap,a1  
+ move.w #0,WDOGCTR(a1)
+
+* ensure LCD Controller Module is OFF
+ movea.l #LSSAMap,a1
+ move.b #0,LCKCON(a1)
+
+* ensure Real-Time Clock Module interrupts are OFF
+ movea.l #MHSRMap,a1
+ move.b #0,RTCIENR(a1)
+
+* ensure UART Module is OFF
+ movea.l #SERMap,a1
+ move.w #0,USTCNT(a1)
+
+* ensure Slave Serial Peripheral Interface Module is OFF
+ movea.l #SPISMap,a1
+ move.w #0,SPISR(a1)
+
+* ensure Master Serial Peripheral Interface Module is OFF
+ movea.l #SPIMMap,a1
+ move.w #0,SPIMCONT(a1)
+
+* ensure Pulse Width Modulator Module is OFF
+ movea.l #PWMMap,a1
+ move.w #0,PWMC(a1)
+
+*
+*  Configure System Clock Frequency
+*
+ movea.l #PLLCRMap,a1 address of the PLL Control Register
+ move.w #((QC_VAL<<b_QC)+(PC_VAL<<b_PC)),PLLFSR(a1) set frequency
+ ori.w #CLKEN,PLLCR(a1) enable CLK0 pin
+ ori.w #PROT,PLLFSR(a1) set protect bit, PLLFSR cannot be overwritten
+
+*
+*  Configure System Control Register
+*
+ movea.l #SCRMap,a1     address of the System Configuration Register
+
+ ori.b #BETEN,SCR(a1)   enable bus-error timeout
+ andi.b #^(DMAP+SO),SCR(a1) internal regs at $FFFFF000 only, user access OK
+
+*
+*  Set Chip-Selects to enable external devices
+*
+
+* configure EPROM
+ move.l #CSA0_AC,CSA0(a1)
+ move.l #CSA1_AC,CSA1(a1)
+ move.l #CSA2_AC,CSA2(a1)
+ move.l #CSA3_AC,CSA3(a1)
+ move.w #MASKA,GRPMASKA(a1)
+ move.w #(BASEA+1<<b_VALID),GRPBASEA(a1)
+
+* configure SRAM: 
+*
+* Either 128K x 8 or 512K x 8 SRAMs can be used, the following
+* code determines which configuration exists.  
+*
+* First, 512K x 8 devices are assumed, and the B chip selects are
+* programmed accordingly.
+*
+ move.l #CSB0_AC_512,CSB0(a1)
+ move.l #CSB1_AC_512,CSB1(a1)
+ move.l #CSB2_AC_512,CSB2(a1)
+ move.l #CSB3_AC_512,CSB3(a1)
+ move.w #MASKB,GRPMASKB(a1)
+ move.w #(BASEB+1<<b_VALID),GRPBASEB(a1)
+*
+* Second, memory locations $0 and $4 0000 are saved 
+*
+ move.l $0,d1
+ move.l $40000,d2
+*
+* Third, #0 is put into $4 0000 and #$a5a55a5a is put into $0
+*
+ move.l #0,$40000
+ move.l #$a5a55a5a,$0
+*
+* Now, if $4 0000 is the same as $0, then 128K x 8 devices are being used,
+* otherwise 512K x 8 devices are being used
+*
+ cmpi.l #0,$40000    is $4 0000 still 0?
+ beq.s restore_mem   ..yes, 512K x 8 SRAMs are being used
+
+ move.l #CSB0_AC_128,CSB0(a1) ..no, 128K x 8 SRAMs are being used
+ move.l #CSB1_AC_128,CSB1(a1)
+ move.l #CSB2_AC_128,CSB2(a1)
+ move.l #CSB3_AC_128,CSB3(a1)
+ bra.s restore_mem
+
+restore_mem
+ move.l d1,$0
+ move.l d2,$40000
+
+* configure peripheral devices
+ move.l #CSD0_AC,CSD0(a1) dummy space (instruction probably not needed)
+ move.l #CSD1_AC,CSD1(a1) for M68681 Debug Port
+ move.l #CSD2_AC,CSD2(a1) for ADI Port
+ move.l #CSD3_AC,CSD3(a1) dummy space (instruction probably not needed)
+ move.w #MASKD,GRPMASKD(a1)
+ move.w #(BASED+1<<b_VALID),GRPBASED(a1)
+
+*
+*  configure ports
+*
+ movea.l #PADIRMap,a1
+
+* Port A used for Address lines A23:16 (power-on default usage -- no change)
+
+* Port B used for Data lines D7:0 (power-on default usage -- no change)
+
+* Port C used for M68000 bus-control signals 
+* (power-on default usage -- no change)
+ move.b #0,PCSEL(a1)		* Ensure all pins to their alternate functions.
+
+* Port D is not used
+
+* Port E used for Chip-Selects A and B: need to mod for PE7 default and
+* turn on all pull-up resistors
+ move.b #(PU7+PU6+PU5+PU4+PU3+PU2+PU1+PU0),PEPUEN(a1)
+ move.b #0,PESEL(a1)
+
+* Port F is used by PCMCIA:
+* _PFx_ _PCMCIA Signal_ _Input or Output_
+*  PF7       BVD1            Input
+*  PF6       /CD2            Input
+*  PF5       /CD1            Input
+*  PF4       WP              Input
+*  PF3       /BSY/RDY        Input
+* Port F defaults to I/O inputs -- have external pullups, disable
+* internal ones
+ move.b #0,PFPUEN(a1)
+
+* Port G used for timer and serial comm signals 
+* enable pullup resistors
+ move.b #(PU7+PU6+PU5+PU4+PU3+PU2+PU1+PU0),PGPUEN(a1)
+
+* Port J uses PJ5 & PJ66 for /CSD1 & /CSD2 and interfaces to A/D converter:
+* _PJx_ _Signal_         _Input or Output_
+*  PJ7  A/D Chip Select       Output
+*  PJ6  /CSD2              multiplexed signal
+*  PJ5  /CSD1              multiplexed signal
+*  PJ4           not used
+*  PJ3  Power Switch ctrl     Output
+*  PJ2  Power Switch ctrl     Output
+*  PJ1  Power Switch ctrl     Output
+*  PJ0  Power Switch ctrl     Output
+ move.b #(DIR7+DIR3+DIR2+DIR1+DIR0),PJDIR(a1)
+ move.b #(SEL7+SEL4+SEL3+SEL2+SEL1+SEL0),PJSEL(a1)
+
+* Port K is used for PCMCIA (via parallel IO) and Master SPI
+* _bit_ _signal_
+*   7   PCMCIA /CE1 (has external pull-up resistor)
+*   6   PCMCIA /CE2 (has external pull-up resistor)
+*   5   not used (slave SPI clock)
+*   4   not used (slave SPI Data In)
+*   3   not used (slave SPI enable)
+*   2   SPIM CLK0 (has external pull-up resistor)
+*   1   SPIM RXD (no external pull-up needed)
+*   0   SPIM TXD -- use pull-up
+ move.b #PU0,PKPUEN(a1)
+ move.b #0,PKSEL(a1)		* Ensure all pins to their alternate functions.
+
+* Looks like PCMCIA signals are GPIOs which may need to be manipulated to get
+*  the expected results.                                                              
+*
+* Port M is used to ifc to PCMCIA:
+* _PMx_ _Signal_         _Input or Output_
+*  PM7  PCMCIA BVD2        Input (has external pull-up)
+*  PM6  PENIRQn            Multiplexed Function (need pull-up)
+*  PM5  IRQ1n              Multiplexed Function (need pull-up)
+*  PM4  PCMCIA C_RESET     Output (need pull-up)
+*  PM3  PCMCIA VCC_CTL     Output (need pull-up)
+*  PM2  PCMCIA REG         Output/Multiplexed Funciton (need pull-up)
+*  PM1  RTSn               Multiplexed Function (need pull-up)
+*  PM0  CTSn               Multiplexed Function (need pull-up)
+ ori.b #(DIR4+DIR3+DIR2),PMDIR(a1)
+* errata for MC68328 says that Pull-up enables are reversed
+* (PU7 controls bit 0, PU6 controls bit 1, etc), so will enable
+* all pull-ups anyway
+ move.b #(PU7+PU6+PU5+PU4+PU3+PU2+PU1+PU0),PMPUEN(a1)
+ ori.b #(SEL7+SEL4+SEL3+SEL2+SEL1+SEL0),PMSEL(a1)
+* We dont use the CIS for flash devices, but we do need to switch to the memory
+* space. Later smarter drivers which need CIS will have to switch back.
+ ori.b #4,PMDATA(a1)				* Switch from attribute space to memory space.
+
+*             
+* get vector base (always 0 for OS9 on 68328)
+* 
+ movea.l #$0,a1
+* 
+* copy reset vectors from the rom into ram (rom appears at $0 until
+* CSA0-3 are configured otherwise, and RAM is disabled until
+* CSB0-3 are configured to put RAM at address $0
+*
+ move.l VectTbl(pc),0(a1) copy reset vectors across
+ move.l VectTbl+4(pc),4(a1)   
+*
+
+** locate and execute extention code
+**     Note: MUST have RAM enabled for the stack before this is done!!!
+**           (uses bsr instruction)
+
+ ROMPAK1
+
+* set quick growth boot method:
+*  tell boot to only validate headers
+* ifndef ROMBUG
+* move.l #1,a0
+* move.l a0,usp
+* endc
+
+ bra SysRetrn return to boot.a
+
+
+********************
+* SInitTwo:  perform system specific initialization (part 2)
+*
+
+SInitTwo:
+
+* setup handler for abort switch
+ ifdef ROMBUG
+ movem.l a0-a1,-(sp)     save regs
+ movea.l #0,a0           base address for exception vectors
+ lea.l AbortHdlr(pc),a1  get address of handler
+ move.l a1,ABORTVect(a0) abort switch calls our handler
+ movem.l (sp)+,a0-a1     restore regs
+ endc ROMBUG
+ 
+* Run additional setup that may or may not be in the extension module
+ ROMPAK2
+ rts
+
+********************
+* UseDebug:  signal whether debugger is enabled or not
+*
+* Due to the lack of a hardware switch, a rom location flag
+* is tested.  This flag is defined in "boot.a".
+*
+* Returns:  CCR Z Flag = TRUE (rom debugger disabled)
+*                      = FALSE (rom debugger enabled)
+*
+
+UseDebug:
+ btst.b #0,CallDBug(pc) test the (patchable) rom flag
+* sysglob a0
+* cmpi.w #M$ID12,(a0) has the system been started ?
+* eori.b #Zero,ccr condition Z = TRUE if disabled
+ andi.b #%11111011,ccr clear zero bit so debugger is enabled
+ rts
+
+*
+* routine to return switch values ( used by getbootmethod() [see syscon.c])
+readswitches:
+ move.l Sys_Switches(pc),d0
+	rts
+
+* force boot from ROM
+Sys_Switches: dc.l RomSwitch
+ 
+********************
+* Abort Switch Handler
+* This is an interrupt handler for the ABORT switch on the M68328ADS.
+* Its function is to debounce the switch and then call rombug.
+*
+
+ ifdef ROMBUG
+
+AbortHdlr:
+ 
+* quickly reset PC4 as GPIO input so don't get IRQ during debouncing
+*
+ ifdef DEBOUNCE
+
+ movem.l a0,-(sp)      save regs to be used
+ move.w sr,-(sp)       save sr for rtr usage
+ movea.l #PADIRMap,a0  address of the Parallel Port Module
+ ori.b #SEL4,PCSEL(a0) reconfigure PC4 as GPIO input
+ move.w (sp)+,sr       restore sr
+ movem.l (sp)+,a0      restore used regs
+
+ endc
+ 
+ lea.l -6(sp),sp       space for SR and Aut7Trap for RTR
+ move.w sr,0(sp)       save SR
+
+ move.l a0,-(sp) save register
+
+ ifdef DEBOUNCE 
+
+ movem.l d0-d1,-(sp) save those registers needed
+ movea.l #PADIRMap,a0   address of the Parallel Port Module
+
+* wait for the key to be released
+*
+WaitLoop
+ nop                  sync the pipeline
+ move.b PCDATA(a0),d1 get the current status of PC4 input
+ btst #Bit4,d1        is the key still pressed ?
+ beq.s WaitLoop       ..yes; wait until it is released
+
+* debounce the key
+*
+
+Debounce equ $8000 debounce time on abort switch.
+ 
+ move.w #Debounce,d0 debounce counter
+ 
+WaitRel
+ nop                  sync the pipeline
+ move.b PCDATA(a0),d1 get the current status 
+ btst #Bit4,d1        is the key still pressed ?
+ beq.s WaitLoop       ..yes; restart again
+ subq.l #1,d0         decrement debounce counter
+ bne.s WaitRel        make sure key fully debounced
+ 
+ andi.b #^SEL4,PCSEL(a0) reconfigure PC4 pin for IRQ7 input
+
+ movem.l (sp)+,d0-d1  restore registers
+
+ endc
+ 
+* clear IRQ7 bit in ISR register
+ movea.l #SCRMap,a0   base address of the Systems Integration Module
+ ori.l #SIRQ7,ISR(a0) clear IRQ7 interrupt
+
+ move.l (sp)+,a0 restore register
+ 
+* continue at Auto7 handler
+*
+ move.l #Aut7Trap,2(sp)  continue at auto7 handler (rombug)
+ rtr                     enter debugger
+ 
+ endc ROMBUG
+
+
+*  Those who are responsible for this excursion.....
+*
+PortMen: dc.b "Portmen: Robert Sharp, Alex Stagg",0,0
+
+ ends

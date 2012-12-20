@@ -1,0 +1,113 @@
+ nam tk68990
+ ttl TK68990 tick driver for use with tickgeneric.a
+
+********************
+* tk68990: RUSSBOX 'TimT' tick driver for use with "tickgeneric.a"
+
+********************
+* Edition History
+*  #    Date      Comments                                      By
+* -- -------- ------------------------------------------------ ---
+*             ---- OS-9/68K V3.0 released ----
+*             ---- OS-9/68K V3.1 released ----
+*  1 2012-08-03 Creation.     rlm
+
+Edition     equ 1   *current edition number
+
+ psect Ticker,0,0,0,0,0
+
+ use defsfile
+
+ pag
+********************
+* Expected variables and constants:
+* 
+* The following constants are used in the generic
+* code and must be defined GLOBALLY by this file:
+*
+TicksPerSec: equ TicksSec (Ticks Per Second) - Pretty self-explanatory.
+ClockVect: equ ClkVect clock vector
+ClockPort: equ ClkPort tick device base address
+ClockPrior: equ ClkPrior clock priority
+ 
+********************
+* StartTick: (Subroutine) Initialize
+*            the "ticker" device hardware
+*            and enable it to produce "tick" IRQs
+*
+* General Description: This subroutine is called by the "tickgeneric"
+*                      initialization code.  The purpose of this
+*                      subroutine is to program the hardware registers
+*                      of the "ticker" device so that it will produce
+*                      "tick" interrupts at the rate specified by the
+*                      variable "TicksSec" - ticks per second.  This
+*                      variable is generally defined in "systype.d"
+*                      and is often set to a value of 100 ticks per
+*                      second.
+*
+* Registers Passed: (a3) = The base address of the "ticker" hardware
+*                   (a5) = Caller's register stack pointer
+*                   (a6) = Global storage pointer
+*
+* Registers Returned: (d1) = Error code if error occurred
+*                            Zero if no error
+*                     (cc) = carry set if error occurred
+*                            carry clear if no error
+*
+* NOTE: This subroutine may alter registers d0, d1, a0 and a1 without
+*       consequence.  All others MUST be preserved!
+*
+* ANOTHER NOTE: The tickgeneric code that calls this subroutine DOES NOT
+*               MASK the interrupts!  If the initialization code for the
+*               tick device needs the interrupts masked, it must be done
+*               in THIS subroutine!
+*
+StartTick:
+    move.b  TimT_LOADb(a3),d0   *.. and ack any old IRQ, again just in case
+** TODO - calculate real freq based on TiksPerSec here... for now hardcoded to 10ms
+*    move.b  #(1000/TicksPerSec),TimT_LOADb(a3)
+    move.b  #10,TimT_LOADb(a3)
+    moveq.l #0,d1           *flag no errors
+ andi.b  #NoCarry,ccr *-rlm
+    rts
+
+STerr:
+    move.l  #E$NoClk,d1     *indicate no timer found
+    ori.b   #Carry,ccr      *set carry
+    rts
+
+ page
+********************
+* TickIRQ: (Interrupt Service Routine)
+*
+* General Description: Check the "ticker" device hardware
+*                      to determine if it caused the interrupt.
+*                      If it did, clear the interrupt in the 
+*                      "ticker" device hardware.
+*                      If it did not cause the interrupt, return
+*                      with the carry bit set in the Condition
+*                      Code Register to flag that an error occurred.
+*
+* Registers Passed: (a3) = ticker chip base address
+*                   (a6) = system global storage pointer
+*
+* Registers Returned: (cc) = Carry set if an error occurred
+*                            If no error occurred, this routine
+*                            does not return, but jumps to the
+*                            Kernel's clock handling routine.
+*
+* Register Usage:  may only destroy D0, D1, A0, A2, A3 and A6.
+*                  any other registers used MUST be preserved.
+*
+TickIRQ:
+    move.b  TimT_LOADb(a3),d0   *ack IRQ
+
+GoClock:
+    movea.l D_Clock(a6),a0      *get clock service routine
+    jmp     (a0)                *enter it
+
+NotClock:
+    ori.b   #Carry,ccr          *set carry
+    rts
+
+ ends

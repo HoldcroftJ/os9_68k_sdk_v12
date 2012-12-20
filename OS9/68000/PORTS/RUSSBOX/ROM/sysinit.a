@@ -1,0 +1,169 @@
+ nam System Initialize
+ ttl Hardware dependant routines for RUSSBOX 68990
+
+********************************
+* SysInit and related hardware dependent routines
+
+********************************
+*     Edition History
+*
+*  #   date   Comments                                          by
+* -- -------- ------------------------------------------------- ---
+* 00 10/05/93 intial											arb
+* 01 94/06/01 updated for MWOS.									wwb
+*				---- OS-9/68K V3.0.1 Release ----
+*
+Edition equ 1 current edition number
+
+ use defsfile
+
+********************
+* Debugger usage
+*
+ ifdef DEBUGGER
+USING_DEBUGGER set 1 define primitive debugger in use
+ endc
+
+ ifdef ROMBUG
+USING_DEBUGGER set 1 define smart debugger in use
+ endc
+
+ psect sysinit,0,0,Edition,0,0
+
+ use <rompak.m>
+
+Auto7vector equ 31*4 auto-level 7 vector offset
+
+********************
+* SysInit:  perform system specific initialization (part 1)
+*
+* Set on-board Chip selects, bus init, enable RAM, etc. if required
+* Example: Set boot ROM,RAM base addresses, wait states, etc.
+*
+* Ensure Timers are off, IRQs masked, etc.
+*
+* Formal Procedure:
+* -----------------
+* 1. Execute RESET instruction for all system hardware that listens
+* 2. Copy reset sp,pc to RAM if RAMVects defined (boot.a does the other vectors)
+* 3. Init any devices not listening to reset line
+* 4. Init any CPU control regs, status display etc., and VBR if CPU has it
+* 5. Attempt to locate and execute extension code (initext.a/rompak.m) if ROMPAK1 used
+* NOTE SysInit does NOT return via an rts instruction. It uses 'bra SysRetrn'.
+********************
+SysInit:
+*   reset      *For any external hardware that requires it...
+ ifdef RAMVects
+*copy reset sp,pc to RAM (boot.a takes care of others)
+ endc
+
+    lea     Tim0Base,a0
+    clr.b   Tim0_CTLb(a0)       *clear COUNTEN,PEND,IRQEN
+    clr.w   Tim0_DATw(a0)       *clear counter too just to be thorough
+    lea     TimTBase,a0
+    clr.b   TimT_LOADb(a0)      *disable tick timer
+    clr.b   TimT_DATb(a0)       *..and count value, just to be thorough
+    
+    andi.w  #$f8ff,sr  *HACK enable all IRQs
+
+*
+** Note TimT irqs are always enabled, subject to timer enable and CPU irq mask...
+*
+
+* Locate and run extension code
+    ROMPAK1
+
+*!**** DEBUGGING ****
+*! move.l  #$FEED0001,d7
+*! jmp 3(pc)
+*!**** DEBUGGING ****
+
+** NOTE: usp is used to communicate 'Crystal' variable to boot.a
+    move.l  #0,a0
+    move.l  a0,usp
+*****************************************************************    
+    bra     SysRetrn return to boot.a
+
+********************
+* SInitTwo:  perform system specific initialization (part 2)
+*
+
+SInitTwo:
+* Run additional setup that may or may not be in the extension module
+*!**** DEBUGGING ****
+*! move.l #$FEED0002,d7
+*! jmp    3(pc)
+*!**** DEBUGGING ****
+
+    ROMPAK2      *Search for 'initext' ROM extensions
+    rts
+
+********************
+* UseDebug:  signal whether debugger is enabled or not
+*
+* Due to the lack of a hardware switch, a rom location flag
+* is tested.  This flag is defined in "boot.a".
+*
+* Returns:  CCR Z Flag = TRUE (rom debugger disabled)
+*                      = FALSE (rom debugger enabled)
+*
+UseDebug:
+    btst.b  #0,CallDbug(pc)     *test the debug flag
+    rts
+
+CallDbug:   dc.b    1
+    align
+    
+*
+* routine to return switch values ( used by getbootmethod() [see syscon.c])
+readswitches:
+    move.l  Sys_Switches(pc),d0
+*    move.l  #$10,d0     *ROMSWITCH,d0       *force ROM boot
+    rts
+
+Sys_Switches:   dc.l    $12 *MENUSWITCH,ROM
+
+ ifeq 1
+*********************
+* Abort Switch Handler
+*
+ ifdef USING_DEBUGGER
+* This routine clears down the abort switch interrupt.
+* If the primitive debugger is in use, then it is entered as
+* if an autolevel 7 irq had occurred.
+* If the smart debugger is in use, then execution resumes at
+* the jump table entry for ABORTVECT
+*
+AbortHdlr:
+* no need to ack Abort IRQ on this system
+    lea.l   -10(sp),sp              *carve some stack space
+    move.w  sr,4(sp)                *save CCR status
+    move.l  a0,0(sp)                *save a0
+    lea     Aut7Trap(pc),a0
+    move.l  a0,6(sp)                *continue at auto 7 handler
+    movea.l (sp)+,a0 restore a0
+    rtr                             *enter debugger
+ endc USING_DEBUGGER
+
+ endc
+ ifndef ROMBUG
+AddrTrap:
+Aut7Trap:
+BusTrap:
+IllTrap:
+TracTrap:
+    reset
+    
+DbugInit:
+    rts
+Debug:
+    rts
+InitData:
+    rts
+ endc
+ 
+*  He who is responsible for this excursion.....
+*
+PortMan: dc.b "Portman: Russ Magee",0,0
+
+ ends

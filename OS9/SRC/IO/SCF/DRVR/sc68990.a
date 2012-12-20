@@ -1,0 +1,746 @@
+ nam acia
+ ttl Interrupt-Driven Acia driver (based on sc6850.a)
+
+***************
+* Edition History
+
+* #    date   Comments                                          by
+* -- -------- ------------------------------------------------- ---
+*              ---- OS-9/68k V3.1 released ----
+*
+*  ---------- Derived from sc6850.a for RUSSBOX 990 TERM0,TERM1 ----------
+*  1 2012/07/10 Creation.      rlm
+*
+
+Edition equ 1   *current Edition number
+
+Typ_Lang set (Drivr<<8)+Objct
+Attr_Rev set ((ReEnt+SupStat)<<8)+0 Attributes and Revision
+
+ psect Acia,Typ_Lang,Attr_Rev,Edition,0,AciaEnt
+
+ use defsfile
+
+ pag
+********************
+* Macro definitions
+*
+
+ use <os9svc.m>
+
+
+***************
+* Interrupt-driven Acia Device Driver
+*IRQ_used    set 0
+
+InpSiz  set 80      *input buffer size
+OutSiz  set 140     *output buffer size
+
+Low_Cnt set 10      *# of bytes to restart receive data
+
+InpErr  set %00001000   *RXV
+Overun  set %10000000
+
+MaxBuff equ InpSiz-10 Send XOFF when buffer contains this many
+MinBuff equ 10 Send XON when buffer contains this few
+
+********************************
+* Static storage requirements
+
+ vsect
+InFill:     ds.l    1   *input buffer next-in ptr
+InEmpty     ds.l    1   *input buffer next-out ptr
+InEnd       ds.l    1   *end of input buffer
+InCount     ds.w    1   *# of chars in input buffer
+OutFill     ds.l    1   *output buffer next-in ptr
+OutEmpty    ds.l    1   *output buffer next-out ptr
+OutEnd      ds.l    1   *output buffer end of buffer pointer
+OutCount    ds.w    1   *# of chars in output buffer
+IRQMask     ds.w    1   *Interrupt mask word
+SigPrc      ds.w    1   *Process to signal
+            ds.w    1   *signal code
+            ds.w    1   *associated (system) path number (ed 9)
+DCDOff      ds.w    1   *process to signal on loss of DCD
+            ds.w    1   *signal process
+            ds.w    1   *associated (system) path number (ed 9)
+
+InHalt      ds.b    1   *input halted flag (non-zero if XON has been Sent)
+OutHalt     ds.b    1   *output IRQ's disabled when non-Zero
+
+Otpt_On     ds.b    1
+Otpt_Off    ds.b    1
+
+InpBuf ds.b InpSiz input buffer
+OutBuf ds.b OutSiz output buffer
+ ends
+
+*Otpt_Off bit meanings
+RTSEnabl    set %00000001
+
+* OutHalt bit numbers (causes of disabled output IRQ)
+H_XOFF      equ 0   *V_XOFF has been received; awaiting V_XON
+H_Empty     equ 1   *output buffer is empty
+
+***************
+* Module Header
+
+AciaEnt:
+ dc.w Init
+ dc.w Read
+ dc.w Write
+ dc.w GetStat
+ dc.w PutStat
+ dc.w TrmNat
+ dc.w 0 Exception handler (0=none)
+
+ ttl INTERRUPT-DRIVEN Acia device routines
+ pag
+***************
+* Init
+*   Initialize (Terminal) Acia
+
+* Passed: (a1)=device descriptor address
+*         (a2)=static storage address
+* Returns: cc=carry set if device can't be initialized
+* Destroys: (may destroy d0-d7, a0-a5)
+
+Init:
+    move.w  #$6001,TraceReg0  *-rlm
+    lea     InpBuf(a2),a0   *init buffer pointers
+    move.l  a0,InFill(a2)
+    move.l  a0,InEmpty(a2)
+    lea     InpSiz(a0),a0   *figure size of buffer
+    move.l  a0,InEnd(a2)    *mark end of input buffer
+    lea     OutBuf(a2),a0   *point to start of output buf
+    move.l  a0,OutFill(a2)  *init output buff pointers
+    move.l  a0,OutEmpty(a2)
+    lea     OutSiz(a0),a0   *figure size of out buff
+    move.l  a0,OutEnd(a2)   *mark end of output buffer
+
+* form interrupt mask value.
+* NOTE: the IRQMasking is always performed "outside" of the Interrupt
+* Service context, thus move.w IRQMask(a2),sr is ok, as there will not
+* be an accidental stack switch.
+*
+    move.w  #$6002,TraceReg0  *-rlm
+    move.b  M$IRQLvl(a1),d2     *get irq level
+    asl.w   #8,d2               *shift into priority
+    move.w  sr,d0               *get sr (for stack/trace flags)
+    andi.w  #IntEnab,d0         *sr: clear irq masks
+    or.w    d0,d2               *form "current stack, irqs masked to this level" value
+    move.w  d2,IRQMask(a2)      *save for future use
+
+    movea.l V_PORT(a2),a3       *I/O port address
+    clr.b   Tn_CTLb(a3)         *master reset acia: clear RFI,TEI,IRQEN
+
+    move.b  #(1<<H_Empty),OutHalt(a2)   *output IRQs disabled; buffer empty
+    move.b  PD_PAR-PD_OPT+M$DTyp(a1),d0
+
+    bsr     Configure
+    move.w  #$6003,TraceReg0  *-rlm
+    bcs.s   Init9               *..exit if error
+
+ ifdef IRQ_used
+    clr.b   Tn_CTLb(a3)         *clear out RXV,RXF,RFI,TEI bits; IRQEN=0
+    move.b  M$Vector(a1),d0
+    move.b  M$Prior(a1),d1
+    lea     ACIRQ(pc),a0            *address of interrupt service routine
+    OS9     F$IRQ                   *Add to IRQ polling table
+    move.w  #$6004,TraceReg0  *-rlm
+    bcs.s   Init9                   *Error - return it
+    ori.b   #Tn_CTLb_IRQEN,Tn_CTLb(a3)  *enable IRQs
+ endc
+
+Init9:
+    move.w  #$6005,TraceReg0  *-rlm
+    rts
+
+InitErr:
+    move.w  #$6006,TraceReg0  *-rlm
+    move.w  #E$Unit,d1
+    ori.b   #Carry,ccr
+    rts
+
+*****************************************
+* Configure
+* 
+* set Parity, Bits/Char, Number of stop Bits
+* (NOTE: nops currently as virtual serial device supports none of these)
+*
+* passed: (a1) = device discriptor address
+*         (a2) = static storage address
+*         (a3) = port address
+*         d0.b = Parity byte
+*
+* returns: d0.b = code for mc68990 to set above characteristics
+*          d1.b = error code
+*          cc set if error
+
+Configure:
+    move.w  #$6007,TraceReg0  *-rlm
+    moveq   #0,d3       *set up for offset
+    move.b  d0,d3       *save parity value
+    andi.b  #$D8,d0     *check for possible mode errors
+    bne.s   ConfigErr
+ConfEnd:
+    move.w  #$6008,TraceReg0  *-rlm
+    rts
+ConfigErr:
+    move.w  #$6009,TraceReg0  *-rlm
+    move.w  #E$BMode,d1
+    ori.b   #Carry,ccr
+    rts
+
+ ifne 0 
+** If virtual serial ever supports parity/stop bits this is an example table
+** from the 6850 driver which shows the settings as they are mapped to the passed-in
+** 'parity' byte...
+ParTab:
+  dc.b $15  1 stop bit 8 bit parity disable
+  dc.b $1D  1 stop bit 8 bits/char odd parity
+  dc.b $15  1 stop bit 8 bits/char parity disabled
+  dc.b $19  1 stop bit 8 bits/char even parity
+  dc.b $80  invalid mode(for mc6850 only)
+  dc.b $0D  1 stop bit 7 bits/char odd parity
+  dc.b $80  invalid mode (for mc6850)
+  dc.b $09  1 stop bit,7bits/char, even parity
+  dc.b $11  2 stop bits,8bits/char, parity disabled
+  dc.b $80  invalid mode
+  dc.b $11  2 stop bits, 8 bits/char, parity disabled
+  dc.b $80  invalid mode
+  dc.b $80  invalid mode
+  dc.b $05  2 stop bit, 7 bits/char,odd parity
+  dc.b $80  invalid mode
+  dc.b $01  2 stop bits 7 bits/char, even parity
+
+** .. and similarly a baud-rate lookup table.
+BauTab:
+  dc.b $FF * = these baud rates not possible
+  dc.b $07 75 baud
+  dc.b $FF *
+  dc.b $FF *
+  dc.b $06 150 baud
+  dc.b $05 300 baud
+  dc.b $04 600 baud
+  dc.b $03 1200 baud
+  dc.b $FF *
+  dc.b $FF *
+  dc.b $02 2400 baud
+  dc.b $FF *
+  dc.b $01 4800 baud
+  dc.b $FF *
+  dc.b $00 9600 baud
+  dc.b $FF *
+ endc
+
+
+***************
+* Read
+*   Return one byte of input from the Acia
+
+* Passed: (a1)=Path Descriptor
+*         (a2)=Static Storage address
+*         (a4)=current process descriptor
+*         (a6)=system global ptr
+* Returns: (d0.b)=input char
+*          cc=carry set, (d1.w)=error code if error
+* Destroys: a0
+
+ ifndef IRQ_used
+Read:
+    movea.l	V_PORT(a2),a3
+Read00:
+    btst    #Tn_RXFBit,Tn_CTLb(a3)
+    beq.s   Read00
+    move.b  Tn_RXb(a3),d0           *get data
+    rts
+ else
+Read00:
+    move.w  #$600a,TraceReg0  *-rlm
+    move.w  V_BUSY(a2),V_WAKE(a2)   *arrange wake up signal
+    move.w  d6,sr                   *restore IRQs
+    bsr.s   AciaSleep
+    move.w  #$600b,TraceReg0  *-rlm
+Read:
+    tst.b   InHalt(a2)              *is input halted?
+    ble.s   Read_a                  *branch if not
+    cmpi.w  #MinBuff,InCount(a2)    *buffer mostly emptied?
+    bhi.s   Read_a                  *..No; continue
+    move.w  #$600c,TraceReg0  *-rlm
+    move.b  V_XON(a2),d1            *get X-ON char
+    ori.b   #Sign,d1                *set Sign bit
+    move.b  d1,InHalt(a2)           *flag input resume and that V_XON has been sent
+    movea.l V_PORT(a2),a3           *get port address
+    bset.b  #Tn_IRQBit,Tn_CTLb(a3)  *enable IRQs
+    move.w  #$600d,TraceReg0  *-rlm
+Read_a:
+    tst.w   SigPrc(a2)              *a process waiting for device?
+    bne.s   ErrNtRdy                *..Yes; return dormant terminal error
+    move.w  sr,d6                   *save current IRQ status
+    move.w  IRQMask(a2),sr          *mask irqs
+    tst.w   InCount(a2)             *any data?
+    beq.s   Read00                  *branch if not
+
+    move.w  d6,sr                   *unmask IRQs
+    movea.l InEmpty(a2),a0          *point to next char
+    move.b  (a0)+,d0                *get character
+    subq.w  #1,InCount(a2)          *dec buffer size by one
+    cmpa.l  InEnd(a2),a0            *at end of buffer?
+    blo.s   Read_b                  *branch if not
+    lea     InpBuf(a2),a0           *point to start of buffer
+Read_b:
+    move.w  #$600e,TraceReg0  *-rlm
+    move.l  a0,InEmpty(a2)          *update buffer pointer
+    move.b  V_ERR(a2),PD_ERR(a1)    *copy I/O status to PD
+    beq.s   Read90                  *return if no error
+    move.w  #$600f,TraceReg0  *-rlm
+    clr.b   V_ERR(a2)
+    move.w  #E$Read,d1              *signal read error
+    ori.b   #Carry,ccr              *return Carry set
+Read90:
+    rts
+ endc
+
+ErrNtRdy:
+    move.w  #E$NotRdy,d1
+    ori.b   #Carry,ccr      *return Carry set
+    rts
+
+**********
+* AciaSleep
+*   Sleep until interrupt occurs
+
+* Passed: (a2)=driver global storage
+*         (a4)=current process descriptor ptr
+* Destroys: d1, possibly PC
+*
+AciaSleep:
+ ifdef IRQ_used
+    move.l  d0,-(sp)        *save reg
+    moveq   #0,d0           *sleep indefinately
+    OS9svc  F$Sleep         *call sleep directly (*only works with sleep 0*)
+    move.w  #$6010,TraceReg0  *-rlm
+    move.w  P$Signal(a4),d1 *signal present?
+    beq.s   ACSL90          *..no; return
+    cmpi.w  #S$Deadly,d1    *Deadly signal?
+    blo.s   ACSLER          *..yes; return error
+ACSL90:
+    btst    #Condemn,P$State(a4)    *has process died?
+    bne.s   ACSLER                  *..Yes; return error
+    move.l  (sp)+,d0                *restore reg
+    move.w  #$6011,TraceReg0  *-rlm
+    rts
+
+ACSLER:
+    lea.l   8(sp),sp        *exit to caller's caller
+    ori.b   #Carry,ccr      *return Carry set
+ endc
+    rts
+
+***************
+* Write
+*   Output one character to Acia
+
+* Passed: (d0.b)=char to write
+*         (a1)=Path Descriptor
+*         (a2)=Static Storage address
+*         (a4)=current process descriptor ptr
+*         (a6)=system global data ptr
+* Returns: none
+
+ ifndef IRQ_used
+Write:
+    move.l  V_PORT(a2),a3
+Write10:
+    btst    #Tn_TXEBit,Tn_CTLb(a3)      *acia ready?
+    beq.s   Write10                     *branch if not
+    move.b  d0,Tn_TXb(a3)               *write char
+    rts                                 *return carry clear
+ else
+Write00:
+    move.w  #$6012,TraceReg0  *-rlm
+    move.w  V_BUSY(a2),V_WAKE(a2)       *arrange wake up signal
+    move.w  d6,sr                       *restore IRQs
+    bsr.s   AciaSleep                   *sleep a bit
+    move.w  #$6013,TraceReg0  *-rlm
+Write:
+    move.w  sr,d6                   *save current IRQ status
+    move    IRQMask(a2),sr          *mask IRQs
+    cmpi.w  #OutSiz,OutCount(a2)    *room for more data?
+    bhs.s   Write00
+    addq.w  #1,OutCount(a2)         *increment byte count
+    movea.l OutFill(a2),a0          *point to next char location
+    move.b  d0,(a0)+                *store char and inc pointer
+    cmpa.l  OutEnd(a2),a0           *end of buffer?
+    blo.s   Write10                 *branch if not
+    lea     OutBuf(a2),a0           *point to start of buffer
+Write10:
+    move.w  #$6014,TraceReg0  *-rlm
+    move.l  a0,OutFill(a2)          *update buffer pointer
+    bclr    #H_Empty,OutHalt(a2)    *was output buffer empty?
+    beq.s   Write80                 *just exit if not
+    tst.b   OutHalt(a2)             *still halted due to other cause?
+    bne.s   Write80                 *don't enable IRQ if so
+    movea.l V_PORT(a2),a3           *port address
+    bset.b  #Tn_IRQBit,Tn_CTLb(a3)  *enable IRQs
+    move.w  #$6015,TraceReg0  *-rlm
+Write80:
+    move.w  d6,sr           *unmask IRQs
+    move.w  #$6016,TraceReg0  *-rlm
+    moveq   #0,d1           *clear carry
+    rts
+ endc
+
+***************
+* Getsta/Putsta
+*   Get/Put Acia Status
+
+* Passed: (d0.w)=Status Code
+*         (a1)=Path Descriptor
+*         (a2)=Static Storage address
+* returns: depends on status code
+
+GetStat:
+    cmpi.w  #SS_Ready,d0        *Ready status?
+    bne.s   GetSta10            *..no
+    movea.l PD_RGS(a1),a0       *get caller's register stack
+    clr.w   R$d1(a0)            *sweep reg
+    move.w  InCount(a2),R$d1+2(a0)  *return input char count to caller
+    beq     ErrNtRdy            *..No data; return not ready error
+    rts                         *(Carry clear)
+
+GetSta10:
+    cmpi.b  #SS_EOF,d0          *End of file?
+    beq.s   GetSta99            *..yes; return (Carry clear)
+
+Unknown:
+    move.w  #E$UnkSvc,d1        *Unknown service code
+    ori.b   #Carry,ccr          *return Carry set
+GetSta99:
+    rts
+
+PutStat:
+ ifndef IRQ_used
+    moveq   #0,d1               *clear carry
+    rts
+ else
+    cmpi.w  #SS_SSig,d0         *signal process when ready?
+    bne.s   PutSta_A            *..No
+    tst.w   SigPrc(a2)          *somebody already waiting?
+    bne     ErrNtRdy            *..Yes; error
+    move.w  PD_CPR(a1),d0       *get caller's process ID
+    movea.l PD_RGS(a1),a0       *get caller's register ptr
+    move.w  R$d2+2(a0),d1       *get signal code
+    move.w  sr,d6               *save IRQ status
+    move.w  IRQMask(a2),sr      *disable IRQs
+    tst.w   InCount(a2)         *any Data available?
+    bne.s   PutSta10            *yes, signal Data ready
+    move.w  d0,SigPrc(a2)       *save process ID
+    move.w  d1,SigPrc+2(a2)     *save the desired signal code
+    move.w  PD_PD(a1),SigPrc+4(a2)      *save system path number (ed 9)
+    movea.l V_PORT(a2),a3       *point to port
+    bset.b  #Tn_IRQBit,Tn_CTLb(a3)  *enable interrupts
+    move.w  d6,sr               *unmask IRQs
+    moveq   #0,d1               *clear carry
+    rts
+
+PutSta10:
+    move    d6,sr               *restore IRQ status
+    bra     SendSig             *send the signal
+
+PutSta_A:
+    cmpi.w  #SS_Relea,d0        *Release Device?
+    bne.s   PutSta_B            *bra if not
+    move.w  PD_CPR(a1),d2       *get current process ID
+    move.w  PD_PD(a1),d0        *get path number
+    lea     SigPrc(a2),a3       *test SigPrc
+    bsr.s   ClearSig
+    lea     DCDOff(a2),a3
+
+ClearSig:
+    cmp.w   (a3),d2     *does it concern this process?
+    bne.s   ClrSig20    *..no; just return
+    cmp.w   4(a3),d0    *does it concern this path ?
+    bne.s   ClrSig20    *..no; simply return
+    clr.w   (a3)        *no more signals for him
+ClrSig20:
+    moveq   #0,d1
+    rts
+
+PutSta_B:
+    cmpi.w  #SS_DCOn,d0     *signal on carrier detect?
+    beq     Unknown
+ 
+PutSta_C:
+    cmpi.w  #SS_DCOff,d0    *on loss of carrier?
+    bne.s   PutSta_D        *branch if not
+    lea     DCDOff(a2),a3   *point to DCD off storage
+PutSta20:
+    move.w  PD_CPR(a1),(a3) *save process to signal
+    movea.l PD_RGS(a1),a0   *get caller's register ptr
+    move.w  R$d2+2(a0),2(a3)    *get signal code
+    move.w  PD_PD(a1),4(a3)     *save system path number (ed 9)
+    bra.s   PutSta90            *exit
+
+PutSta_D:
+    cmpi.w  #SS_EnRTS,d0        *enable RTS
+    bne.s   PutSta_E            *branch if not.
+    move    sr,d1
+    move    IRQMask(a2),sr      *mask IRQs
+    andi.b  #^RTSEnabl,Otpt_Off(a2)     *flip the RTS bit
+    bra.s   PutSta60            *exit
+
+PutSta_E:
+    cmpi.w  #SS_DsRTS,d0        *disable RTS
+    bne     Unknown             *branch if not.
+    move    sr,d1
+    move    IRQMask(a2),sr      *mask IRQs
+    ori.b   #RTSEnabl,Otpt_Off(a2)
+PutSta60:
+    movea.l V_PORT(a2),a3           *get port address
+    bset.b  #Tn_IRQBit,Tn_CTLb(a3)  *enable IRQs
+    move    d1,sr                   *re-enable IRQs
+
+PutSta90:
+    clr.b   d1                      *clear Carry
+ endc
+    rts
+
+ endc
+
+***************
+* Subroutine TrmNat
+*   Terminate Acia processing
+
+* Passed: (a1) device descriptor pointer
+*         (a2)=static storage
+*         (a4)=current process descriptor ptr
+* Returns: none
+
+TRMN00:
+    move.w  V_BUSY(a2),V_WAKE(a2)           arrange wake up signal
+    move    d6,sr                           restore IRQs
+    pea.l   TrmNat(pc)                      set return address in case of signals
+    bsr     AciaSleep                       *wait for I/O activity
+    addq.l  #4,sp                           *fix stack
+TrmNat:
+     move.w P$ID(a4),d0
+    move.w  d0,V_BUSY(a2)
+    move.w  d0,V_LPRC(a2)
+    move    sr,d6               *save current IRQ status
+    move    IRQMask(a2),sr      *mask IRQs
+    tst.w   OutCount(a2)        *any data?
+    bne.s   TRMN00              *sleep if there is
+    movea.l V_PORT(a2),a3       *get port address
+* Disable in & out IRQs on device
+    bclr.b  #Tn_IRQBit,Tn_CTLb(a3)      *disable IRQs
+    move    d6,sr                       *restore IRQ masks
+    move.b  M$Vector(a1),d0             *get vector #
+    suba.l  a0,a0
+ ifdef IRQ_used
+    OS9     F$IRQ                       *remove acia from polling tbl
+ endc
+     rts
+
+ ifdef IRQ_used
+***************
+* ACIRQ
+*   Process interrupt (input or output) from Acia
+
+* Passed:
+*         (a2)=Static Storage addr
+*         (a3)=Port address
+* Returns: cc=carry set if false interrupt
+
+* The kernel as of V2.0 stacks only registers d0, d1,
+* a0, a2, a3 and a6 before calling the interrupt 
+* service routine.
+*
+
+ACIRQ:
+    move.b  Tn_CTLb(a3),d0              *did we cause irq?
+    move.b  d0,d1                       *..
+    andi.b  #^(Tn_CTLb_RFI+Tn_CTLb_TEI),d1  *..
+    bne.s   ACIRQ05                     *branch if so
+    ori.b   #Carry,ccr      *exit with carry
+    rts
+
+ACIRQ05:
+    move.b  d0,d1
+    andi.b  #InpErr,d1      *mask status error bits
+    or.b    d1,V_ERR(a2)    *update cumulative errors
+    btst    #Tn_RXFBit,d0   *input ready?
+    bne     InIRQ           *..yes; go get it
+*! andi.b  #DCDLst,d0      *lost carrier?
+*! beq.s   OutIRQ          *branch if not
+*! tst.b DataReg(a3) clear dcd irq
+*! tst.b (a3) still have irq pending?
+*! bmi.s OutIRQ do output if so
+    movem.w DCDOff(a2),d0/d1        *get signal code
+    tst.w   d0                      *any signals to send?
+    beq.s   ACIRQ20                 *branch if not
+    bsr.s   SendSig                 *send signal to specified process
+ACIRQ20:
+    moveq   #0,d1                   *clear errors
+    rts
+
+  
+* Fall through to do output
+
+****************
+* OutIRQ
+*   Acia output interrupt service
+
+* Passed: (d0.b)=Acia Status Register Contents
+*         (a3)=Acia port address
+*         (a2)=Static Storage address
+
+OutIRQ:
+    move.b  InHalt(a2),d0   *send X-ON or X-OFF?
+    bpl.s   OutI_a          *branch if not
+    bclr    #SignBit,d0     *clear Sign bit
+    move.b  d0,Tn_TXb(a3)   *send character
+    move.b  V_XON(a2),d1    *get X-ON value
+    eor.b   d1,d0           *get Zero if X-ON
+    move.b  d0,InHalt(a2)   *mark it sent
+    tst.b   OutHalt(a2)     *is output halted?
+    bne.s   OutIRQ3         *branch if so
+    rts                     *(Carry clear)
+
+OutI_a:
+    move.w  OutCount(a2),d1
+    beq.s   OutIRQ2         *branch if not
+    subq.w  #1,d1           *taking one char
+    movea.l OutEmpty(a2),a0 *get pointer to next char
+    move.b  (a0)+,Tn_TXb(a3)    *put Data in acia
+    cmpa.l  OutEnd(a2),a0   *end of buffer ?
+    blo.s   OutI_1          *branch if not
+    lea     OutBuf(a2),a0   *point to start
+OutI_1:
+    move.l  a0,OutEmpty(a2) *update pointer
+    move.w  d1,OutCount(a2) *update char count
+    cmpi.w  #Low_Cnt,d1     *ready for more data ?
+    bhi.s   Wake90          *exit if not
+    tst.w   d1              *output buffer empty?
+    bne.s   WakeUp          *just wake up if not
+OutIRQ2:
+    bset    #H_Empty,OutHalt(a2)    *flag halted; buffer empty
+OutIRQ3:
+*!    move.b  Otpt_Off(a2),Tn_CTLb(a3) disable output IRQs
+    bra.s   Wake90
+
+WakeUp:
+    moveq   #S$Wake,d1      *Wake up signal
+    move.w  V_WAKE(a2),d0   *Owner waiting?
+Wake10:
+    beq.s   Wake90          *..no; return
+    clr.w   V_WAKE(a2)
+SendSig:
+    OS9svc  F$Send          *call send signal directly
+
+Wake90:
+    moveq   #0,d1
+    rts
+
+
+***************
+* InIRQ
+*   Acia input interrupt service
+
+* Passed: (d0.b)=Acia Status Register Data
+*         (a3)=Acia port address
+*         (a2)=Static Storage address
+
+
+InIRQ:
+    move.b  Tn_RXb(a3),d0   *Read input char
+    beq.s   InIRQ1          *..NULL, impossible ctl chr
+    cmp.b   V_INTR(a2),d0   *keyboard Interrupt?
+    beq     InAbort         *..Yes
+    cmp.b   V_QUIT(a2),d0   *keyboard Quit?
+    beq     InQuit          *..Yes
+    cmp.b   V_PCHR(a2),d0   *keyboard Pause?
+    beq     InPause         *..Yes
+    cmp.b   V_XON(a2),d0    *X-ON continue?
+    beq     InXON           *..Yes
+    cmp.b   V_XOFF(a2),d0   *X-OFF Immediate Pause request?
+    beq     InXOFF          *..Yes
+
+InIRQ1:
+    movea.l InFill(a2),a0   *point to current char
+    move.b  d0,(a0)+        *put Data in buffer
+    addq.w  #1,InCount(a2)  *count character
+    cmpi.w  #InpSiz,InCount(a2)     *buffer full?
+    bls.s   InIRQ10             *branch if not
+    subq.w  #1,InCount(a2)      *uncount character
+    ori.b   #Overun,V_ERR(a2)   *or in error
+    bra.s   WakeUp              *exit with error
+
+InIRQ10:
+    cmp.l   InEnd(a2),a0        *end of buffer ?
+    blo.s   InIRQ30             *branch if not
+    lea     InpBuf(a2),a0       *point to start of buffer
+InIRQ30:
+    move.l  a0,InFill(a2)       *update next in pointer
+    move.w  SigPrc(a2),d0       *any process to notify?
+    beq.s   InIRQ4              *..no
+    move.w  SigPrc+2(a2),d1     *get signal code
+    clr.w   SigPrc(a2)          *disable signal sending
+    bra     SendSig             *Signal Controlling process
+
+InIRQ4:
+    move.b  V_XOFF(a2),d0       *get X-OFF char
+    beq     WakeUp              *branch if not enabled
+    cmpi.w  #MaxBuff,InCount(a2)    *is buffer almost full?
+    blo     WakeUp              *bra if not
+    move.b  InHalt(a2),d1       *have we sent XOFF?
+    bne     WakeUp              *yes then don't send it again
+    bclr    #SignBit,d0         *ensure Sign clear
+    move.b  d0,V_XOFF(a2)
+    ori.b   #Sign,d0            *set Sign bit
+    move.b  d0,InHalt(a2)       *flag input halt
+    bset.b  #Tn_IRQBit,Tn_CTLb(a3)  *enable in (& out) IRQs
+    bra     WakeUp
+
+***************
+* Control character routines
+
+InPause:
+    tst.l   V_DEV2(a2)      *any echo device?
+    beq.s   InIRQ1          *buffer char and exit if not
+    movea.l V_DEV2(a2),a0   *get echo device static ptr
+    move.b  d0,V_PAUS(a0)   *request pause
+    bra.s   InIRQ1          *buffer char and exit
+
+InAbort:
+    moveq   #S$Intrpt,d1    *keyboard INTERRUPT signal
+    bra.s   InQuit10
+
+InQuit:
+    moveq   #S$Abort,d1     *Abort signal
+InQuit10:
+    move.l  d0,-(a7)        *save input char
+    move.w  V_LPRC(a2),d0   *last process ID
+    bsr     Wake10          *Send error signal
+    move.l  (a7)+,d0        *restore input char
+    bra     InIRQ1          *buffer char, exit
+
+InXON:
+    bclr    #H_XOFF,OutHalt(a2)     *enable output
+    tst.b   OutHalt(a2)             *still halted (buffer empty)?
+    bne.s   InXON99                 *exit if so
+    bset.b  #Tn_IRQBit,Tn_CTLb(a3)  *enable in (& out) IRQs
+InXON99:
+    rts
+
+InXOFF:
+    tst.b   OutHalt(a2)
+    bne.s   InXOFF10                *..already halted, continue
+    
+    bclr.b  #Tn_IRQBit,Tn_CTLb(a3)  *disable output IRQs
+InXOFF10:
+    bset    #H_XOFF,OutHalt(a2)     *flag output restricted
+    rts
+ endc
+
+ ends

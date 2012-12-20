@@ -14,8 +14,8 @@
 * Editon History
 *  #    Date      Comments                                      by
 * -- --------- ------------------------------------------------ ---
-* 04 10-15-85 History begun.									rfd
-* 04 10-15-86 Modified slightly for 2.0 release.				rfd
+* 04 10-15-85 History begun.					rfd
+* 04 10-15-86 Modified slightly for 2.0 release.		rfd
 *              ---- OS-9/68K V2.0 Release ---- 
 *              ---- OS-9/68K V2.1 Release ---- 
 *              ---- OS-9/68K V2.2 Release ---- 
@@ -29,6 +29,8 @@ Edition equ 10 current edition number
 
  use defsfile
 
+UseMshell set 0
+
 Typ_Lang set (Prgrm<<8)+Objct
 Attr_Rev set (ReEnt<<8)+0
  psect test,Typ_Lang,Attr_Rev,Edition,0,Entry
@@ -41,34 +43,53 @@ Intercpt OS9 F$RTE return from intercept
 
 Entry lea Intercpt(pc),a0
  OS9 F$Icpt
+    move.w  #$5000,$a00040
 Loop moveq #0,d0 any type module
  moveq #0,d1 default memory size
+ ifne UseMshell
  moveq #StartMSPSz,d2 parameter size
+ else
+ moveq #1,d2 one param byte (CR)
+ endc
  moveq #3,d3 copy std I/O paths
  moveq #0,d4 same priority
  lea ShellNam(pcr),a0 shell name
- lea CRChar(pcr),a1 paramter string
+ lea CRChar(pcr),a1 parameter string
  OS9 F$Fork fork shell
+    move.w  #$5001,$a00040
  bcs.s ForkErr abort if error
+    move.w  #$5002,$a00040
  OS9 F$Wait wait for it to terminate
  bcs.s ForkErr
  tst.w d1 zero status?
  beq.s Loop loop if so
-ForkErr moveq #0,d0 no error message file
+ForkErr:
+ moveq #0,d0 no error message file
+    move.w  #$5003,$a00040
  OS9 F$PErr print error message
+    move.w  #$5004,$a00040
  bra.s Loop
 
+ ifne UseMshell
 ShellNam dc.b "mshell",0
 *
 * Parameter, Environment and argv/argc magic values for mshell 
 * DO NOT CHANGE
 *
  align 4
+
 CRChar dc.b C$CR
  dc.b "SHELL=mshell",0
  dc.b 252,1,0,0,0,20,"mshell",0,0,0,C$CR
  dc.b 0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0
 StartMSPSz equ *-CRChar
-	
+
+ else
+
+ShellNam dc.b "shell",0
+CRChar dc.b C$CR
+
+ endc
+ 
  ends
 

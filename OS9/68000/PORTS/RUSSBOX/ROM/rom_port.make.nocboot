@@ -1,0 +1,65 @@
+# Makefile for port modules in the RUSSBOX 990 ROM
+# This primarily is 'sysinit.a'.
+
+-bo
+-x
+-mode=compat
+
+MWOS		= ../../../../..
+ROOT		= ../../../..			# base of dir system
+
+BASEROOT	= $(ROOT)/68000			# dir system for LIB, etc
+SRCROOT		= $(ROOT)/SRC			# dir system for source
+
+TYPE		= ROMBUG
+RDIR		= RELS/$(TYPE)
+RDUP		= ../..
+
+SYSDEFS		= $(SRCROOT)/DEFS		# std OS defs
+
+SYSMACS		= $(SRCROOT)/MACROS
+
+MAKER		= rom_port.make
+
+SYSINIT		= sysinit.r
+OBJECTS		= $(SYSINIT)
+
+OLIB		= rom_port.l
+
+COMDEFS		= $(SYSDEFS)/oskdefs.d
+DEFS		= ../systype.d $(COMDEFS)
+
+RBUG		= -aROMBUG
+INHOUSE		= #-aINHOUSE
+MBUGTRC		= #-aMBUGTRC # enables MBUG tracing and breakpoints for testing
+
+SPEC_RFLAGS	= $(RBUG) $(INHOUSE) $(MBUGTRC)
+
+include		$(MWOS)/MAKETMPL/makeosk.tpl
+
+TMPDIR		= $(TEMP)
+
+RC			= r68
+RSRCHDIRS	= -u=. -u=$(SYSDEFS) -u=$(SYSMACS)
+RFLAGS		= -q -$(SPEC_RFLAGS) $(RSRCHDIRS) -m2
+
+
+$(RDIR)/$(OLIB) : makdir $(OBJECTS)
+	-$(CODO) $@ 
+	-$(DEL)  $@ 
+	$(CHD) $(RDIR); $(MERGE) $(MOPTS) $(OBJECTS) $(REDIR_OUT)$(OLIB)
+
+$(SYSINIT) : $(DEFS) $(MAKER) sysinit.a
+
+makdir _makdir:
+	-$(MAKDIR) $(RDIR)
+
+clean _clean:
+	-$(DEL) $(RDIR)/$(SYSINIT)
+
+purge _purge:
+	-$(CODO) $(RDIR)/$(OLIB)
+	-$(DEL)  $(RDIR)/$(OLIB)
+
+# end of file
+

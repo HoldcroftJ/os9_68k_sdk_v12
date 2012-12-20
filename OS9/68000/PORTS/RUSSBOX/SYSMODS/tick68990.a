@@ -84,8 +84,9 @@ Attr_Rev set ((ReEnt+SupStat)<<8)!Revision
 ********************
 * RTC module name
 *
-ClockName dc.b "rtclock",0 name of real time clock module
-
+ClockName:  dc.b "rtc68990",0       *name of real time clock module
+    align
+    
 ********************
 * Offsets in "rtclock" module for subroutine calls
 *
@@ -99,68 +100,74 @@ SetTime equ 4 set-time is next entry
 * Passed: (a5) = Address of caller's registers stack
 *         (a6) = System Global Data Pointer
 *
-TickInit: movem.l d1/a0-a4,-(a7) save d1/a0-a3 and make space for status
+TickInit:
+    movem.l d1/a0-a4,-(a7)      *save d1/a0-a3 and make space for status
 
-Status set 4*5 set level of stacking to status reg save
-ErrCode set 0 set level of stacking to return d1
+Status  set 4*5                 *set level of stacking to status reg save
+ErrCode set 0                   *set level of stacking to return d1
 
- moveq.l #0,d0 ensure carry clear
- move.w sr,Status(a7) save the condition codes
- suba.l a2,a2 clear a2 for later use in link detection
- movea.l #ClockPort,a3 get the ticker address
- tst.w D_TckSec(a6) is clock already running?
- bne.s SkipTick if yes, skip ticker initialization
- move.w #TiksPerSec,D_TckSec(a6) set systems tick rate
+    moveq.l #0,d0               *ensure carry clear
+* andi.w  #$f7ff,sr           *enable IRQs -rlm
+    move.w  sr,Status(a7)       *save the condition codes
+    suba.l  a2,a2               *clear a2 for later use in link detection
+    movea.l #ClockPort,a3       *get the ticker address
+    tst.w   D_TckSec(a6)        *is clock already running?
+    bne.s   SkipTick            *if yes, skip ticker initialization
+    move.w  #TicksPerSec,D_TckSec(a6)   *set systems tick rate
+
 * Kernel sets this again on return .. Can't be 0 if IRQ occurs.
- move.w D_TckSec(a6),D_Tick(a6)  set systems current tick
+    move.w  D_TckSec(a6),D_Tick(a6)     * set systems current tick
 *
 * Put the Ticker in the polling table
 *
- move.b #ClockVect,d0 get vector number
- move.b #ClockPrior,d1 get priority
- lea.l TickIRQ(pc),a0 get address of service routine
- os9 F$IRQ put ticker in polling table
- bcs.s ErrExit if error on F$IRQ call, exit
+    move.b  #ClockVect,d0       *get vector number
+    move.b  #ClockPrior,d1      *get priority
+    lea.l   TickIRQ(pc),a0      *get address of service routine
+    os9     F$IRQ               *put ticker in polling table
+    bcs.s   ErrExit             *if error on F$IRQ call, exit
 *
 * Initialize ticker chip and enable it for tick IRQs
 *
- bsr StartTick initialize the ticker chip
- bcs.s ErrExit ..abort if error
+    bsr     StartTick           *initialize the ticker chip
+    bcs.s   ErrExit             *..abort if error
 *
 * Link to real time clock module ("rtclock")
 *
-SkipTick move.w #(Sbrtn<<8)+Objct,d0 set RTC type/language
- lea.l ClockName(pc),a0 get address of clock module name
- OS9 F$Link try to link to the clock module (alters a1,a2)
- bcc.s RTCFound if link succeeds, go call RTC subroutine
+SkipTick:
+    move.w  #(Sbrtn<<8)+Objct,d0    *set RTC type/language
+    lea.l   ClockName(pc),a0        *get address of clock module name
+    OS9     F$Link                  *try to link to the clock module (alters a1,a2)
+    bcc.s   RTCFound                *if link succeeds, go call RTC subroutine
 *
 * no rtclock module was found
 *
 
- tst.w R$d1+2(a5) was date info passed ?
- bne.s Exit if yes, go exit with no error
- move.w #E$NoClk,d1 get "No Clock" error code
+    tst.w   R$d1+2(a5)              *was date info passed ?
+    bne.s   Exit                    *if yes, go exit with no error
+    move.w  #E$NoClk,d1             *get "No Clock" error code
  bra.s ErrExit exit with no clock error
 *
 * Determine if SetTime or GetTime
 * (a1 = address of subroutine jump table)
 *
-RTCFound movem.l a2/a6,-(a7) save the regs
-Status set Status+(2*4) track stacking
-FrameSave set Status extra copy
+RTCFound:
+    movem.l a2/a6,-(a7)     *save the regs
+
+Status      set Status+(2*4)    *track stacking
+FrameSave   set Status          *extra copy
 
  tst.w R$d1+2(a5) was date info passed ?
 
- bne.s Setime if yes, go set time in RTC chip
+    bne.s   Setime          *if yes, go set time in RTC chip
 *
 * Get the time from the RTC
 *
- jsr GetTime(a1) get the time from the RTC
- movem.l (a7)+,a2/a6 retrieve the regs
-Status set Status-(2*4) track stacking
- bcs.s ErrExit exit with error (if any)
- move.l d1,D_Year(a6) set system gregorian date
- OS9 F$Julian convert to julian date
+    jsr     GetTime(a1)     *get the time from the RTC
+    movem.l (a7)+,a2/a6     *retrieve the regs
+Status      set Status-(2*4)    *track stacking
+    bcs.s   ErrExit             *exit with error (if any)
+    move.l  d1,D_Year(a6)       *set system gregorian date
+    OS9     F$Julian            *convert to julian date
  move.l d1,D_Julian(a6) set julian date
  neg.l d0
  add.l #24*60*60,d0 convert to seconds until midnight
@@ -188,18 +195,20 @@ ErrExit:
  jmp 3(pc)
 *!**** DEBUGGING ****
 
- move.l d1,ErrCode(a7) put error code in d1 (on the stack)
- ori.w #Carry,Status(a7) return carry set (in ccr on the stack)
+    move.l  d1,ErrCode(a7)      *put error code in d1 (on the stack)
+    ori.w   #Carry,Status(a7)   *return carry set (in ccr on the stack)
 *
 * Exit
 *
-Exit move.l a2,d0 was a valid link made?
+Exit:
+ move.l a2,d0 was a valid link made?
  beq.s Exit10 if no, skip the unlink call
  OS9 F$UnLink unlink the RTC module (ignore any error)
-Exit10 move.w Status(a7),ccr set error status
- movem.l (a7)+,d1/a0-a3 restore d1/a0-a3
- addq.l #4,a7 toss scratch for status
-Status set Status-(4*5)
+Exit10:
+    move.w  Status(a7),ccr      *set error status
+    movem.l (a7)+,d1/a0-a3      *restore d1/a0-a3
+    addq.l  #4,a7               *toss scratch for status
+Status  set Status-(4*5)
 
  ifne Status
  fail Stack level imbalance

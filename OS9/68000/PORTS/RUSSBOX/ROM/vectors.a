@@ -1,0 +1,355 @@
+ nam OS-9/68000 Interrupt Vectors
+ ttl Jump Table
+
+* Copyright 1987, 1988, 1989, 1990 by Microware Systems Corporation
+* Reproduced Under License
+
+* This source code is the proprietary confidential property of
+* Microware Systems Corporation, and is provided to licensee
+* solely for documentation and educational purposes. Reproduction,
+* publication, or distribution in any form to any party other than
+* the licensee is strictly prohibited.
+
+
+********************
+* Edition History
+*
+* Ed.   Date.    Reason                                           Who
+* --  --------  ------------------------------------------------- ---
+* 01  87/05/05  history starts...                                 wwb
+*                ---- OS-9/68K V2.1 Release ---- 
+*                ---- OS-9/68K V2.2 Release ---- 
+* 02  88/11/18  modified RESET SSP generation for new debugger.   wwb
+* 03  89/01/12  added ROMBUG conditional for debugger control.    wwb
+* 04  89/02/10  changed DEBUGGER conditionals to "ifdefs"         jal
+* 05  89/02/13  added USING_DEBUGGER conditional for ROMBUG       jal
+*                ---- OS-9/68K V2.3 Release ---- 
+*                ---- CD-RTOS V1.1 Release ---- 
+* 06  90/07/18  made IntrptStk be defined if ROMBUG or CBOOT      wwb
+*               defined.
+*                ---- OS-9/68K V2.4 Release ---- 
+*                ---- OS-9/68K V3.0 Release ----
+*                ---- OS-9/68K V3.1 Release ----
+*
+Edition set 6
+
+ psect vectors,0,0,Edition,0,0
+
+ use defsfile
+
+* define whether smart/simple debugger in use
+ ifdef ROMBUG
+USING_DEBUGGER set 1 set (smart) debugger in use
+ endc ROMBUG
+
+ ifdef DEBUGGER 
+USING_DEBUGGER set 1 set (simple) debugger in use
+ endc DEBUGGER 
+
+* exception jump table definitions
+ExcptJmp: equ Mem.Beg exception jump table address
+EJTesize equ 10 exception jump table entry size
+
+* define interrupt stack size.  If not using CBOOT or ROMBUG
+* then interrupt stack contained within fixed 4K global data area.
+
+ ifdef ROMBUG
+VARGLOBE set 1 define that global data size is variable
+ endc ROMBUG
+ ifdef CBOOT
+VARGLOBE set 1 define that global data size is variable
+ endc CBOOT
+ 
+ ifdef VARGLOBE
+IntrptStk: equ 1024 default interrupt stack.
+ endc VARGLOBE
+
+********************
+*
+*       Trap Vector Table
+*
+VectTbl:
+ ifdef VARGLOBE
+ dc.l ExcptJmp+dsize+IntrptStk reset stack ptr
+ else
+ dc.l ExcptJmp+$1000 reset stack ptr
+ endc VARGLOBE
+ dc.l Reset reset vector
+
+ ifdef USING_DEBUGGER
+ dc.l BusTrap buss trap handler
+ dc.l AddrTrap address trap handler
+ dc.l IllTrap illegal instruction
+ else
+ dc.l ExcptJmp+EJTesize*0 bus trap
+ dc.l ExcptJmp+EJTesize*1 address trap
+ dc.l ExcptJmp+EJTesize*2 illegal instruction
+ endc USING_DEBUGGER
+
+ dc.l ExcptJmp+EJTesize*3 zero divide
+ dc.l ExcptJmp+EJTesize*4 CHK
+ dc.l ExcptJmp+EJTesize*5 TRAPV
+ dc.l ExcptJmp+EJTesize*6 privilege violation
+
+ ifdef USING_DEBUGGER
+ dc.l TracTrap trace trap
+ else
+ dc.l ExcptJmp+EJTesize*7 trace trap
+ endc USING_DEBUGGER
+
+ dc.l ExcptJmp+EJTesize*8 line 1010
+ dc.l ExcptJmp+EJTesize*9 line 1111
+ dc.l ExcptJmp+EJTesize*10 reserved
+ dc.l ExcptJmp+EJTesize*11 reserved
+ dc.l ExcptJmp+EJTesize*12 reserved
+ dc.l ExcptJmp+EJTesize*13 uninitialized interrupt
+ dc.l ExcptJmp+EJTesize*14 reserved
+ dc.l ExcptJmp+EJTesize*15 reserved
+ dc.l ExcptJmp+EJTesize*16 reserved
+ dc.l ExcptJmp+EJTesize*17 reserved
+ dc.l ExcptJmp+EJTesize*18 reserved
+ dc.l ExcptJmp+EJTesize*19 reserved
+ dc.l ExcptJmp+EJTesize*20 reserved
+ dc.l ExcptJmp+EJTesize*21 reserved
+ dc.l ExcptJmp+EJTesize*22 spurious interrupt
+ dc.l ExcptJmp+EJTesize*23 level 1 autovector
+ dc.l ExcptJmp+EJTesize*24 level 2 autovector
+ dc.l ExcptJmp+EJTesize*25 level 3 autovector
+ dc.l ExcptJmp+EJTesize*26 level 4 autovector
+ dc.l ExcptJmp+EJTesize*27 level 5 autovector
+ dc.l ExcptJmp+EJTesize*28 level 6 autovector
+ ifdef USING_DEBUGGER
+ dc.l Aut7Trap level 7 autovector
+ else
+ dc.l ExcptJmp+EJTesize*29 level 7 autovector
+ endc USING_DEBUGGER
+ dc.l ExcptJmp+EJTesize*30 TRAP 0
+ dc.l ExcptJmp+EJTesize*31 TRAP 1
+ dc.l ExcptJmp+EJTesize*32 TRAP 2
+ dc.l ExcptJmp+EJTesize*33 TRAP 3
+ dc.l ExcptJmp+EJTesize*34 TRAP 4
+ dc.l ExcptJmp+EJTesize*35 TRAP 5
+ dc.l ExcptJmp+EJTesize*36 TRAP 6
+ dc.l ExcptJmp+EJTesize*37 TRAP 7
+ dc.l ExcptJmp+EJTesize*38 TRAP 8
+ dc.l ExcptJmp+EJTesize*39 TRAP 9
+ dc.l ExcptJmp+EJTesize*40 TRAP 10
+ dc.l ExcptJmp+EJTesize*41 TRAP 11
+ dc.l ExcptJmp+EJTesize*42 TRAP 12
+ dc.l ExcptJmp+EJTesize*43 TRAP 13
+ dc.l ExcptJmp+EJTesize*44 TRAP 14
+ dc.l ExcptJmp+EJTesize*45 TRAP 15
+ dc.l ExcptJmp+EJTesize*46 reserved
+ dc.l ExcptJmp+EJTesize*47 reserved
+ dc.l ExcptJmp+EJTesize*48 reserved
+ dc.l ExcptJmp+EJTesize*49 reserved
+ dc.l ExcptJmp+EJTesize*50 reserved
+ dc.l ExcptJmp+EJTesize*51 reserved
+ dc.l ExcptJmp+EJTesize*52 reserved
+ dc.l ExcptJmp+EJTesize*53 reserved
+ dc.l ExcptJmp+EJTesize*54 reserved
+ dc.l ExcptJmp+EJTesize*55 reserved
+ dc.l ExcptJmp+EJTesize*56 reserved
+ dc.l ExcptJmp+EJTesize*57 reserved
+ dc.l ExcptJmp+EJTesize*58 reserved
+ dc.l ExcptJmp+EJTesize*59 reserved
+ dc.l ExcptJmp+EJTesize*60 reserved
+ dc.l ExcptJmp+EJTesize*61 reserved
+*
+*       all remaining vectors are User Interrupt vectors
+*
+ dc.l ExcptJmp+EJTesize*62
+ dc.l ExcptJmp+EJTesize*63
+ dc.l ExcptJmp+EJTesize*64
+ dc.l ExcptJmp+EJTesize*65
+ dc.l ExcptJmp+EJTesize*66
+ dc.l ExcptJmp+EJTesize*67
+ dc.l ExcptJmp+EJTesize*68
+ dc.l ExcptJmp+EJTesize*69
+ dc.l ExcptJmp+EJTesize*70
+ dc.l ExcptJmp+EJTesize*71
+ dc.l ExcptJmp+EJTesize*72
+ dc.l ExcptJmp+EJTesize*73
+ dc.l ExcptJmp+EJTesize*74
+ dc.l ExcptJmp+EJTesize*75
+ dc.l ExcptJmp+EJTesize*76
+ dc.l ExcptJmp+EJTesize*77
+ dc.l ExcptJmp+EJTesize*78
+ dc.l ExcptJmp+EJTesize*79
+ dc.l ExcptJmp+EJTesize*80
+ dc.l ExcptJmp+EJTesize*81
+ dc.l ExcptJmp+EJTesize*82
+ dc.l ExcptJmp+EJTesize*83
+ dc.l ExcptJmp+EJTesize*84
+ dc.l ExcptJmp+EJTesize*85
+ dc.l ExcptJmp+EJTesize*86
+ dc.l ExcptJmp+EJTesize*87
+ dc.l ExcptJmp+EJTesize*88
+ dc.l ExcptJmp+EJTesize*89
+ dc.l ExcptJmp+EJTesize*90
+ dc.l ExcptJmp+EJTesize*91
+ dc.l ExcptJmp+EJTesize*92
+ dc.l ExcptJmp+EJTesize*93
+ dc.l ExcptJmp+EJTesize*94
+ dc.l ExcptJmp+EJTesize*95
+ dc.l ExcptJmp+EJTesize*96
+ dc.l ExcptJmp+EJTesize*97
+ dc.l ExcptJmp+EJTesize*98
+ dc.l ExcptJmp+EJTesize*99
+ dc.l ExcptJmp+EJTesize*100
+ dc.l ExcptJmp+EJTesize*101
+ dc.l ExcptJmp+EJTesize*102
+ dc.l ExcptJmp+EJTesize*103
+ dc.l ExcptJmp+EJTesize*104
+ dc.l ExcptJmp+EJTesize*105
+ dc.l ExcptJmp+EJTesize*106
+ dc.l ExcptJmp+EJTesize*107
+ dc.l ExcptJmp+EJTesize*108
+ dc.l ExcptJmp+EJTesize*109
+ dc.l ExcptJmp+EJTesize*110
+ dc.l ExcptJmp+EJTesize*111
+ dc.l ExcptJmp+EJTesize*112
+ dc.l ExcptJmp+EJTesize*113
+ dc.l ExcptJmp+EJTesize*114
+ dc.l ExcptJmp+EJTesize*115
+ dc.l ExcptJmp+EJTesize*116
+ dc.l ExcptJmp+EJTesize*117
+ dc.l ExcptJmp+EJTesize*118
+ dc.l ExcptJmp+EJTesize*119
+ dc.l ExcptJmp+EJTesize*120
+ dc.l ExcptJmp+EJTesize*121
+ dc.l ExcptJmp+EJTesize*122
+ dc.l ExcptJmp+EJTesize*123
+ dc.l ExcptJmp+EJTesize*124
+ dc.l ExcptJmp+EJTesize*125
+ dc.l ExcptJmp+EJTesize*126
+ dc.l ExcptJmp+EJTesize*127
+ dc.l ExcptJmp+EJTesize*128
+ dc.l ExcptJmp+EJTesize*129
+ dc.l ExcptJmp+EJTesize*130
+ dc.l ExcptJmp+EJTesize*131
+ dc.l ExcptJmp+EJTesize*132
+ dc.l ExcptJmp+EJTesize*133
+ dc.l ExcptJmp+EJTesize*134
+ dc.l ExcptJmp+EJTesize*135
+ dc.l ExcptJmp+EJTesize*136
+ dc.l ExcptJmp+EJTesize*137
+ dc.l ExcptJmp+EJTesize*138
+ dc.l ExcptJmp+EJTesize*139
+ dc.l ExcptJmp+EJTesize*140
+ dc.l ExcptJmp+EJTesize*141
+ dc.l ExcptJmp+EJTesize*142
+ dc.l ExcptJmp+EJTesize*143
+ dc.l ExcptJmp+EJTesize*144
+ dc.l ExcptJmp+EJTesize*145
+ dc.l ExcptJmp+EJTesize*146
+ dc.l ExcptJmp+EJTesize*147
+ dc.l ExcptJmp+EJTesize*148
+ dc.l ExcptJmp+EJTesize*149
+ dc.l ExcptJmp+EJTesize*150
+ dc.l ExcptJmp+EJTesize*151
+ dc.l ExcptJmp+EJTesize*152
+ dc.l ExcptJmp+EJTesize*153
+ dc.l ExcptJmp+EJTesize*154
+ dc.l ExcptJmp+EJTesize*155
+ dc.l ExcptJmp+EJTesize*156
+ dc.l ExcptJmp+EJTesize*157
+ dc.l ExcptJmp+EJTesize*158
+ dc.l ExcptJmp+EJTesize*159
+ dc.l ExcptJmp+EJTesize*160
+ dc.l ExcptJmp+EJTesize*161
+ dc.l ExcptJmp+EJTesize*162
+ dc.l ExcptJmp+EJTesize*163
+ dc.l ExcptJmp+EJTesize*164
+ dc.l ExcptJmp+EJTesize*165
+ dc.l ExcptJmp+EJTesize*166
+ dc.l ExcptJmp+EJTesize*167
+ dc.l ExcptJmp+EJTesize*168
+ dc.l ExcptJmp+EJTesize*169
+ dc.l ExcptJmp+EJTesize*170
+ dc.l ExcptJmp+EJTesize*171
+ dc.l ExcptJmp+EJTesize*172
+ dc.l ExcptJmp+EJTesize*173
+ dc.l ExcptJmp+EJTesize*174
+ dc.l ExcptJmp+EJTesize*175
+ dc.l ExcptJmp+EJTesize*176
+ dc.l ExcptJmp+EJTesize*177
+ dc.l ExcptJmp+EJTesize*178
+ dc.l ExcptJmp+EJTesize*179
+ dc.l ExcptJmp+EJTesize*180
+ dc.l ExcptJmp+EJTesize*181
+ dc.l ExcptJmp+EJTesize*182
+ dc.l ExcptJmp+EJTesize*183
+ dc.l ExcptJmp+EJTesize*184
+ dc.l ExcptJmp+EJTesize*185
+ dc.l ExcptJmp+EJTesize*186
+ dc.l ExcptJmp+EJTesize*187
+ dc.l ExcptJmp+EJTesize*188
+ dc.l ExcptJmp+EJTesize*189
+ dc.l ExcptJmp+EJTesize*190
+ dc.l ExcptJmp+EJTesize*191
+ dc.l ExcptJmp+EJTesize*192
+ dc.l ExcptJmp+EJTesize*193
+ dc.l ExcptJmp+EJTesize*194
+ dc.l ExcptJmp+EJTesize*195
+ dc.l ExcptJmp+EJTesize*196
+ dc.l ExcptJmp+EJTesize*197
+ dc.l ExcptJmp+EJTesize*198
+ dc.l ExcptJmp+EJTesize*199
+ dc.l ExcptJmp+EJTesize*200
+ dc.l ExcptJmp+EJTesize*201
+ dc.l ExcptJmp+EJTesize*202
+ dc.l ExcptJmp+EJTesize*203
+ dc.l ExcptJmp+EJTesize*204
+ dc.l ExcptJmp+EJTesize*205
+ dc.l ExcptJmp+EJTesize*206
+ dc.l ExcptJmp+EJTesize*207
+ dc.l ExcptJmp+EJTesize*208
+ dc.l ExcptJmp+EJTesize*209
+ dc.l ExcptJmp+EJTesize*210
+ dc.l ExcptJmp+EJTesize*211
+ dc.l ExcptJmp+EJTesize*212
+ dc.l ExcptJmp+EJTesize*213
+ dc.l ExcptJmp+EJTesize*214
+ dc.l ExcptJmp+EJTesize*215
+ dc.l ExcptJmp+EJTesize*216
+ dc.l ExcptJmp+EJTesize*217
+ dc.l ExcptJmp+EJTesize*218
+ dc.l ExcptJmp+EJTesize*219
+ dc.l ExcptJmp+EJTesize*220
+ dc.l ExcptJmp+EJTesize*221
+ dc.l ExcptJmp+EJTesize*222
+ dc.l ExcptJmp+EJTesize*223
+ dc.l ExcptJmp+EJTesize*224
+ dc.l ExcptJmp+EJTesize*225
+ dc.l ExcptJmp+EJTesize*226
+ dc.l ExcptJmp+EJTesize*227
+ dc.l ExcptJmp+EJTesize*228
+ dc.l ExcptJmp+EJTesize*229
+ dc.l ExcptJmp+EJTesize*230
+ dc.l ExcptJmp+EJTesize*231
+ dc.l ExcptJmp+EJTesize*232
+ dc.l ExcptJmp+EJTesize*233
+ dc.l ExcptJmp+EJTesize*234
+ dc.l ExcptJmp+EJTesize*235
+ dc.l ExcptJmp+EJTesize*236
+ dc.l ExcptJmp+EJTesize*237
+ dc.l ExcptJmp+EJTesize*238
+ dc.l ExcptJmp+EJTesize*239
+ dc.l ExcptJmp+EJTesize*240
+ dc.l ExcptJmp+EJTesize*241
+ dc.l ExcptJmp+EJTesize*242
+ dc.l ExcptJmp+EJTesize*243
+ dc.l ExcptJmp+EJTesize*244
+ dc.l ExcptJmp+EJTesize*245
+ dc.l ExcptJmp+EJTesize*246
+ dc.l ExcptJmp+EJTesize*247
+ dc.l ExcptJmp+EJTesize*248
+ dc.l ExcptJmp+EJTesize*249
+ dc.l ExcptJmp+EJTesize*250
+ dc.l ExcptJmp+EJTesize*251
+ dc.l ExcptJmp+EJTesize*252
+ dc.l ExcptJmp+EJTesize*253
+
+ ends
+ 
