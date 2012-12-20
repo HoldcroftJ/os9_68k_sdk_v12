@@ -1,0 +1,8 @@
+ nam D9 Device Descriptor
+ use defsfile
+
+ use "rbfdesc.a"
+
+DrvNum set 9
+ DiskD9
+ ends

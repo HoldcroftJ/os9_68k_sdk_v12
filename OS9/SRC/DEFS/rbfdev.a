@@ -1,0 +1,77 @@
+*****************************************************************************
+*                                                                           *
+*              Copyright 1998 by Microware Systems Corporation              *
+*                            All Rights Reserved                            *
+*                          Reproduced Under License                         *
+*                                                                           *
+*  This software is confidential property of Microware Systems Corporation, *
+*  and is provided under license for internal development purposes only.    *
+*  Reproduction, publication, modification, distribution, or creation of    *
+*  derivative works in any form to any party other than the Licensee is     *
+*  strictly prohibited, unless expressly provided for under the terms of a  *
+*  mutually executed written license agreement for this software between    *
+*  the end-user and Microware Systems Corporation, or otherwise expressly   *
+*  authorized in writing by Microware Systems Corporation.  Licensee shall  *
+*  reproduce this copyright notice exactly as provided herein on any copies *
+*  of the software that Licensee is authorized to distribute.               *
+*                                                                           *
+*****************************************************************************
+*                                                                           *
+* Edition History:                                                          *
+* #   Date     Comments                                                By   *
+* --- -------- ------------------------------------------------------- ---- *
+*  01 98/07/15 Added edition history.                                  wwb  *
+*				---- OS-9/68K V3.1 Release ----								*
+*             $$                    <RELEASE_INFO>                     $$   *
+*****************************************************************************
+
+****************************************
+* Disk Static Storage Global variable definitions
+*   Required in static storage of all RBF device drivers
+
+*  Note: This does not reserve any memory for drive tables.
+*        Each driver is responsible for reserving sufficient
+*        memory for the appropriate number of tables.
+
+			org V_USER reserve system required
+V_NDRV:		do.b 1 number of drives
+			do.b 7 reserved
+DRVBEG:		equ . beginning of drive tables
+
+* Global storage for disk drive tables.
+* Each table contains data copied from the first DD_SIZ bytes
+* of sector zero (reformatted slightly), as well as the static
+* variables defined here.
+
+			org 0
+* Copy of first DD_SIZ vars in device descriptor (sector zero)
+
+			do.b 22 reserve 22 bytes for track zero information
+V_TRAK:		do.w 1 current track
+V_FileHd:	do.l 1 open file list for this drive
+V_DiskID:	do.w 1 disk id
+V_BMapSz:	do.w 1 bitmap  size
+V_MapSct:	do.w 1 lowest bitmap sector to search
+V_BMB:		do.w 1 Bit-map in use flag
+V_ScZero:	do.l 1 Pointer to sector zero buffer
+V_ZeroRd:	do.b 1 sector zero read flag
+V_Init:		do.b 1 drive initialized flag
+V_ResBit:	do.w 1 Reserved bitmap sector number (if any)
+V_SoftEr:	do.l 1 Number of recoverable errors occurred
+V_HardEr:	do.l 1 Number of non-recoverable errors occurred
+V_Cache:	do.l 1 Drive cache queue head
+V_DTExt:	do.l 1 Drive table extension ptr
+V_MapMax:	do.w 1 maximum bitmap sector number
+V_MapOffs:	do.w 1 bitmap sector offset
+V_UseFlags: do.b 1 flags indicating device capabilites
+			do.b 3 reserved
+			do.l 4 reserved
+DRVMEM:		equ .
+
+******************
+* Bit definitions for V_UseFlags
+NoSSDelBlk_B: equ 0
+
+******************
+* constant definitions for V_UseFlags
+NoSSDelBlk: equ 1

@@ -1,0 +1,1423 @@
+ nam Sasi Disk Driver
+ ttl Device driver for Sasi controllers on CMS 9670
+ 
+************************************************************
+*                                                          *
+*     SasiDriver - OS9/68000 device driver for cms 9670    *
+*                                                          *
+*     This driver may bare a slight similarity to the      *
+* Mizar hard disk driver ditributed by Microware on its    *
+* port pack.                                               *
+*                                                          *
+* Author: Dave Lyons                                       *
+* Date: September 21, 1984                                 *
+*                                                          *
+* Edition 0: September 21, 1984                        DJL *
+* Translated from 6809 code.                               *
+*                                                          *
+************************************************************
+
+*Module header
+*
+Edition equ 0 current edition number
+Type set (Drivr<<8)+Objct Device driver in 68000 assembly
+Revs set (ReEnt<<8)+0
+ psect SasiDrvr,Type,Revs,Edition,0,Entry
+ 
+ use defsfile
+
+*Conditionl assembly equates
+*
+No set 0
+Yes set 1
+
+ org 0
+CMS9670 equ .
+MRX101D do.b 1 DTC 8 inch
+CMS9673B equ . 
+CMS9673 do.b 1
+CMS9674 equ .
+CMS9674B do.b 1
+CMS9675 do.b 1
+
+ org 0
+UnUsed do.b 1
+RMS518 do.b 1
+MRX514 do.b 1
+MRX324 do.b 1
+MRX450 do.b 1
+TL240 do.b 1
+XT1065 do.b 1
+XT1106 do.b 1
+XT1140 do.b 1
+DMA1111 do.b 1
+
+DMA set No
+ERRLOG set No
+CORRECT set Yes
+BuffSect set No
+BuffSize set 256
+Cntrlr set CMS9674
+NumDriv set 2
+WDRIVE set MRX324
+CDRIVE set UnUsed
+Paramsiz set 10
+Carry set 1 the carry bit
+ 
+ ttl SASI interface equates 
+ pag
+************************************************************
+*                                                          *
+*     SASI interface equates                               *
+*                                                          *
+************************************************************
+
+*Opcode equates
+*
+C_Trdy equ $00 test if drive ready
+C_Rstr equ $01 restore drive to track 0
+C_RSyn equ $02 request error syndrome
+C_RSen equ $03 request error sense
+C_Frmt equ $04 format entire drive
+C_CTrk equ $05 check track format
+C_FTrk equ $06 format track
+C_FBad equ $07 format bad track
+C_Read equ $08 read block
+C_Writ equ $0a write block
+C_Seek equ $0b 
+C_ATrk equ $0e assign alternate track
+C_FFmt equ $c0 set floppy track format
+C_Asgn equ $c2 assign drive parameters
+C_SFType equ $c4 set the floppy type
+
+*Control and status equates
+*
+SC_Rqst equ %10000000 request from controller
+SC_Motr equ %01000000 floppy motor on bit
+SC_Dma equ %00100000 dma enabled
+SC_Jmpr equ %00010000 host adaptor jumper on bit
+SC_Err equ %00000010 error during command
+SCB_Rqst equ 7 bit number
+SCB_Motr equ 6
+SCB_Dma equ 5
+SCB_Jmpr equ 4
+SCB_Err equ 1
+
+*Wake up codes
+*
+W_Rset equ %00010000 reset the controller
+W_Flpy equ %11000001 floppy on, interrupts
+W_NFlp equ %10000001 floppy off, no interrupts
+
+*Port equates
+*
+Select equ 0 store reset and wake up codes
+Status equ 0 check for requests and such
+IOPort equ 1 bidirectional data
+
+*Constants
+*
+DELAY equ 100 wait after reset
+ ifeq Cntrlr-CMS9670
+OPTION equ %00000100 option byte
+ else
+ ifeq CORRECT-Yes
+OPTION equ %00000000 option byte
+ else
+OPTION equ %01000000 no error correction
+ endc
+ endc
+DF$9670 equ %00000000 default track format
+DF$9673 equ %01000000 default track format
+DF$S9673 equ %00000100 single density track format
+Type0 equ 9
+Type1 equ 6
+TPI96 equ %00000100 96 TPI floppy mask
+DRV96 equ %00000010 96 TPI drive mask
+ ifeq (Cntrlr-CMS9673)*(Cntrlr-CMS9674)
+ ifeq WDRIVE-RMS518
+MaxCyl equ 215 maximum cylinder address
+LandCyl equ 215 land the head here
+MaxHead equ 7 maximum head address
+StepWid equ 1 6.8 us step pulse width
+StepPrd equ 1 50 us step period
+StepMode equ 0 buffered step
+PreComp equ 128 precomp cylinder
+ endc
+ ifeq WDRIVE-MRX514
+MaxCyl equ 960 maximum cylinder address
+LandCyl equ 960 land head here
+MaxHead equ 6 maximum head address
+StepWid equ 1 6.8 us step pulse width
+StepPrd equ 1 50 us step period
+StepMode equ 0 buffered step
+PreComp equ 0 precompensation cylinder
+ endc
+ ifeq WDRIVE-MRX324
+MaxCyl equ 305 maximum cylinder address
+LandCyl equ 319 land head here
+MaxHead equ 7 maximum head address
+StepWid equ 3 6.8 us step pulse width
+StepPrd equ 1 50 us step period
+StepMode equ 0 buffered step
+PreComp equ 128 precompensation cylinder
+ endc
+ ifeq WDRIVE-TL240
+MaxCyl equ 639 maximum cylinder address
+LandCyl equ 639 land head here
+MaxHead equ 5 maximum head address
+StepWid equ 1 6.8 us step pulse width
+StepPrd equ 1 50 us step period
+StepMode equ 0 buffered step
+PreComp equ 0 precompensation cylinder
+ endc
+ endc
+ ifeq Cntrlr-CMS9675
+ ifeq WDRIVE-MRX514
+MaxCyl equ 961 number of cylinders
+LandCyl equ 961 land head here
+StepPuls equ 2 2.4us step pulse
+StepPrd equ 5 35us step period
+SecsTrk equ 33 number of sectors/track
+Gap3Siz equ 3 10 bytes in gap3
+SectSiz equ 1 256 bytes/sector
+NumHeads equ 7 number of heads
+PreComp equ 480 starting precomp cylinder
+RedWrit equ 0 reduce write current cylinder
+FlagByte equ 0 no flags thank you
+ endc
+ ifeq WDRIVE-MRX324
+MaxCyl equ 306 number of cylinders
+LandCyl equ 320 land heads here
+StepPuls equ 2 2.4us step pulse
+StepPrd equ 1 15us step period
+SecsTrk equ 33 number of sectors/trk
+Gap3Siz equ 1 10 bytes in gap3
+SectSiz equ 1 256 bytes/sector
+NumHeads equ 8 8 heads
+PreComp equ 128 start precomp here
+RedWrit equ 0 reduce write current cylinder
+FlagByte equ 0 no flags
+ endc
+ ifeq (WDRIVE-XT1065)*(WDRIVE-XT1105)*(WDRIVE*XT1140)
+MaxCyl equ 918 number of cylinders
+LandCyl equ 918 land head here
+StepPuls equ 2 2.4us step pulse
+StepPrd equ 5 35us step period
+SecsTrk equ 33 sectors per track
+Gap3Siz equ 1 10 bytes in gap3
+SectSiz equ 1 256 bytes/sector
+ ifeq WDRIVE-XT1065
+NumHeads equ 7 7 heads
+ endc
+ ifeq WDRIVE-XT1105
+NumHeads equ 11 11 heads
+ endc
+ ifeq WDRIVE-XT1140
+NumHeads equ 15 15 heads
+ endc
+PreComp equ 1023 no precomp
+RedWrit equ 1023 no reduced write current
+FlagByte equ 0 no flags
+ endc
+ ifeq CDRIVE-MRX450
+CMaxCyl equ 612 number of cylinders
+CLandCyl equ 612 land head here
+CStepPls equ 2 2.4us step pulse
+CStepPrd equ 5 35us step period
+CSecsTrk equ 33 number of sectors
+CGap3Siz equ 1 10 bytes in gap3
+CSectSiz equ 1 256 bytes/sector
+CNumHeds equ 2 number of heads
+CPreComp equ 0 starting precomp
+CRedWrit equ 0 reduce write current cylinder
+CFlgByte equ $00 dma hard sector disk
+ endc
+ endc
+ ifne (Cntrlr-CMS9675)*(Cntrlr-MRX101D)
+PramSiz equ 10 parameter block size
+ endc
+ ifeq Cntrlr-CMS9675
+PramSiz equ 14 parameter block size
+ endc
+
+ ttl device static storage equates 
+ pag
+************************************************************
+*                                                          *
+*     Device static storage equates                        *
+*                                                          *
+************************************************************
+ 
+ vsect
+V_TFmt ds.b NumDriv track formats
+VBuffer ds.l 64 verify buffer
+V_BufRsv ds.l (BuffSize/4)*NumDriv
+V_Cmplet ds.b 1 completion status byte
+V_Term ds.b 1 termination flag
+V_VBuff ds.l 1 pointer to verify buffer
+V_IMask ds.w 1 stash for interrupt mask
+V_Cmd ds.b 1 command byte
+V_Addr0 ds.b 1 lun and address high
+V_Addr1 ds.b 1 middle 8 address bits
+V_Addr2 ds.b 1 lower 8 bits of address
+V_Blks ds.b 1 number of blocks to transfer
+V_Opts ds.b 1 options for command
+V_CmdPtr ds.l 1 command buffer pointer
+V_DatPtr ds.l 1 data buffer pointer
+V_Init ds.b NumDriv init flags
+ ifeq (Cntrlr-CMS9673)*(Cntrlr-CMS9674B)*(Cntrlr-CMS9675)*(Cntrlr-CMS9674)
+ ifeq Cntrlr-CMS9673
+V_Step ds.b NumDriv current step value
+ endc
+V_Param ds.b Paramsiz parameter buffer
+ endc
+V_ErrCod equ . buffer for error code
+V_ErrBuf ds.l 1 4 bytes
+V_Flag ds.b 1 status from controller
+V_MSide ds.b 1 used to figure track format
+ ifeq BuffSect-Yes
+V_IsBuf ds.b 1 flag for sector 0 buffered
+ ds.b 3-(.&3)
+V_Sect0 ds.b 256
+ endc
+ ends
+
+ ttl long branch table
+ pag
+************************************************************
+*                                                          *
+*    Long branch table                                     *
+*                                                          *
+************************************************************
+ 
+Entry dc.w Init initialize storage
+ dc.w Read read a sector
+ dc.w Write write a sector
+ dc.w Return no get stats supported
+ dc.w SetStat set status 
+ dc.w Term shut down device
+
+ ttl initialize drive storage
+ pag
+************************************************************
+*                                                          *
+*     Init - initialize storage and get on polling table   *
+*                                                          *
+*     This subroutine resets the controller and sets up    *
+* the drive tables.  The device is also put onto the int-  *
+* errupt polling table.                                    *
+*                                                          *
+* Passed: (a2) = address of device static storage          *
+*         (a1) = address of device descriptor module       *
+*                                                          *
+* Returns: (sr) = carry set if error                       *
+*          (d1) = error code if error                      *
+*                                                          *
+************************************************************
+
+Init move.l a3,-(a7) save a3 for some reason
+ moveq #NumDriv,d0 get # of drives
+ move.b d0,V_NDRV(a2) set number of drives
+ moveq #$FF,d1 init fake media size
+ lea DRVBEG(a2),a0 point at 1st drive table
+ lea V_BufRsv(a2),a3 point at sector 0 buffers
+ lea V_TFmt(a2),a4 point at track format table
+ subq #1,d0 set up for dbra
+ clr d2 clear out data reg
+Init10 move.b d1,DD_TOT(a0) set up fake size
+ move.l a3,V_ScZero(a0)
+ lea BuffSize(a3),a3 point at next buffer
+ lea DRVMEM(a0),a0 next drive table
+ move.w d0,(a4)+ clear two bytes in table
+ ifeq Cntrlr-CMS9673
+ move.b d0,(a4)+ clear third byte
+ endc
+ dbra d0,Init10 do all drives
+
+*Here when drive tables set up
+*
+ moveq #W_Rset,d0 get the wake up code
+ move.l V_PORT(a2),a3 get the port address
+ move.b d0,Select(a3) reset the controller
+ 
+ ifeq BuffSect-Yes
+*Clear the buffered sector flag
+*
+ clr V_IsBuf(a2) clear the flag
+ endc
+
+*Put the device on the polling table
+*
+ move.b M$Vector(a1),d0 get the vector #
+ move.b d0,d2 copy it
+ cmpi.b #25,d0 valid ?
+ blo.s BadUnit leave if not
+ subi.b #24,d2 subtract 24 to get irq level (auto vector)
+ cmpi.b #31,d0 is it an auto vector ?
+ bls.s Init20 branch if so
+ cmpi.b #64,d0 is it a legal vector ?
+ blo.s BadUnit no, leave with error
+Init20 move.b M$Prior(a1),d1 strip all but irq level
+ lea.l SrvIrq(pc),a0 get the address of the service routine
+ os9 F$IRQ set device on polling table
+ bcs.s InitEr10 leave if error
+Init40 movea.l (a7)+,a3 pull a3
+ moveq #0,d1 no errors
+ andi #^Carry,d1 clear the carry
+ bra.s InRet leave
+
+BadUnit move.w #E$Unit,d1 return error code
+InitEr10 movea.l (a7)+,a3 pull a3
+InitErr ori #Carry,d1 set carry 
+InRet rts
+
+ ttl read a block from disk
+ pag
+************************************************************
+*                                                          *
+*     Read - read a block from disk                        *
+*                                                          *
+*     This routine sets up the command buffer for a read   *
+* according to the values passed from OS-9 in the reg-     *
+* isters.                                                  *
+*                                                          *
+* Passed: (a1) = address of the path descriptor            *
+*         (a2) = address of the device static storage      *
+*         (a4) = process descriptor                        *
+*         (d2.l) = logical sector #                        *
+*                                                          *
+* Returns: (cc) = carry set if error                       *
+*          (d1) = error code if error                      *
+*                                                          *
+************************************************************
+
+Read equ *
+ move.l a1,-(a7) save the path descriptor
+ ifne Cntrlr-MRX101D
+ bsr InitDrv initialize drive if not already
+ endc
+ ifeq BuffSect-Yes
+ cmpi.l #0,d2 reading sector 0 ?
+ bne.s Read05 no, skip
+ tst.b PD_DRV(a1) is the unit number 0 ?
+ bne.s Read05 skip if not 0
+ tst.b V_IsBuf(a2) is the sector buffered ?
+ beq.s Read05 no, read in normally
+ movea.l V_PORT(a2),a0 get the port address
+ move.b (a0),d0 get the status reg value
+ andi #SC_Jmpr,d0 check for jumper
+ move.b d0,V_IsBuf(a2) save the status
+ bne.s BfrdSect sector is buffered, move it
+ endc
+Read05 moveq #C_Read,d0 get the opcode
+ bsr Execute execute the command
+ bcs.s ReadErr leave if error
+ ifeq BuffSect-Yes
+ bra.s Read07 check for sector 0
+ 
+*Here if the sector is buffered.
+*
+BfrdSect clr.l d0 signal move to buffer
+ bsr MoveSect move the sector
+ bra.s ReadXit table does not need restoring
+ endc
+
+*Check for sector 0 read.
+*
+Read07 cmpi.l #0,d2 is it sector 0 ?
+ bne.s ReadXit leave if not
+ ifeq BuffSect-Yes
+ tst.b PD_DRV(a1) is this unit 0 ?
+ bne.s Read08 no, skip
+ moveq #1,d0 signal to move from buffer
+ btst #SCB_Jmpr,(a0) is the jumper on ?
+ beq.s Read08 no, skip
+ move.b d0,V_IsBuf(a2) mark sector as buffered
+ bsr MoveSect move the sector
+ endc
+
+ ifeq Cntrlr-CMS9673
+*Set up drive table and check for 48 TPI drive.
+ else
+*Set up driver table now.
+ endc
+*
+Read08 movea.l PD_BUF(a1),a0 get the buffer address
+ movea.l PD_DTB(a1),a5 get the drive table address
+ move.w #DD_SIZ-1,d1 update drive table
+Read10 move.b (a0,d1.w),(a5,d1.w)
+ dbra d1,Read10
+ moveq #1,d0 set track format using DD.'s and P.D.
+ bsr SetFmt 
+ReadXit moveq #0,d1 no errors
+ReadErr move.l (a7)+,a1 get back the path descriptor
+ rts
+
+ ttl write a block to the disk
+ pag
+************************************************************
+*                                                          *
+*     Write - write a block to the disk                    *
+*                                                          *
+*     This subroutine writes a block to the disk and if it *
+* is flagged to verify, it calls the Read routine to read  *
+* the sector back in.                                      *
+*                                                          *
+* Passed: (a2) = Address of device static storage          *
+*         (a1) = Address of path descriptor                *
+*         (d2.l) = Disk logical sector number              *
+*                                                          *
+* Returns: (cc) = Carry set if error                       *
+*          (d1.w) = Error code if error                    *
+*                                                          *
+************************************************************
+
+Write equ *
+ ifne Cntrlr-MRX101D
+ bsr InitDrv initialize drive if not already done
+ endc
+ ifeq BuffSect-Yes
+ cmpi.l #0,d2 is this sector 0 ?
+ bne.s Write05 no, leave
+ move.b PD_DRV(a1),d0 get the unit number
+ bne.s Write05 skip if not unit 0
+ moveq #1,d0 move [PD_BUF] to V_Sect0
+ bsr MoveSect move the sector
+ endc
+Write05 moveq #C_Writ,d0 get the opcode
+ bsr Execute execut the command
+ bcs.s WritErr leave if error
+ tst.b PD_VFY(a1) verify ? 
+ bne.s WritXit no, leave
+ bsr Read read in the sector
+ bcs.s WritErr leave if error
+WritXit move.w #0,d1 return no error
+WritErr rts
+
+ ttl Setstat service request processing
+ pag
+************************************************************
+*                                                          *
+*     SetStat - process any setstat calls                  *
+*                                                          *
+*     This subroutine processes the SS.RST and SS.Wtrk     *
+* SetStat calls.  SS.RST causes no action since SASI cont- *
+* rollers will automatically restore when it is needed and *
+* restore is generally slower than a normal seek.  SS.Wtrk *
+* uses the path descriptor parameters to format the disk.  *
+*                                                          *
+* Passed: (d0.w) = Status code                             *
+*         (a1) = Path descriptor                           *
+*         (a2) = Address of device static storage          *
+*                                                          *
+* Returns: Depends on status code                          *
+*                                                          *
+************************************************************
+
+SetStat equ *
+ ifne Cntrlr-MRX101D
+ bsr InitDrv initialize drive if not already done
+ endc
+ cmpi.w #SS_WTrk,d0 is it a write track call ?
+ beq.s Format yes, format the disk
+ cmpi.w #SS_Reset,d0 is it a restore call ?
+ beq.s SetXit yes, leave
+GetStat move.w #E$UnkSvc,d1 flag unknown service code
+ ori #Carry,ccr flag error
+ bra SetEnd leave with error
+
+*Here to format the drive.
+*
+Format movea.l PD_RGS(a1),a4 get the address of the regs
+ move.l R$d2(a4),d2 get the track # (?)
+ cmpi.l #2,d2 track 1 or lower ?
+ bhs.s Format10 skip if not
+ move.b R$d1(a4),V_MSide(a2) save the sides/density
+ bra.s SetXit leave
+
+*Here if not track 0 or 1.
+*
+Format10 bne.s SetXit leave if not track 2
+ move.b R$d4+3(a4),d0 is this side 0 ?
+ bne.s SetXit no, leave
+ moveq #2,d0 use V_MSide to set track format
+ bsr SetFmt set the track format
+ moveq #C_Frmt,d0 move the opcode into d0
+ moveq #0,d2 set address as 0
+ bsr SetUp set up the command block
+ move.b R$d4+3(a4),V_Blks(a2) set the interleave
+ bsr Command execute the command
+ bra.s SetEnd leave with results
+
+SetXit move.w #0,d1 no errors
+SetEnd rts
+
+ ttl terminate device processing
+ pag
+************************************************************
+*                                                          *
+*     Term - terminate device processing                   *
+*                                                          *
+*     This subroutine takes the device off the polling     *
+* table.                                                   *
+*                                                          *
+* Passed: (a2) = Address of device static storage          *
+*                                                          *
+* Returns: (cc) = Carry set if error                       *
+*          (d1) = Error code if error                      *
+*                                                          *
+************************************************************
+
+Term movea.l V_PORT(a2),a0 get port address
+ move.b #0,Status(a0)
+ suba.l a0,a0
+ rts
+
+ ifeq BuffSect-Yes
+ ttl move sector 0 buffer
+ pag
+************************************************************
+*                                                          *
+*     MoveSect - move sector 0 buffer                      *
+*                                                          *
+*     This subroutine either copies (PD_BUF) into V.Sect0  *
+* or vice versa depending on the value in (d0).            *
+*                                                          *
+* Passed: (d0) = 0 if V.Sect0 to (PD_BUF) into V.Sect0     *
+*         (a1) = address of the path descriptor            *
+*         (a2) = address of device static storage          *
+*                                                          *
+* Returns: Nothing                                         *
+*                                                          *
+************************************************************
+
+MoveSect movem.l d0/a3-a4,-(a7) save the registers
+ lea V_Sect0(a2),a4 point at the sector buffer
+ movea.l PD_BUF(a1),a3 get address of buffer
+ cmpi.b #0,d0 check direction of copy
+ beq.s MoveS10
+ exg a3,a4 swap the registers
+MoveS10 moveq #($100/4)-1,d0 set the count for longs
+MoveS20 move.l (a3)+,(a4)+ move 4 bytes
+ dbra d0,MoveS20 move 64 long words
+ movem.l (a7)+,d0/a3-a4 restore the registers
+ rts
+ endc
+ 
+ ifne Cntrlr-MRX101D
+ ttl initialize drive
+ pag
+************************************************************
+*                                                          *
+*     InitDrv - initialize drive if not already            *
+*                                                          *
+*     Thiis subroutine does all the nescessary setup for a *
+* drive.  If the setup flag (V_Init) for this drive is     *
+* negative, the drive is set and the V_Init byte is        *
+* cleared.  If the byte is cleared when InitDrv is called  *
+* nothing is done.                                         *
+*                                                          *
+* Passed: (a2) = address of device static storage          *
+*         (a1) = address of the path descriptor            *
+*                                                          *
+* Returns: nothing                                         *
+*                                                          *
+************************************************************
+
+ ifeq Cntrlr-CMS9673
+*Here to skip call to SetFmt
+*
+FldInit movem.l d0-d3/a0-a3,-(a7) save the regs
+ move.b PD_DRV(a1),d0 get the unit number
+ asl.b #6,d0 make a valid unit number
+ move.b d0,V_Addr0(a2) put unit # into command block
+ bra.s InitFld5 skip into initialization
+ endc
+
+*Here to reinitialize the winchester
+*
+WinInit movem.l d0-d3/a0-a3,-(a7) save the regs
+ move.b PD_DRV(a1),d0 get the unit number
+ asl.b #6,d0 make a valid unit number
+ move.b d0,V_Addr0(a2) put unit # into command block
+ bra.s InitWin5 skip into initialization
+
+InitDrv movem.l d0-d3/a0-a3,-(a7) save the regs
+ bsr GetType get type and unit number 
+ lea.l V_Init(a2),a0 get address of init flags
+ tst.b (a0,d1.w) alreay initialized ?
+ bne.s InitXit leave if so
+ addq.b #1,(a0,d1.w) mark as initialized
+ asl.b #6,d1 make unit number for SASI
+ move.b d1,V_Addr0(a2) save the unit number
+ tst.b d0 what kind of drive ?
+ ifeq (Cntrlr-CMS9673)*(Cntrlr-CMS9675)*(Cntrlr-CMS9674B)*(Cntrlr-CMS9674)
+ bmi.s InitWin initialize the winchester
+ else
+ bpl InitXit leave if floppy
+ endc
+
+ ifeq Cntrlr-CMS9675
+*Here to initialize the cartridge drive
+*
+InitCart lea.l CartTbl(pc),a0 get the address of the table
+ bsr.s MoveTbl move the table into ram
+ bcs.s SetParam set the parameters now if no jumper
+ move.w PD_CYL(a1),d0 get the number of cylinders
+ move.w d0,6(a0) set the number of cylinders
+ bra.s SetParam set the parameters now
+ endc
+ ifeq Cntrlr-CMS9673
+*Here to set up for floppies
+*
+InitFld moveq.l #3,d0 set format using path descriptor
+ bsr SetFmt set the format
+InitFld5 lea.l FldTbl(pc),a0 get the address of floppy params
+ bsr.s MoveTbl move the table into ram
+ bcs.s SetParam set the parameters
+ move.b PD_CYL+1(a1),d1 get the number of cylinders
+ sub.b #1,d1 subtract 1
+ move.b d1,2(a0) set the number of cylinders
+ move.b PD_STP(a1),d1 get the step rate
+ move.b d1,1(a0) put into the table
+ bra.s SetParam set the parameters
+ endc
+ ifeq (Cntrlr-CMS9674B)*(Cntrlr-CMS9674)
+*Here to set floppy type
+*
+InitFld lea.l V_Cmd(a2),a0 point at the command buffer
+ move.l #(C_SFType<<24),(a0) set the command and address
+ move.w #(4<<8),4(a0) this means mitsubishi 4854 
+ bra.s SetPrm10 set the parameters now
+ endc
+
+*Here to initialize for winchesters
+*
+InitWin lea.l WinTbl(pc),a0 get the address of the winchester table
+ bsr.s MoveTbl move the table 
+ bcs.s SetPram if jumper off, skip
+ move.w PD_CYL(a1),d0 get the number of cylinders
+ ifne Cntrlr-CMS9675 
+ sub.w #1,d0 adjust the number
+ move.w d0,4(a0) set the number of cylinders
+ else
+ move.w d0,6(a0) set the number of cylinders
+ endc
+InitWin5 equ *
+ ifne Cntrlr-CMS9675 
+ move.b PD_STP(a1),d0 get step rate
+ move.b d0,1(a0) set the step rate
+ move.b PD_SID(a1),d0 get the number of heads
+ sub.b #1,d0 adjust the number of heads
+ move.b d0,3(a0) 
+ endc
+
+*Here to set the parameters
+*
+SetPram move.l a0,V_DatPtr(a2) save the data pointer
+ lea.l V_Cmd(a2),a0 get the address of the command buffer
+ ifne Cntrlr-CMS9675
+ move.b #C_Asgn,(a0) set the opcode
+ else
+ move.b #C_Asgn2,(a0) set the opcode
+ endc
+ move.l #0,2(a0) set the address, blocks and option
+SetPrm10 move.l a0,V_CmdPtr(a2) save the command pointer
+ bsr DoCmnd execute the command
+ move.w #0,d1 return no errors
+InitXit movem.l (a7)+,d0-d3/a0-a3 get back the regs
+ rts
+
+ ttl move parameter table to buffer
+ pag
+************************************************************
+*                                                          *
+*     MoveTbl - move default params to buffer              *
+*                                                          *
+*     This subroutine moves the table of default params    *
+* into the parameter buffer area V_Param.  The state of    *
+* the jumper on the host card is also checked and the      *
+* carry is set on return if the jumper is off.             *
+*                                                          *
+* Passed: (a0) = pointer to default parameters             *
+*                                                          *
+* Returns: (a0) = address pf V_Param(a2)                   *
+*          (cc) = carry set if jumper off, else clear      *
+*                                                          *
+************************************************************
+
+MoveTbl movem.l d0-d1/a3-a4,-(a7) save the regs
+ lea.l (a0),a4 get the address of the buffer
+ lea.l V_Param(a2),a0 get the address of the buffer
+ moveq #Paramsiz-1,d1 get the byte count
+Move10 move.b (a4,d1.w),d0 get a byte
+ move.b d0,(a0,d1.w) put the byte
+ dbra d1,Move10 go until all done
+ movea.l V_PORT(a2),a4 get the port address
+ andi #^Carry,cc clear the carry
+ btst #SCB_Jmpr,IOPort(a4) is the jumper on ?
+ bne.s Move20 yes, leave with carry clear
+ ori #Carry,cc set the carry
+Move20 movem.l (a7)+,d0-d1/a3-a4 restore the regs
+ rts
+
+ ttl default parameter tables
+ pag
+************************************************************
+*                                                          *
+*    Default parameter tables                              *
+*                                                          *
+************************************************************
+
+ ifeq Cntrlr-CMS9675
+WinTbl dc.b StepPuls step pulse width
+ dc.b StepPrd step period
+ dc.b SecsTrk sectors/track
+ dc.b Gap3Siz size of gap3
+ dc.b SectSiz size of a sector
+ dc.b NumHeads number of heads on drive
+ dc.w MaxCyl maximum number of cylinders on drive
+ dc.w PreComp precompensation cylinder
+ dc.w RedWrit reduce write current cylinder
+ dc.b FlagByte various flags
+ dc.b 0
+
+CartTbl dc.b CStepPuls step pulse width
+ dc.b CStepPrd step period
+ dc.b CSecsTrk sectors/track
+ dc.b CGap3Siz size of gap3
+ dc.b CSectSiz size of a sector
+ dc.b CNumHeds number of heads on drive
+ dc.w CMaxCyl maximum number of cylinders on drive
+ dc.w CPreComp precompensation cylinder
+ dc.w CRedWrit reduce write current cylinder
+ dc.b CFlgByte various flags
+ dc.b 0
+ else
+WinTbl dc.b StepWid step pulse width
+ dc.b StepPrd step period
+ dc.b StepMode buffered step mode
+ dc.b MaxHead maximum number of heads
+ dc.w MaxCyl maximum number of cylinders
+ dc.b PreComp reduce write current here
+ dc.b 0,0,0 constants
+ endc
+
+ ifeq Cntrlr-CMS9673
+FldTbl dc.b 2 17us step pulse
+ dc.b 3 3ms step[ period
+ dc.b 79 max cylinder address
+ dc.b 16 16ms settling time
+ dc.b 50 50ms head load time
+ dc.b 0 0ms for drive select
+ dc.b 11 1.1ms write gate delay
+ dc.b $80,0,0 constants
+ endc
+ endc end of MRX110D conditional
+
+ ttl set track format
+ pag
+************************************************************
+*                                                          *
+*     SetFmt - set track format                            *
+*                                                          *
+*     This subroutine takes care of setting the floppy     *
+* track format and turning on or off the double step bit.  *
+* Three different methods are used for generating the      *
+* track format.  Method 1 uses data from the drive table   *
+* and the path descriptor to generate the format code and  *
+* select or deselect the double step option.  Method 2     *
+* uses the V.MSide location which is set during the format *
+* track setstat along with the path descriptor.   Method   *
+* 3 uses only the path descirptor to generate the code.    *
+*                                                          *
+* Passed: (d0.b) = method to use                           *
+*         (a2) = address of device static storage          *
+*         (a1) = address of path descriptor                *
+*                                                          *
+* Returns: nothing                                         *
+*                                                          *
+************************************************************
+
+SetFmt equ *
+ ifeq Cntrlr-CMS9675
+ rts
+ else
+ movem.l d0-d3/a3-a4,-(a7) save the registers
+ bsr GetType get the drive type
+ tst.b d0 winchester or floppy ?
+ bmi SetFXit leave if winchester
+ move.w d1,-(a7) save the unit number
+ move.l 2(a7),d0 get old d0 value
+ cmpi.b #2,d0 method 2 ?
+ beq.s SetM2 yes, use method 2
+ cmpi.b #3,d0 method 3 ?
+ beq.s SetM3 yes, use method 3
+
+*Here for method 1
+*
+ moveq #0,d0 make sure upper bits are clear
+ move.b PD_DRV(a1),d0 get the unit number 
+ moveq #DRVMEM,d1 get the size of a drive table
+ mulu d0,d1 get the offset to the table
+ add.w #DRVBEG,d1
+ add.w #DD_FMT,d1 finish offset calculation
+ move.b (a2,d1.w),d0 get the format
+ bra.s SetFmt10 set the format
+
+*Here for method 2
+*
+SetM2 move.b V_MSide(a2),d0 get the value of V_MSide
+ bra.s SetFmt10 set the format
+
+*Here for method 3
+*
+SetM3 move.b PD_DNS(a1),d0 get the denisty byte
+ movea.l V_PORT(a2),a4 get the address of the port
+ btst #SCB_Jmpr,(a4) is the jumper on ?
+ bne.s SetFmt10 yes, skip
+ ifeq Cntrlr-CMS9673
+ moveq #6,d0 96 TPI, double dens, 1 side
+ else
+ moveq #6,d0 double dens, 1 side
+ endc
+SetFmt10 equ *
+ ifeq Cntrlr-CMS9673
+ move.b d0,V_Dens(a2) save for double step check
+ endc
+ andi.w #3,d0 mask out the track density
+ ifeq Cntrlr-CMS9673
+ ori.b #$44,d0 or in these bits
+ else
+ move.w d0,-(a7) save d0
+ andi.b #2,d0 mask all but bit 1
+ asl.b #1,d0 shift it left once
+ or.w (a7)+,d0 or in the byte
+ move.w (a7),d1 get the unit number
+ lea.l V_TFmt(a2),a0 point at the track format codes
+ cmp.b (a0,d1.w),d0 track format code already set ?
+ ifeq Cntrlr-CMS9673
+ beq.s SetStep yes, now set the step rate
+ else
+ beq.s SetFEnd yes, all finished
+ endc
+ move.b d0,(a0,d1.w) save the new format code
+ move.w (a7),d1 get the unit number to use now
+ asl #5,d1 make the unit number now
+ move.b d1,V_Addr0(a2) set the unit number
+ move.b d0,V_Opts(a2) set the track format code
+ move.b #C_FFmt,V_Cmd(a2) set the opcode
+ bsr Command execute the command
+ 
+ ifeq Cntrlr-CMS9673 
+*Here to check the step rate
+*
+SetStep moveq #0,d1 assume single step
+ move.b V_Dens(a2),d0 get the density
+ btst #2,d0 is bit 2 set ?
+ bne.s SStep10 no, skip
+ moveq #1,d1 set for double step
+ lea V_Step(a2),a0 get the address of the step parameters
+ move.l 10(a7),d0 get the unit number
+ cmp.b d1,(d0.w,a0) step already set ?
+ beq.s SetFEnd leave if so
+ move.b d1,(d0.w,a0) save new step rate
+ moveq #80,d0 assume 80 tracks
+ tst.w d1 is there double step ?
+ beq.s SetCyls no, skip
+ lsr #1,d0 shift right once
+SetCyls move.b d1,PD_CYL+1(a1) set the step
+ bsr FldInit initialize the floppy again
+ move.b d1,V_Blks(a2) put the step rate into the command block
+ move.l 10(a7),d0 get the unit number
+ asl #5+16,d0 set up the unit number
+ ori #(CC_FFmt<<24)+$100,d0 finish the command
+ move.l d0,V_Cmd(a2) store the command
+ move.b #0,V_Opts(a2) clear the option byte
+ bsr Command execute the command
+ endc
+SetFEnd move.w (a7)+,d0 clean unit number from stack
+SetFXit movem.l (a7)+,d0-d3/a3-a4 get back the registers
+ rts
+ endc
+
+ ttl get type of drive 
+ pag
+************************************************************
+*                                                          *
+*     GetType - get type of drive                          *
+*                                                          *
+*     This subroutine returns the type of drive being used *
+* and its unit number.  If the jumper on the host adaptor  *
+* is removed the type and unit for units 0 and 1 is swap-  *
+* ped.                                                     *
+*                                                          *
+* Passed: (a2) = address of device static storage          *
+*         (a1) = address of path descriptor                *
+*                                                          *
+ ifne Cntrlr-CMS9675
+* Returns: (d0.b) = high bit set if winchester, else clear *
+ else
+* Returns: (d0.b) = $80 if winchester, $40 if cartridge    *
+ endc
+*          (d1.w) = unit number to be used                 *
+*                                                          *
+* Error return: none                                       *
+*                                                          *
+* Used: none                                               *
+*                                                          *
+* Modified: cc                                             *
+*                                                          *
+************************************************************
+
+GetType sub.l d1,d1 clear d1
+ move.b PD_DRV(a1),d1 get the unit number
+ move.b PD_TYP(a1),d0 and the type
+ ifeq Cntrlr-CMS9675
+ andi #$C0,d0 mask all but upper 2 bits
+ btst #6,d0 is bit 6 set ?
+ beq.s GetType5
+ andi.b #$40,d0 mask out top bit
+GetType5 equ *
+ endc
+ ifne (Cntrlr-CMS9674B)*(Cntrlr-CMS9675)
+ cmpi.b #1,d2 unit 0 or 1 ?
+ bhi.s GetTXit no, leave
+ endc
+ movea.l V_PORT(a2),a3 get the port address
+ btst #SCB_Jmpr,(a3) is the jumper on ?
+ bne.s GetT10 yes, leave
+ ifne Cntrlr-CMS9675
+ eori.b #$80,d0 flip type bit
+ else
+ eori.b #$C0,d0 switch types
+ endc
+ ifeq Cntrlr-CMS9674B
+ endc
+ ifeq Cntrlr-CMS9675 
+ ifeq WDRIVE-DMA1111
+ moveq #1,d1 use unit 1 with DMA 11/11
+ else
+ moveq #2,d1 flip the unit number
+ endc
+ endc
+ ifne (Cntrlr-CMS9674B)*(Cntrlr-CMS9675)
+ moveq #1,d1 flip the unit number 
+ endc
+*Fix this DAVE !!!
+*
+ eori.b #3,d1
+GetT10 equ * 
+GetTXit rts
+
+ ttl execute command
+ pag
+************************************************************
+*                                                          *
+*     Execute - execute command                            *
+*                                                          *
+* Passed: (d0.b) = opcode                                  *
+*         (d2.l) = block address                           *
+*         (a1) = address of path descriptor                *
+*         (a2) = address of device static storage          *
+*                                                          *
+* Returns: nothing                                         *
+*                                                          *
+* Error return: (d1.w) = error code                        *
+*               (cc) = carry set                           *
+*                                                          *
+* Used: Command, SetUp                                     *
+*                                                          *
+* Modified: cc                                             *
+*                                                          *
+************************************************************
+
+Execute movem.l d0-d2,-(a7)
+ bsr.s SetUp set up command block
+Exec10 move.l (a7),d0 get the opcode
+ move.b d0,V_Cmd(a2) set up command again
+ bsr.s Command execute the command
+ bcc.s ExecXit go if no problems
+ cmpi #E$NotRdy,d1 not ready ?
+ ifne Cntrlr-CMS9675
+ bne.s ExecErr leave if other error code
+ else
+ beq.s ExecAgn if not, try again
+ move.w d1,-(a7)
+ move.b V_ErrCod(a2),d1 get the actual error
+ cmpi.b #$8F,d1 cartridge changed error ?
+ move.w (a7)+,d1
+ bne ExecErr leave if not 
+ movem.l (a7)+,d0-d2
+ bra.s Execute try again
+
+*Here if not ready error occured
+*
+ExecAgn equ *
+ endc
+ moveq #1,d0 give up time slice if not ready
+ OS9 F$Sleep
+ bra.s Exec10
+
+ExecErr ori #1,ccr set the carry
+ move.l d1,4(a7) return the error code
+ExecXit movem.l (a7)+,d0-d2 return
+ rts
+
+ ttl set up command buffer
+ pag
+************************************************************
+*                                                          *
+*     SetUp - set up command buffer                        *
+*                                                          *
+*     This subroutine sets up the 6 byte command block     *
+* given the opcode and the block address.  If the drive is *
+* unit 0 or 1 and the jumper is off the unit number is     *
+* exclusive ored with 1 and the type of drive is inter-    *
+* changed so that if the path descriptor says floppy, win- *
+* chester is assumed and vice-versa.                       *
+*                                                          *
+* Passed: (d0.b) = controller opcode                       *
+*         (d2.l) = sector address                          *
+*         (a1) = address of path descriptor                *
+*         (a2) = address of device static storage          *
+*         (a4) = address of process descriptor             *
+*                                                          *
+* Returns: nothing                                         *
+*                                                          *
+* Error return: none                                       *
+*                                                          *
+* Uses: GetType                                            *
+*                                                          *
+* Modified: cc                                             *
+*                                                          *
+************************************************************
+
+SetUp movem.l d0/d3/a0-a3,-(a7)
+ move.b d0,V_Cmd(a2) save the opcode
+ bsr.s GetType get type and unit number
+ move.w d1,-(a7) save the unit number
+ lsl.l #8,d1 set up the unit number
+ lsl.l #8,d1
+ lsl.l #5,d1
+ move.b #1,V_Blks(a2) set the number of blocks
+ move.b #OPTION,V_Opts(a2) set the options
+ tst.b d0 wini or floppy ?
+ bmi.s SetUp30 wini, leave after address set up
+ ifne (Cntrlr-CMS9673)*(Cntrlr-CMS9675)
+ cmpi.l #13,d2 on track 0
+ blo.s SetUp10 yes, set single density
+ move.w (a7),d3 get the unit number
+ move.b V_TFmt(a2,d3.w),d3 get track format
+ btst #1,d3 is it double density ?
+ bne.s SetUp20 yes, skip
+SetUp10 asl.l #1,d2 double the block count
+ asl.b V_Blks(a2) shift the block count once
+ bra.s SetUp30 leave
+
+*Here to set up for double denisty
+*
+SetUp20 add.l #13,d2 adjust for phantoms
+ endc
+SetUp30 or.l d1,d2 or unit number with address
+ move.w (a7)+,d1 pop the unit number
+ move.b V_Cmd(a2),d0
+ move.l d2,V_Cmd(a2) stash the address over the command
+ move.b d0,V_Cmd(a2) set the command byte again
+SetUpXit movem.l (a7)+,d0/d3/a0-a3 get back the regs
+ rts
+
+ ttl set up pointers and execute command
+ pag
+************************************************************
+*                                                          *
+*     Command - set up pointers and execute command        *
+*                                                          *
+* Passed: (a2) = address of device static storage          *
+*         (a1) = address of path descriptor                *
+*         (a4) = address of process descriptor             *
+*                                                          *
+* Returns: nothing                                         *
+*                                                          *
+* Error return: (d1.w) = error code                        *
+*               (cc) = carry set                           *
+*                                                          *
+* Uses: DoCmnd                                             *
+*                                                          *
+* Modified: cc                                             *
+*                                                          *
+************************************************************
+
+Command move.l a0,-(a7) save a0
+ lea V_Cmd(a2),a0 point at the command
+ move.l a0,V_CmdPtr(a2) save the command pointer
+ move.l PD_BUF(a1),V_DatPtr(a2) save buffer pointer
+ bsr.s DoCmnd execute the command
+ movea.l (a7)+,a0 get back a0
+ rts
+
+ ttl execute buffered command
+ pag
+************************************************************
+*                                                          *
+*     DoCmnd - execute command from buffer                 *
+*                                                          *
+* Passed: (a2) = address of device static storage          *
+*         (a1) = address of path descriptor                *
+*                                                          *
+* Returns: nothing                                         *
+*                                                          *
+* Error return: (d1.w) = error code                        *
+*               (cc) = carry set                           *
+*                                                          *
+* Uses: none                                               *
+*                                                          *
+* Modified: d0, d1, a0, cc                                 *
+*                                                          *
+************************************************************
+
+DoCmnd equ *
+ move.w V_BUSY(a2),V_WAKE(a2) get ready for wakeup
+DoCmnd7 movea.l V_PORT(a2),a0 get the port address
+ ifne (Cntrlr-CMS9675)
+ bsr GetType get type of drive
+ moveq #W_Flpy,d1 turn on floppy, maybe
+ tst.b d0 what type is it ?
+ bpl.s DoCmnd20 floppy, skip
+ eori.b #SC_Motr,d1 clear motor bit
+ else
+ moveq #W_NFlp,d1 use no floppy
+ endc
+DoCmnd20 equ *
+ moveq #0,d0 sleep indefinitely
+ move.b d1,(a0) send the wake code
+*
+*End of 841130 modification.
+
+ OS9 F$Sleep
+ tst V_WAKE(a2) us ?
+ bne.s DoCmnd20 no, back to sleep
+ move.b V_Flag(a2),d0 check for error
+ btst #SCB_Err,d0 error bit set ?
+ beq.s DoCmdEnd no, leave
+
+*Process errors here
+*
+ move.b #C_RSen,V_Cmd(a2) request error details
+ lea V_Cmd(a2),a0 point at command buffer
+ move.l a0,V_CmdPtr(a2) 
+ lea V_ErrBuf(a2),a0 this is the data buffer
+ move.l a0,V_DatPtr(a2) 
+ bsr.s DoCmnd recursive call
+ move.b V_ErrCod(a2),d0 get the error code
+ andi.b #$7F,d0 mask out block address valid bit
+ lea ErrTbl(pc),a0 point at error conversion table
+ move.b d0,d1 copy error code
+ andi.b #$30,d1 type 0 ?
+ beq.s GetErr yes, get error code
+ subi.b #Type0,d0 move past type 0 codes
+ andi.b #$20,d1 type 1 ?
+ beq.s GetErr yes, get code
+ subi.b #Type1,d0 move over type 1 codes
+GetErr move.b (a0,d0),d1 get the error code
+ ori #1,ccr return error
+DoCmdEnd rts go home
+
+ ttl IRQ service routine
+ pag
+************************************************************
+*                                                          *
+*     SrvIrq - IRQ service routine                         *
+*                                                          *
+*     This interrupt service routine does all the actual   *
+* passing of data.  The sleeping user process is not waken *
+* until the command is finished.                           *
+*                                                          *
+* Passed: (u) = device static storage                      *
+*                                                          *
+* Returns: (cc) = carry clear                              *
+*                                                          *
+* Error return: none                                       *
+*                                                          *
+* Uses: none                                               *
+*                                                          *
+* Modified: d, x, y, cc                                    *
+*                                                          *
+************************************************************
+
+SrvIrq move.l V_PORT(a2),a3 get port address
+ move.b Status(a3),d0 get the status
+ bmi.s SrvIrq10 service the interrupt if there is one
+ ori #Carry,ccr set the carry
+ rts
+
+SrvIrq10 move.b Status(a3),d0 get the status
+ bpl.s IrqXit no request now
+ move.b d0,d2 copy request into d1
+ andi.w #%00000111,d0 mask all but vector bits
+ asl.b #1,d0 shift the offset for 16 entries
+ lea VecTbl(pc,d0.w),a1 point at the vector
+ move.w (a1),d0 pick up the vector
+ jsr VecTbl(pc,d0.w) execute the routine
+ bra.s SrvIrq10 see if more to do
+
+IrqXit andi #^1,cc interrupt serviced
+ rts
+
+************************************************************
+*                                                          *
+*     VecTbl - interrupt direction table                   *
+*                                                          *
+************************************************************
+
+VecTbl dc.w SndDat-VecTbl send data to controller
+ dc.w GetDat-VecTbl get data from controller
+ dc.w SndCmd-VecTbl send command to controller
+ dc.w GetSta-VecTbl get status from controller
+ dc.w Return-VecTbl unused
+ dc.w Return-VecTbl
+ dc.w Return-VecTbl
+ dc.w Finish-VecTbl acknowledge complete
+
+ ttl vector 0 - send data to controller
+ pag
+************************************************************
+*                                                          *
+*     SndDat - send data to controller                     *
+*                                                          *
+* Passed: (d2.b) = flags from controller                   *
+*         (a2) = address of storage                        *
+*         (a3) = address of host adaptor                   *
+*                                                          *
+* Returns: a0 changed                                      *
+*                                                          *
+************************************************************
+
+SndDat movea.l V_DatPtr(a2),a0 get the command pointer
+NxtSnd move.b (a0)+,IOPort(a3) get a byte of the command and write it
+ nop delay a while
+ nop 
+ nop
+ cmp.b Status(a3),d2 is the status the same ?
+ beq.s NxtSnd yes, go on
+ move.l a0,V_DatPtr(a2) save the updated data pointer
+ rts
+
+ ttl get data from the controller
+ pag
+************************************************************
+*                                                          *
+*     GetDat - get data from the controller                *
+*                                                          *
+* Passed: (d2.b) = flags from controller                   *
+*         (a2) = address of storage                        *
+*         (a3) = address of host adaptor                   *
+*                                                          *
+* Returns: a0 changed                                      *
+*                                                          *
+************************************************************
+
+GetDat movea.l V_DatPtr(a2),a0 get the data pointer
+NxtGet move.b IOPort(a3),(a0)+ get data and store
+ cmp.b Status(a3),d2 have the flags changed ?
+ beq.s NxtGet no, get more data
+ move.l a0,V_DatPtr(a2) save the data pointer
+ rts leave
+ 
+ ttl send a command to the controller 
+ pag
+************************************************************
+*                                                          *
+*    SndCmd - send command bytes to the controller         *
+*                                                          *
+* Passed: (d2.b) = flags from controller                   *
+*         (a2) = address of storage                        *
+*         (a3) = address of host adaptor                   *
+*                                                          *
+* Returns: a0 changed                                      *
+*                                                          *
+************************************************************
+
+SndCmd movea.l V_CmdPtr(a2),a0 get the command pointer
+NxtCmd move.b (a0)+,IOPort(a3) send a command byte
+ nop delay a while
+ nop
+ nop
+ cmp.b Status(a3),d2 have the flags changed ?
+ beq.s NxtCmd no, send another command byte
+ move.l a0,V_CmdPtr(a2) save the new command pointer
+Return rts
+ 
+ ttl get status from controller
+ pag
+************************************************************
+*                                                          *
+*     GetSta - subroutine to get status from controller    *
+*                                                          *
+* Passed: (d2.b) = flags from controller                   *
+*         (a2) = address of storage                        *
+*         (a3) = address of host adaptor                   *
+*                                                          *
+* Returns: Nothing                                         *
+*                                                          *
+************************************************************
+
+GetSta move.b IOPort(a3),V_Cmplet(a2) move the status
+ rts
+
+ ttl acknowledge command complete
+ pag
+************************************************************
+*                                                          *
+*     Finish - acknowledge command complete                *
+*                                                          *
+* Passed: (d2.b) = flags from controller                   *
+*         (a2) = address of storage                        *
+*         (a3) = address of host adaptor                   *
+*                                                          *
+* Return: Nothing                                          *
+*                                                          *
+************************************************************
+
+Finish tst.b IOPort(a3) acknowledge
+ clr.b V_Term(a2) mark command complete
+ move.w V_WAKE(a2),d0 get the wake up code
+ beq.s Finish10 no one to wake up
+ moveq #S$Wake,d1 load the signal
+ clr.w V_WAKE(a2) clear the wake up flag
+ os9 F$Send
+Finish10 rts
+
+  ttl OS-9 error look up table
+ pag
+************************************************************
+*                                                          *
+*     OS9 error look up table                              *
+*                                                          *
+************************************************************
+
+ErrTbl dc.b E$NotRdy
+ dc.b E$NotRdy
+ dc.b E$Seek
+ dc.b E$NotRdy
+ dc.b E$NotRdy
+ dc.b E$NotRdy
+ dc.b E$Seek
+ dc.b E$Read
+ dc.b E$Read
+ dc.b E$Read
+ dc.b E$Read
+ dc.b E$Seek
+ dc.b E$Seek
+ dc.b E$Seek
+ dc.b E$WP
+ dc.b E$Read
+ dc.b E$Read
+ dc.b E$Read
+ dc.b $FF
+ dc.b E$BTyp
+ dc.b E$BTyp
+  
+ ends
+ 

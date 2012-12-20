@@ -1,0 +1,8 @@
+ nam MT1 Device Descriptor
+ use defsfile
+ 
+ use "sbfdesc.a"
+ 
+DrvNum set 1
+ TapeMT1
+ ends

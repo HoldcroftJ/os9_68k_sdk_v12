@@ -1,0 +1,93 @@
+******************************************************************************
+** Power Manager Extensions root psect                                      **
+******************************************************************************
+** Copyright 1995 by Microware Systems Corporation                          **
+** Reproduced Under License                                                 **
+**                                                                          **
+** This source code is the proprietary confidential property of             **
+** Microware Systems Corporation, and is provided to licensee               **
+** solely for documentation and educational purposes. Reproduction,         **
+** publication, or distribution in any form to any party other than         **
+** the licensee is strictly prohibited.                                     **
+******************************************************************************
+** Edition History:                                                         **
+** #   Date     Comments                                          By        **
+** --- -------- ------------------------------------------------- --------- **
+**   1 04/29/96 creation                                          rmm       **
+**   9 05/31/96 updated for PwrMan v1.0.Beta structures           bat       **
+**     01/17/97 <--------------- PwrMan v2.1 --------------->               **
+******************************************************************************
+
+			use		<oskdefs.d>
+
+Typ_Lang	set 	(Sbrtn<<8)+Objct		subroutine module / object code
+Attr_Rev	set 	((ReEnt+SupStat)<<8)+0	supervisor state / sharable
+			psect	ROOT,Typ_Lang,Attr_Rev,0,0,PEentry
+
+
+			ifdef _OSK **** OS-9 ********************************************
+
+******************************************************************************
+* Power Extention Entry Point
+*
+* Passed:				(r?).l = vsect data ptr
+*						(r?).l = system global data ptr
+*						(r?).l = (system) stack ptr
+* Success Returns:		(r3).l = 0
+* Error Return:			(r3).l = error code
+*
+* Destroys:  nothing
+*
+* caller allocates our static storage
+* [check is this module is properly called from P2]
+*
+PEentry		bra	PwrExt_entry
+
+			endc **** END OS-9 **********************************************
+
+			ifdef _OS9000 **** OS-9000 ****************************************
+
+				ifdef _MPFPOWERPC **** OS-9000/POWERPC *************************
+
+******************************************************************************
+* Power Policy Entry Point
+*
+* Passed:                       (r?).l = vsect data ptr
+*                                       (r?).l = system global data ptr
+*                                       (r?).l = (system) stack ptr
+* Success Returns:      (r3).l = 0
+* Error Return:         (r3).l = error code
+*
+* Destroys:  nothing
+*
+* caller allocates our static storage
+* [check is this module is properly called from P2]
+*
+PEentry:
+			b					PwrExt_entry			jump to PwrPlcy's entry point
+
+								endc 
+
+							ifdef _MPF386 **** OS-9000/386 *******************************
+
+******************************************************************************
+* Power Policy Entry Point
+*
+* Passed:                       (eax).l = vsect data ptr
+*                                       (?).l = system global data ptr
+*                                       (esp).l = (system) stack ptr
+* Success Returns:      (eax).l = 0
+* Error Return:         (eax).l = error code
+*
+* Destroys:  nothing
+*
+* caller allocates our static storage
+* [check is this module is properly called from P2]
+*
+PEentry:
+		jmp					PwrExt_entry				jump to PwrPlcy's entry point
+
+							endc 
+
+
+						endc **** END OS-9000 ***********************************************

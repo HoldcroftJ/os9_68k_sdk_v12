@@ -1,0 +1,717 @@
+ nam  IDC Disk Driver
+ ttl  Device Driver For MVME315 Intelligent Disk Controller
+ opt  f
+
+********************************
+* Editon History
+*
+*  #    Date      Comments                                      by
+* -- -------- ------------------------------------------------- ---
+* 00 84/11/30 Basic Installation                                woe
+* 00 84/12/18 Fixed Bugs in FormatTrack                         woe
+* 01 85/01/22 Fixed Bug in Write-Verify 
+*             Added Retry on Seek-Error                         woe
+* 01 85/03/15 Changed ChkTrk0 and WrtTrack to work any Format   woe
+* 02 85/05/10 Added Fast Step Option for Harddisk				woe
+* 03 85/05/20 Fixed Bug in InitPar, changed ChkTrk0,
+*             put 1.Comp.Cyl + red.Wr.Curr.Cyl to Dev.Descr     woe
+* 03 85/06/18 Fixed Bug in WriteTrack(Sect0 Size for DD)        woe
+* 03 85/06/24 Fixed Bug in Terminate                            woe
+* 04 85/08/21 Added Code for V1.2 Update     					woe
+* 04 85/08/23 Put Comp.Cylinder to DevCon in Device Descriptor  woe
+* 04 85/08/29 Revised DrvTable Routine                          woe
+* 04 85/09/13 Made it word any format plus minor changes        woe
+* 05 93/03/22 Reworked to maintain stack alignment and proper 
+*			  handling of the interrupt mask.					afh
+
+
+Edition   equ       5                   current edition number
+
+Typ_Lang  set       (Drivr<<8)+Objct    Device Driver In Assembly Language
+Attr_Rev  set       (ReEnt<<8)+3        Revision 2
+
+ psect     IDC,Typ_Lang,Attr_Rev,Edition,0,DiskEnt
+
+ use       defsfile
+
+NumDriv   equ  8 *** must be linked for eight drives ***
+* 1 SASI Controller only !! re-do DrvTable for changes
+
+ pag
+***********************
+* Controller Commands *
+***********************
+
+* Genaral Commands
+*  (whole command message)
+*
+C$ConfIDC dc.w MsgStrt,$1D00       Configure IDC
+          dc.w $5000,0000            Command
+          dc.l 0,0,0,0,0
+*
+* Hard and Floppy Disk Commands
+*
+*  (Bytes 2 - 5 of command message:
+*      1. command packet size
+*      2. controller and drive number/physical device number,
+*          preset to zero
+*      3. command type
+*      4. function code)
+*
+C$ReadSec equ $15001001 Read Sectors (with retry if floppy)
+C$WritSec equ $15002002 Write Sectors
+C$FmtTrak equ $0F004001 Format Track
+C$FmtDisk equ $07004002 Format Disk
+C$Restore equ $07004004 Restore Head
+C$InitDsk equ $1D004008 Initialize Disk Parameters
+
+
+ pag
+*******************************
+* IDC Command Channel Offsets
+
+CommSent equ $101 Command Sent Byte
+MsAckNak equ $103 Message Acknowledged/Not Acknowledged Byte
+CommBuff equ $105 Command Message Buffer
+MessSent equ $181 Message Sent Byte
+CmAckNak equ $183 Command Acknowledged/Not Acknowledged Byte
+StatBuff equ $185 Status Message Buffer
+MessLeng equ $189 Status Packet Size
+StatErr  equ StatBuff+14 Error Location
+
+*******************************
+* IDC Command Message Contents
+
+STX       equ  $02       STX mark
+ETX       equ  $03       ETX mark
+AddrMod   equ  $39       memory address modifier
+MessID    equ  $FF       message ID
+MsgStrt   equ  (STX<<8)+MessID   Message Header
+NumBlocks equ  1         number of blocks to be transferred
+BlockSize equ $100       block size in bytes
+
+Ack       equ  $06       command/message acknowledged
+Nak       equ  $15       command/message not acknowledged
+Sent      equ  $80       command/message sent
+
+ pag
+********************************
+* Static Storage Definitions
+
+ vsect
+V_CurDrv       ds.b      1              Current drive
+V_AckNak       ds.b      1              Ack/Nak Flag
+V_Trk0         ds.b      1              Track0 Flag
+V_FmtDsk       ds.b      1              FormatDisk-Flag
+V_CurFmt       ds.b      1              Current Format
+V_FmtSide      ds.b      1              # of Sides (Format only)
+V_FmtSect      ds.w      1              # of Sectors to format
+V_VerBuf       ds.l      1              Pointer to verify buffer
+V_CurSect      ds.l      1              Current Sector to write
+V_T0S          ds.b      4              Sectors/Track0 (Floppy only)
+
+BufLen         equ       28             Buffer Length
+V_CmdBuf       ds.w      (BufLen+1)/2   Command Buffer
+V_CmdLen       equ       V_CmdBuf+2     Command packet size
+V_Command      equ       V_CmdBuf+2     Command Location (4 Bytes)
+V_Drive        equ       V_CmdBuf+3     Drive Number
+V_MsgErr       equ       V_CmdBuf+7     Status Error
+
+V_IniBuf       ds.w      (BufLen+1)/2   Init Buffer
+V_IniCmd       equ       V_IniBuf+2     Command
+V_IniDrv       equ       V_IniBuf+3     Drive #
+V_IniAttr      equ       V_IniBuf+6     Attributes (2 Bytes)
+V_IniSct       equ       V_IniBuf+8     # of Sectors
+V_IniSid       equ       V_IniBuf+9     # of Sides
+V_IniSSiz      equ       V_IniBuf+10    Sector Size
+V_IniCyl       equ       V_IniBuf+12    # of Cylinders
+V_IniComp      equ       V_IniBuf+14    1.Cyl. w. Compensation
+V_IniEcc       equ       V_IniBuf+18    Ecc Burst Length
+V_IniIlv       equ       V_IniBuf+20    Interleave Factor
+V_IniStp	   equ       V_IniBuf+24    Fast Step Option
+
+ ends
+
+
+************************************************************
+*                                                          *
+*     Entry Branch and IRQ Polling Tables                  *
+*                                                          *
+************************************************************
+
+DiskEnt   dc.w Init      Initialize Storage
+          dc.w Read      Read A Sector
+          dc.w Write     Write A Sector
+          dc.w GetStat   Get Status
+          dc.w PutStat   Set Status
+          dc.w Term      Shut Down Device
+
+ pag
+
+*************************************************************
+*                                                           **  Initialize Controller                                    *
+*                                                           *
+*                                                           *
+*  Passed: (a1) = Address Of Device Descriptor Module       *
+*          (a2) = Address Of Static Storage                 *
+*                                                           *
+*  Returns: (cc) = Carry Set If Error                       *
+*           (d1) = Error Code If Error                      *
+*                                                           *
+*************************************************************
+
+Init movea.l V_PORT(a2),a3 point to port
+ moveq #NumDriv,d0 Number of Drives
+ move.b d0,V_NDRV(a2)
+ moveq #$FF,d1 Init Fake Media Size
+ move.b d1,V_CurDrv(a2) Init high drive #
+ lea DRVBEG+DD_TOT(a2),a0 Point At First Table
+Init10 move.b d1,(a0) Set Up Size
+ lea DRVMEM(a0),a0 Move To Next Table
+ subq.b #1,d0 last drive?
+ bne.s Init10 branch if not
+
+ move.l a2,a0 save static storage pointer
+ move.w #256,d0 get sector buffer
+ os9 F$SRqMem
+ bcs.s InitExit branch if no memory
+ exg a2,a0 swap pointers
+ move.l a0,V_VerBuf(a2) save pointer for later use
+
+ move.b M$Vector(a1),d0 get Vector #
+ move.b M$Prior(a1),d1 get Priority
+ lea DiskIRQ(pcr),a0 Point To IRQ Routine
+ OS9 F$IRQ Get On The Table
+ bcs.s InitExit exit if error
+ moveq #-1,d0
+ move.b d0,V_FmtDsk(a2) init FormatDisk-Flag
+ move.b d0,V_FmtSide(a2) and FormatSide-Flag
+*
+* Configure IDC
+*
+ moveq #BufLen-1,d0 get length of command buffer
+ lea C$ConfIDC(pc),a0 get 'Configure IDC' command
+ lea V_CmdBuf(a2),a4 point to Command Buffer
+FillBuff move.b (a0)+,(a4)+ put command into buffer
+ dbra d0,FillBuff
+ lea V_CmdBuf(a2),a5 Buffer-Pointer
+ move.b M$Vector(a1),6(a5) Set IRQ-Vector #
+ bsr SendCmd1 send command to IDC w/o DrvNum
+ move.l #$0D0D0808,V_T0S(a2) set default Sect/Track0
+InitExit rts
+
+ pag
+*******************************************
+*    Initialize Parameters
+*
+*    Passed    (a1) Path Descriptor
+*              (a2) Static Storage
+*
+
+InitPar tst.b PD_TYP(a1)
+ bmi.s InitPar4 skip if Harddisk
+ cmpi.b #$10,(a0) read Sector 0 already ?
+ bhs.s InitPar2 branch if not
+ move.b DD_FMT(a0),V_CurFmt(a2) get current Format
+ move.b DD_TKS(a0),V_IniSct(a2) set Sectors/Track
+ bra.s InitPar5
+InitPar2 move.b PD_DNS(a1),d0 set current Format
+ asl.b #1,d0 according to Descriptor
+ cmpi.b #2,PD_SID(a1) DS ?
+ bne.s InitPar3 branch if not
+ bset #0,d0 set DS
+InitPar3 move.b d0,V_CurFmt(a2) save current Format
+InitPar4 move.b PD_SCT+1(a1),V_IniSct(a2) set Sectors/track
+
+InitPar5 clr.b V_Trk0(a2) not Track 0 !
+ move.l #C$InitDsk,V_IniCmd(a2) set Command
+ move.b PD_SID(a1),V_IniSid(a2) # of surfaces
+ move.w PD_CYL(a1),V_IniCyl(a2) # of cylinders
+ move.w #256,V_IniSSiz(a2) Sector Size
+* set Device Constants
+ move.l PD_DEV(a1),a5 get device table pointer
+ move.l V$DESC(a5),a5 point to descriptor
+ move.w M$DevCon(a5),d0 get offset to DevCon
+ move.w 2(a5,d0.w),V_IniComp(a2) 1. Cyl. w. Compensation
+ move.w 4(a5,d0.w),V_IniComp+2(a2) red. WrCurr. (HardDisk)
+*
+ moveq #0,d0
+ move.b #11,V_IniEcc(a2) ECC Burst Length
+ move.b #1,V_IniEcc+1(a2) (reserved Byte ?)
+ move.l d0,V_IniIlv(a2)
+ move.b PD_ILV(a1),V_IniIlv(a2) Interleave
+ move.l d0,V_IniIlv+4(a2)
+		 move.b PD_STP(a1),V_IniStp(a2) set Steprate
+ tst.b PD_TYP(a1) Harddisk ?
+ bmi.s Harddisk branch if so
+		 move.b d0,V_IniStp(a2) ignore Steprate for Floppy
+ move.l d0,V_IniComp+2(a2) clear reserved Bytes (16-19)
+ move.w #$003C,d0 IBM,noSpiral,DD,DS,noRDY
+*                      8",WrPreComp
+ move.b #2,V_IniSid(a2)
+ btst #0,V_CurFmt(a2) Double Side ?
+ bne.s Ini_DS Yes
+ bclr #4,d0 no ! set SS
+ move.b #1,V_IniSid(a2)
+Ini_DS btst #1,V_CurFmt(a2) Double Density ?
+ bne.s Ini_DD Yes
+ bclr #5,d0 no ! Set SD
+Ini_DD btst #0,PD_TYP(a1) 8 inch ?
+ bne.s EightIn Yes
+ bclr #2,d0 No ! set 5 inch
+ bset #1,d0 and no Wr.precomp.
+ move.w #80,V_IniCyl(a2) assume 80 Tracks (96 Tpi)
+ btst #2,V_CurFmt(a2) Check if ok
+ bne.s EightIn branch if so
+ move.w #40,V_IniCyl(a2) no, set 40 Tracks (48 Tpi)
+EightIn moveq #0,d1
+ move.b PD_STP(a1),d1 get Steprate
+ asl.w #8,d0
+ or.w d1,d0 Combine
+Harddisk move.w d0,V_IniAttr(a2) move Par's to CmdBuf
+InitPar10 lea V_IniBuf(a2),a5 Setup Buffer Pointer
+ bra SendCmd Send Parameters
+
+
+ pag
+**********************************
+* Read Block(s) From Disk
+*
+*  Passed:(a2) = Address Of The Device Static Storage
+*         (a1) = Address Of The Path Descriptor
+*         (a4) = Process descriptor
+*         (d2) = Logical sector #
+*
+* Returns: (CC) = Carry Set If Error
+*          (d1) = Error Code If Error
+*
+
+Read move.l #C$ReadSec,d6 get command code
+ bsr.s Setup prepare Read
+ bcs.s ReadExit exit if error
+ bsr SendCmd execute command
+ bcs.s ReadExit exit if error
+ tst.l d2 is this sector zero?
+ bne.s ReadEnd no, leave
+
+Read0 cmpi.b #$FF,V_FmtDsk(a2) is FmtDsk-Flag to be reset ?
+ beq.s Read01 no, skip
+ tst.b PD_TYP(a1) HardDisk ?
+ bpl.s Read01 no, skip
+ move.b PD_DRV(a1),d3 reset the Flag
+ cmp.b V_FmtDsk(a2),d3 on a Read Sector0
+ bne.s Read01 on the same drive !
+ move.b #$FF,V_FmtDsk(a2) reset it
+Read01 move.l PD_BUF(a1),a5 point to sector buffer
+ tst.b PD_TYP(a1) floppy ?
+ bmi.s Read03 skip if not
+ moveq #0,d1
+ move.b PD_DRV(a1),d1 get drive#
+ addi.w #V_T0S-4,d1 make ptr, 1.drive# = 4 !!
+ move.b DD_OPT+PD_T0S-PD_OPT(a5),(a2,d1.w) get T0S
+ bne.s Read03 branch if '09 format
+ move.b DD_OPT+PD_T0S-PD_OPT+1(a5),(a2,d1.w) try again, was 68k format !
+Read03 move.l PD_DTB(a1),a0 get drive table pointer
+ moveq #DD_SIZ-1,d1 get number of bytes to copy
+Read05 move.b (a5,d1.w),(a0,d1.w) copy DD_info into Drive Table
+ dbra d1,Read05 current drive table
+ move.b DD_FMT(a0),d1 get disk format
+ cmp.b V_CurFmt(a2),d1
+ beq.s ReadEnd done if same format
+ bsr InitPar re-initialize else
+ReadEnd moveq #0,d1 no errors
+ReadExit rts
+
+
+Setup movea.l V_PORT(a2),a3 point to Port
+ bsr.s DrvTable get drive table
+ bcs.s SetupX Error
+ bsr ChkTrk0 Check Track 0
+ bcs.s SetupX Error
+ bsr RdWrBuff set up command buffer
+SetupX rts
+
+
+ pag
+************************************
+* Write - Write A Block To The Disk
+*
+*  Passed: (a2) = Address Of Device Static Storage
+*          (a1) = Address Of Path Descriptor
+*          (d2) = The Disk Logical Sector Number
+*
+* Returns: (CC) = Carry Set If Error
+*        (d1.w) = Error Code If Error
+*
+
+Write tst.l d2 Sector 0 ?
+ bne.s Write1 branch if not
+ btst #FmtDis_B,PD_Cntl+1(a1) ok to write Sect.0 ?
+ bne.s WritErr exit if not
+Write1 move.l #C$WritSec,d6 get command code
+ move.l d2,V_CurSect(a2) save Sector# for Verify
+ bsr.s Setup prepare Write
+ bcs.s WritExit exit if error
+ bsr SendCmd execute command
+ bcs.s WritExit Leave If Error
+ tst.b PD_VFY(a1) Verify ?
+ bne.s WritEnd No, Done
+
+ move.l PD_BUF(a1),-(a7) save buffer pointer
+ move.l V_VerBuf(a2),PD_BUF(a1) substitute verify buffer
+ move.l V_CurSect(a2),d2 restore Sector#
+ bsr Read Re-Read The Written Block
+ movem.l (a7)+,a0 recover buffer pointer
+ move.w sr,d0 save cc
+ move.l a0,PD_BUF(a1)
+ move.w d0,sr restore cc
+ bcs.s WritExit exit with error
+ movea.l V_VerBuf(a2),a3
+ move.w #256/4,d0 get # of bytes to check
+ bra.s Verify10
+VerifyLp subq.w #1,d0
+ beq.s WritEnd exit if done
+Verify10 cmpm.l (a0)+,(a3)+ is data the same?
+ beq.s VerifyLp branch if so
+WritErr move.w #E$Write,d1 flag write error
+VerifyEr ori #Carry,ccr flag error
+ bra.s WritExit
+
+WritEnd clr.b d1 No Errors
+WritExit rts
+
+ pag
+******************************
+* Get New Drive Table Pointer
+
+DrvTable movea.l PD_DTB(a1),a0 point to drive table
+ move.b PD_DRV(a1),d0 get logical unit number
+ cmp.b V_CurDrv(a2),d0 same drive as before?
+ beq.s DrvTable3 branch if so
+ move.w #E$Unit,d1 preset error code
+ cmp.b V_NDRV(a2),d0 drive in range?
+ bhs.s DrvTbErr branch if not
+ move.b d0,V_CurDrv(a2) update drive number
+ bsr InitPar Set new Parameters
+DrvTable3 tst.l d2 Sector 0 ?
+ beq.s DrvTabX skip Range-Check if so
+ move.l PD_DTB(a1),a0 get Drive-Tbl Pointer
+ move.l DD_TOT(a0),d1 get total number of sectors
+ lsr.l #8,d1 adjust for 3-byte value
+ cmp.l d2,d1 sector number out of range?
+ bhi.s DrvTabX branch if not
+ move.w #E$Sect,d1 flag Sector Error
+
+DrvTbErr ori #Carry,ccr
+DrvTabX rts
+
+
+
+***********************************************
+*    Build up R/W Command Buffer
+
+RdWrBuff lea.l V_Command(a2),a5 Command Location
+ move.l d6,(a5)+ put command into buffer
+ move.w #NumBlocks,(a5)+ number of blocks
+ move.w #BlockSize,(a5)+ block size in bytes
+ move.l PD_BUF(a1),(a5)+ starting memory address
+ move.b #AddrMod,-4(a5) memory address modifier
+ move.w #0,(a5)+ filler
+ move.l d2,(a5) LSN of (first) block
+ lea V_CmdBuf(a2),a5 Set up Buffer Pointer
+ rts
+
+ pag
+
+**************************************************
+*    Check for Track 0
+
+ChkTrk0 tst.b PD_TYP(a1) Harddisk ?
+ bmi.s ChkTrkX Exit if so
+ btst #1,V_CurFmt(a2) SD ?
+ beq.s ChkTrkX Done if so
+ moveq #0,d0
+ moveq #0,d1
+ move.b PD_DRV(a1),d1 get drive#
+ addi.w #V_T0S-4,d1 make ptr, first floppy is 4 !
+ move.b (a2,d1.w),d0 get T0S info
+ cmp.w d0,d2 Sect. in Track 0 ?
+ bhs.s DDTrk1 branch if not
+ tst.b V_Trk0(a2) was Track 0 before ?
+ bne.s ChkTrkX Done if so
+ bclr #5,V_IniAttr(a2) No Set to SD
+ move.b d0,V_IniSct(a2) adjust Sects/Trk0
+ move.b #$80,V_Trk0(a2) Set Flag
+ bsr InitPar10 and re-initialize
+ bra.s ChkTrkX
+DDTrk1 moveq #0,d1
+ move.b DD_TKS(a0),d1 get Sectors/Track
+ lsr.b #1,d1 /2
+ sub.w d0,d1
+ add.w d1,d2 adjust LSN
+ tst.b V_Trk0(a2) was Track0 before ?
+ beq.s ChkTrkX exit if not
+ bset #5,V_IniAttr(a2) Set to DD
+ move.b DD_TKS(a0),V_IniSct(a2) adjust Sects/Track
+ clr.b V_Trk0(a2) reset Flag
+ bsr InitPar10 and re-initialize
+ChkTrkX rts done..
+
+
+
+ pag
+*************************
+* Get/Put Status Call
+
+*  Input: (a1) Address of path descriptor
+*         (a2) Address of driver's static storage
+*         (a3) Address of process descriptor of the task
+*              requesting the I/O function
+*         (a4) Address of system global storage
+*        d0.w  Status code
+
+PutStat move.l V_PORT(a2),a3 get Port Address
+ cmpi.w #SS_Reset,d0 restore call?
+ beq.s Restore ..yes; do it.
+ cmpi.w #SS_WTrk,d0 write track call?
+ beq.s FmtDisk ..yes; do it.
+
+GetStat move.w #E$UnkSvc,d1 error code
+ bra ErrExit
+
+Restore rts We don't like Restore !
+
+
+********************************
+* Write Track (For Format Only)
+*
+*  Input: (a1) = Address of Path Descriptor
+*         (a2) = Address of Driver's Static Storage
+*
+*         R$d2.l   = Track Number
+*         R$d3+2.b = Side Number
+*         R$d3+3.b = Format ( == DD_FMT .or. Side Number ! )
+
+FmtDisk btst #FmtDis_B,PD_Cntl+1(a1) are we ok to format Disk?
+ beq.s FmtDisk1 branch if so
+ move.w #E$Format,d1 set Error Code
+ ori #Carry,ccr flag error
+ bra.s FmtExit
+FmtDisk1 tst.b PD_TYP(a1) Harddisk ?
+ bpl.s WrtTrack branch if Floppy
+ tst.b V_FmtDsk(a2) had we formatted already?
+ bmi.s FmtHDisk branch if not
+ moveq #0,d1 skip following WrtTracks!
+FmtExit rts
+
+FmtHDisk bsr InitPar Init Parameters first
+ bcs.s FmtExit Exit on Error
+ lea V_CmdBuf(a2),a5 init Pointer
+ move.l #C$FmtDisk,2(a5) set Format Disk Command
+ bsr SendCmd and execute it
+ bcs.s FmtExit Abort on error
+ move.b PD_DRV(a1),V_FmtDsk(a2) set FmtDsk-Flag if
+ bra.s FmtExit Cmd. was successfull !
+
+WrtTrack move.l PD_RGS(a1),a4 get register pointer
+ move.w R$d2+2(a4),d2 get Track #
+ add.b R$d3+2(a4),d2 add Side #
+ bne.s GetLSN branch if not (Side0 ! Track0)
+ move.b R$d3+3(a4),V_CurFmt(a2) set floppy format
+ bclr #1,V_CurFmt(a2) set SD for track 0, side 0
+ move.b PD_T0S+1(a1),V_IniSct(a2) set Sectors in track 0
+ bsr InitPar5 initialize disk parameters
+ bcs.s FmtExit exit if error
+ moveq #0,d2 set sector zero
+ move.b d2,V_FmtSide(a2) flag 1. Write Track
+ move.w PD_T0S(a1),V_FmtSect(a2) set # of Sectors
+ bra.s WrtTrack8 format track zero, side zero
+
+GetLSN tst.b V_FmtSide(a2) do we have to re-initialize
+ bne.s GetLSN5 skip if not
+ move.b R$d3+2(a4),d2 make # of Sides
+ addq #1,d2
+ move.b d2,V_FmtSide(a2) save
+ move.b R$d3+3(a4),V_CurFmt(a2) set new Format
+ moveq #0,d2
+ move.b PD_SCT+1(a1),d2 get Sectors/Track
+ btst #1,V_CurFmt(a2) Double Density?
+ bne.s GetLSN3 branch if so
+ move.b PD_T0S+1(a1),d2 get SD Sectors
+GetLSN3 move.b d2,V_IniSct(a2) set Sectors/track
+ move.w d2,V_FmtSect(a2) save value
+ bsr InitPar5 and re-initialize
+ bcs FmtExit exit if error
+GetLSN5 moveq #0,d2
+ move.b V_FmtSide(a2),d2 get # of sides
+ mulu R$d2+2(a4),d2 (curr. track number)*(number of sides)
+ moveq #0,d3
+ move.b R$d3+2(a4),d3 get current side number
+ add.w d3,d2
+ subq.l #1,d2 Sector 0 extra !
+ mulu V_FmtSect(a2),d2 get LSN of first sector on track
+ move.w PD_SCT(a1),d3 add half Sector for zero
+ lsr.w #1,d3
+ add.w d3,d2
+ btst #1,V_CurFmt(a2) Double Density ?
+ bne.s WrtTrack8 branch if so
+ sub.w d3,d2 adjust for SD
+ add.w PD_T0S(a1),d2
+
+WrtTrack8 lea V_Command(a2),a5
+ move.l #C$FmtTrak,(a5)+ set Command
+ move.w V_FmtSect(a2),(a5)+ set Sectors/track
+ move.w #BlockSize,(a5)+ block size in bytes
+ move.l d2,(a5) LSN of first sector on track
+ lea V_CmdBuf(a2),a5 set up buffer pointer
+
+* fall thru to execute command
+
+ pag
+**************************************************
+* SendCmd - Transfer command in command buffer to IDC
+*
+* Passed:   (a1) = Address of Path Descriptor
+*           (a2) = Address of Device Static Storage
+*           (a3) = Port Address
+*           (a5) = Command Buffer
+
+SendCmd move.b PD_DRV(a1),V_Drive-V_CmdBuf(a5) set cntrllr./drv. #
+SendCmd1 move.l a5,a6 copy Pointer
+ move.w #MsgStrt,(a5) set Header
+
+TestBuff tst.b CommSent(a3) command buffer available?
+ beq.s Transmit0 branch if so
+ moveq #1,d0 sleep a bit
+ os9 F$Sleep
+ bra.s TestBuff try again
+
+Transmit0 moveq #3,d3
+Transmit move.b ModCntl,d7 save Mode Cntrl. Reg.
+ move.b #$91,ModCntl disable Breq Time out
+ moveq #0,d4
+ move.b V_CmdLen-V_CmdBuf(a5),d4 get length of command
+ subq #2,d4
+ move.w #CommBuff,d5 point to Command Channel
+
+Transmit1 move.b (a5)+,(a3,d5.w) transfer command to IDC
+ addq.l #2,d5 next location in IDC
+ dbra d4,Transmit1
+ move.b #ETX,(a3,d5.w) mark end of text
+Transmit2 move.b #Sent,CommSent(a3) indicate command sent
+
+WaitAck move.b CmAckNak(a3),d4 Wait for CmdAck
+ bne.s RecAck
+ moveq #1,d0 sleep a bit
+ os9 F$Sleep
+ bra.s WaitAck try again
+
+RecAck clr.b CmAckNak(a3) indicate Cmd Ack/Nak read
+ cmpi.b #Ack,d4 command acknowledged?
+ beq.s MsgSent branch if so
+ cmpi.b #Nak,d4 not acknowledged ?
+ bne.s CmdErr Error if false
+ move.l a6,a5 Restore Pointer
+ subq #1,d3 dec. Counter
+ bpl.s Transmit retransmit command
+
+CmdErr move.b d7,ModCntl Restore Mode Cntrl.Reg.
+ move.w #-1,d1 Flag Error
+ bra.s ErrExit and return it
+
+MsgSent tst.b MessSent(a3) wait until message sent
+ bmi.s CheckErr
+ moveq #1,d0 sleep a bit
+ os9 F$Sleep
+ bra.s MsgSent try again
+
+
+ pag
+**********************************************
+* CheckErr  -  Fetch Status Message from IDC,
+*              Check for Error Conditions
+*
+
+CheckErr move.b #Ack,MsAckNak(a3) indicate Message acknldgd.
+ move.b d7,ModCntl Restore Mode Cntrl.Reg.
+ moveq #0,d1 clear d1.l
+ move.b StatErr-4(a3),d1
+ lsl.b #7,d1 get error code
+ or.b StatErr(a3),d1 combined with Status Type
+ clr.b MessSent(a3) indicate Status read
+ tst.b d1 error occured ?
+ beq.s CheckExit exit if not
+ cmpi.b #$11,d1 was Seek-Error ?
+ bne.s SrchErr skip if not
+ subq #1,d3 tried several times before ?
+ bpl.s Transmit2 retry if not
+
+SrchErr lea ErrorTbl-2(pc),a5 point to error table
+GetCode addq.l #2,a5 first/next entry
+ move.b (a5),d0 controller error number
+ beq.s ErrExit end of table ?
+ cmp.b d0,d1 do error codes match?
+ bne.s GetCode branch if not
+ move.b 1(a5),d1 get OS-9 error code
+ErrExit ori #Carry,ccr
+CheckExit rts
+
+
+ErrorTbl dc.b $01,E$CRC
+ dc.b $02,E$WP
+ dc.b $03,E$NotRdy
+ dc.b $04,$FF
+ dc.b $05,E$Unit
+ dc.b $06,E$Sect
+ dc.b $07,E$Unit
+ dc.b $08,E$Seek
+ dc.b $09,E$CRC
+ dc.b $0A,$FF
+ dc.b $0F,E$Unit
+ dc.b $10,E$NotRdy
+ dc.b $11,E$Seek
+ dc.b $19,$FF
+ dc.b $81,$FE Invalid Command
+ dc.b 0 end of table
+
+ pag
+**************************************
+* DiskIRQ - Interrupt Service Routine
+*
+* Passed:
+*         (a2) = Device Static Storage
+*         (a3) = port address
+*
+* Returns: (CC) = Carry Clear
+*
+*
+
+DiskIRQ   moveq     #0,d1                    interrupt serviced
+          rts
+
+ pag
+************
+*
+*     TERM-Terminate Device
+*
+*     This subroutine waits until V_WAKE is clear, takes
+* the device off the polling table and returns.
+*
+* Passed: (a2) = Address Of Device Static Storage
+*
+* Returns: (CC) = Carry Set If Error
+*          (d1) = Error Code If Error
+*
+*
+
+Term movea.l V_PORT(a2),a3 get port address
+ move.b M$Vector(a1),d0 get Vector
+ suba.l a0,a0 clear a0
+ OS9 F$IRQ Remove Dev. from table
+ bcs.s TermX Error
+ movea.l V_VerBuf(a2),a2 give verify buffer back
+ move.l #256,d0
+ os9 F$SRtMem
+TermX rts
+
+ ends

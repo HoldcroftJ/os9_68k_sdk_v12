@@ -1,0 +1,28 @@
+
+novme050:
+* we get here via a BUS ERROR.  As the Exception Jump Table was
+* used to get here, the bus-error stack frame is located at 4(sp),
+* due to the "pushing" of the exception address on the stack by
+* the code in the Exception Jump Table.
+*
+* Note that in this case we don't care about preserving the 
+* Supervisor State flag, nor the MSP flag, as this code is always
+* supervisor state, and the MSP is currently unused.
+*
+ move.w 4(sp),sr recover pre-exception SR (mainly for Trace Flags)
+*
+* realize also that you cannot put a 'rom' breakpoint at the above
+* label (chicken/egg syndrome).  This next label is the appropriate
+* place for a breakpoint to be set when setting breakpoints in rom.
+novme050_can_trap: link a5,#0
+ movem.l #reglist!1,-(sp)
+ moveq.l #1,d1
+ lea gp_btrap(a6),a0
+ move.l a0,d0
+ bsr longjmp NOTE - never returns back!
+ movem.l -8(a5),#reglist
+ unlk a5
+ rts
+reglist equ 0x00000102
+
+

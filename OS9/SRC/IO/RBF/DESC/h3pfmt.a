@@ -1,0 +1,10 @@
+ nam H3 Phyical Device Descriptor
+ use defsfile
+
+ use "rbfdesc.a"
+
+DrvNum set 3
+ DiskH3pfmt
+Control set (Control&(^FmtDsabl))!PhysEnab physical format only
+Trys set 1
+ ends

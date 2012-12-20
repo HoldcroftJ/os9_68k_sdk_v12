@@ -1,0 +1,152 @@
+**********************************************************************
+* This command script is used to load the necessary files onto the
+* ramdisk if it is going to be the default device (e.g. /dd).
+*
+* There are two parts to this script: the first is for installation
+* on systems that use the Ultra-C Compiler, the second part is for
+* installation on systems that use the (old) V3.2 C Compiler.
+*
+* You should edit this file (choice of Compiler files, name of ramdisk
+* device) to suit your system requirements.
+**********************************************************************
+*
+* Load Desired r0 descriptor if not part of boot
+*
+*load -d CMDS/BOOTOBJS/r0_3m
+*
+chd /r0
+-nx
+*
+* Warning!  The UCC version script requires approximately
+* 2.5 Mb of RAMdisk space.
+*
+makdir /dd/SYS
+chd /h0/SYS
+copy -rfpb=64 errmsg termcap -w=/dd/SYS
+copy -rfpb=64 moded.fields umacs.hlp -w=/dd/SYS
+
+* MWOS system files
+makdir /dd/MWOS
+
+* Generic DEFS
+makdir /dd/MWOS/SRC
+makdir /dd/MWOS/SRC/DEFS
+chd /h0/MWOS/SRC/DEFS
+copy -rfpb=64 *.h *.d -w=/dd/MWOS/SRC/DEFS
+
+* OS-9 Specific DEFS
+makdir /dd/MWOS/OS9
+makdir /dd/MWOS/OS9/SRC
+makdir /dd/MWOS/OS9/SRC/DEFS
+chd /h0/MWOS/OS9/SRC/DEFS
+copy -rfpb=64 *.h *.d -w=/dd/MWOS/OS9/SRC/DEFS
+
+makdir /dd/MWOS/OS9/SRC/DEFS/MACHINE
+chd /h0/MWOS/OS9/SRC/DEFS/MACHINE
+copy -rfpb=64 *.h *.d -w=/dd/MWOS/OS9/SRC/DEFS/MACHINE
+
+* OS-9 68000/010/070 Specific Defs/Libs
+makdir /dd/MWOS/OS9/68000
+
+* OS-9 68000/010/070 Specific Defs
+makdir /dd/MWOS/OS9/68000/DEFS
+makdir /dd/MWOS/OS9/68000/DEFS/MC6830X
+chd /h0/MWOS/OS9/68000/DEFS/MC6830X
+copy -rfpb=64 *.d *.h -w=/dd/MWOS/OS9/68000/DEFS/MC6830X
+
+* OS-9 68000/010/070 Specific Object Code LIBs
+makdir /dd/MWOS/OS9/68000/LIB
+chd /h0/MWOS/OS9/68000/LIB
+copy -rfpb=64 *.l *.r -w=/dd/MWOS/OS9/68000/LIB
+
+* OS-9 CPU32/68020/030/040 Specific Defs/Libs
+makdir /dd/MWOS/OS9/68020
+
+* OS-9 CPU32/68020/030/040 Specific Object Code LIBs
+makdir /dd/MWOS/OS9/68020/LIB
+chd /h0/MWOS/OS9/68020/LIB
+copy -rfpb=64 *.l *.r -w=/dd/MWOS/OS9/68020/LIB
+
+* OS-9 CPU32 Specific Defs/Libs
+makdir /dd/MWOS/OS9/CPU32
+
+* OS-9 CPU32 Specific Defs
+makdir /dd/MWOS/OS9/CPU32/DEFS
+makdir /dd/MWOS/OS9/CPU32/DEFS/CPU32
+chd /h0/MWOS/OS9/CPU32/DEFS/CPU32
+copy -rfpb=64 mc*defs *.d -w=/dd/MWOS/OS9/CPU32/DEFS/CPU32
+
+* OS-9/68000 Hosted OS-9 I-code libraries
+makdir /dd/MWOS/OS9/68000/LIB/HOST1
+chd /h0/MWOS/OS9/68000/LIB/HOST1
+copy -rfpb=64 *.i *.il -w=/dd/MWOS/OS9/68000/LIB/HOST1
+
+
+***********************************************************
+* This section is for installation on systems using V3.2 C
+***********************************************************
+*
+*makdir SYS
+*makdir LIB
+*makdir DEFS
+*chd SYS
+*copy /h0/sys/errmsg
+*copy /h0/sys/termcap
+*chd ../LIB
+*copy /h0/LIB/math.l
+*
+*copy /h0/LIB/math881.l ; *Include the following if you are using a 68881 math coprocessor
+*copy /h0/LIB/sys.l
+*copy /h0/LIB/usr.l
+*chd ../DEFS
+*copy /h0/DEFS/oskdefs.d
+*copy /h0/DEFS/systype.d
+*
+* Comments should be removed from the following section if
+* you have the V3.2 C compiler installed.
+*
+*chd ../LIB
+*copy /h0/LIB/cio.l
+*copy /h0/LIB/clib.l
+*copy /h0/LIB/clib020.l
+*copy /h0/LIB/clib020h.l
+*copy /h0/LIB/clib020n.l
+*copy /h0/LIB/clibn.l
+*copy /h0/LIB/cstart.r
+*copy /h0/LIB/termlib.l
+*chd ../DEFS
+*makdir MACHINE
+*chd MACHINE
+*copy /h0/DEFS/MACHINE/reg.h
+*chd ..
+*copy /h0/DEFS/cdi.h
+*copy /h0/DEFS/ctype.h
+*copy /h0/DEFS/dcmd.h
+*copy /h0/DEFS/dir.h
+*copy /h0/DEFS/direct.h
+*copy /h0/DEFS/errno.h
+*copy /h0/DEFS/events.h
+*copy /h0/DEFS/float.h
+*copy /h0/DEFS/limits.h
+*copy /h0/DEFS/math.h
+*copy /h0/DEFS/memory.h
+*copy /h0/DEFS/modes.h
+*copy /h0/DEFS/module.h
+*copy /h0/DEFS/path.h
+*copy /h0/DEFS/procid.h
+*copy /h0/DEFS/rbf.h
+*copy /h0/DEFS/sbf.h
+*copy /h0/DEFS/scf.h
+*copy /h0/DEFS/setjmp.h
+*copy /h0/DEFS/setsys.h
+*copy /h0/DEFS/sg_codes.h
+*copy /h0/DEFS/sgstat.h
+*copy /h0/DEFS/signal.h
+*copy /h0/DEFS/stdio.h
+*copy /h0/DEFS/strings.h
+*copy /h0/DEFS/sysio.h
+*copy /h0/DEFS/tapehead.h
+*copy /h0/DEFS/termcap.h
+*copy /h0/DEFS/time.h
+*copy /h0/DEFS/types.h
+

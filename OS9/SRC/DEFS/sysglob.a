@@ -1,0 +1,434 @@
+ opt -l
+ nam System Global Data Definitions
+
+*****************************************************************************
+*                                                                           *
+*              Copyright 1998 by Microware Systems Corporation              *
+*                            All Rights Reserved                            *
+*                          Reproduced Under License                         *
+*                                                                           *
+*  This software is confidential property of Microware Systems Corporation, *
+*  and is provided under license for internal development purposes only.    *
+*  Reproduction, publication, modification, distribution, or creation of    *
+*  derivative works in any form to any party other than the Licensee is     *
+*  strictly prohibited, unless expressly provided for under the terms of a  *
+*  mutually executed written license agreement for this software between    *
+*  the end-user and Microware Systems Corporation, or otherwise expressly   *
+*  authorized in writing by Microware Systems Corporation.  Licensee shall  *
+*  reproduce this copyright notice exactly as provided herein on any copies *
+*  of the software that Licensee is authorized to distribute.               *
+*                                                                           *
+*****************************************************************************
+* Edition History
+*  #   Date    Changes Made                                             by
+* -- -------- --------------------------------------------------------- ---
+* 01 11/09/84 Split from process.a file.                                rfd
+* 02 01-11-85 Added event queue variables.                              rfd
+* 03 05-13-85 Changed active queue to doubly-linked.                    rfd
+*             Added D_ActAge, changed process aging technique.          rfd
+* 04 05-31-85 Rearranged slightly; added event tbl end ptr.             rfd
+*				and ActMem ptr, for initialized acct mod data.          rfd
+* 05 06-19-85 Added D_MPUTyp (to be passed from boot rom).              rfd
+*				---- OS-9/68k V1.2 released ----
+* 06 08-12-85 Eliminated P$Queue and D_WProcQ.                          rfd
+* 07 08-22-85 Added D_MinBlk & D_BlkSiz for new mem allocation.         rfd
+* 08 09-09-85 Removed D_FreRAM and D_FreeCn.                            rfd
+*             Renamed D_LowMem, D_HiMem to D_FreMem.                    rfd
+* 09 09-16-85 Added SPU definitions.                                    rfd
+* 10 01-20-86 Made System Process descr part of global static.          rfd
+* 11 01-31-86 Added block and fragment sizes (powers of 2).             rfd
+* 12 03-13-86 Added D_Sieze process ID.                                 rfd
+* 13 07-02-86 Added FPU defs: D_68881, D_FProc.                         rfd
+*             Removed obsolete DAT conditionals.                        rfd
+* 14 09-03-86 Rearranged for better (020) long-word alignment.          rfd
+* 15 09-11-86 Added D_ProcSz to encourage its use.                      rfd
+* 16 09-16-86 Added 'T_' defs (from process.a).                         rfd
+*             Added D_Cigar: gross version of defs used.                rfd
+* 17 09-17-86 Added FPU trap 'T_' names.                                rfd
+* 18 09-25-86 Added D_Compat for smoothing upgrade problems.            rfd
+*				---- OS-9/68k V2.0 released ----
+* 19 01-27-87 Added D_Flags for customization flags.                    rfd
+* 20 03-25-87 Added D_Cache.                                            rfd
+* 21 04-09-87 Removed D_SProc.                                          rfd
+*    04-16-87 Added D_MMinLim D_MMaxLim.                                rfd
+* 22 05-05-87 Changed (removed) SPU definitions.                        rfd
+* 23 05-11-87 Removed user accounting module definitions.               rfd
+*             Removed D_Flags.                                          rfd
+*             Added D_Compat definitions.                               rfd
+* 24 05-21-87 Added D_SStkLm.                                           rfd
+*				---- OS-9/68k V2.1 released ----
+* 25 08-25-87 Added D_Thread, and later D_AlarTh.                       rfd
+* 26 09-15-87 Changed D_Tick, D_Slice, D_TSlice bytes to words.         rfd
+*				---- OS-9/68k V2.2 released ----
+* 27 03-11-88 Moved D_PolTbl; added 68070 on-chip vectors.              rfd
+* 28 05-27-88 Added D_ClkMem.                                           rfd
+* 29 05-31-88 Added D_IPCmd and D_FreeMem.                              rfd
+* 30 07-05-88 Added (warren's) Cache control definitions.               rfd
+* 31 07-18-88 Added D_IPID.                                             rfd
+* 32 08-11-88 Added D_Forks.                                            rfd
+*				---- CD-RTOS V0.97 released ----
+* 33 09-19-88 Added a few Memory color definitions (for CD-I).          rfd
+* 34 10-06-88 Changed compat byte names slightly, added B_ZapMem.       rfd
+*    10-07-88 Added D_ID.                                               rfd
+*				---- CD-RTOS V0.99 released ----
+* 35 11-22-88 Added D_IRQFlag.                                          rfd
+*				---- OS-9/68k V2.2 edition #50 released ----
+*				---- OS-9/68k V2.3 released ----
+* 36 08-23-89 Added D_NoSleep.                                          wwb
+*				---- OS-9/68k V2.3 edition #66 released ----
+* 37 03-09-90 Added D_Compat2, D_SnoopD.  Added 68040 comments.         wwb
+*				---- CD-RTOS V1.1 released ----
+*				---- OS-9/68k V2.4 released ----
+* 38 01-29-91 Added T_CProto, T_StkFmt, T_FPUndata, T_MMUConf,          wwb
+*             T_MMUIlleg, T_MMUAcces.
+*				---- OS-9/68k V2.4 68040 released ----
+* 39 06-09-91 Added D_FPUSize.                                          wwb
+* 40 06-13-91 Added D_FPUMem (for FPU emulator).                        wwb
+*				---- OS-9/68k V2.4.3 released ----
+* 41 07-15-92 Added B_SpurIRQ, D_SpurIRQ.								wwb
+* 42 08-25-92 Added D_FIRQVct, D_VctJmp.								wwb
+* 43 10-03-92 Added D_NumSigs, D_SysConf, D_PrcDescStack.				wwb
+* 44 10-07-92 Added D_SysConf definitions.								wwb
+* 45 10-20-92 Fixed problems with B_CRCDis.								wwb
+* 46 11-11-92 Added D_MoveMin.											wwb
+* 47 11-12-92 Added memory allocator (MA_XXX) types & D_AllocType.		wwb
+* 48 11-16-92 MA_KNUTH replaced by MA_STD.								wwb
+* 49 11-20-92 added D_DevCnt.											wwb
+* 50 11-24-92 added D_Preempt, D_FDispQ.								wwb
+* 51 12-02-92 once more into fast dispatch.								wwb
+* 52 12-03-92 added D_InHouse.											wwb
+*				---- OS-9/68k V2.5 (Discovery Pak) released ----
+* 53 01-29-93 removed obsolete defs (SlowIRQ, DDIO, RunRAM).			wwb
+* 54 02-08-93 added B_PrivAlm to D_Compat field (Init module).			wwb
+* 55 02-22-93 added B_SSM_NoProt, B_SSM_SysPT, B_SysTSDis to SysConf,	wwb
+*             added D_KerTyp and its defs.
+* 56 04-20-93 added D_InIRQ.											wwb
+* 57 05-04-93 added D_FIRQOff, D_IRQOff, D_IRQSPOff, D_ProfMem.			wwb
+* 58 06-22-93 added D_DevSiz.											wwb
+* 59 09-16-90 added D_MBAR, CBankX_En defs (Compat2).					wwb
+* 60 09-28-93 removed RunRAM flag (obsoleted by romcode).				wwb
+*				---- OS-9/68k V3.0 released ----
+* 61 06-27-94 added B_NoMOVES to D_Compat. (replaces obsolete			wwb
+*             B_SlowIRQ
+*				---- OS-9/68k V3.0.1 released ----
+* 62 05-15-95 added T_UEA, T_UII.										wwb
+*				---- OS-9/68K V3.0.2 Beta_2 Release ----
+*				---- OS-9/68K V3.0.2 Release ----
+* 63 01-23-96 added PwrMan defs.										wwb
+*				---- OS-9/68K V3.0.3 PwrMan Beta Release ----
+* 64 06-11-96 added D_IRQHeads (for non-MSP kernels).					wwb
+*				---- OS-9/68K V3.0.3 Release ----
+* 65 09-02-97 added 'fastboot' functionality.							wwb
+* 66 07-15-98 added new copyright info.									wwb
+*             added SSM config updates for D_SysConf.					wwb
+*				---- OS-9/68K V3.1 Release ----								*
+* 67 01-30-00 added NVRAM as Defined Memory Color type					mgh
+*             $$                    <RELEASE_INFO>                     $$   *
+*
+edition equ 67 current edition number
+
+ psect sysglob,0,0,edition,0,0
+ pag
+*******************************
+* Fast Dispatch Block Description
+*
+ org 0
+FstP_next:		do.l 1 next element in queue
+FstP_routine:	do.l 1 pointer to dispatched routine 
+FstP_data:		do.l 1 pointer to static data
+FstP_status:	do.l 1 status information
+FstP_size:		equ .  size of FstP
+
+
+********************************
+* FstP_status Bits
+*
+FstP_InUse:		equ	0 fast dispatch routine is currently being executed
+FstP_Queued:	equ 1 fast dispatch routine is in dispatch queue
+
+
+********************************
+* System Global Variable Definitions
+*
+SysGlob:	equ 1<<24 system global format revision (for D_Cigar)
+
+			org 0
+D_ID:		do.w 1 set to modsync code after coldstart has finished
+D_NoSleep:	do.w 1 set to non-zero to prevent sysproc from sleeping.
+			do.w 14 reserved
+D_Init:		do.l 1 initialization module ptr ("init")
+D_Clock:	do.l 1 address of system tick routine
+D_TckSec:	do.w 1 number of ticks per second
+D_Year:		do.w 1 year
+D_Month:	do.b 1 month
+D_Day:		do.b 1 day
+D_Compat:	do.b 1 reserved for version compatability problems (#1)
+D_68881:	do.b 1 FPU Type (68020/030/040/060 systems)
+*					0 = no FPU, 1 = 68881, 2 = 68882, 40 = 68040, 60 = 68060
+D_Julian:	do.l 1 julian day number
+D_Second:	do.l 1 system time: seconds left until midnight
+D_SysConf:	do.w 1 system configuration control
+D_IRQFlag:	do.b 1 IRQ flag
+D_UnkIRQ:	do.b 1 number of times unknown IRQ occurred in a row
+D_ModDir:	do.l 2 module directory (start & end ptrs)
+D_PrcDBT:	do.l 1 Process Descriptor Block Table ptr
+D_PthDBT:	do.l 1 Path Descriptor Block Table ptr
+D_Proc:		do.l 1 Current Process descriptor ptr
+D_SysPrc:	do.l 1 System Process Descriptor ptr
+D_Ticks:	do.l 1 ever-increment system tick
+D_FProc:	do.l 1 Process whose context is in FPU registers
+D_AbtStk:	do.l 1 System state bus trap panic abort sp, return pc
+D_SysStk:	do.l 1 System IRQ stack ptr
+D_SysROM:	do.l 1 Bootstrap ROM execution entry point
+D_ExcJmp:	do.l 1 Exception Jump Table ptr
+D_TotRAM:	do.l 1 total RAM found by BootROM at startup
+D_MinBlk:	do.l 1 process minimum allocatable block size
+D_FreMem:	do.l 2 system free memory list head
+D_BlkSiz:	do.l 1 system minimum allocatable block size
+D_DevTbl:	do.l 1 I/O Device Table ptr
+D_SpurIRQ:	do.l 1 spurious IRQ counter
+D_AutIRQ2:	do.l 7 68070 on-chip I/O AutoVector Polling table heads
+D_VctIRQ:	do.l 192 Vectored Interrupt device tbl ptrs
+D_SysDis:	do.l 1 System Service dispatch table ptr
+D_UsrDis:	do.l 1 User Service dispatch table ptr
+D_ActivQ:	do.l 2 Active process queue head
+D_SleepQ:	do.l 2 Sleeping process queue head
+D_WaitQ:	do.l 2 Sleeping process queue head
+D_ActAge:	do.l 1 Active queue age
+D_MPUTyp:	do.l 1 MPU type (68000/68010/68020/68030/68070/68300/68040/68060)
+D_EvTbl:	do.l 2 ptr to system Event table start, end
+D_EvID:		do.l 1 next (incrementing) event ID number
+D_SPUMem:	do.l 1 ptr to SPU global variables (null == not enabled)
+D_AddrLim:	do.l 1 highest address found during startup
+D_Compat2:	do.b 1 cache compatibility/configuration flags
+D_SnoopD:	do.b 1 all data caches are coherent/snoopy (if non-zero)
+D_ProcSz:	do.w 1 size of a process descriptor
+D_PolTbl:	do.l 8 I/O AutoVector Polling table heads
+D_FreeMem:	do.l 2 head of system free memory color node list
+D_IPID:		do.w 1 interprocessor identification number
+			do.w 1 reserved (interprocessor)
+D_CPUs:		do.l 1 ptr to array of cpu descriptor list heads
+D_IPCmd:	do.l 2 head of inter-processor command queue
+D_SProc		do.l 210 reserved (old system process descriptor stub)
+D_CachMode:	do.l 1 68020/68030/68040/68060 CACR mode
+D_DisInst:	do.l 1 instruction cache disable depth
+D_DisData:	do.l 1 data cache disable depth
+D_ClkMem:	do.l 1 ptr to clock tick thief's static storage
+D_Tick:		do.w 1 current tick
+D_TSlice:	do.w 1 ticks per slice
+D_Slice:	do.w 1 current time slice remaining (ticks)
+			do.w 1 reserved
+D_Elapse:	do.l 1 time (ticks) to elapse before sys proc is awakened
+D_Thread:	do.l 2 system Thread queue head (immediate, or at absolute time)
+D_AlarTh:	do.l 2 system timed alarm threads (relative times)
+D_SStkLm:	do.l 1 System IRQ stack low bound
+D_Forks:	do.l 1 Number of actively forked processes.
+D_BootRAM:	do.l 1 Ram found during bootrom search (for integrity check)
+D_FPUSize:	do.l 1 FPU (max) state frame size
+D_FPUMem:	do.l 1 FPU Emulator global data
+D_IOGlob:	do.b 256 System Hardware dependent I/O flags
+D_DevSiz:	do.w 1 device table entry size (IOMan)
+D_MinPty:	do.w 1 system minimum process priority
+D_MaxAge:	do.w 1 system priority maximum age limit
+D_Sieze:	do.w 1 process ID of process that has siezed cpu
+D_Cigar:	do.l 1 gross estimate of sysglob, process, and module defs
+D_MMinLim	do.l 1 former minimum memory address allocatable
+D_MMaxLim	do.l 1 former maximum memory address allocatable (+1)
+D_MoveMin:	do.l 1 min count for DMA/move16 mem operations (move, clr)
+D_Preempt:	do.l 1 system-state pre-emption flag (0=allowed)
+D_FDispQ:	do.l 1 fast dispatch queue ptr
+D_FDisp:	do.l 1 address of insert "fast dispatch routine" routine
+D_ProfMem:	do.l 1 profiler (FasTrak) memory ptr
+			do.l 6 reserved
+D_SysLst:	equ . last user changable global
+D_FIRQVct:	do.l 1 fast IRQ system routine/data ptr table
+D_VctJmp:	do.l 1 fast IRQ system vector/jump-target save table
+D_SysDbg:	do.l 1 system debugger entry pt address
+D_DbgMem:	do.l 1 system debugger memory ptr
+D_DbgFlg:	do.b 1 system debugger active flag
+D_AllocType: do.b 1 memory allocator type
+D_DevCnt:	do.w 1 system device count
+D_Cache:	do.l 1 disk cache buffer head
+D_NumSigs:	do.w 1 default max signal depth
+D_PrcDescStack:	do.w 1 default process descriptor stack size
+D_FDispSys:	do.b FstP_size system's fast dispatch block
+D_InHouse:	do.l 8 internal debugging
+D_KerTyp:	do.b 1 kernel type (development or atomic)
+D_InIRQ:	do.b 1 irq context flag
+D_FIRQOff:	do.b 1 FIRQ system - offset to stack frame
+D_IRQOff:	do.b 1 IRQ system - offset to stack frame
+D_IRQSPOff:	do.b 1 IRQ system - offset to (isp) stack ptr
+			do.b 3 reserved
+D_MBAR:		do.l 1 CPU32 family Module Base Address
+D_Crystal:	do.l 1 system boot flags
+D_Idle:		do.l 1 idle loop call out routine
+D_IdleData:	do.l 1 idle loop call out routine data ptr
+D_Switches:	do.l 1 context switch counter for idle checks
+			do.l 5 reserved
+*
+D_IRQHeads:	do.l 8 irq head regions (for non-MSP kernels)
+* 
+			do.b $1000-. reserved
+D_End:		equ . End of system global RAM
+
+NoCRC:		equ 28523 avoid CRC chk if D_ID = No_CRC (for warmstart)
+
+ pag
+********************************
+* Service Dispatch Table special entries
+SysTrap:	equ $8000 system state entry
+
+ org 0 Free Memory Block offsets
+M_NxtPtr:	do.l 1 ptr to next higher free block
+M_PrvPtr:	do.l 1 ptr to next lower free block
+M_BlkSiz:	do.l 1 size of this block
+
+** Exception Vector address definitions
+ org 0
+T_ColdSP:	do.l 1 (0) reset initial SSP
+T_ColdPC:	do.l 1 (1) reset initial PC
+T_BusErr:	do.l 1 (2) bus error
+T_AddErr:	do.l 1 (3) address error
+T_IllIns:	do.l 1 (4) illegal instruction
+T_ZerDiv:	do.l 1 (5) integer zero divide
+T_CHK:		do.l 1 (6) CHK/CHK2 instruction
+T_TRAPV:	do.l 1 (7) TRAPV/TRAPcc/FTRAPcc instruction
+T_Priv:		do.l 1 (8) privilege violation
+T_Trace:	do.l 1 (9) trace
+T_1010:		do.l 1 (10) line 1010 emulator
+T_1111:		do.l 1 (11) line 1111 emulator
+			do.l 1 (12) reserved
+T_CProto:	do.l 1 (13) coprocessor protocol violation
+T_StkFmt:	do.l 1 (14) stack frame format error
+T_UnIRQ:	do.l 1 (15) unitialized interrupt vector
+			do.l 8 (16-23) reserved
+T_SpurIO:	do.l 1 (24) spurious interrupt
+T_AutIRQ:	do.l 7 (25-31) level 1-7 interrupt autovectors
+T_TRAP:		do.l 16 (32-47) TRAP #n instruction vectors
+T_FPUnordC:	do.l 1 (48) FP bra or set on unordered condition
+T_FPInxact:	do.l 1 (49) FP inexact result
+T_FPDivZer:	do.l 1 (50) FP divide by zero
+T_FPUndrFl:	do.l 1 (51) FP underflow
+T_FPOprErr:	do.l 1 (52) FP operand error
+T_FPOverFl:	do.l 1 (53) FP overflow
+T_FPNotNum:	do.l 1 (54) FP signaling not a number
+T_FPUnData: do.l 1 (55) FP unimplemented data type
+T_MMUConf:	do.l 1 (56) PMMU configuration error
+T_AutIRQ2:	do.l 7 (57-63) 68070 level 1-7 on-chip interrupt autovectors
+T_MMUIlleg:	equ T_AutIRQ2+(4*0) (57) PMMU illegal operation
+T_MMUAcces: equ T_AutIRQ2+(4*1) (58) PMMU access level violation
+T_UEA:		equ T_AutIRQ2+(4*3) (60) Unimplemented Effective Address (68060)
+T_UII:		equ T_AutIRQ2+(4*4) (61) Unimplemented Integer Instruction (68060)
+T_VctIRQ:	do.l 192 vectored interrupt vectors
+T_End:		equ .
+
+AutOffs:	equ D_PolTbl-T_AutIRQ+4 constant needed in kernel excpt.a & poll.a
+VctOffs:	equ D_AutIRQ2-T_AutIRQ2 constant needed in kernel excpt.a & poll.a
+
+* process catchable error traps
+*
+MINTRAP:	equ T_BusErr minimum user catchable TRAP number
+MAXTRAP:	equ T_1111 maximum user catchable TRAP number
+FPCPMIN:	equ T_FPUnordC lowest catchable FPCP eror (68020/68030/68040)
+FPCPMAX:	equ T_FPNotNum highest (68020/68030/68040)
+
+* D_Compat flag bit numbers
+*
+
+B_NoMOVES:	equ 0 xxxxxxx1 no CPU-Space MOVES during coldstart (kerc32)
+B_NoStop:	equ 1 xxxxxx1x don't use stop instruction if set
+B_NoGhost:	equ 2 xxxxx1xx don't retain Ghost memory modules if set
+B_NoBurst:	equ 3 xxxx1xxx don't enable cache burst mode (68030) if set
+B_ZapMem:	equ 4 xxx1xxxx wipe out memory that is allocated/freed if set
+B_NoClock:	equ 5 xx1xxxxx don't start system clock during coldstart if set
+B_SpurIRQ:	equ 6 x1xxxxxx ignore spurious interrupts if set
+B_PrivAlm:	equ 7 1xxxxxxx only alarm creator (process) can delete alarm.
+
+*D_Compat2 flag bit numbers
+* Note:  a "snoopy" cache is a cache that maintains its integrity
+*        through hardware means, or is non-existant.
+*
+B_SEI:		equ 0 xxxxxxx1 external instruction cache is snoopy
+B_SED:		equ 1 xxxxxx1x external data cache is snoopy
+B_SOI:		equ 2 xxxxx1xx on-chip instruction cache is snoopy
+B_SOD:		equ 3 xxxx1xxx on-chip data cache is snoopy
+B_CBank0:	equ 4 xxx1xxxx 68349: enable cache/sram bank 0 as cache
+B_CBank1:	equ 5 xx1xxxxx 68349: enable cache/sram bank 1 as cache
+B_CBank2:	equ 6 x1xxxxxx 68349: enable cache/sram bank 2 as cache
+B_CBank3:	equ 7 1xxxxxxx 68349: enable cache/sram bank 3 as cache
+
+* memory type access bit definitions
+*
+B_USER:		equ 1<<0	memory allocatable by user procs
+B_PARITY:	equ 1<<1	parity memory; must be initialized
+B_ROM:		equ 1<<2	read-only memory; searched for modules
+B_NVRAM:	equ 1<<3	non-volatile RAM; searched for modules
+B_SHARE:	equ 1<<4	shared memory
+
+* Memory color definitions
+*
+SYSRAM:	equ $01	generic system ram
+NVRAM:	equ $10 NVRam 
+VIDEO1:	equ $80	CD-I video bank 1
+VIDEO2:	equ $81	CD-I video bank 2
+
+* Memory allocator (D_AllocType) type definitions
+*
+* These define the type of memory allocator present in the kernel
+*
+MA_STD:		equ 1 standard allocator (may return 'partial' blocks)
+MA_BUDDY:	equ 2 buddy allocator (MUST return in same manner as allocated)
+
+* Kernel type (D_KerTyp) definitions
+*
+* These define the "type" of kernel running in the system
+*
+KT_DEV:		equ 1 Development kernel
+KT_ATOM:	equ 2 ATOMIC kernel
+
+* D_SysConf bit number definitions (NOTE: these definitions are Bit Number
+* values for use in a register as the <ea>.  If bit operations are made
+* directly on a memory <ea>, then the bit number or <ea> will have to be
+* adjusted accordingly
+* i.e.  bits 7-0 will use bitnum with <ea>=D_SysConf+1,
+*       while bits 15-8 will use (bitnum-8) with <ea>=D_SysConf
+*
+* These are bit definitions: a bit set means that the feature is enabled,
+* otherwise the default mode/operation is used.  See the init.a file for
+* further details of these flags.
+*
+B_NoTblExp:		equ 0	system tables are NOT expanded automatically
+* bit 1 reserved for now
+B_CRCDis:		equ 2	CRC checking disabled for F$VModul (only Small Kernel)
+B_SysTSDis:		equ 3	disable sys-state time-slicing
+* NOTE: B_SSM_NoProt is only applicable to Development Kernel
+*       (ATOMIC Kernel always uses "no-protection" mode).
+B_SSM_NoProt:	equ 4	SSM builds 1 user-state table for system (no protection)
+B_SSM_SysPT:	equ 5	SSM uses sys-state page table (instead of transparent translation)
+B_SSM_CMode:	equ 6	SSM sys-state cache mode is copy-back (else write-thru)
+B_SSM_Page8K:	equ 7	SSM uses 8K page tables (else 4K) : 68040/68060 only!
+
+* D_Crystal (system boot flag) bit number definitions.
+*
+* These flags indicate the system boot method, and are typically set
+* by the bootstrap roms.
+* Bits 0 - 23 are reserved for Microware definition
+* Bits 24 - 31 are free for OEM startup method definitions.
+*
+* These are bit definitions: a bit set means that the feature is enabled,
+* otherwise the default mode/operation is used.
+*
+B_QuikVal:		equ 0	just validate module headers in ROM at startup
+B_OKRam:		equ 1	accept RAM definitions without probing
+B_OKRom:		equ 2	accept ROM definitions without probing
+B_1stInit:		equ 3	accept first Init module found
+B_NoIRQMask:	equ 4	don't mask interrupts during system startup
+B_NoDebugCall:	equ 5	don't call/init debugger during boot
+B_SkipParity:	equ 6	skip memory parity initialization during startup
+B_Quiet:		equ 7	skip progress/informational messages during boot
+
+ pag
+ use ioglob.a include system specific I/O global definitions
+ ends
+ opt l
+

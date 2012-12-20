@@ -1,0 +1,32 @@
+**********************************************************************
+MAUI Bitmap UCM Font Information demo code
+**********************************************************************
+What this demo does:
+  - The demo prints information about UCM font in memory. Command line 
+    option allows to specify font name, which has to be in the memory.
+
+**********************************************************************
+System requirements:
+  - A working MAUI environment is assumed.
+ 
+**********************************************************************
+Directories: 
+  - Source code 
+      $MWOS/SRC/MAUI/DEMOS/SFONT
+        
+**********************************************************************
+To make this demo:
+  - From the source file directory type:
+      % os9make
+ 
+**********************************************************************
+Operation:
+ 
+  - This demo has several command line options. Run it with -h or -? 
+    option to find out what options are supported. "-f" option specifies 
+    font name . If no font name is specified, "default.fnt" font is used.
+
+      $ sfont -f=<my_font.fnt>
+
+**********************************************************************
+ 

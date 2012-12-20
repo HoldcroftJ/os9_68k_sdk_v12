@@ -1,0 +1,79 @@
+/* Edison Design Group, 1992. */
+/*
+new.h -- Include file for C++ default operator new (see ARM 12.5).
+*/
+
+#ifndef __NEW_H
+#define __NEW_H
+
+
+#include <stddef.h>
+
+
+//#include <exception.h>
+// use new header name for OS9 (tag)
+#include <exception>
+
+#ifdef __NO_EXCEPTIONS // OS9 XCC defines this with -qnx
+#  define __THROWSPEC(name) 
+#  define __THROWSPECEMPTY() 
+#else
+#  define __THROWSPEC(name) throw (name)
+#  define __THROWSPECEMPTY() throw ()
+#endif /* __NO_EXCEPTIONS */
+
+
+namespace std {
+
+#if !defined(__INLINED_EXCEPTIONS)
+
+  class bad_alloc : public exception {
+  public:
+    bad_alloc() __THROWSPECEMPTY();
+    bad_alloc(const bad_alloc&) __THROWSPECEMPTY();
+    bad_alloc& operator=(const bad_alloc&) __THROWSPECEMPTY();
+    virtual ~bad_alloc() __THROWSPECEMPTY();
+    virtual const char* what() const __THROWSPECEMPTY();
+  };
+
+#else /* linker bug fix -- for OS9 (tag) */
+	class bad_alloc : public exception {
+	public:
+		bad_alloc() __THROWSPECEMPTY()
+		{ ; }
+		bad_alloc(const bad_alloc&) __THROWSPECEMPTY()
+		{ ; }
+		bad_alloc& operator=(const bad_alloc&) __THROWSPECEMPTY()
+		{ return *this; }
+		virtual ~bad_alloc() __THROWSPECEMPTY()
+		{ ; }
+		virtual const char* what() const __THROWSPECEMPTY()
+		{ return "bad_alloc"; }
+	};
+
+#endif /* __INLINED_EXCEPTIONS */
+
+
+  typedef void (*new_handler)();
+  new_handler set_new_handler(new_handler);
+  struct nothrow_t { };
+  const nothrow_t nothrow = {};
+
+}  /* namespace std */
+
+void *operator new(size_t) __THROWSPEC(std::bad_alloc);
+void *operator new(size_t, const std::nothrow_t&) __THROWSPECEMPTY();
+void *operator new(size_t, void*) __THROWSPECEMPTY();
+void operator delete(void*) __THROWSPECEMPTY();
+
+#ifdef __ARRAY_OPERATORS
+void *operator new[](size_t) __THROWSPEC(std::bad_alloc);
+void *operator new[](size_t, void*) __THROWSPECEMPTY();
+void operator delete[](void*) __THROWSPECEMPTY();
+void *operator new[](size_t, const std::nothrow_t&) __THROWSPECEMPTY();
+#endif /* __ARRAY_OPERATORS */
+
+#  undef __THROWSPEC
+#  undef __THROWSPECEMPTY
+
+#endif

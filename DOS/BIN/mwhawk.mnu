@@ -1,0 +1,587 @@
+; $Header:   K:/source/cwright/cwright.mnv   1.80   10 Jun 1999 15:29:10   robertw  $
+;
+; This is the default CodeWright popup menu file.  It contains sections
+; as a normal .ini file does except that the contents are menu descriptors.
+; As with .ini files, lines beginning with a semicolon and blank lines are
+; ignored.  Menu descriptors are defined below.
+;
+; The CodeWright functions that utilize the content of a menu file are:
+;
+;   DlgMenuPopup   <menu>
+;   DlgMenuPopupEx <file> <menu>
+;   DlgMenuExec    <section>
+;
+;   Where:
+;      <menu>    - indicates where to find the menu to display.
+;                  If the name starts with '[', it is assumed to
+;                  be a section in the 'standard' .mnu file, otherwise it
+;                  is the name of the file to use whose contents are
+;                  expected to be of the same format as a section of
+;                  the standard .mnu file.
+;
+;      <section> - names a normal CodeWright section to execute out of the
+;                  .mnu file.  Use ConfigFileRead() to read out of
+;                  other files.
+;
+; Alternately, menu descriptions may provided via a string.  The functions
+; provided for this purpose are:
+;
+;    DlgMenuPopupStr()
+;    DlgMenuPopupStrEx()
+;
+;
+; Menu Descriptors
+;
+; A menu descriptor consists of one or more components.  The first component
+; specifies how the menu item itself will appear.  Usually this is
+; accomplished merely by giving the menu item text.  The normal Windows
+; accelerator key indicator (&) is supported.  There are, however, several
+; special cases indicated by the first character of the line being one of
+; the following:
+;
+; Character  Function
+;   -        specifies a menu separator line, the rest of the line is ignored
+;   >        indicates the start a submenu whose name follows
+;   <        indicates the end a submenu
+;   *        specifies a function to be called to generate a menu description
+;   @        specified a file and/or menu to be inserted (see below)
+;   #        introduces a conditional (see below)
+;   !        item should be checked (can be overridden)
+;   ~        item should be grayed (can be overridden)
+;
+; Entries that describe normal menu items, i.e., not separators nor submenus,
+; may contain additional components on the same line as the menu item.  Each
+; component is preceded by a semicolon and the character immediately
+; following that semicolon indicates the nature of the component as follows:
+;
+; Character  Meaning
+;   !        specifies a 'check function' to determine the checked state
+;   ~        specifies a 'gray function' to determine the grayed state
+;   ;        indicates a comment, the rest of the line is ignored
+; <other>    specifies an 'execute function' to realize the action
+;
+; If a 'check function' or 'gray function' is given, the value returned by
+; that function overides the indication of ! or ~ respectively at the
+; beginning of the line.  Further, if the 'check function' or 'gray function'
+; string begins with an exclamation mark, the value returned by the function
+; is complemented before using it to set the checked or grayed state of the
+; menu item.
+;
+; If a semicolon is required in any of the function strings it must be
+; escaped by preceding it with a backslash.  The two character sequence
+; '\;' will be replaced by a semicolon prior to execution of
+; the function string.
+;
+; It is suggested that each popup menu description be followed by a line
+; containing the bogus section name [###].  With this in place, the file
+; can be properly edited by the config file editing routines in
+; cwstart:config.c.  In particular, when a menu is deleted by this means,
+; the deletion will cease at the [###] mark instead of continuing to the
+; next valid section head (possibly deleting comments for that menu.
+;
+;
+; Indirect Menu Descriptions
+;
+; Two methods are provided for injecting a menu description from another
+; source into a menu description.  Firstly, there is the API call method.
+; This method is introduced by an asterisk and is followed by the name of
+; an API function that is expected to return an allocated string containing
+; a description fragment.  The API function may be any that can be
+; executed by MacroExecute() or LibFunctionExec().  An example of this
+; method is:
+;
+; *MyApiMacro
+;
+; where 'MyApiMacro' is a CodeWright API macro defined as a string type.
+; This method is recommended in situatuions where a menu component must be
+; constructed dynamically.
+;
+; The second indirect method is analogous to subroutines in a programming
+; language.  Using this method, one can 'plug in' a separately described
+; popup menu.  This method is introduced by a 'commercial at sign' (@)
+; and is followed by an optional filename and a menu name.  Some examples
+; of this are:
+;
+; @[TestMenu]
+; @myfile.mnu[MyMenu]
+; @c:\tmp\myfile.mnu
+;
+; In the first case, the menu description [TestMenu] is read from the
+; current file.  In the second, the menu description [MyMenu] is read from
+; "myfile.mnu".  Since the filename is not completely specified, it is
+; sought in the "usual places".  In the third example, the entire file
+; specified is read as the menu description.
+;
+;
+; Conditional Menu Descriptions
+;
+; The popup menu descriptions also support a form of conditional expression.
+; This technique allows one to dynamically tailor a menu depending on
+; conditions existing at the time the menu is constructed.  The form of
+; the conditional expression is reminiscient of the #if/#else/#endif
+; preprocessor directives in C/C++.  In its basic form, a conditional
+; description appears as follows:
+;
+; #if testFunc
+; <menu description lines>
+; #endif
+;
+; In this case, the test function, 'testFunc' is executed and if the
+; return value is non-zero, the menu description lines that follow are
+; utilized.  The constructs #else, #elif and #elseif are also supported
+; as exemplified by the following:
+;
+; #if testFunc
+; <menu description lines>
+; #elseif testFunc2
+; <menu description lines>
+; #else
+; <menu description lines>
+; #endif
+;
+; Note that the menu description lines may be of any type including other
+; conditionals; they may be nested arbitrarily deep.  As with the 'gray
+; functions' and 'check functions' described earlier, if the test function
+; is preceded by an exclamation mark, the return result of the test
+; function is complemented before use.
+;
+; As a final note, all of the test functions and even the execute functions
+; may take the form "(<expression>)".  When a function is expected and
+; it begins with a left parenthesis it is executed as if it were written
+;
+; MacroEvaluate "(<expression>)"
+;
+; An example of a menu description fragment line using this shortcut is
+; given below.
+;
+; #if (ClipboardQHasText() || BufQScrapHasText())
+; <menu description lines>
+; #endif
+;
+;---------------------- Popup Menu Descriptions ---------------------------
+
+
+;----------------- Start of Project Window, File View ----------------
+;
+; In the Project Window, File View, there are several different kinds of
+; nodes that may be selected: Project Space, Project, Filter, or File.
+; Single selection, or multiple selections are allowed.  Popup menus are
+; sensitive to the type and number of the current selection.
+;
+
+;----------------- File(s) in current project selected ---------------------
+[Project:FileInCurrentProject]
+Open                              ; _ProjectOpenFiles
+Close                             ; _ProjectCloseFiles	;~!BufQBufferCount
+Make Writeable                    ; _ProjectChmodFiles 0
+Touch                             ; _ProjectTouchFiles
+-
+>Version Control
+Get Latest                        ; _ProjectVcsOpFiles 3
+Check Out                         ; _ProjectVcsOpFiles 2
+Check In                          ; _ProjectVcsOpFiles 1
+Unlock                            ; _ProjectVcsOpFiles 4
+Add                               ; _ProjectVcsOpFiles 5
+Remove                            ; _ProjectVcsOpFiles 6
+-
+History                           ; _ProjectVcsOpFiles 7	;~(_ProjectGetSelectedItemCount() > 1)
+Settings                          ; _ProjectVcsOpFiles 8	;~(_ProjectGetSelectedItemCount() > 1)
+-
+Setup...                          ; DlgVCSSetup
+Maintenance...                    ; DlgVCMMaintain
+<
+-
+Refresh Status                    ; _ProjectRefreshFiles
+-
+Settings...                       ; DlgProjectEx NULL TAB_PROJFILES_ID 1 NULL 0
+-
+Edit this menu...                 ; DlgEditPopupMenu $
+[###]
+
+;----------------- File(s) selected ---------------------
+[Project:File]
+Open                             ; _ProjectOpenFiles
+Close                            ; _ProjectCloseFiles     ;~!BufQBufferCount
+Make Writeable                   ; _ProjectChmodFiles 0
+Touch                            ; _ProjectTouchFiles
+-
+Refresh Status                   ; _ProjectRefreshFiles
+-						         
+Settings...                    ; DlgProjectEx NULL TAB_PROJFILES_ID 5 NULL 0
+-
+Edit this menu...                ; DlgEditPopupMenu $
+[###]
+
+;----------------- Filter selected --------------------------
+[Project:Filter]
+Settings...                    ; DlgProjectEx NULL TAB_PROJFILTERS_ID 5 NULL 3
+-							     
+Edit this menu...                ; DlgEditPopupMenu $
+[###]
+
+;----------------- Current Project selected -----------------
+[Project:ProjectCurrent]
+Add New File...                     ; DlgProjectEx NULL TAB_PROJFILES_ID 4 NULL 1  ;~ConfigQUserMakefileAutoSync
+Add Existing Files...            ; DlgProjectEx NULL TAB_PROJFILES_ID 4 NULL 2  ;~ConfigQUserMakefileAutoSync
+Remove Project                   ; (ProjSpaceDelProj(_ProjectGetSelectedItem())) ;~ConfigQUserWorkspaceAutoSync
+-
+Build                            ; MenuCommand IDM_PROJ_MAKE
+Rebuild                          ; MenuCommand IDM_PROJ_REBUILD
+-
+>Version Control
+Setup...                         ; MenuCommand IDM_TOOLS_VCS_SETUP
+<
+-
+Settings...                    ; DlgProjectEx NULL TAB_PROJDIR_ID 4 NULL 0
+-
+Edit this menu...                ; DlgEditPopupMenu $
+[###]
+
+;----------------- Project selected -------------------------
+[Project:Project]
+Set as Current Project           ; (ProjOpen(_ProjectGetSelectedItem(),1))
+-
+Remove from Project Space        ; (ProjSpaceDelProj(_ProjectGetSelectedItem())) ;~ConfigQUserWorkspaceAutoSync
+-
+Settings...                    ; DlgProjectEx NULL TAB_PROJDIR_ID 4 NULL 0
+-
+Edit this menu...                ; DlgEditPopupMenu $
+[###]
+
+;----------------- Missing Project selected -------------------------
+[Project:ProjectMissing]
+Remove from Project Space        ; (ProjSpaceDelProj(_ProjectGetSelectedItem())) ;~ConfigQUserWorkspaceAutoSync
+-
+Settings...                    ; DlgProjectEx NULL TAB_PROJDIR_ID 4 NULL 0
+-
+Edit this menu...                ; DlgEditPopupMenu $
+[###]
+
+;----------------- Project Space selected -------------------
+[Project:ProjectSpace]
+Add New Project...                ; hawkProjMenuDispatch IDM_HAWK_PROJ_NEW	;~ConfigQUserWorkspaceAutoSync	;;DlgProjectEx NULL TAB_PROJFILES_ID 4 NULL 1
+Add Existing Projects...          ; DlgProjectEx NULL TAB_PROJFILES_ID 4 NULL 2	;~ConfigQUserWorkspaceAutoSync
+Remove Projects...                ; DlgDeleteProject	;~ConfigQUserWorkspaceAutoSync
+-
+Close                             ; MenuCommand IDM_PROJSPACE_CLOSE
+-
+Settings...                       ; DlgProjectEx NULL TAB_PROJFILES_ID 4 NULL 0
+-
+Edit this menu...                 ; DlgEditPopupMenu $
+[###]
+
+;----------------- Empty Project Space selected -------------
+[Project:ProjectSpaceEmpty]
+Create New Project Space...      ; MenuCommand IDM_PROJSPACE_NEW
+Open Existing Project Space...   ; MenuCommand IDM_PROJSPACE_OPEN
+Select Recent Project Space      ; DlgSelectProjSpace
+-
+Settings...                    ; DlgProjectEx NULL TAB_PROJDIR_ID 4 NULL 0
+-
+Edit this menu...                ; DlgEditPopupMenu $
+[###]
+
+;----------------- End of Project Window, File View ---------
+
+[Utilities]
+Paste                            ; MenuCommand IDM_EDIT_SCRAP_PASTE ;~(BufQIsReadOnly() || (((SysQFlags() & SYSFLAG_CLIPBOARD) != 0) && !ClipboardQHasText()) || (((SysQFlags() & SYSFLAG_CLIPBOARD) == 0) && !BufQScrapHasText()))
+Quick Search                     ; SearchQuick
+-
+Check in                         ; MenuCommand IDM_TOOLS_VCS_PUT
+Check out                        ; MenuCommand IDM_TOOLS_VCS_GETLOCK
+-
+Match brace                      ; BraceFindEx 0x6096
+Place column marker              ; WinColumnMark
+-
+EnTab                            ; EnTab                  ;~BufQIsReadOnly
+DeTab                            ; DeTab                  ;~BufQIsReadOnly
+-
+>Display Mode
+Normal                           ; (WinDisplayMode(WinDisplayMode(-1) & ~WDM_TYPE_MASK)) ;!(((WinDisplayMode(-1) & WDM_TYPE_MASK) == WDM_NORMAL))
+Wrap                             ; (WinDisplayMode((WinDisplayMode(-1) & ~(WDM_TYPE_MASK | WDM_WRAP_WORD)) | WDM_WRAP))  ;!((WinDisplayMode(-1) & (WDM_TYPE_MASK | WDM_WRAP_WORD)) == WDM_WRAP)
+Wrap Words                       ; (WinDisplayMode((WinDisplayMode(-1) & ~WDM_TYPE_MASK) | (WDM_WRAP | WDM_WRAP_WORD))) ;!((WinDisplayMode(-1) & (WDM_TYPE_MASK | WDM_WRAP_WORD)) == (WDM_WRAP | WDM_WRAP_WORD))
+Hexadecimal                      ; (WinDisplayMode((WinDisplayMode(-1) & ~WDM_COMPACT) | WDM_HEX)) ;!(WinDisplayMode(-1) & WDM_HEX)
+Selective Display                ; (WinDisplayMode((WinDisplayMode(-1) & ~WDM_HEX) | WDM_COMPACT)) ;!(WinDisplayMode(-1) & WDM_COMPACT)
+-
+Search text                      ; CollapseSearchText
+>Braces
+1                                ; CollapseBrace 1
+2                                ; CollapseBrace 2
+3                                ; CollapseBrace 3
+4                                ; CollapseBrace 4
+5                                ; CollapseBrace 5
+6                                ; CollapseBrace 6
+all                              ; CollapseBrace 126
+<
+>Indentation
+1                                ; CollapseIndentation 1
+2                                ; CollapseIndentation 2
+3                                ; CollapseIndentation 3
+4                                ; CollapseIndentation 4
+5                                ; CollapseIndentation 5
+6                                ; CollapseIndentation 6
+all                              ; CollapseIndentation 126
+<
+Preprocessor                     ; Preprocess
+Paragraphs                       ; CollapseParagraph
+Routines                         ; Routines
+<
+-
+Add file to project              ; ProjAddFile            ;~(ConfigQUserMakefileAutoSync() || !ProjQCurrent())
+Remove file from project         ; ProjDelFile            ;~(ConfigQUserMakefileAutoSync() || !ProjQCurrent())
+-
+Browse for uses                  ; CWBrowseSearch
+Open include file                ; OpenIncludeFile
+File comment                     ; ExtExpandTemplate %ffile.tpl$  ;~BufQIsReadOnly
+Function comment                 ; ExtExpandTemplate %ffunct.tpl$ ;~BufQIsReadOnly
+-							     
+Settings...                    ; DlgSetSelectBuffer
+-
+Edit this menu...                ; DlgEditPopupMenu $
+[###]
+
+
+[block]
+Cut                              ; MenuCommand IDM_EDIT_SCRAP_CUT    ;~BufQIsReadOnly
+Copy                             ; MenuCommand IDM_EDIT_SCRAP_COPY
+Paste                            ; MenuCommand IDM_EDIT_SCRAP_PASTE  ;~(BufQIsReadOnly() || (((SysQFlags() & SYSFLAG_CLIPBOARD) != 0) && !ClipboardQHasText()) || (((SysQFlags() & SYSFLAG_CLIPBOARD) == 0) && !BufQScrapHasText()))
+Append                           ; MenuCommand IDM_EDIT_SCRAP_APPEND
+-
+Add Watch			 ; srcContextAddWatch  		;~!isDebuggerIdle
+Evaluate...			 ; srcContextEval  		;~!isDebuggerIdle
+Toggle Breakpoint		 ; srcContextTglBrkPt  		;~!isDebuggerIdle
+Properties...			 ; srcContextProperties  	;~!isDebuggerIdle
+Debugger Help			 ; srcContextHelp  		;;
+-
+Upper case block                 ; Upper                  ;~BufQIsReadOnly
+Lower case block                 ; Lower                  ;~BufQIsReadOnly
+Slide in                         ; SlideIn '	'         ;~BufQIsReadOnly            ;; literal tab, not spaces
+Slide out                        ; SlideOut '	'         ;~BufQIsReadOnly            ;; literal tab, not spaces
+Prompted slide in                ; SlideInPrompt          ;~BufQIsReadOnly
+Prompted slide out               ; SlideOutPrompt         ;~BufQIsReadOnly
+-
+Wrap selected lines              ; WrapSelectedLines      ;~BufQIsReadOnly
+-
+Edit this menu...                ; DlgEditPopupMenu $
+[###]
+
+
+[CodeFolio]
+Add Directory...                 ; CodeSnipsAddDirectory  ;~!CodeSnipsAllowDirectory
+Remove Directory                 ; CodeSnipsRemoveSelectedDirectory ;~!CodeSnipsAllowDirectory
+-
+Create Snippet from selection... ; CodeSnipsCreateSnip 0  ;~(MarkQSelType()==SELECTION_NONE)
+Create Snippet from Clipboard... ; CodeSnipsCreateSnip 1  ;~((((SysQFlags() & SYSFLAG_CLIPBOARD) != 0) && !ClipboardQHasText()) || (((SysQFlags() & SYSFLAG_CLIPBOARD) == 0) && !BufQScrapHasText()))
+-
+Insert                           ; CodeSnipsInsertCurrent ;~!CodeSnipsAllowInsert
+Edit...                          ; CodeSnipsEditCurrent   ;~!CodeSnipsAllowEdit
+Delete                           ; CodeSnipsDelete        ;~!CodeSnipsAllowDelete
+-
+Settings...                    ; CodeSnipsProperties    ;~!CodeSnipsAllowRename
+-
+Edit this menu...                ; DlgEditPopupMenu $
+[###]
+
+
+[OpenDirectory]
+Create New Directory (Ctrl-N)    ; CWFODirCreate
+Delete Directory (Delete)        ; CWFOFileDelete
+-
+Configuration...                 ; DlgFOConfig
+-
+Edit this menu...                ; DlgEditPopupMenu $
+[###]
+
+
+[FileTools]
+Open File                        ; CWFOFileOpen
+Invoke File                      ; CWFOFileInvoke
+Create New File  (Ctrl-N)        ; CWFOFileCreate
+Print                            ; CWFOFilePrint
+-
+Copy File        (Ctrl-C)        ; CWFOFileCopy
+Rename/Move File (Ctrl-X)        ; CWFOFileRename
+Delete File      (Delete)        ; CWFOFileDelete
+-
+Check In File                    ; CWFOFileCheckIn
+Check Out File                   ; CWFOFileCheckOut 1
+Touch File                       ; CWFOFileTouch
+View/Set Attributes              ; CWFOFileAttributes
+Add File to Project              ; CWFOFileProjAdd        ;~(ConfigQUserMakefileAutoSync() || !ProjQCurrent())
+-
+Refresh display                  ; CWFOFileRefresh
+User Function 1                  ; CWFOUser 1
+User Function 2                  ; CWFOUser 2
+-
+Edit this menu...                ; DlgEditPopupMenu $
+[###]
+
+[Outline]
+Rescan outline symbols           ; OutlineResetSymbols
+Rescan symbol DB files           ; OutlineResetFiles( void )
+-
+Compact symbol DB                ; OutlineDefragDB
+-
+Edit this menu...                ; DlgEditPopupMenu $
+[###]
+
+
+[Symbols]
+Rescan outline symbols           ; OutlineResetSymbols
+Rescan symbol DB files           ; OutlineResetFiles( void )
+-
+Compact symbol DB                ; OutlineDefragDB
+-
+Horiz. Scrollbar                 ; OutputWindowFlags=-2,WINDOW_HSCROLLBAR,TOGGLE_FLAGS ;!OutputWindowFlags=-2,WINDOW_HSCROLLBAR,READ_FLAGS
+
+[output_build]
+Copy                             ; MenuCommand IDM_EDIT_SCRAP_COPY   ;~(MarkQSelType() == SELECTION_NONE)
+Append                           ; MenuCommand IDM_EDIT_SCRAP_APPEND ;~(MarkQSelType() == SELECTION_NONE)
+-
+Open all files                   ; ErrorOpenAllFiles -1
+Clear Error File                 ; ErrorWindowClear
+Horiz. Scrollbar                 ; OutputWindowFlags=-2,WINDOW_HSCROLLBAR,TOGGLE_FLAGS ;!OutputWindowFlags=-2,WINDOW_HSCROLLBAR,READ_FLAGS
+-
+Error file options...            ; DlgProjectEx NULL TAB_PROJERRORS_ID 1 NULL 0
+-
+Edit this menu...                ; DlgEditPopupMenu $
+[###]
+
+
+[output_ffind]
+Copy                             ; MenuCommand IDM_EDIT_SCRAP_COPY   ;~(MarkQSelType() == SELECTION_NONE)
+Append                           ; MenuCommand IDM_EDIT_SCRAP_APPEND ;~(MarkQSelType() == SELECTION_NONE)
+-
+Open all files                   ; ErrorOpenAllFiles -1
+Clear Window                     ; ErrorWindowClear
+Horiz. Scrollbar                 ; OutputWindowFlags=-2,WINDOW_HSCROLLBAR,TOGGLE_FLAGS ;!OutputWindowFlags=-2,WINDOW_HSCROLLBAR,READ_FLAGS
+-
+File Find...                     ; DlgFFind
+Output settings...               ; DlgSearchOutput NULL 1
+-
+Edit this menu...                ; DlgEditPopupMenu $
+[###]
+
+
+[output_fgrep]
+Copy                             ; MenuCommand IDM_EDIT_SCRAP_COPY   ;~(MarkQSelType() == SELECTION_NONE)
+Append                           ; MenuCommand IDM_EDIT_SCRAP_APPEND ;~(MarkQSelType() == SELECTION_NONE)
+-
+Open all files                   ; ErrorOpenAllFiles -1
+Clear Window                     ; ErrorWindowClear
+Horiz. Scrollbar                 ; OutputWindowFlags=-2,WINDOW_HSCROLLBAR,TOGGLE_FLAGS ;!OutputWindowFlags=-2,WINDOW_HSCROLLBAR,READ_FLAGS
+-
+File Grep...                     ; DlgFGrep
+Search Multiple Sources...       ; DlgSearchEx NULL, FALSE, SEARCH_MULTIPLE_SOURCES
+Output settings...               ; DlgSearchOutput NULL 0
+-
+Edit this menu...                ; DlgEditPopupMenu $
+[###]
+
+
+[output_shell]
+Copy                             ; MenuCommand IDM_EDIT_SCRAP_COPY   ;~(MarkQSelType() == SELECTION_NONE)
+Append                           ; MenuCommand IDM_EDIT_SCRAP_APPEND ;~(MarkQSelType() == SELECTION_NONE)
+-
+Horiz. Scrollbar                 ; OutputWindowFlags=-2,WINDOW_HSCROLLBAR,TOGGLE_FLAGS ;!OutputWindowFlags=-2,WINDOW_HSCROLLBAR,READ_FLAGS
+
+[output_clipview]
+Erase                            ; MenuCommand IDM_EDIT_SCRAP_ERASE
+-
+Horiz. Scrollbar                 ; OutputWindowFlags=-2,WINDOW_HSCROLLBAR,TOGGLE_FLAGS ;!OutputWindowFlags=-2,WINDOW_HSCROLLBAR,READ_FLAGS
+-
+Edit this menu...                ; DlgEditPopupMenu $
+[###]
+
+
+[CodeSense]
+Editing Options...               ; DlgExtensionConfig NULL TAB_CODESENSE_ID
+-
+Rescan symbol DB files           ; OutlineResetFiles
+Compact symbol DB                ; OutlineDefragDB
+-
+Libraries...                     ; CodeSense_LibrarySetup
+-
+Show Status Messages             ; (OutlineProgressMessages( OutlineProgressMessages( -1 ) == 0 )) ;!OutlineProgressMessages -1
+-
+Edit this menu...                ; DlgEditPopupMenu $
+[###]
+
+
+[Customize]
+General environment...           ; DlgCustomize NULL TAB_SYSTEM_ID
+Keymap...                        ; DlgCustomize NULL TAB_KEYMAP_ID
+Bookmarks...                     ; DlgCustomize NULL TAB_BMARK_ID
+Clipboard...                     ; DlgCustomize NULL TAB_SCRAP_ID
+-
+Key bindings...                  ; DlgKeys
+-
+Source code editing...           ; DlgExtensionConfig NULL TAB_LANGEDIT_ID
+Alignment...                     ; DlgExtensionConfig NULL TAB_LANGINDENT_ID
+Templates...                     ; DlgExtensionConfig NULL TAB_LANGTEMPLATE_ID
+-
+Window attributes...             ; DlgOptions NULL TAB_WINDOW_ID
+Colors...                        ; DlgOptions NULL TAB_COLORS_ID
+Fonts...                         ; DlgOptions NULL TAB_FONT_ID
+-
+Project directories              ; DlgProjectEx NULL TAB_PROJDIR_ID 1 NULL 0
+Tools...                         ; DlgProjectEx NULL TAB_PROJTOOLS_ID 1 NULL 0
+-
+Edit this menu...                ; DlgEditPopupMenu $
+[###]
+
+[BookmarkMenu]
+Set a Global Bookmark       ;DropBookmark MARK_GLOBAL -1
+Set a Local Bookmark        ;DropBookmark MARK_LOCAL -1
+Go To Bookmark Dialog...    ;(DlgMarkSetMark(0,__BookmarkID__))
+*_getBookmarkMenu(__BookmarkLine__,__MenuItemCount__)
+-
+Edit this menu...           ; DlgEditPopupMenu $
+[###]
+
+[ToolbarMenu]
+*_getToolbarItemMenu
+#if (__MenuItemCount__)
+-
+#endif
+>Auto-hide
+Left                        ; (ToolbarAutoHideFlags(ToolbarAutoHideFlags(-1) ^ 1))	;!(ToolbarAutoHideFlags(-1) & 1)
+Top                         ; (ToolbarAutoHideFlags(ToolbarAutoHideFlags(-1) ^ 2))	;!(ToolbarAutoHideFlags(-1) & 2)
+Right                       ; (ToolbarAutoHideFlags(ToolbarAutoHideFlags(-1) ^ 4))	;!(ToolbarAutoHideFlags(-1) & 4)
+Bottom                      ; (ToolbarAutoHideFlags(ToolbarAutoHideFlags(-1) ^ 8))	;!(ToolbarAutoHideFlags(-1) & 8)
+-
+All                         ; (ToolbarAutoHideFlags(ToolbarAutoHideFlags(-1) | 0x0f)) ;~((ToolbarAutoHideFlags(-1) & 0x0f) == 0x0f)
+None                        ; (ToolbarAutoHideFlags(ToolbarAutoHideFlags(-1) & ~0x0f)) ;~((ToolbarAutoHideFlags(-1) & 0x0f) == 0)
+<
+-
+#if (ToolbarQFlags(__ToolbarId__) & 0xf0)
+!Docked                     ; (ToolbarSetFlags(__ToolbarId__, ToolbarQFlags(__ToolbarId__) & ~0xf0))
+#else
+Docked                      ; (ToolbarSetFlags(__ToolbarId__, ToolbarQFlags(__ToolbarId__) | 0xf0))
+#endif
+Customize...                ; CWREdit
+-
+Edit this menu...           ; DlgEditPopupMenu $
+[###]
+
+[WrapMenu]
+#if (BufQSysFlags() & BUFFER_WORDWRAP)
+Disable Wrapping            ; WrapEnable 0	;~(!BufQCurrentBuffer() || BufQIsSystem(BufQCurrentBuffer()))
+#else
+Enable Wrapping             ; WrapEnable 1	;~(!BufQCurrentBuffer() || BufQIsSystem(BufQCurrentBuffer()))
+#endif
+#if (BufQCurrentBuffer() && !BufQIsSystem(BufQCurrentBuffer()))
+-
+Wrap paragraph              ; WrapParagraph	
+Wrap selected lines         ; WrapSelectedLines	;~(MarkQSelType() == SELECTION_NONE)
+-
+Map margins to selection    ; WrapMapSelectionMargins	;~(MarkQSelType() != SELECTION_COLUMN)
+Set left margin             ; WrapSetLeftMargin
+Set right margin            ; WrapSetRightMargin
+-
+Detach right margin         ; SysFlagsEx 1 SYSFLAG1_DETACH_RMARGIN_MARK TOGGLE_SYSFLAGSEX	;!SysFlagsEx 1 SYSFLAG1_DETACH_RMARGIN_MARK READ_SYSFLAGSEX
+Formatted wrap always       ; SysFlagsEx 1 SYSFLAG1_WRAP_FORMAT TOGGLE_SYSFLAGSEX	;!SysFlagsEx 1 SYSFLAG1_WRAP_FORMAT READ_SYSFLAGSEX
+#endif
+-
+Edit this menu...           ; DlgEditPopupMenu $
+[###]

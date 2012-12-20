@@ -1,0 +1,366 @@
+ nam tk162
+ ttl VME162 tick driver for use with tickgeneric.a
+
+********************
+* tk162:  VME162 tick driver for use with "tickgeneric.a"
+
+* Copyright 1991 by Microware Systems Corporation
+* Reproduced Under License
+
+* This source code is the proprietary confidential property of
+* Microware Systems Corporation, and is provided to licensee
+* solely for documentation and educational purposes. Reproduction,
+* publication, or distribution in any form to any party other than
+* the licensee is strictly prohibited.
+
+
+********************
+* Edition History
+*  #    Date      Comments                                      By
+* -- -------- ------------------------------------------------ ---
+* 01 93/01/19 Adapted from tk167.a                             ats
+* 02 93/04/05 fixed divisor operation - counts that produce    wwb
+*             a remainder cause LONG tick periods!
+*             ---- OS-9/68K V3.0 released ----
+*             ---- OS-9/68K V3.1 released ----
+*
+
+Edition equ 2 current edition number
+
+ psect Ticker,0,0,0,0,0
+
+ use defsfile
+
+ pag
+********************
+* Expected variables and constants:
+* 
+* The following constants are used in the generic
+* code and must be defined GLOBALLY by this file:
+*
+TiksPerSec: equ TicksSec (Ticks Per Second) - Pretty self-explanatory.
+ClockVect: equ ClkVect clock vector
+ClockPort: equ ClkPort tick device base address
+ClockPrior: equ ClkPrior clock priority
+ 
+
+********************
+* StartTick: (Subroutine) Initialize
+*            the "ticker" device hardware
+*            and enable it to produce "tick" IRQs
+*
+* General Description: This subroutine is called by the "tickgeneric"
+*                      initialization code.  The purpose of this
+*                      subroutine is to program the hardware registers
+*                      of the "ticker" device so that it will produce
+*                      "tick" interrupts at the rate specified by the
+*                      variable "TicksSec" - ticks per second.  This
+*                      variable is generally defined in "systype.d"
+*                      and is often set to a value of 100 ticks per
+*                      second.
+*
+* Registers Passed: (a3) = The base address of the "ticker" hardware
+*                   (a5) = Caller's register stack pointer
+*                   (a6) = Global storage pointer
+*
+* Registers Returned: (d1) = Error code if error occurred
+*                            Zero if no error
+*                     (cc) = carry set if error occurred
+*                            carry clear if no error
+*
+* NOTE: This subroutine may alter registers d0, d1, a0 and a1 without
+*       consequence.  All others MUST be preserved!
+*
+* ANOTHER NOTE: The tickgeneric code that calls this subroutine DOES NOT
+*               MASK the interrupts!  If the initialization code for the
+*               tick device needs the interrupts masked, it must be done
+*               in THIS subroutine!
+*
+StartTick:
+ move.l #MCchBase,a1 get MCchip address
+ ifdef WDFAIL
+  ori.b #(10<<b_WDTOP),MCAWTBSR(a1) set 4 second watchdog period
+  bset.b #b_WDBFE,MCWTCR(a1) enable board fail on WD timeout
+  bset.b #b_WDEN,MCWTCR(a1) enable watchdog timer
+  btst.b #b_V1_NOVME,MC162VR(a1) check if no VMEChip2 is present
+  bne.s nosysfail if not, don't try to inhibit SYSFAIL
+  move.l #GCSRBase,a0 get address of VMEChip2 GCSR
+  move.l GCSRCTRL(a0),d0 get GCSR image
+  bset #b_GCSRCTRL_isf,d0 set inhibit driving of SYSFAIL
+  move.l d0,GCSRCTRL(a0) and write GCSR back
+nosysfail
+ endc WDFAIL
+
+ move.l #1000000,d1 number of usecs/sec
+ divu.l #TiksPerSec,d1 number of counts to produce desired results
+
+* look for table entry
+ lea MCTCRS(pc),a0 table of timers for MCchip
+ bsr FindTT check for one of those
+ tst.l d0 was there an error
+
+ ifdef TKVME
+  bpl mcST no, go set it up
+
+  btst.b #b_V1_NOVME,MC162VR(a1) check if no VMEChip2 is present
+  bne STerr if not, we're done
+
+  lea VMETCRS(pc),a0 table of timers for VMEChip2
+  bsr FindTT check for one of those
+  tst.l d0 was there an error
+
+ endc TKVME
+ bmi STerr yes, exit out
+
+ ifdef TKVME
+** Start VMEChip2 timer
+vmeST
+  move.l d1,-(sp) save counts per tick
+  move.l #VMEchBase,a3 get address of VMEChip2
+
+  lea VMETCEN(pc),a1 table of counter enable bits
+  move.l 0(a1,d0),d1 get CEN for this timer
+  move.l d0,-(sp) save table index
+  move.l BDCTL(a3),d0 get the control registers
+  bclr d1,d0 clear out enable bit (if present)
+  move.l d0,BDCTL(a3) and replace in the control registers
+  move.l (sp)+,d0 restore table index
+
+  move.l (sp)+,d1 restore counts per tick
+  lea VMETCMP(pc),a1 table of compare registers
+  move.l 0(a1,d0),a1 get CMP for this timer
+  move.l d1,(a1) tell the chip number of counts to compare
+
+  lea VMETCNT(pc),a1 table of counter registers
+  move.l 0(a1,d0),a1 get CNT for this timer
+  clr.l (a1) zero the counter
+
+  lea VMETCMD(pc),a1 table of counter modes
+  move.l 0(a1,d0),d1 get mode bits for this timer
+  or.l d1,BDCTL(a3) clear overflow counter and set compare mode
+
+  lea VMETILM(pc),a1 table of interrupt level masks
+  move.l ILVLR1(a3),d1 get the current level registers
+  and.l 0(a1,d0),d1 remove any previous bits
+  lea VMETILV(pc),a1 table of interrupt levels
+  or.l 0(a1,d0),d1 add in the level for this timer
+  move.l d1,ILVLR1(a3) give the IRQ level to the VMEchip2
+
+  lea VMETIRQ(pc),a1 table of interrupt request/clear/enable masks
+  move.l 0(a1,d0),INTCLR(a3) clear any pending interrupt from counter
+
+  lea VMETCEN(pc),a1 table of counter enable bits
+  move.l 0(a1,d0),d1 get CEN for this timer
+  move.l d0,-(sp) save table index
+  move.l BDCTL(a3),d0 get the control registers
+  bset d1,d0 set the counter enable bit
+  move.l d0,BDCTL(a3) and put back in the chip
+  move.l (sp)+,d0 restore table index
+
+  lea VMETIRQ(pc),a1 table of interrupt request/clear/enable masks
+  move.l 0(a1,d0),d1 get IRQ for this timer
+  or.l d1,LBIER(a3) enable the interrupt from the VMEChip2
+
+  moveq.l #0,d0 flag no errors
+  rts
+ endc TKVME
+
+** Start MCchip timer
+mcST
+ bclr.b #b_CEN,(a3) clear counter enable bit (if present)
+
+ lea MCTCMPS(pc),a1 table of compare registers
+ move.l 0(a1,d0),a1 get CMP for this timer
+ move.l d1,(a1) tell the chip number of counts to compare
+
+ lea MCTCNTS(pc),a1 table of counter register
+ move.l 0(a1,d0),a1 get CNT for this timer
+ clr.l (a1) zero the counter
+
+ move.b #(m_COC+m_COVF),(a3) clear overflow counter and sets compare mode
+
+ lea MCTICRS(pc),a1 table of interrupt control registers
+ move.l 0(a1,d0),a1 get ICR for this timer
+ move.l #ClkLevel,d1 Set the interrupt level
+ bset #b_ICLR,d1 clear any pending interrupt from counter
+ move.b d1,(a1) and give 'em to the MCchip
+
+ bset.b #b_CEN,(a3) set the counter enable
+
+ bset.b #b_IEN,(a1) enable the interrupt from the MCchip to the CPU
+
+ moveq.l #0,d1 flag no errors
+ rts
+
+STerr
+ move.l #E$NoClk,d1 indicate no timer found
+ ori.b #Carry,ccr set carry
+ rts
+
+ page
+********************
+* TickIRQ: (Interrupt Service Routine)
+*
+* General Description: Check the "ticker" device hardware
+*                      to determine if it caused the interrupt.
+*                      If it did, clear the interrupt in the 
+*                      "ticker" device hardware.
+*                      If it did not cause the interrupt, return
+*                      with the carry bit set in the Condition
+*                      Code Register to flag that an error occurred.
+*
+* Registers Passed: (a3) = ticker chip base address
+*                   (a6) = system global storage pointer
+*
+* Registers Returned: (cc) = Carry set if an error occurred
+*                            If no error occurred, this routine
+*                            does not return, but jumps to the
+*                            Kernel's clock handling routine.
+*
+* Register Usage:  may only destroy D0, D1, A0, A2, A3 and A6.
+*                  any other registers used MUST be preserved.
+*
+TickIRQ:
+ move.l #MCchBase,a2 get address of MCchip
+ ifdef WDFAIL
+  btst.b #b_WDTO,MCWTCR(a2) check watchdog status
+  beq.s nowdto if not set yet dont clear anything
+  bset.b #b_WDCC,MCWTCR(a2) clear watchdog counter
+  bset.b #b_WDCS,MCWTCR(a2) clear watchdog status
+nowdto
+ endc WDFAIL
+
+* look for table entry
+ lea MCTCRS(pc),a0 table of timers for MCchip
+ bsr.s FindTT check for one of those
+ tst.l d0 was there an error
+
+ ifdef TKVME
+  bpl.s mcIRQ no, go service it
+
+  btst.b #b_V1_NOVME,MC162VR(a2) check if VMEChip2 is not present
+  bne.s NotClock if not, exit out
+
+  lea VMETCRS(pc),a0 table of timers for VMEchip2
+  bsr.s FindTT check for one of those
+  tst.l d0 was there an error
+
+ endc TKVME
+ bmi.s NotClock yes, exit out
+
+ ifdef TKVME
+** Process VMEchip2 timers
+vmeIRQ
+  move.l #VMEchBase,a3 get address of VMEChip2
+
+* check if VMEchip2 timer caused irq
+  move.l LBISR(a3),d1
+  lea VMETIRQ(pc),a2 table of interrupt status/clear/enable masks
+  and.l 0(a2,d0),d1 was this a clock interrupt
+  beq.s NotClock not us....
+
+* it was us, clear irq and proceed
+  move.l d1,INTCLR(a3) clear any pending interrupt from counter
+  bra.s GoClock
+ endc TKVME
+
+** Process MCchip timers
+mcIRQ
+ lea MCTICRS(pc),a2 table of interrupt control registers
+ move.l 0(a2,d0),a2 get ICR for this timer
+
+* check if timer caused irq
+ btst.b #b_INT,(a2) check if this is a clock interrupt
+ beq.s NotClock not us....
+
+* it was us, clear irq and proceed
+ bset.b #b_ICLR,(a2) clear any pending interrupt from counter
+
+GoClock
+ movea.l D_Clock(a6),a0 get clock service routine
+ jmp (a0) enter it
+
+NotClock
+ ori.b #Carry,ccr set carry
+ rts 
+
+**********
+* Find Tick Table routine
+*
+* Entry:	(a3) = Address of tick timer control register
+*			(a0) = Address of table of tick timers
+*
+* Exit:		(d0) = index into tables for tick timer
+*					-1 if no valid table entry
+*
+
+FindTT
+ moveq.l #0,d0 initial index
+nextTT
+ cmpa.l 0(a0,d0),a3 check for matching entry
+ beq.s fttdone if found, exit
+ tst.l 0(a0,d0) look for end of table
+ beq.s nott if so, flag as not found
+ addq.l #4,d0 increment index
+ bra.s nextTT try next entry
+
+nott
+ move.l #-1,d0 flag as no entry found
+fttdone
+ rts
+
+* Tables of MCchip timer registers
+
+MCTCRS	dc.l	MCchBase+MCT1CR		Timer control registers
+		dc.l	MCchBase+MCT2CR
+		dc.l	MCchBase+MCT3CR
+		dc.l	MCchBase+MCT4CR
+		dc.l	0 end of list flag
+
+MCTCMPS	dc.l	MCchBase+MCT1CMP	Timer compare registers
+		dc.l	MCchBase+MCT2CMP
+		dc.l	MCchBase+MCT3CMP
+		dc.l	MCchBase+MCT4CMP
+
+MCTCNTS	dc.l	MCchBase+MCT1CNT	Timer counter registers
+		dc.l	MCchBase+MCT2CNT
+		dc.l	MCchBase+MCT3CNT
+		dc.l	MCchBase+MCT4CNT
+
+MCTICRS	dc.l	MCchBase+MCT1ICR	Timer interrupt control registers
+		dc.l	MCchBase+MCT2ICR
+		dc.l	MCchBase+MCT3ICR
+		dc.l	MCchBase+MCT4ICR
+
+ ifdef TKVME
+
+* Tables of VMEChip2 timer registers and bitmasks
+
+VMETCRS	dc.l	VMEchBase+BDCTL+3	Timer control registers
+		dc.l	VMEchBase+BDCTL+2
+		dc.l	0 end of list flag
+
+VMETCEN dc.l	b_TT1CTL_en			Counter enable bits
+		dc.l	b_TT2CTL_en
+
+VMETCMP	dc.l	VMEchBase+VMETT_tt1cmp	Timer compare registers
+		dc.l	VMEchBase+VMETT_tt2cmp
+
+VMETCNT	dc.l	VMEchBase+VMETT_tt1cnt	Timer counter registers
+		dc.l	VMEchBase+VMETT_tt2cnt
+
+VMETCMD dc.l	(1<<b_TT1CTL_coc)+(1<<b_TT1CTL_covf)	Clear counter & overflow
+		dc.l	(1<<b_TT2CTL_coc)+(1<<b_TT2CTL_covf)
+
+VMETILM dc.l	^m_ILVLR1_tic1		Timer interrupt level masks
+		dc.l	^m_ILVLR1_tic2
+
+VMETILV dc.l	ClkLevel<<b_ILVLR1_tic1		Timer interrupt levels
+		dc.l	ClkLevel<<b_ILVLR1_tic2
+
+VMETIRQ dc.l	m_IRQ_tic1			Timer interrupt request/clear/enable bits
+		dc.l	m_IRQ_tic2
+
+ endc TKVME
+
+ ends

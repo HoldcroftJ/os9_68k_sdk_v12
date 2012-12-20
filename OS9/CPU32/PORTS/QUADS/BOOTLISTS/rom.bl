@@ -1,0 +1,98 @@
+********************************
+**  Bootlist for the QUADS360
+**
+*  OS-9 Kernel - select one variant:
+*  Development kernel - Standard memory allocator
+../../../CPU32/CMDS/BOOTOBJS/dkerc32s
+*  Development kernel - Buddy memory allocator
+*../../../CPU32/CMDS/BOOTOBJS/dkerc32b
+*  Atomic kernel - Standard memory allocator
+*../../../CPU32/CMDS/BOOTOBJS/akerc32s
+*  Atomic kernel - Buddy memory allocator
+*../../../CPU32/CMDS/BOOTOBJS/akerc32b
+*
+* Ioman - select one to match selected kernel above:
+*
+../../../68000/CMDS/BOOTOBJS/ioman_DEV
+*../../../68000/CMDS/BOOTOBJS/ioman_ATOM
+*
+* Init module:
+*
+CMDS/BOOTOBJS/INITS/init
+*
+* Customization modules:
+*
+* FPU emulation module
+*
+../../../68000/CMDS/BOOTOBJS/fpu
+*
+* System clock module:
+*
+CMDS/BOOTOBJS/tk68360
+*
+* SCF Drivers and Descriptors:
+*
+../../../68000/CMDS/BOOTOBJS/scf
+../../../68000/CMDS/BOOTOBJS/null
+../../../68000/CMDS/BOOTOBJS/nil
+../../../68000/CMDS/BOOTOBJS/pipeman
+../../../68000/CMDS/BOOTOBJS/pipe
+*../../../68000/CMDS/BOOTOBJS/pipe2
+*
+*   serial ports
+*
+CMDS/BOOTOBJS/sc68360
+CMDS/BOOTOBJS/term
+*
+* RBF Drivers and Descriptors:
+*
+../../../68000/CMDS/BOOTOBJS/rbf
+../../../68000/CMDS/BOOTOBJS/ram
+../../../68000/CMDS/BOOTOBJS/dd_r0
+../../../68000/CMDS/BOOTOBJS/r0
+*
+* Initial system processes:
+*
+../../../68000/CMDS/BOOTOBJS/sysgo_nodisk
+*
+* SPF modules:
+*
+../../../68000/CMDS/BOOTOBJS/SPF/sysmbuf
+*../../../68000/CMDS/BOOTOBJS/SPF/pkman
+*../../../68000/CMDS/BOOTOBJS/SPF/pkdvr
+*../../../68000/CMDS/BOOTOBJS/SPF/pk
+*
+*../../../68000/CMDS/BOOTOBJS/SPF/spf
+*../../../68000/CMDS/BOOTOBJS/SPF/spip
+*../../../68000/CMDS/BOOTOBJS/SPF/ip0
+*../../../68000/CMDS/BOOTOBJS/SPF/sptcp
+*../../../68000/CMDS/BOOTOBJS/SPF/tcp0
+*../../../68000/CMDS/BOOTOBJS/SPF/spudp
+*../../../68000/CMDS/BOOTOBJS/SPF/udp0
+*../../../68000/CMDS/BOOTOBJS/SPF/spraw
+*../../../68000/CMDS/BOOTOBJS/SPF/raw0
+*../../../68000/CMDS/BOOTOBJS/SPF/sproute
+*../../../68000/CMDS/BOOTOBJS/SPF/route0
+*
+*../../../68000/CMDS/BOOTOBJS/SPF/netdb_local
+*../../../68000/CMDS/BOOTOBJS/SPF/netdb_dns
+*
+*../../../68000/CMDS/BOOTOBJS/SPF/spenet
+*../../../68000/CMDS/BOOTOBJS/SPF/enet
+*
+*CMDS/BOOTOBJS/SPF/sp360
+*CMDS/BOOTOBJS/SPF/spqe0
+*CMDS/BOOTOBJS/SPF/inetdb
+*CMDS/BOOTOBJS/SPF/inetdb2
+*
+* NFS client modules
+*
+*../../../68000/CMDS/BOOTOBJS/nfs
+*../../../68000/CMDS/BOOTOBJS/nfs_devices
+*../../../68000/CMDS/BOOTOBJS/nfsnul
+*CMDS/BOOTOBJS/SPF/rpcdb
+*
+*
+*  Additional modules can be added here.
+*
+

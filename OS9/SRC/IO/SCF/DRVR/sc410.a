@@ -1,0 +1,110 @@
+ nam PIA
+ ttl Parallel Interface driver
+
+* Copyright 1987 by Microware Systems Corporation
+* Reproduced Under License
+
+* This source code is the proprietary confidential property of
+* Microware Systems Corporation, and is provided to licensee
+* solely for documentation and educational purposes. Reproduction,
+* publication, or distribution in any form to any party other than
+* the licensee is strictly prohibited.
+
+
+********************************
+* Edition History:
+*  #   Date    Comments                                         by
+* -- -------- ------------------------------------------------- ---
+* 00 83/05/06 Converted from 6809 OS-9 to 68000                 RES
+* 00 84/05/30 Conversion finished and set for new IRQ poll      DAB
+* 01 84/10/11 Check and tested									res
+* 02 84/10/19 used M$IRQLvl to get hardware irq level			res
+* 03 84/11/07 Fixed minor init bug (wrong register used).       rfd
+* 04 84/11/26 Fixed memory declaration bug (added "BuffSize").	rfd
+* 05 84/12/10 Fixed byte reference to M$Opt to be a word.		rfd
+* 06 86/10/28 Added exception handler entry offset              wwb
+*             <<<---- OS-9/68000 V2.0 Release ---->>>
+* 07 87/03/23 Changed module attr to Supervisor State process   wwb
+*             <<<---- OS-9/68000 V2.1 Release ---->>>
+* 08 87/05/02 Gutted for use with mvme410 for output only       djl
+Edition equ 8 current edition number
+
+
+********************************
+* Pia Device Driver
+
+Typ_Lang set (Drivr<<8)+Objct
+Attr_Rev set ((ReEnt+SupStat)<<8)+0 Attributes and Revision
+
+ psect Pia,Typ_Lang,Attr_Rev,Edition,0,PiaEnt
+
+ use defsfile
+
+ vsect
+ ends
+
+Control equ 1+IOType control register
+
+P_Data equ 0 data register
+P_DataDir equ 0 data direction register
+P_Control equ 2 control register
+
+ALatch1 equ %00100000 C2 auto-latch mode 1
+ALatch2 equ %00101000 C2 auto-latch mode 2
+MLatch equ %00110000 C2 manual latch mode
+MLatFlag equ %00001000 C2 manual latch flag
+DataReg equ %00000100 Pia Data register select
+C1IntPos equ %00000010 C1 interrupt on positive transition
+C1IntEnb equ %00000001 C1 interrupt enable
+
+***************
+* Entry Offset Table
+
+PiaEnt dc.w PIAInit initialization routine
+ dc.w PIARead read routine
+ dc.w PIAWrite write routine
+ dc.w PIARts get status routine
+ dc.w PIARts set status routine
+ dc.w PIARts terminate routine
+ dc.w 0 Exception handler routine (0=none)
+
+ pag
+***************
+* Subroutine PIAInit
+
+* Passed: (a2)=Static storage
+*         (a1)=Initial Device Descriptor
+
+PIAInit move.l a3,-(a7) save this reg
+ move.l V_PORT(a2),a3 get the port address
+ move.b #0,P_Control(a3) select data direction reg
+ move.b #$FF,P_DataDir(a3) select all ouputs
+ move.b #4,P_Control(a3) select i/o register
+ move.l (a7)+,a3
+ rts
+
+*****************
+* Subroutine PIARead
+
+* Passed: (a2) = pointer to device static storage
+*
+PIARead moveq #0,d1 clear Carry
+PIARts rts
+
+*****************
+* Subroutine PIAWrite
+
+* Passed: d0.b = character to write
+*         (a2) = pointer to device static storage
+*
+* Returns: Nothing
+*
+PIAWrite move.l a3,-(a7) save the reg
+ move.l V_PORT(a2),a3 get the port address
+ move.b d0,P_Data(a3) output the data byte
+ movem.l (a7)+,a3 restore the reg
+ moveq #0,d1 no errors
+ rts
+
+ ends
+ 

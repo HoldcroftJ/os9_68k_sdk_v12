@@ -1,0 +1,6 @@
+ nam mc68360defs
+ ttl Include file to gather all defs for mc68360 processor
+
+ use <sim360.d>						 	*  systems integration module
+ use <ser360.d>							*  serial defs
+ use <timm360.d>						*  timer defs

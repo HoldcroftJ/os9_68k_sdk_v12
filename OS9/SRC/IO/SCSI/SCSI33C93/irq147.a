@@ -1,0 +1,21 @@
+
+*
+* flush_dcache() - flush the data cache for the VME147.
+* 
+* NOTE that the MVME147 does not have any on-board external
+* caches, and so the d-cache of the 68030 can be flushed
+* in an in-line manner.
+*
+flush_dcache:
+	link	a5,#0
+	move.w	sr,-(sp)	save current irq mask level
+	ori.w	#IntMask,sr	mask interrupts
+	movec	cacr,d0		get current cacr settings
+	bset.l	#0xb,d0		clear the data cache
+	movec	d0,cacr		tell the cacr
+	move.w	(sp)+,sr	restore irq mask level
+	moveq.l	#0,d0		signal no error
+	unlk	a5
+	rts
+
+

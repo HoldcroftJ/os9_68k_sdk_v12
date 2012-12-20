@@ -1,0 +1,9 @@
+ nam T20
+ ttl 68000 T20 device descriptor module
+ use defsfile
+
+ use "scfdesc.a"
+
+ T20
+ ends
+

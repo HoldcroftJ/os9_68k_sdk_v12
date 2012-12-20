@@ -1,0 +1,38 @@
+#ifndef _NFS_DES
+#define _NFS_DES
+
+
+#include <rbf.des>
+
+
+init mh_com {
+	m_lang = 0x01;
+	m_type = 15;
+}; 
+
+string fm_name   = "nfs";
+string drvr_name = "nfsnul";
+string mod_name  = "nfs_devices";
+
+init dd_com { 
+	dd_port    = 0;
+	dd_lu_num  = 0;
+	dd_pd_size = SIZEOF_NFSRBF_PATH_DESC;
+	dd_type    = 1;
+	dd_mode    = 0xffff;
+	dd_class   = 0x0002;
+	dd_dscres  = 0;
+};
+
+struct mod_body {
+	struct dd_com;
+	struct rbf_path_opts;
+}, "Module data";
+
+module {
+	mh_com,
+	mod_body,
+	rbf_lu_stat
+};
+
+#endif /* _NFS_DES */

@@ -1,0 +1,7 @@
+/*
+ * <cassert>: simply include <assert.h> to access the macro assert;
+ *            no namespace wrapping is needed. No guarding against
+ *            multiple inclusion as in <assert.h>
+ */
+
+#include <assert.h>

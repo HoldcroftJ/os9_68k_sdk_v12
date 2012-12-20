@@ -1,0 +1,10 @@
+ nam H4 Physical Device Descriptor
+ use defsfile
+
+ use "rbfdesc.a"
+
+DrvNum set 4
+ DiskH4pfmt
+Control set (Control&(^FmtDsabl))!PhysEnab physical format only
+Trys set 1
+ ends

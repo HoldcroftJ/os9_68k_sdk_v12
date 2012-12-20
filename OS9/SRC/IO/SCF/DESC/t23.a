@@ -1,0 +1,9 @@
+ nam T23
+ ttl 68000 T23 device descriptor module
+ use defsfile
+
+ use "scfdesc.a"
+
+ T23
+ ends
+

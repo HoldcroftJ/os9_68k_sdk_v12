@@ -1,0 +1,32 @@
+**********************************************************************
+MAUI Device Capability Information demo code
+**********************************************************************
+What this demo does:
+  - The demo looks in the CDB for each graphics device name and prints 
+    all information about each graphics device capabilities, including 
+    resolutions and coding methods supported.
+
+**********************************************************************
+System requirements:
+  - A working MAUI environment is assumed.
+ 
+**********************************************************************
+Directories: 
+  - Source code 
+      $MWOS/SRC/MAUI/DEMOS/GXDEVCAP
+        
+**********************************************************************
+To make this demo:
+  - From the source file directory type:
+      % os9make
+ 
+**********************************************************************
+Operation:
+ 
+  - This demo has no command line options. To run simply type the
+    demo name. The shell prompt will return after the demo ends.
+
+      $ gxdevcap
+
+**********************************************************************
+ 

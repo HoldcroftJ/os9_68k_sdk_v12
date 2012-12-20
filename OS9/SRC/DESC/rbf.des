@@ -1,0 +1,194 @@
+#ifndef _RBF_DES
+#define _RBF_DES
+
+#include <module.des>
+
+#cinclude <rbf.h>
+
+#define SIZEOF_NFSRBF_PATH_DESC 0x0146
+
+struct rbf_path_opts { /* rbf.h */
+	u_int32 pd_size     = 2, 	"number of surfaces";
+	u_int32 pd_vfy      = 0,	"0=verify disk writes";
+	u_int32 pd_format   = 0x200e,	"device format";
+	u_int32 pd_cyl      = 80,	"number of cylinders";
+	u_int32 pd_blk      = 16,	"default blocks/track";
+	u_int32 pd_t0b      = 10,	"default blocks/track for trk0/sec0";
+	u_int32 pd_sas      = 1,	"segment allocation size";
+	u_int32 pd_ilv      = 3,	"block interleave offset";
+	u_int32 pd_toffs    = 0,	"track base offset";
+	u_int32 pd_boffs    = 0,	"block base offset";
+	u_int32 pd_trys     = 7,	"# tries";
+	u_int32 pd_bsize    = 256,	"size of block in bytes";
+	u_int32 pd_cntl     = 2,	"control word";
+	u_int32 pd_wpc      = 0,	"first write precomp cylinder";
+	u_int32 pd_rwr      = 0,	"first reduced write current cylinder";
+	u_int32 pd_park     = 0,	"park cylinder for hard disks";
+	u_int32 pd_lsnoffs  = 0,	"lsn offset for partition";
+	u_int32 pd_xfersize = 0xff00, "max transfer size in terms of bytes";
+	int32 res1;
+	int32 res2;
+	int32 res3;
+	int32 res4;
+}, "rbf path options information";
+
+data struct rbf_lu_stat {   /* rbf.h */
+	struct rbf_drv_info;
+	u_int8 v_vector    = 0x50,		"the interrupt vector";
+	u_int8 v_irq_level = 0x03,		"the interrupt level";
+	u_int8 v_priority  = 0x0a,		"the interrupt priority";
+	int8 v_unused;
+	struct rbf_lu_opts;
+	int32 res1;
+	int32 res2;
+}, "rbf logical unit status";
+
+data struct rbf_drv_info {
+	struct  idblock;
+	struct  fl_lock;
+	u_int32 rbf_path_desc_ptr = 0;		/* pointer */
+	struct  frl_lock;
+	u_int32 free_list_ptr  = 0;			/* pointer */
+	u_int32 free_space_ptr = 0;			/* pointer */
+	u_int32 v_diskid   = 0,		"disk id number";
+	struct  fd_segment;
+	u_int32 blk0_ptr = 0;				/* pointer */
+	u_int32 v_resbit   = 0,		"reserved bitmap block number";
+	u_int32 v_trak     = 0,		"current track number";
+	u_int32 v_softerr  = 0,		"recoverable error count";
+	u_int32 v_harderr  = 0,		"non-recoverable error count";
+	u_int32 drv_ch_ptr = 0;				/* pointer */
+	struct  ch_lock;
+	u_int16 v_numpaths = 0,		"number of open paths on this device";
+	u_int8  v_zerord   = 0,		"block zero read flag";
+	u_int8  v_init     = 0,		"drive initialized flag";
+	u_int32 def_opts_ptr = 0;			/* pointer*/
+	u_int8  v_endflag  = 0,		"big/little endian flag";
+	int8  dumm_res1;
+	int8  dumm_res2;
+	int8  dumm_res3;
+	struct fdrl_lock;
+	u_int32 free_fdblk_ptr = 0;			/* pointer */
+	struct frblk_bufl_lock;
+	u_int32 free_blk_ptr = 0;			/* pointer */
+	int32 res1;
+	int32 res2;
+	int32 res3;
+	int32 res4;
+}, "rbf drive information";
+
+data struct idblock {
+	u_int32  rid_sync      = 0,	"ID block sync pattern";
+	u_int32  rid_diskid    = 0,	"disk ID number (psuedo random)";
+	u_int32  rid_totblocks = 0xffffffff,	"total blocks on media";
+	u_int16  rid_cylinders = 0,	"number of cylinders";
+	u_int16  rid_cyl0size  = 0,	"cylinder 0 size in blocks";
+	u_int16  rid_cylsize   = 0,	"cylinder size in blocks";
+	u_int16  rid_heads     = 0,	"number of surfaces on disk";
+	u_int16  rid_blocksize = 0,	"the size of a block in bytes";
+	u_int16  rid_format    = 0,	"disk format";
+	u_int16  rid_flags     = 0;			/* various flags  */
+	u_int16  rid_unused1   = 0;			/* 32 bit padding */
+	u_int32  rid_bitmap    = 0,	"block offset to bitmap FD";
+	u_int32  rid_firstboot = 0,	"block offset to low level booter FD";
+	u_int32  rid_bootfile  = 0,	"block offset to bootfile FD";
+	u_int32  rid_rootdir   = 0,	"block offset to root directory";
+	u_int16  rid_group     = 0,	"group owner of media";
+	u_int16  rid_owner     = 0, "owner of media";
+	u_int32  rid_ctime     = 0,	"creation time of media";
+	u_int32  rid_mtime     = 0,	"time of last write to ID block";
+			/* Should be an array of size 32 */
+	int8 rid_name1         = 0;
+	int8 rid_name2         = 0;
+	int8 rid_name3         = 0;
+	int8 rid_name4         = 0;
+	int8 rid_name5         = 0;
+	int8 rid_name6         = 0;
+	int8 rid_name7         = 0;
+	int8 rid_name8         = 0;
+	int8 rid_name9         = 0;
+	int8 rid_name10         = 0;
+	int8 rid_name11         = 0;
+	int8 rid_name12         = 0;
+	int8 rid_name13         = 0;
+	int8 rid_name14         = 0;
+	int8 rid_name15         = 0;
+	int8 rid_name16         = 0;
+	int8 rid_name17         = 0;
+	int8 rid_name18         = 0;
+	int8 rid_name19         = 0;
+	int8 rid_name20         = 0;
+	int8 rid_name21         = 0;
+	int8 rid_name22         = 0;
+	int8 rid_name23         = 0;
+	int8 rid_name24         = 0;
+	int8 rid_name25         = 0;
+	int8 rid_name26         = 0;
+	int8 rid_name27         = 0;
+	int8 rid_name28         = 0;
+	int8 rid_name29         = 0;
+	int8 rid_name30         = 0;
+	int8 rid_name31         = 0;
+	int8 rid_name32         = 0;
+
+	u_int8   rid_endflag   = 0;			/* big/little endian padding */
+	int8     rid_unused2_res1;
+	int8     rid_unused2_res2;
+	int8     rid_unused2_res3;
+	u_int32  rid_parity    = 0, "id block parity";
+}, "standard idblock stuff";
+
+
+data struct fl_lock {
+	u_int32 lock_id_ptr = 0;		/* pointer */
+	u_int32 prdsc1 = 0;				/* pointer */	
+	u_int32 prdsc2 = 0;				/* pointer */
+	u_int32 prdsc3 = 0;				/* pointer */
+}, "file list lock descriptor";
+
+data struct frl_lock {
+	u_int32 lock_id_ptr = 0;		/* pointer */
+	u_int32 prdsc1 = 0;				/* pointer */	
+	u_int32 prdsc2 = 0;				/* pointer */
+	u_int32 prdsc3 = 0;				/* pointer */
+}, "free list lock descriptor";
+
+data struct ch_lock {
+	u_int32 lock_id_ptr = 0;		/* pointer */
+	u_int32 prdsc1 = 0;				/* pointer */	
+	u_int32 prdsc2 = 0;				/* pointer */
+	u_int32 prdsc3 = 0;				/* pointer */
+}, "cache lock descriptor";
+
+data struct fdrl_lock {
+	u_int32 lock_id_ptr = 0;		/* pointer */
+	u_int32 prdsc1 = 0;				/* pointer */	
+	u_int32 prdsc2 = 0;				/* pointer */
+	u_int32 prdsc3 = 0;				/* pointer */
+}, "fd free list lock descriptor";
+
+data struct frblk_bufl_lock {
+	u_int32 lock_id_ptr = 0;		/* pointer */
+	u_int32 prdsc1 = 0;				/* pointer */	
+	u_int32 prdsc2 = 0;				/* pointer */
+	u_int32 prdsc3 = 0;				/* pointer */
+}, "free block buffer list lock descriptor";
+
+data struct fd_segment {
+	u_int32 seg_offset = 0,		"segment block offset";
+	u_int32 seg_count  = 0,		"segment block count";
+}, "fd block structure";
+
+data struct rbf_lu_opts { /* rbf.h */
+	u_int8  lu_stp = 0,			"the step rate";
+	u_int8  lu_tfm = 0,			"the dma transfer mode";
+	u_int8  lu_lun = 0,			"drive logical unit number";
+	u_int8  lu_ctrlrid = 0,		"the controller id";
+	u_int32 lu_totcyls = 80,	"total number of cylinders";
+	int32 res1;
+	int32 res2;
+	int32 res3;
+	int32 res4;
+}, "rbf Logical unit options";
+
+#endif /* _RBF_DES */

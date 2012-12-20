@@ -1,0 +1,1482 @@
+ nam STHD
+ ttl Disk Driver using ATARI AND SUPRA type hard drives
+
+* This source code is the proprietary confidential property of
+* RMS Systems 
+
+* Copyright 1987, 1988, 1993 by Microware Systems Corporation
+* Reproduced Under License
+
+* This source code is the proprietary confidential property of
+* Microware Systems Corporation, and is provided to licensee
+* solely for documentation and educational purposes. Reproduction,
+* publication, or distribution in any form to any party other than
+* the licensee is strictly prohibited.
+
+
+********************
+* Edition History
+*
+*  #   Date      Comments                                      By
+* -- -------- ------------------------------------------------ ---
+* 00 86/03/24 Written for the ATARI ST                         RMS
+* 01 86/05/07 Adaptec 4000,4070 type ctllr drives. (ATARI,
+*             SUPRA). Use disk partitioning for h0, h1         RMS
+* 02 86/07/07 Added Sleep to SetLong                           RMS
+*             <<<---- Start Microware changes ---->>>
+* 03 87/03/11 Error corrections and V2.0 update                wwb
+* 04 87/03/27 Made supervisor state module, more fixes,        wwb
+*             made IRQ routine use passed a3.
+* 05 87/03/30 Made vector usage more secure.                   wwb
+*             Made move sector routines use macro (consistancy)
+*             Made verify loop more efficient.
+*             Added SectSize def to remove hardwired 256's.
+* 06 87/03/22 Removed D_Buzzer, MFPIERB enables from Init      wwb
+* 07 87/05/11 Efficiency pass, modified for multi-sector       wwb
+*             usage (controlled by MULTISECT conditional)
+* 08 87/05/12 Fixed MULTISECT bug in init (failed to set       wwb
+*             V_NumBlk).  Also added delay in DEBLOCK after
+*             multi-sector xfer (controller gives Not Ready
+*             if no delay).
+* 09 87/05/12 Made driver sleep for irqs (as a test to see     wwb
+*             what the hell is causing timeouts - controlled
+*             by DOSLEEP conditional) reworked irq routine a
+*             little.
+* 10 87/05/14 Changes to support partitions correctly.         wwb
+* 11 87/05/15 Fixes for ed.10, some source cleanups.           wwb
+*             Moved cache only code from MULTISECT to DOCACHE.
+* 12 87/05/18 Rewritten to initialize descriptors from SS_Open wwb
+*             call instead of at Init (allows any named
+*             descriptor to be used).
+* 13 87/05/21 Edition 12 mods changed to make descriptor check wwb
+*             also be done for read sector 0.
+*             Added E$BadPart error code.
+*             <<<---- OS-9/68000 V2.1 Release ---->>>
+* 14 87/10/23 Use OS9svc macro instead of OS9call.             wwb
+* 15 88/05/10 changed includeds to ifdefs and cleaned up       Rwb
+* 16 93/07/02 Reworked use statements for MWOS structure.      wwb
+*
+Edition equ 16 current edition number
+
+ use defsfile
+
+
+********************
+* Module Header
+*
+Typ_Lang set (Drivr<<8)+Objct Device Driver In Assembly Language
+Attr_Rev set ((ReEnt+SupStat)<<8)+0
+
+ psect sthd,Typ_Lang,Attr_Rev,Edition,0,DiskEnt
+
+ ttl Definitions
+ pag
+********************
+* Conditional Setups
+*
+
+* NOTE:  Multi-sector causes hangups at present time - leave disabled
+* till reason found.  Also, implement DOSLEEP with MULTISECT, as DOSLEEP
+* was done partly to figure out possible reasons for hangups.  When the
+* problem is solved, probably DOSLEEP is a better way to wait for disk
+* irqs, and then also (maybe) the delay in DEBLOCK can be removed (it
+* was done as a test also).
+* 
+*   If in the future these are to be included, define them for the make
+*  line as they are now set up to be activated if defined.
+*
+
+* disable caching:  it is not tested and RBF should do it in the future.
+*
+*  DOCACHE could also be defined in the make line, note that this is also
+*    untested as of edition 14.
+
+
+********************
+* Macro definitions
+*
+ use <os9svc.m>
+
+
+* MOVESECT An,An,Dn    (SRC to DEST, using counter Dn)
+*   Move sector routine.  Destroys all registers specified.
+*
+* This routine moves a complete sector from the source address to
+* the destination address.  The counter register specified is used
+* as the loop counter variable.
+*
+MOVESECT macro
+ ifne \#-3
+ fail MOVESECT must have exactly three arguments
+ endc
+ ifne \L1-2
+ fail MOVESECT source argument must be a An register
+ endc
+ ifne \L2-2
+ fail MOVESECT destination argument must be a An register
+ endc
+ ifne \L3-2
+ fail MOVESECT count argument must be a Dn register
+ endc
+ moveq.l #((SectSize/4)/4)-1,\3 set loop counter
+MS\@ move.l (\1)+,(\2)+ copy data
+ move.l (\1)+,(\2)+
+ move.l (\1)+,(\2)+
+ move.l (\1)+,(\2)+
+ dbra \3,MS\@ loop till done
+ endm
+
+ pag
+* Macro:  branch if flag condition true or false
+*
+* Syntax:  true:  bt(.s) flag(An),destination
+*         false:  bf(.s) flag(An),destination
+*
+* These macros are designed to complement the st/sf instructions,
+* so that flags set by these instructions can be tested and branched
+* against accordingly.
+*
+* Note that two forms of each macro are available:
+* - bt.s/bf.s use a byte offset for the branch
+* - bt/bf use a word offset for the branch
+*
+bt.s macro
+ ifne \#-2
+ fail 'bt.s' macro requires two arguments
+ endc
+ tst.b \1 if :\1: is TRUE...
+ bne.s \2 ...then branch to :\2:
+ endm
+
+bt macro
+ ifne \#-2
+ fail 'bt' macro requires two arguments
+ endc
+ tst.b \1 if :\1: is TRUE...
+ bne \2 ...then branch to :\2:
+ endm
+
+bf.s macro
+ ifne \#-2
+ fail 'bf.s' macro requires two arguments
+ endc
+ tst.b \1 if :\1: is FALSE...
+ beq.s \2 ...then branch to :\2:
+ endm
+
+bf macro
+ ifne \#-2
+ fail 'bf' macro requires two arguments
+ endc
+ tst.b \1 if :\1: is FALSE...
+ beq \2 ...then branch to :\2:
+ endm
+
+ pag
+ ifdef MULTISECT
+* DEBLOCK macro
+*
+* This macro is used by the read/write routines to provide
+* deblocking of RBF multi-sector calls, so that 512-byte
+* physical sectors can be supported.
+*
+* This macro supports a conditional case for Reading, whereby
+* a multi-sector read, starting from sector 0, will be broken
+* up into a single-sector read of sector 0, followed by a Read
+* of the remaining sectors.  This case is to support buffered
+* sector 0 routines that assume 256-byte sector buffers.
+* The Read call logic should be invoked by defining SECT0CHK
+* prior to invoking this macro, and then undefining
+* it after the macro.
+*
+DEBLOCK macro
+ move.l PD_BUF(a1),-(sp) save original buffer ptr
+ movem.l d0/d2/a1/a2/a4-a6,-(sp) save important regs
+ ifdef SECT0CHK
+
+* check for (special case) sector 0 reading
+
+ tst.l d2 starting at sector 0 ?
+ bne.s DB\@_A ..no; continue
+ moveq.l #1,d0 set single-sector xfer
+ bsr DB\@_Call call driver
+ bcs.s DB\@_Err ..exit if error
+ movem.l (sp),d0/d2/a1/a2/a4-a6 reinitialize regs
+ subq.l #1,d0 count sector just read
+ beq.s DB\@_Exit ..exit if completed transfers
+ addq.l #1,d2 point to next lsn
+ addi.l #SectSize,PD_BUF(a1) move buffer ptr
+ movem.l d0/d2,(sp) save count/lsn
+ endc SECT0CHK
+
+* check for transfer starting on "odd" sector, if so call driver
+* for a single-sector transfer of that sector.
+
+DB\@_A btst.l #0,d2 odd sector start address ?
+ beq.s DB\@_B ..no; continue
+ moveq.l #1,d0 set single-sector xfer
+ bsr.s DB\@_Call call driver
+ bcs.s DB\@_Err ..exit if error
+ movem.l (sp),d0/d2/a1/a2/a4-a6 reinitialize regs
+ subq.l #1,d0 count sector just read
+ beq.s DB\@_Exit ..exit if completed transfers
+ addq.l #1,d2 point to next lsn
+ addi.l #SectSize,PD_BUF(a1) move buffer ptr
+ movem.l d0/d2,(sp) save count/lsn
+
+* perform multi-sector transfer of all sectors that can fit into
+* 512-byte units.
+
+DB\@_B andi.l #^1,d0 form 512-byte unit count
+ beq.s DB\@_C ..none; continue
+ bsr.s DB\@_Call call the driver
+ bcs.s DB\@_Err ...exit if error
+* NOTE: this delay was made to (hopefully) cure hangups when
+* doing multi-sector.  It has some effect, but does not cure
+* the problem totally.
+ move.w #MultiDelay,d0 get delay factor
+DB\@_Ba dbra d0,DB\@_Ba loop awhile
+* end of delay code
+ movem.l (sp),d0/d2/a1/a2/a4-a6 reinitialize regs
+ move.l d0,d3 copy sector count
+ andi.l #1,d0 count out sectors transferred
+ beq.s DB\@_Exit ...all done; exit
+ andi.l #^1,d3 compute count just transferred
+ add.l d3,d2 compute next starting lsn
+ mulu.w #SectSize,d3 byte count transferred
+ add.l d3,PD_BUF(a1) set buffer ptr
+
+* here to transfer any remaining sector
+* (256-bytes data to 512-byte sector boundary)
+
+DB\@_C moveq.l #1,d0 single sector read
+ bsr.s DB\@_Call call driver
+ bcs.s DB\@_Err ..exit if error
+
+* exit when completed
+
+DB\@_Exit movem.l (sp)+,d0/d2/a1/a2/a4-a6 restore regs
+ move.l (sp)+,PD_BUF(a1) restore pd buffer ptr
+ rts return (carry clear)
+
+* error exit here
+
+DB\@_Err movem.l (sp)+,d0/d2/a1/a2/a4-a6 restore regs
+ move.l (sp)+,PD_BUF(a1) restore pd buffer ptr
+ ori.b #Carry,ccr set carry
+ rts return
+
+* call driver transfer routine
+
+DB\@_Call equ *
+ endm
+ pag
+ endc
+
+* SAVEREC Rn
+*
+* Macro to save current "lsn in buffer".
+*
+* Passed:  (a1) = path descriptor ptr
+*          (a2) = static storage ptr
+*
+SAVEREC macro
+ ifne \#-1
+ fail SAVEREC macro must have Rn argument
+ endc
+ move.l d3,-(sp) preserve registers used
+ moveq.l #0,d3 sweep d3
+ move.b PD_DRV(a1),d3 get drive/partition number
+ lsl.w #2,d3 make long word offset
+ addi.w #V_BuffRec,d3 add base offset (too large for outer displacement)
+ move.l \1,(a2,d3.w) update current record in buffer
+ move.l (sp)+,d3 restore
+ endm
+
+
+* RELREC
+*
+* Macro to "release current lsn in buffer"
+*
+* Passed:  (a1) = path descriptor ptr
+*          (a2) = static storage ptr
+*
+RELREC macro
+ move.l d3,-(sp) preserve registers used
+ moveq.l #0,d3 sweep d3
+ move.b PD_DRV(a1),d3 get drive/partition number
+ lsl.w #2,d3 make long word offset
+ addi.w #V_BuffRec,d3 add base offset (too large for outer displacement)
+ move.l #-1,(a2,d3.w) flush current record in buffer
+ move.l (sp)+,d3 restore
+ endm
+
+* GETBUF An
+*
+* Macro to get pointer to de-blocking buffer
+*
+* Passed:  (a1) = path descriptor ptr
+*          (a2) = static storage ptr
+*
+GETBUF macro
+ ifne \#-1
+ fail GETBUF macro requires one An argument
+ endc
+ movem.l d3/d4,-(sp) preserve registers used
+ moveq.l #0,d3 sweep d3
+ move.b PD_DRV(a1),d3 get drive/partition number
+ moveq.l #PhyS_B,d4 get shift value
+ lsl.l d4,d3 make physical sector offset ptr
+ lea.l V_DeBlock(a2),\1 point at de-blocking buffers
+ adda.l d3,\1 point to correct buffer
+ movem.l (sp)+,d3/d4 restore regs
+ endm
+
+ pag
+********************
+* General Definitions
+*
+
+* this next is required when using 2.0 sys.l library.  Remove
+* when 2.1 sys.l becomes available.
+ ifndef E$BadPart
+E$BadPart equ E$PthLost+1 define new error code (if not already)
+ endc
+
+MaxPart equ 3 maximum number of partitions for OS9
+SectSize equ 256 size of a sector
+PhyS_B equ 9 physical sector size (as a binary)
+PhySize equ 1<<PhyS_B size of a physical sector
+
+FDIntId equ 1
+HDIntId equ 2
+ ifndef MULTISECT
+CHAdd equ $2000 value to be added in Cashe routine
+ else
+MultiDelay equ $1000 delay factor for multi-sector transfers
+ endc
+
+* MFP vector definitions
+*
+MFP_VMask equ $f0 mask to get MFP base vector
+MFP_Vhd equ 7 MFP level for h/d
+
+
+********************
+* ATARI ST operating sys var
+*
+flock equ $43e
+desel equ $444
+_frclock equ $466
+hdv_rw equ $476
+_nflops equ $4a6
+_drvbits equ $4c2
+_vbl_list equ $4ce
+
+
+********************
+* Hardware register declarations
+*
+
+* DMA chip
+
+gpip equ $fffffa01 68901 input register
+diskctl equ $ffff8604 disk controller data access
+fifo equ $ffff8606 DMA mode control/status
+DMAHigh equ $ffff8609 DMA base high
+DMAMid equ $ffff860b DMA base medium
+DMALow equ $ffff860d DMA base low
+MfpIERB equ $fffffa09 Interrupt enable reg B
+MfpIPRB equ $fffffa0d Interrupt pending reg B
+MfpISRB equ $fffffa11 Interrupt in service reg B
+MfpIMRB equ $fffffa15 Interrupt mask reg B
+
+short_wt equ 43000
+long_wt equ 690000
+
+* Sound chip (motor control port a)
+
+GISelect equ $ffff8800 (W) reg select
+GIRead equ $ffff8800 (R) read-data
+GIWrite equ $ffff8802 (W) write-data
+GIPortA equ $e GI reg # for I/O port A
+
+* MFP 68901
+
+MFP equ $fffffa00 chip base
+GPIP equ MFP+1 general purpose I/O
+
+ pag
+********************
+* Boot sector 0 offsets
+*
+b_nheads equ $1b8 number of heads
+b_spt equ $1c1 sectors per track
+b_hd_siz equ $1c2 disk size in sectors
+
+bp_tbl_beg equ $1c6 beg offset of part tables
+bp_tbl_len equ 12 length of part info
+
+b_px_flg equ 0 0=no part, FF=part
+b_px_id equ 1 part ID (GEM, OS9)
+b_px_st equ 4 LSN part starts on
+b_px_siz equ 8 size of part in sectors
+
+b_p0_flg equ $1c6 0=no part, FF=part
+b_p0_id equ $1c7 part ID (GEM, OS9)
+b_p0_st equ $1ca LSN part starts on
+b_p0_siz equ $1ce size of part in sectors
+
+b_p1_flg equ $1d2 0=no part, FF=part
+b_p1_id equ $1d3 part ID (GEM, OS9)
+b_p1_st equ $1d6 LSN part starts on
+b_p1_siz equ $1da size of part in sectors
+
+b_p2_flg equ $1de 0=no part, FF=part
+b_p2_id equ $1df part ID (GEM, OS9)
+b_p2_st equ $1e2 LSN part starts on
+b_p2_siz equ $1e6 size of part in sectors
+
+b_p3_flg equ $1ea 0=no part, FF=part
+b_p3_id equ $1eb part ID (GEM, OS9)
+b_p3_st equ $1ee LSN part starts on
+b_p3_siz equ $1f2 size of part in sectors
+
+b_bsl_st equ $1f6 start sec of bad sector list
+ pag
+********************
+* Static Storage
+*
+ vsect
+V_DeBlock ds.l (PhySize/4)*MaxPart deblocking buffers
+V_Sector0 ds.l (SectSize/4)*MaxPart sector 0 buffers
+V_BuffRec ds.l MaxPart current psn in deblocking buffer
+V_LogSec ds.l 1 logical sector number to read/write
+V_Buffer ds.l 1 address of buffer to read/write
+V_Sector ds.l 1 sector number to read/write
+V_SecHi equ V_Sector+1
+V_SecMid equ V_Sector+2
+V_SecLow equ V_Sector+3
+h_psn0 ds.l MaxPart partition start sector **these must be contiguous**
+h_len ds.l MaxPart partition length **with these**
+ ifdef DOCACHE
+ChTotLen ds.l 1
+ChStor ds.l 1
+ChLog ds.l 1
+ endc
+
+th_hds ds.w 1 nbr heads on media
+th_spt ds.w 1 sectors/track
+ ifdef DOCACHE
+ChSec ds.w 1
+ endc
+ ifdef MULTISECT
+V_NumBlk ds.w 1 number of (512-byte) blocks to transfer
+ endc
+ ifdef DOSLEEP
+V_IRQMask ds.w 1 sr irq mask word
+ endc
+
+V_Vector ds.b 1 save of vector number
+V_Trys ds.b 1 retry flag
+DMA_DEV ds.b 1 Physical drive nbr
+ ifdef DOCACHE
+ChInit ds.b 1
+ endc
+ ifdef MULTISECT
+V_Multi ds.b 1 multi-sector transfer (0=single sector)
+V_MultiWr ds.b 1 multi-sector write (also)
+ endc
+ ends
+
+
+********************
+* Module Entry Table
+*
+DiskEnt dc.w InitDisk Initialize i/o
+ ifdef MULTISECT
+ dc.w DBRead deblock and read sector(s)
+ else
+ dc.w ReadHDsk Read sector
+ endc
+ ifdef MULTISECT
+ dc.w DBWrite deblock and write sector(s)
+ else
+ dc.w WritHDsk Write sector
+ endc
+ dc.w GetStats Get status
+ dc.w PutStats Put status
+ dc.w Terminat Terminate
+ dc.w 0 Exception handler (0=none)
+
+ ttl Initialize routine
+ pag
+********************
+* InitDisk - initialize disk storage, etc.
+*
+* Passed:  (a1) = device descriptor ptr
+*          (a2) = static storage ptr
+*          (a4) = process descriptor ptr
+*          (a6) = system global data ptr
+*
+* Returns:  nothing
+*
+* Error Return:  (cc) = carry set
+*                d1.w = error code
+*
+* Destroys:  d0, d1, d4, a0
+*
+InitDisk
+
+* initialize vector storage
+
+ moveq.l #0,d0 sweep d0
+ move.b M$Vector(a1),d0 get vector number
+ andi.b #MFP_VMask,d0 get MFP base vector
+ addi.b #MFP_Vhd,d0 form MFP vector for hard disk
+ move.b d0,V_Vector(a2) save for F$IRQ, Term
+
+* call XBIOS to initialize MFP
+
+ movem.l a0-a6,-(sp) save regs
+ asl.l #2,d0 *4 = address of vector
+ movea.l d0,a0 make vector # a pointer
+ move.l (a0),-(sp) set up for mfpint call
+ move.w #7,-(sp) int level of MFP
+ move.w #13,-(sp) Xbios funct nbr for mfpint
+ trap #11
+ addq.l #8,sp clean up stack
+ movem.l (sp)+,a0-a6 restore regs
+
+ ifdef DOSLEEP
+
+* initialize status register mask
+
+ move.b M$IRQLvl(a1),d0 get hardware irq level
+ asl.w #8,d0 move to correct position
+ bset.l #SupvrBit+8,d0 ensure supervisor state
+ move.w d0,V_IRQMask(a2) save it
+ endc DOSLEEP
+
+* install device in system irq polling table
+
+Init10 move.b V_Vector(a2),d0 get vector #
+ move.b M$Prior(a1),d1 get priority
+ movea.l V_PORT(a2),a3 get port address
+ lea.l IRQServc(pcr),a0 pass IRQ routine address
+ OS9 F$IRQ call system to get in polling table
+ bcs InitErr ..exit if problems
+
+* Read sector 0 for partition information
+
+ ifdef MULTISECT
+ move.w #1,V_NumBlk(a2) set single sector read
+ endc
+ ifdef DOSLEEP
+ move.w P$ID(a4),V_BUSY(a2) set process id for wakeup
+ endc
+ suba.w #PD_OPT-M$DTyp,a1 make a1 look like a path descriptor
+ GETBUF a0 get de-blocking buffer
+ moveq.l #0,d1 set sec 0
+
+* WARNING: Atari (apparently) supports only one physical drive.
+* Thus, this hard-coding of the drive's lun is ok for now.
+* When we support multiple physical drives (Supra may do this
+* already), then the code that picks up this value will have to
+* change (use PD_DRV for "logical unit", PD_LUN for physical)
+
+ move.b #0,DMA_DEV(a2) set phy drv 0
+ bsr GetSec10 read it
+ bcc.s InDrvTbl go if good
+ moveq.l #0,d1 set sec 0
+ bsr GetSec10 try one more time if not
+ bcs InitErr error if unable to read
+
+* Initialize drive tables from partitioning information located
+* on the GEM sector 0.  Note that GEM will occupy at least one
+* partition, therefore OS9 can only occupy 3 (total partitions
+* is 4).  OS9 partitions will number (for PD_DRV values) 0 - 2.
+*
+ ifdef DOSLEEP
+InDrvTbl clr.w V_BUSY(a2) reset busy flag
+ GETBUF a4 get deblocking buffer
+ else
+InDrvTbl GETBUF a4 get deblocking buffer
+ endc DOSLEEP
+ adda.w #PD_OPT-M$DTyp,a1 reset device descriptor ptr
+ moveq.l #0,d0 clear d0
+ move.b b_spt(a4),d0 get sec/trk
+ move.w d0,th_spt(a2) save it
+ move.b b_nheads(a4),d0 get nbr heads
+ move.w d0,th_hds(a2) save it 
+ adda.w #bp_tbl_beg,a4 beginning of partition table
+ moveq.l #MaxPart,d2 partition counter (4 - 1)
+ moveq.l #0,d1 drive counter
+IDT10 tst.b b_px_flg(a4) is partition used ?
+ beq.s IDT20 go if not
+ cmpi.b #'O',b_px_id(a4) check for OS9 partition
+ bne.s IDT20 go if not
+ cmpi.w #'S9',b_px_id+1(a4) check rest
+ bne.s IDT20 go if not
+ lea.l h_psn0(a2),a0 get address of storage
+ move.l b_px_st(a4),(a0,d1.w) get partition start sector
+ lea.l h_len(a2),a0  get addr
+ move.l b_px_siz(a4),(a0,d1.w) get length of partition
+ addq.w #4,d1 point to next partition/drive
+ cmpi.w #MaxPart*4,d1 done all partitions ?
+ beq.s IDT30 exit scanning if so
+ 
+IDT20 adda.l #bp_tbl_len,a4 move to next table
+ dbra d2,IDT10 check all possible tables
+IDT30 lsr.w #2,d1 chk for any drives
+ ifdef DOCACHE
+ beq BadPart rtn w/err if no partitions
+ else
+ beq.s BadPart rtn w/err if no partitions
+ endc
+ move.b d1,V_NDRV(a2) init # of drives
+
+* initialize drive tables
+
+ lea.l DRVBEG(a2),a0 point at drive tables
+ lea.l V_Sector0(a2),a3 point at sector 0 buffers
+ moveq.l #-1,d0 non-zero media size
+ subq.b #1,d1 adjust drive count for loop
+IDT40 move.b d0,DD_TOT(a0) init media size
+ move.l a3,V_ScZero(a0) set sector 0 buffer addr
+ adda.w #SectSize,a3 point to next sector 0 buffer
+ adda.w #DRVMEM,a0 point to next drive table
+ dbra d1,IDT40 loop thru all drive tables
+
+ ifdef DOCACHE
+
+* initialize cache
+
+ move.w M$DevCon(a1),d1 get DevCon offset
+ beq.s Cash90 ..bra if no DevCon
+ move.b (a1,d1.w),d1 get cashe byte
+ beq.s Cash90 go if no cashe
+ move.w #$8000,d0 32k
+ mulu.w d1,d0 total size req
+ move.l a2,-(sp)
+ OS9 F$SRqMem req the mem
+ bcc.s Cash10 go if ok
+ movea.l (sp)+,a2
+ moveq.l #0,d1 else set for no cashe
+ bra.s Cash90 skip if error
+
+Cash10 movea.l a2,a0
+ movea.l (sp)+,a2
+ move.l a0,ChLog(a2) beg of log
+ move.l d0,ChTotLen(a2) save for returning
+ divu.w #512,d0 max nbr of sec
+ move.w d0,d2
+ mulu.w #8,d0 nbr bytes for log
+ andi.l #$ffff,d0
+ tst.b d0 round up to even sec
+ beq.s Cash20
+ move.b #0,d0
+ add.w #$200,d0
+Cash20 add.l d0,a0 beg addr of cashe storage
+ move.l a0,ChStor(a2)
+ divu.w #512,d0 nbr sec used in log
+ sub.w d0,d2
+ move.w d2,ChSec(a2) total sectors in cashe
+ sub.w #1,d2 adjust for DBRA
+ movea.l ChLog(a2),a0 beg of log
+ move.l ChStor(a2),d0 beg of cashe storage
+ lsr.l #4,d0 make lo word
+ andi.w #$ffff,d0 mask out rest
+Cash30 move.l d0,(a0)+ put each sector offset in log
+ move.l #0,(a0)+ fill sec info w/0
+ add.l #$20,d0 add sec to hi word in addr
+ dbra d2,Cash30
+Cash90 move.b d1,ChInit(a2)
+ else
+ moveq.l #0,d1 flag no error
+ endc
+ rts
+
+* return error if partition data non-existant or invalid.
+*
+BadPart move.w #E$BadPart,d1 flag "bad partition data" if no partitions
+ 
+InitErr ori.b #Carry,ccr set carry
+ rts
+
+ ttl GetStat/PutStat Status routines
+ pag
+********************
+* PutStats - Set device status
+* GetStats - Get device status
+*
+* Passed:  (a1) = path descriptor ptr
+*          (a2) = static storage ptr
+*          (a4) = process descriptor ptr
+*          (a5) = user register stack ptr
+*          (a6) = system global data ptr
+*          d0.w = status call function code
+*
+* Returns:  depends upon status code
+*
+* Error Return:  (cc) = carry set
+*                d1.w = error code
+*
+* Destroys:  none
+*
+PutStats cmpi.w #SS_Reset,d0 Restore call?
+ beq.s Restore ..yes; return no error
+ cmpi.w #SS_WTrk,d0 Write track call?
+ beq.s ErrFormat ..yes; return error
+ cmpi.w #SS_Open,d0 new path opened ?
+ beq.s Voodoo ..yes; go magic
+
+* return error for unknown service requests
+
+Unknown move.w #E$UnkSvc,d1 error code
+ ori.b #Carry,ccr set carry bit
+ rts
+
+* return no error for restore calls
+
+Restore moveq.l #0,d1 flag no error
+ rts
+
+* return error for format track calls
+
+ErrFormat move.w #E$Format,d1 signal drive format protected
+ ori.b #Carry,ccr set carry
+ rts return
+
+PutSt10 moveq.l #0,d1 signal no error
+ rts
+ 
+* return error for all Get Status calls
+
+GetStats equ Unknown return error on all get status calls
+
+ pag
+********************
+* Voodoo:  perform updates to device and path descriptor.
+*
+* This code updates the device descriptor and path descriptor to
+* reflect the true, partitioned media parameters.
+*
+* Passed:  (a1) = path descriptor ptr
+*          (a2) = static strorage ptr
+*          (a4) = process descriptor ptr
+*          (a5) = user register stack ptr
+*          (a6) = system global data ptr
+*
+* Returns:  Path and Device Descriptors updated
+*
+* Error Return:  (cc) = carry set
+*                d1.w = error code
+*
+* Destroys:  d3, d4, d5, a0, a3
+*
+Voodoo move.l PD_DVT(a1),a0 get device table entry ptr
+ move.l V$DESC(a0),a0 get device descriptor ptr
+ move.w M$DevCon(a0),d3 get init flag ptr
+ beq.s BadUnit ..if none; bad descriptor
+* bt.s (a0,d3.w),VoodooEx ..exit if descriptor previously seen
+* can't use above form with current macro form
+ tst.b (a0,d3.w) descriptor previously seen ?
+ bne.s VoodooEx ..yes; return (carry clear)
+* end of "non-macro" code
+ lea.l h_psn0(a2),a3 point at partition info
+ moveq.l #0,d4 sweep d4
+ move.b PD_DRV(a1),d4 get drive/partition number
+ cmp.b V_NDRV(a2),d4 valid drive number ?
+ bhs.s BadUnit ..no; return error
+ lsl.w #2,d4 make long-word ptr
+ adda.w d4,a3 point at correct entry for drive
+ tst.l (a3) partition offset valid ?
+ beq.s BadPart ..no; return error
+ tst.l MaxPart*4(a3) what about size ?
+ beq.s BadPart ..no; return error
+
+* (a0) = device descriptor ptr
+* (a1) = path descriptor ptr
+* (a3) = partition offset ptr
+
+ move.w th_hds(a2),d4 get total heads
+ move.b d4,PD_SID(a1) set pd: # heads
+ move.b d4,PD_SID-PD_OPT+M$DTyp(a0) set dev. desc: # heads
+ move.w th_spt(a2),d5 get sectors/track
+ lsl.w #1,d5 convert to 256-byte sector count
+ move.w d5,PD_SCT(a1) set pd: sectors/track
+ move.w d5,PD_SCT-PD_OPT+M$DTyp(a0) set dev. desc: sectors/track
+ move.w d5,PD_T0S(a1) set pd: sectors/track, track 0
+ move.w d5,PD_T0S-PD_OPT+M$DTyp(a0) set dev. desc: sectors/track, track 0
+ lsr.w #1,d5 convert back to 512-byte sector count
+ mulu.w d4,d5 calculate sectors per cylinder
+ move.l MaxPart*4(a3),d4 get partition length
+ divu.w d5,d4 compute number of cylinders
+ move.w d4,PD_CYL(a1) set pd: # cyls
+ move.w d4,PD_CYL-PD_OPT+M$DTyp(a0) set dev. desc: # cyls
+
+* here is where further pd values may be updated (PD_LSNOffs, etc.)
+
+ st.b (a0,d3.w) flag descriptor updated
+ os9 F$SetCRC fix module crc (a0=module ptr)
+VoodooEx rts return status
+
+* return error if descriptor incorrect (no DevCon) or drive
+* number out of range.
+
+BadUnit move.w #E$Unit,d1 flag "bad unit" error
+ ori.b #Carry,ccr set carry
+ rts
+
+ ttl Terminate disk usage routine
+ pag
+********************
+* Terminat - Terminate use of the disk
+*
+* Passed:  (a1) = device descriptor ptr
+*          (a2) = static storage ptr
+*          (a4) = process descriptor ptr
+*          (a6) = system global data ptr
+*
+* Returns:  nothing
+*
+* Error Return:  (cc) = carry set
+*                d1.w = error code
+*
+* Destroys:  d0
+*
+Terminat
+ ifdef DOCACHE
+ move.l ChTotLen(a2),d0 any memory to return?
+ beq.s Term10 go if not
+ move.l a2,-(sp) save static ptr
+ movea.l ChLog(a2),a2 addr of block to return
+ OS9 F$SRtMem return cache memory
+ move.l (sp)+,a2 restore static ptr
+Term10
+ endc
+ move.b V_Vector(a2),d0 get saved vector number
+ suba.l a0,a0 no service routine (means remove from table)
+ OS9 F$IRQ remove device from polling table
+ rts
+
+ ttl Read disk routine
+ pag
+**************
+ ifdef MULTISECT
+* DBRead - Deblock and read sector(s)
+*
+* This routine reads sector(s) from the disk, reading 512-byte blocks
+* wherever possible.
+*
+ else
+* ReadHDsk - Read Hard Drive Sector
+ endc
+*
+* Passed:  (a1) = path descriptor ptr
+*          (a2) = static storage ptr
+*          (a4) = process descriptor ptr
+*          (a6) = system global data ptr
+*          d0.b = number of sectors to read
+*          d2.l = starting LSN
+*
+* Returns:  sector in buffer
+*
+* Error Return:  (cc) = carry set
+*                d1.w = error code
+*
+* Destroys:  d1, a0, a5
+*
+ ifndef MULTISECT
+ReadHDsk move.l PD_BUF(a1),a5
+ else
+DBRead
+
+* deblock and read sectors
+
+ DEBLOCK
+
+ move.w d0,V_NumBlk(a2) save number of sectors to transfer
+ cmpi.w #1,d0 multi-sector transfer ?
+ sne.b V_Multi(a2) set multi-sector flag if so
+ sf.b V_MultiWr(a2) turn multi-sector write off
+ movea.l PD_BUF(a1),a5 get buffer pointer
+ beq.s RdHD10 ..sector count ok if single-sector xfer
+ lsr.w V_NumBlk(a2) adjust count for 512-byte sectors
+RdHD10
+ endc
+
+ tst.l d2 reading sector 0
+ bne.s RdHdSc ..no; go read sector & return
+
+* Here If Sector 0 Being Read
+*
+* NOTE: this version only supports a single-sector read of sector 0.
+*       Any "deblocking" routine has to ensure this.
+
+ movea.l PD_DTB(a1),a0 get drive table pointer
+ tst.b V_ZeroRd(a0) sector zero been read?
+ bne.s RdHD80 branch if so
+ bsr Voodoo check for virgin descriptor
+ bcs.s RdHDEnd ..exit if error
+ movea.l PD_DTB(a1),a0 get drive table ptr again
+ movea.l V_ScZero(a0),a5 point to buffer
+ bsr.s RdHdSc read sector 0
+ bcs.s RdHDEnd exit if error
+RdHD50 movea.l PD_DTB(a1),a0 get drive table pointer
+ move.b #1,V_ZeroRd(a0) flag sector zero has been read
+ move.w #DD_SIZ-1,d1 UpDate Drive Table
+ move.l V_ScZero(a0),a5 point to buffer
+RdHD60 move.b (a5,d1.w),(a0,d1.w) put in ScZero
+ dbra d1,RdHD60 branch if not
+RdHD80 movea.l V_ScZero(a0),a0
+ move.l PD_BUF(a1),a5
+ MOVESECT a0,a5,d1 copy sector data
+RdHDExit moveq.l #0,d1 No Errors
+
+RdHDEnd rts
+
+ ttl Read Hard Disk routine
+ pag
+***************
+* RdHdSc - Read Hard Disk Sector
+*
+* Passed:  (a1) = path descriptor ptr
+*          (a2) = static storage ptr
+*          (a5) = buffer ptr
+*          (a6) = system global data ptr
+*          d2.l = starting LSN
+*
+* Returns:  sector in buffer
+*
+* Error Return:  (cc) = carry set
+*                d1.w = error code
+*
+* Destroys:  d0, d1, a0, a3, a5
+*
+RdHdSc move.l d2,V_LogSec(a2)
+ bsr.s ReadSec
+ bcs.s RHS90 go if error
+ ifdef MULTISECT
+ bt.s V_Multi(a2),RHS80 ..exit if multi-sector xfer
+ endc
+ move.l V_LogSec(a2),d2 get sector number
+ btst.l #0,d2 sec odd or even
+ beq.s RHS10 go if even
+ adda.w #SectSize,a0 else get 2nd part of sec
+RHS10 MOVESECT a0,a5,d1 copy sector buffer
+
+ ifdef MULTISECT
+RHS80
+ endc
+ moveq.l #0,d1 No Errors
+RHS90 rts
+
+* return error if partition invalid
+
+BadSect move.w #E$Sect,d1 "bad sector address" error
+ ori.b #Carry,ccr set carry
+ rts
+
+ReadSec move.l V_LogSec(a2),d1 get logical sec nbr
+ lsr.l #1,d1 xlat to 512 byt LSN
+ lea.l h_psn0(a2),a0 log drv offset addr
+ moveq.l #0,d0 clear reg
+ move.b PD_DRV(a1),d0 get log drv nbr
+ lsl.l #2,d0 make long.wrd pointer
+ cmp.l MaxPart*4(a0,d0.w),d1 sector in range for partition ?
+ bcc.s BadSect ..no; return error
+ add.l (a0,d0.w),d1 add log drv sector offset
+
+ ifdef DOCACHE
+
+* check if sector in cache
+
+ tst.b ChInit(a2) any cashe
+ beq.s GetSec go on if not
+ bsr ChkInCash chk if sec in cashe
+ bne.s RdSec90 go if in cashe (a0 = addr)
+ move.l d1,-(sp) push d1
+ bsr.s GetSec10 read disk to cashe
+ movem.l (sp)+,d1 pop d1
+ bcs.s RdSec90 go if error
+ move.l d1,4(a3) mark sec info in log
+ addi.w #CHAdd,(a3) set init count
+ bcc.s RdSec90 go if no overflow
+ move.w #$ffff,(a3) else set max
+RdSec90 rts
+ else
+
+* fall into GetSec routine
+
+ endc DOCACHE
+
+ ttl Get Sector routine
+ pag
+********************
+* GetSec - get sector from disk
+*
+* Passed:  (a1) = path descriptor ptr
+*          (a2) = static storage ptr
+*          (a6) = system global data ptr
+*          d1.l = LSN to read/write
+*
+* Returns:  sector in buffer
+*
+* Error Return:  (cc) = carry set
+*                d1.w = error code
+*
+* Destroys:  d0, d2, a0
+*
+ ifdef MULTISECT
+GetSec bt.s V_Multi(a2),GetSec03 ..bra if multi-sector xfer
+ GETBUF a0 point at deblocking buffer
+ else
+GetSec GETBUF a0 point at deblocking buffer
+ endc
+ moveq.l #0,d0 sweep reg
+ move.b PD_DRV(a1),d0 get drive/partition #
+ lsl.w #2,d0 make long-word offset
+ addi.w #V_BuffRec,d0 point to storage
+ cmp.l (a2,d0.w),d1 is record in deblocking buffer ?
+ bne.s GetSec10 go if not
+ moveq.l #0,d0 set no err
+ rts
+
+ ifdef MULTISECT
+GetSec03 movea.l PD_BUF(a1),a0 point at user data buffer
+ bf.s V_MultiWr(a2),GetSec10 ..continue if reading disk
+ rts else return when writing
+ endc
+
+GetSec5 movem.l d1/a0,-(sp)
+ move.l #10,d0
+ OS9 F$Sleep
+ movem.l (sp)+,d1/a0
+GetSec10 bset.b #0,D_ExpIRQ(a6) chk DMA in use
+ bne.s GetSec5
+ move.l a0,V_Buffer(a2) set for setup
+ move.l d1,V_Sector(a2) save phy sec nbr
+ ifdef MULTISECT
+ bt.s V_Multi(a2),GetSec15 ..leave old record in buffer if not multi-sect
+ endc
+ SAVEREC d1 set current record in deblocking buffer
+ ifdef MULTISECT
+GetSec15
+ endc
+ move.l d1,-(sp)
+ move.l #$8008a,d1 Setup read command
+ bsr SetUp select sector
+ bcs.s GetSec20 something went wrong
+ move.w #$90,fifo ..and leave in read mode
+ nop
+ move.w #$190,fifo Clear DMA chip
+ nop
+ move.w #$90,fifo ..and leave in read mode
+ nop
+ ifdef MULTISECT
+ move.w V_NumBlk(a2),diskctl write number of sectors
+ else
+ move.w #1,diskctl Write number of sectors
+ endc
+ nop
+ move.w #$8a,fifo Setup for last byte
+ nop
+ moveq.l #0,d2 Send last byte & DMA go
+ move.w #$8a,d1
+ bsr get_status Read status and end
+ move.l (sp)+,d1
+ tst.w d0 read ok?
+ bne.s GetSec30 go if err
+ bclr.b #0,D_ExpIRQ(a6) clear DMA in use
+ rts
+
+GetSec20 move.l (sp)+,d1
+ bsr end_hd
+GetSec30 bclr.b #0,D_ExpIRQ(a6) clear DMA in use
+ RELREC mark deblocking buffer as empty
+ move.w #E$NotRdy,d1
+ ori.b #Carry,ccr set carry
+ rts
+
+ ttl Check Sector in Cache routine
+ pag
+********************
+* ChkInCash - Checks for Phy sector in cashe
+*
+* Passed:  (a1) = path descriptor ptr
+*          (a2) = static storage ptr
+*          (a6) = system global data ptr
+*          d1.l = physical sector number
+*
+* Returns:  (a3) = highest, lo count, address avail
+*           (a0) = address in cache of sector if found
+*           (cc) = Z:  not in cache
+*                 NZ:  sector in cache at address d0.l
+*
+* Error Return:  none
+*
+* Destroys:  d2, d7, a1
+*
+ ifdef DOCACHE
+
+ChkInCash move.l a1,-(sp)
+ movea.w #0,a1 will have addr of match if any
+ movea.l ChLog(a2),a0 beg addr of log
+ movea.l a0,a3 A3 will have top low count addr
+ move.w ChSec(a2),d2 nbr of sec poss in cashe count
+ sub.w #1,d2 adj for dbra
+CinC10 move.w (a0),d0 get in use counter
+ cmpa.l #0,a1 has match been found(0 if not)
+ bne.s CinC20 skip and adj in use counters if so
+ cmp.w (a3),d0 sort for low count addr
+ bcc.s CinC15 go if (a3) <= d0
+ movea.l a0,a3 save new low addr
+CinC15 cmp.l 4(a0),d1 chk for sector match
+ bne.s CinC20 go if no match
+ movea.l a0,a1 save matching log addr
+ add.w #CHAdd,d0 add in use count
+ bcc.s CinC30 go if no C
+ move.w #$ffff,d0 else set at max
+ bra.s CinC30
+
+CinC20 sub.w #1,d0 dec non matching by 1
+ bls.s CinC40 dont if 0 or 1
+CinC30 move.w d0,(a0) save new in use count
+
+CinC40 addq.l #8,a0 next log addr
+ dbra d2,CinC10
+ move.l a1,d7 log addr if match, else 0
+ beq.s CinC50 go if no match found
+ movea.l a1,a3 else get avail log addr
+CinC50 move.w 2(a3),d0 addr of cashe sector
+ lsl.l #4,d0 make 24 bit addr
+ movea.l d0,a0 addr of sec in cashe
+ move.l (sp)+,a1
+ tst.l d7 Z=no match, NZ=match
+ rts
+ endc DOCACHE
+
+ ttl Write routines
+ pag
+********************
+ ifdef MULTISECT
+* DBWrite - deblock and write sector(s)
+*
+* This routine will write sectors, using 512-byte writes when possible
+*
+ else
+* WritHDsk -  Write Sector
+ endc
+*
+* Passed:  (a0) = buffer pointer
+*          (a1) = path descriptor ptr
+*          (a2) = static storage ptr
+*          (a4) = process descriptor ptr
+*          (a6) = system global data ptr
+*          d0.b = number of sectors to write
+*          d1.l = starting LSN
+*
+* Returns:  nothing
+*
+* Error Return:  (cc) = carry set
+*                d1.w = error code
+*
+* Destroys:  d0, d2, a0, a3
+*
+ ifdef MULTISECT
+DBWrite
+
+* deblock and write sector(s)
+
+ DEBLOCK
+
+ move.w d0,V_NumBlk(a2) set number of blocks
+ cmpi.w #1,d0 multi-sector transfer ?
+ sne.b V_Multi(a2) set multi-sector flag if so
+ sne.b V_MultiWr(a2) same with multi-sector write flag
+ beq.s WtHD00 sector count is ok if single-sector xfer
+ lsr.w V_NumBlk(a2) adjust count for 512-byte sectors
+WtHD00 move.b PD_Trys(a1),V_Trys(a2) set retry counter 
+ else
+WritHDsk move.b PD_Trys(a1),V_Trys(a2) set retry counter
+ endc MULTISECT
+ tst.l d2 writing sector 0 ?
+ bne.s WtHD1 ..no; continue
+ btst.b #FmtDis_B,PD_Cntl+1(a1) drive format protected ?
+ beq.s WtHD1 ..no; continue
+ move.w #E$Format,d1 set "format protected" error
+ ori.b #Carry,ccr set carry
+ rts return
+
+WtHD1 movea.l PD_BUF(a1),a5 get buffer ptr
+ move.l d2,V_LogSec(a2) save lsn
+ bsr ReadSec get the sector
+ bcc.s WtHD5 go if ok
+ rts else exit w/err
+
+WtHD5
+ ifdef DOCACHE
+ tst.b ChInit(a2) any cashe
+ beq.s WtHD8 go on if not
+ clr.w (a3)
+ clr.l 4(a3) take present sec out of cashe
+ endc
+WtHD8 move.l a0,V_Buffer(a2)
+ move.l d1,V_Sector(a2)
+ move.l V_LogSec(a2),d2 get log sec
+ bne.s WtHD9 go if not LSN 0
+ movea.l PD_DTB(a1),a3
+ clr.b V_ZeroRd(a3) mark sec 0 not read
+ ifdef MULTISECT
+WtHD9 bt.s V_Multi(a2),WtHD20 ..go write if m/s xfer
+ lsr.l #1,d2 make 512 byte sector
+ else
+WtHD9 lsr.l #1,d2 make 512 byte sec
+ endc
+ bcc.s WtHD10 go if even sec
+ adda.w #SectSize,a0 else use 2nd part of buff
+WtHD10 MOVESECT a5,a0,d0 put sector in 512 byte buffer
+ bra.s WtHD20
+
+WtHD15 movem.l d1/a0,-(sp)
+ move.l #10,d0
+ OS9 F$Sleep
+ movem.l (sp)+,d1/a0
+WtHD20 bset.b #0,D_ExpIRQ(a6) chk DMA in use
+ bne.s WtHD15
+
+* set up for write call, V_Buffer sector offset set by prev GetSec
+
+ move.l #$a008a,d1 Setup write command
+ bsr SetUp Go select sector
+ bcs.s WtHD90 something went wrong
+ move.w #$90,fifo Clear DMA chip
+ nop
+ move.w #$190,fifo ..and leave in write mode
+ nop
+ ifdef MULTISECT
+ move.w V_NumBlk(a2),diskctl write number of sectors
+ else
+ move.w #1,diskctl Write number of sectors
+ endc
+ nop
+ move.w #$18a,fifo Setup for last byte
+ nop
+ move.l #$100,d2 Send last byte & DMA go
+ move.w #$18a,d1 Read status and fall through
+ bsr get_status
+ tst.w d0 read ok?
+ ifdef MULTISECT
+ beq.s WtHDExit ..yes; exit
+ else
+ beq.s ChkVerf go if ok
+ bra.s WtHD90
+
+WtHD80 bsr end_hd
+ endc
+
+WtHD90 move.w #E$NotRdy,d1 flag drive not-ready
+
+WtHDErr move.l V_LogSec(a2),d2 get log sec nbr in case
+ subi.b #1,V_Trys(a2) chk retrys
+ bne WtHD1 retry if nec 
+ bclr.b #0,D_ExpIRQ(a6) clear DMA in use
+ RELREC release current record in buffer
+ ori.b #Carry,ccr set carry
+ rts
+
+ ifdef MULTISECT
+WtHDExit bclr.b #0,D_ExpIRQ(a6) release dma bus
+ moveq.l #0,d1 clear carry
+ rts return
+ else
+ChkVerf bclr.b #0,D_ExpIRQ(a6)
+ tst.b PD_VFY(a1) Verify ?
+ bne.s WtHDExit No, Leave
+ move.w #$200,d3
+Verify2 dbra d3,Verify2
+ RELREC force re-read of disk
+ bsr ReadSec read the hard disk
+ bcs.s VerifyErr go if err
+ move.w #(SectSize/4)-1,d0 get # of bytes to check -1
+ move.l V_LogSec(a2),d2 get log sec
+ lsr.l #1,d2 odd or even?
+ bcc.s Verify5 go if even
+ adda.w #SectSize,a0 else use 2nd half  
+Verify5 movea.l PD_BUF(a1),a5 point to original buffer
+
+VerifyLp cmpm.l (a0)+,(a5)+ compare data...
+ dbne d0,VerifyLp ..till mismatch or done
+ bne.s VerifyErr ..return error if mismatch 
+WtHDExit moveq.l #0,d1 No Errors
+ rts
+
+VerifyErr move.w #E$Write,d1 flag write error
+ ori.b #Carry,ccr set the carry
+ rts return
+ endc
+
+ ttl Get controller status routine
+ pag 
+********************
+* get_status - wait till ready and read the status byte then exit
+*
+* Passed:  d1.w = mode control byte
+*
+* Returns:  d0.b = HD status
+*
+* Error Return:  (cc) = carry set
+*                d1.w = error code
+*
+* Destroys:  none
+*
+get_status bsr SetLong Wait till done
+ bcs.s end_hd Opps - times out
+ move.w d1,fifo Prepare DMA chip
+ nop
+ move.w diskctl,d0 Get HD status byte
+ andi.w #$00ff,d0 ..and mask off junk
+end_hd move.w #$80,fifo Reset DMA for floppy
+ nop
+ tst.w diskctl ..and clear it
+ clr.w flock Unlock DMA chip
+ rts
+
+ ttl SetUp command routine
+ pag
+********************
+* SetUp - Send sector number to the DMA device
+*
+* Passed:  (a1) = path descriptor ptr
+*          (a2) = static storage ptr
+*          (a6) = system global data ptr
+*          d1.l = command
+*
+* Returns:
+*
+* Error Return:  (cc) = carry set
+*
+* Destroys:  d0, d1, d2
+*
+SetUp st.b flock Lock fifo
+ move.l V_Buffer(a2),d0 buffer addr
+ move.b d0,DMALow setup the DMA chip
+ lsr.l #8,d0
+ move.b d0,DMAMid
+ lsr.l #8,d0
+ move.b d0,DMAHigh
+SetUp10 move.w #$88,fifo Setup for command byte
+ moveq.l #0,d2 Clear for long build
+ move.b DMA_DEV(a2),d2 Get DMA device number
+ lsl.b #5,d2 ..and move to corrent bits
+ swap d2 ..and swap to top
+ or.l d1,d2 OR in hard disk command
+ bsr.s SetShort send byte
+ bcs.s SetUp90 Opps - not there
+ move.b V_SecHi(a2),d2 Get high sector number
+ move.b DMA_DEV(a2),d1 Get DMA device number
+ lsl.b #5,d1 ..and move to correct bits
+ or.b d1,d2 ..and add to sector info
+ swap d2 Move to top part
+ move.w #$8a,d2 ..and add in fifo info
+ bsr.s SetShort send byte
+ bcs.s SetUp90 Opps - timed out
+ move.b V_SecMid(a2),d2 Get mid sector number
+ swap d2 ..and move to top part
+ move.w #$8a,d2 ..and add in fifo info
+ bsr.s SetShort send byte
+ bcs.s SetUp90 Opps - timed out
+ move.b V_SecLow(a2),d2 Get low sector number
+ swap d2 ..and move to top part
+ move.w #$8a,d2 ..and add in fifo info
+ bsr.s SetShort send byte
+ bcs.s SetUp90 Opps - timed out
+ ifdef MULTISECT
+ move.w V_NumBlk(a2),d2 get sector count
+ else
+ move.w #1,d2 Get sector count
+ endc
+ swap d2 ..and move to top part
+ move.w #$8a,d2 ..and add in fifo info
+ bsr.s SetShort send byte
+SetUp90 rts All done
+
+ ifdef DOSLEEP
+SetShort equ *
+SetLong movem.l d0/d1,-(sp) save regs
+ move.w sr,-(sp) save irq masks
+ move.w V_IRQMask(a2),sr mask interrupts
+ move.w V_BUSY(a2),V_WAKE(a2) set wake-up id
+ bset.b #HDIntId,D_IntSel(a6) set hd irq flag
+ move.l d2,diskctl send byte
+ move.w (sp)+,sr restore irq masks
+SetLong10 moveq.l #0,d0 sleep indefinately
+ os9 F$Sleep wait for irq acknowledge
+ btst.b #HDIntId,D_IntSel(a6) valid wakeup ?
+ bne.s SetLong10 ..no; try again
+ movem.l (sp)+,d0/d1 restore regs
+ rts (carry clear)
+ else
+SetLong movem.l d1/a0,-(sp)
+ bset.b #HDIntId,D_IntSel(a6) set int flag
+ move.l d2,diskctl Send byte
+ move.l #short_wt,d1
+SetLg10 subq.l #1,d1
+ bmi.s SetLg20
+ moveq.l #1,d0
+ OS9 F$Sleep
+ btst.b #HDIntId,D_IntSel(a6) wait til int occurs
+ bne.s SetLg10
+SetLg20 movem.l (sp)+,d1/a0
+ rts
+
+SetShort move.l #short_wt,d0
+
+SetIt bset.b #HDIntId,D_IntSel(a6) set int flag
+ move.l d2,diskctl Send byte
+SetIt10 subq.l #1,d0
+ bmi.s SetIt90
+ btst.b #HDIntId,D_IntSel(a6) wait til int occurs
+ bne.s SetIt10
+ rts
+
+SetIt90 ori.b #Carry,ccr
+ rts
+ endc DOSLEEP
+
+ ttl Interrupt Service routine
+ pag
+********************
+* IRQServc - Interrupt Request Service Routine
+*
+* Passed:  (a2) = static storage ptr
+*          (a3) = device port address
+*          (a6) = system global data ptr
+*
+* Returns:  nothing
+*
+* Error Return:  (cc) = carry set (interrupt not serviced)
+*
+* Destroys:  May only use D0, D1, A0, A2, A3 and A6.
+*            Any other registers used MUST be preserved.
+*
+IRQServc btst.b #HDIntId,D_IntSel(a6) expecting an irq ?
+ bne.s IRQ10 continue if so
+* tst.b D_IntSel(a6) is it a stray?
+* beq.s IRQExit go clr int if so
+ ori.b #Carry,ccr flag irq not serviced
+ rts
+
+IRQ10 bclr.b #7,(a3) clr MFP int
+ bclr.b #HDIntId,D_IntSel(a6) clear HD irq flag
+ move.w V_WAKE(a2),d0 Device busy?
+ beq.s IRQExit ...no; ignore intrpt
+ moveq.l #S$Wake,d1 get wake up signal
+ clr.w V_WAKE(a2) flag IRQ wake up
+ OS9svc F$Send call send routine directly
+ moveq.l #0,d1 signal interrupt serviced
+IRQExit rts
+
+ ends

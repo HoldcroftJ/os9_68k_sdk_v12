@@ -1,0 +1,66 @@
+* Function:
+*		coherent - insure cache-memory coherency
+*
+* Synopsis:
+*		void coherent()
+*
+* Description:
+*		Handles the caches dependent on the Kernel cache management
+* variables.
+*
+* Caveats:
+*		Since the mVme162 has no caches external to the CPU we can
+* do the management in-line.  Note that is not the most efficiant
+* means of management possible.  We can name at least three that would
+* be better.  In the future, we may update this routine to be better.
+*
+coherent:
+ link a5,#0
+ movem.l d1/a6,-(sp) save regs
+ movec vbr,a6 get base address of vectors
+ move.l (a6),a6 get system global data pointer
+ tst.b D_SnoopD(a6) are the d-caches snoopy ?
+ bne.s iscoherent ..yes; no need to explicitly flush
+ subq.l #4,a7 keep stack long-aligned
+ move.w sr,(sp) save current irq mask level
+ ori.w #IntMask,sr mask interrupts
+ cpusha dc insure RAM coherent with cache
+ nop allow any remaining writes to complete.
+ move.w (sp),sr restore irq mask level
+ addq.l #4,a7 toss scratch
+iscoherent
+ moveq.l #0,d0 signal no error
+ movem.l (sp)+,d1/a6 restore regs
+ unlk a5
+  rts
+
+*	Function:
+*		mask_irq - mask interrupts to requested level
+* 
+*  Synopsis:
+*		int mask_irq( int newsr )
+*
+*  Description:
+*		This subroutine will preserve the current sr and replace
+*  it with "newsr's interrupt mask level".  The return is the old irq level.
+* 
+*  Caveats:
+* 		THIS IS 68xxx SPECIFIC CODE.  Note also that stack is kept long-aligned.
+*
+mask_irq:
+ link a5,#0
+ movem.l d0/d1,-(sp) make space and save d1
+ moveq.l #0,d1 sweep reg
+ move.w sr,d1 get current sr
+ andi.w #IntMask,d1 isolate current interrupt mask bits
+ move.l d1,0(sp) return current irq level in d0
+ move.w sr,d1 copy current sr (again)
+ andi.w #IntEnab,d1 clear current irq flags
+ or.w d0,d1 add in desired irq mask level 
+ move.w d1,sr mask interrupts
+ movem.l (sp)+,d0/d1 return original mask
+ unlk a5
+ rts
+
+
+

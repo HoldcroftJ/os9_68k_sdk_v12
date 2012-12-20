@@ -1,0 +1,8 @@
+ nam D3 Device Descriptor
+ use defsfile
+
+ use "rbfdesc.a"
+
+DrvNum set 3
+ DiskD3
+ ends

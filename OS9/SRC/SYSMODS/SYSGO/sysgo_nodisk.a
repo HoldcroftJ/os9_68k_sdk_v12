@@ -1,0 +1,74 @@
+ nam Sysgo
+ ttl startup module for system without disks
+
+* Copyright 1985, 1986 by Microware Systems Corporation
+* Reproduced Under License
+
+* This source code is the proprietary confidential property of
+* Microware Systems Corporation, and is provided to licensee
+* solely for documentation and educational purposes. Reproduction,
+* publication, or distribution in any form to any party other than
+* the licensee is strictly prohibited.
+
+********************************
+* Editon History
+*  #    Date      Comments                                      by
+* -- --------- ------------------------------------------------ ---
+* 04 10-15-85 History begun.									rfd
+* 04 10-15-86 Modified slightly for 2.0 release.				rfd
+*              ---- OS-9/68K V2.0 Release ---- 
+*              ---- OS-9/68K V2.1 Release ---- 
+*              ---- OS-9/68K V2.2 Release ---- 
+*              ---- OS-9/68K V2.3 Release ---- 
+*              ---- CD-RTOS V1.1 Release ---- 
+*              ---- OS-9/68K V2.4 Release ---- 
+*              ---- OS-9/68K V3.0 Release ---- 
+*              ---- OS-9/68K V3.1 Release ---- 
+* 10 07-20-99 Changed shell to mshell  (left edition space)     mgh
+Edition equ 10 current edition number
+
+ use defsfile
+
+Typ_Lang set (Prgrm<<8)+Objct
+Attr_Rev set (ReEnt<<8)+0
+ psect test,Typ_Lang,Attr_Rev,Edition,0,Entry
+
+ vsect
+ ds.l 32 small stack space
+ ends
+
+Intercpt OS9 F$RTE return from intercept
+
+Entry lea Intercpt(pc),a0
+ OS9 F$Icpt
+Loop moveq #0,d0 any type module
+ moveq #0,d1 default memory size
+ moveq #StartMSPSz,d2 parameter size
+ moveq #3,d3 copy std I/O paths
+ moveq #0,d4 same priority
+ lea ShellNam(pcr),a0 shell name
+ lea CRChar(pcr),a1 paramter string
+ OS9 F$Fork fork shell
+ bcs.s ForkErr abort if error
+ OS9 F$Wait wait for it to terminate
+ bcs.s ForkErr
+ tst.w d1 zero status?
+ beq.s Loop loop if so
+ForkErr moveq #0,d0 no error message file
+ OS9 F$PErr print error message
+ bra.s Loop
+
+ShellNam dc.b "mshell",0
+*
+* Parameter, Environment and argv/argc magic values for mshell 
+* DO NOT CHANGE
+*
+ align 4
+CRChar dc.b C$CR
+ dc.b "SHELL=mshell",0
+ dc.b 252,1,0,0,0,20,"mshell",0,0,0,C$CR
+ dc.b 0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0
+StartMSPSz equ *-CRChar
+	
+ ends
+

@@ -1,0 +1,96 @@
+/* Edison Design Group, 1995. */
+/*
+typeinfo.h -- Include file for type information (18.5.1)
+*/
+#ifndef _TYPEINFO_H
+#define _TYPEINFO_H
+
+#include <exception>		// provides base class exception -- for OS9 (tag)
+
+#ifdef __NO_EXCEPTIONS
+#  define __THROWSPECEMPTY()
+#else
+#  define __THROWSPECEMPTY() throw()
+#endif
+
+
+namespace std {
+
+/* The following pragma is used so that the compiler knows that this definition
+   of type_info is the one that corresponds to the type returned by typeid. */
+#pragma define_type_info
+  class type_info {
+  public:
+    virtual ~type_info();
+    bool operator==(const type_info&) const;
+    bool operator!=(const type_info&) const;
+    bool before(const type_info&) const;
+    const char* name() const;
+  private:
+    type_info& operator=(const type_info&);  // Not actually defined
+#if 0
+#else /* 0 */
+  protected:
+    // Protected instead of private to suppress the "no accessible
+    // constructor" warning
+#endif /* 0 */
+    type_info(const type_info&);  // Not actually defined
+  };
+
+#if !defined(__INLINED_EXCEPTIONS)
+
+  class bad_cast : public exception {
+  public:
+    bad_cast() __THROWSPECEMPTY();
+    bad_cast(const bad_cast&) __THROWSPECEMPTY();
+    bad_cast& operator=(const bad_cast&) __THROWSPECEMPTY();
+    virtual ~bad_cast() __THROWSPECEMPTY();
+    virtual const char* what() const __THROWSPECEMPTY();
+  };
+
+  class bad_typeid : public exception {
+  public:
+    bad_typeid() __THROWSPECEMPTY();
+    bad_typeid(const bad_typeid&) __THROWSPECEMPTY();
+    bad_typeid& operator=(const bad_typeid&) __THROWSPECEMPTY();
+    virtual ~bad_typeid() __THROWSPECEMPTY();
+    virtual const char* what() const __THROWSPECEMPTY();
+  };
+
+#else // linker bug fix for OS9 (tag)
+	
+	class bad_cast : public exception {
+	public:
+		bad_cast() __THROWSPECEMPTY()
+		{ ; }
+		bad_cast(const bad_cast&) __THROWSPECEMPTY()
+		{ ; }
+		bad_cast& operator=(const bad_cast&) __THROWSPECEMPTY()
+		{ return *this; }
+		virtual ~bad_cast() __THROWSPECEMPTY()
+		{ ; }
+		virtual const char* what() const __THROWSPECEMPTY()
+		{ return "bad_cast"; }
+	};
+
+	class bad_typeid : public exception {
+	public:
+		bad_typeid() __THROWSPECEMPTY()
+		{ ; }
+		bad_typeid(const bad_typeid&) __THROWSPECEMPTY()
+		{ ; }
+		bad_typeid& operator=(const bad_typeid&) __THROWSPECEMPTY()
+		{ return *this; }
+		virtual ~bad_typeid() __THROWSPECEMPTY()
+		{ ; }
+		virtual const char* what() const __THROWSPECEMPTY()
+		{ return "bad_typeid"; }
+	};
+
+#endif /* __INLINED_EXCEPTIONS */
+
+#undef __THROWSPECEMPTY
+
+}  /* namespace std */
+
+#endif /* _TYPEINFO_H */

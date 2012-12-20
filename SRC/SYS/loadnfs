@@ -1,0 +1,32 @@
+*
+* loadnfs for NFS modules provided with LAN Communication Package 
+*
+* 
+* Load NFS Client Modules
+*
+chd CMDS/BOOTOBJS/SPF
+load -d nfs       nfsnul   nfs_devices ;* NFS file manager, driver and descriptor
+load -d rpcdb                          ;* RPC services module
+*
+* Load NFS Client Commands 
+*
+chd ../..
+*
+*load -d nfsc      mount                ;* Client connection handler
+*load -d rpcdbgen rpcdump nfsstat       ;* RPC data module utilities
+*load -d rpcinfo 			
+*
+* Load NFS Server Modules
+*
+*load -d exportfs portmap nfsd mountd   ;* NFS server required utilities/daemons
+*load -d showmount			
+*
+* Load RPC Client Modules
+*
+*load -d rcopy rload rpr on rup rusers spray 
+*
+* Load RPC Server Modules
+*
+*load -d rldd rexdc rexd rstatd rusersd sprayd
+*
+

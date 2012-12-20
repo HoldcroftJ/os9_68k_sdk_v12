@@ -1,0 +1,768 @@
+ nam  Disk Driver
+ ttl  Device Driver For VME8500 Adapter Module
+
+* Copyright 1987, 1988, 1989 by Microware Systems Corporation
+* Reproduced Under License
+
+* This source code is the proprietary confidential property of
+* Microware Systems Corporation, and is provided to licensee
+* solely for documentation and educational purposes. Reproduction,
+* publication, or distribution in any form to any party other than
+* the licensee is strictly prohibited.
+
+
+********************************
+* Edition History
+
+*  #    Date      Comments                                      By
+* -- --------- ------------------------------------------------ ---
+* 00  84/01/17                                                  RES
+* 01  84/02/16 Converted for linkage use                        res
+* 02  84/04/18 Changed for new polling scheme                   res
+* 03  84/07/12 Put hard disk options in descriptor              res
+* 04  84/11/11 changed irq conditionals                         res
+* 05  85/06/20 added write protect and ability to disable 
+*              retrys.                                          RES
+* 06           skipped
+* 07  86/09/12 added code to handle multiple sector transfers.
+*              this driver no longer does verify on write.      djl
+* 08  87/05/19 added exception handler offset entry, made       wwb
+*              supervisor state module.
+* 09  87/05/20 added (djl's) code to support multi-sector reads wwb
+*              starting from sector 0 (113.25.001)
+*     88/04/26 removed commented out code.                      djl
+*               ---- OS-9/68K V2.1 Release ---- 
+*               ---- OS-9/68K V2.2 Release ---- 
+* 10  89/03/13 repaired sector validation and minor return bug  Rwb
+*              NOTE: due to lack of available hardware, this
+*              change has not been tested.
+*               ---- OS-9/68K V2.3 Release ---- 
+*               ---- OS-9/68K V2.4 Release ---- 
+*               ---- OS-9/68k V3.0 released ----
+*               ---- OS-9/68k V3.1 released ----
+*
+Edition equ 10 current edition number
+
+Typ_Lang set (Drivr<<8)+Objct Device Driver In Assembly Language
+Attr_Rev set ((ReEnt+SupStat)<<8)+0
+
+ psect rb8500,Typ_Lang,Attr_Rev,Edition,0,DiskEnt
+
+ use defsfile
+
+Included equ 1 use IRQ code (not implemented for IRQs as of edition 3)
+Excluded equ 0 don't use irqs
+
+IRQ_Used equ Included
+ pag
+* Controller Commands
+*
+C$TRDY equ 0 Test For Drive Ready
+C$RSTR equ 1 Restore Head To Track 00
+C$RSYN equ 2 Request Error Syndrome
+C$RDET equ 3 Request Error Detail
+C$FRMT equ 4 Format All Blocks
+C$CHKF equ 5 Check Track Format
+C$FTRK equ 6 Format Track
+C$FBAD equ 7 Format Bad Track
+C$RBLK equ 8 Read Block
+C$PROT equ 9 Write Protect A Block
+C$WBLK equ 10 Write A Block
+C$SEEK equ 11 Seek To Track Containing Block
+C$MINI equ 12 Set Mini Format
+C$RDLN equ 13 Read Length Of Error Burst
+
+* Register Equates
+*
+
+Status equ 0 sasi select register store 1 here to select controller
+SASIData equ 4 read/write data register
+CmndIRQ equ $8 command irq vector
+DataIRQ equ $A data irq vector
+
+* Status Register equates
+
+Request equ $01
+Busy equ $02 controller busy
+Message equ $04 message for host
+CmndData equ $08 command / data
+InptOtpt equ $10 Input or Output
+Select equ $20 select controller
+EnblCmnd equ $40 enable command irqs
+EnblData equ $80 enable data irqs
+
+* Bit Equates for Status register
+*
+
+Req_Bt equ 0 request bit
+Busy_Bt equ 1 busy bit 0=controller busy
+MSG_Bt equ 2 message for host
+Cmnd_Bt equ 3 command bit 1=cmnd 0=data
+Rst_Bt equ 4 reset bit 1=reset controller(write)
+Inp_Bt equ 4 I/O bit 1=input 0=output
+Sel_Bt equ 5 select controller
+CdIRQ_Bt equ 6 command irq enable 1=enabled
+DtIRQ_Bt equ 7 data irq enable 1=enabled
+
+
+Mask equ $80 irq mask byte
+Flip equ 0 irq flip bits
+ 
+* Equates for Control register
+*
+
+
+ErrStat equ 1 bit 1 of status byte set if error. This byte
+
+* is returned from the controller after command is complete.
+
+
+*Option Byte For Commands
+*
+
+*Options equ %00000111 Allow Enhanced Seek Speed
+
+
+* Number Of Drives Supported
+* This should not be changed without modifications
+* to the driver.
+
+NumDriv equ 1
+BuffSize equ 256 size of sector 0 buffer
+
+ PAG
+************************************************************
+*                                                          *
+*     Static Storage Definitions                           *
+*                                                          *
+************************************************************
+
+ vsect
+VBuffer ds.l 64 Verify Buffer
+V_BufRsv ds.l (BuffSize/4)*NumDriv
+V_VBuff ds.l 1 Pointer to verify buffer
+V_IMask ds.w 1 irq mask
+V_ERCODE ds.l 1 Buffer For Error Details
+V_CMD ds.l 1 Command Buffer
+V_ADDR0 equ V_CMD+1 High 8 Bits Of Address And Log. Unit #
+V_ADDR1 equ V_CMD+2 Middle 8 Bits Of Block Address
+V_ADDR2 equ V_CMD+3 Lower  8 bits of block address
+V_BLKS ds.b 1 Number Of Blocks To Be Transfered
+V_OPTS ds.b 1 Options For Drive
+V_Init ds.b 1 0=drive not initialized
+V_CurDrv ds.b 1 current drive
+ ends
+
+ PAG
+************************************************************
+*                                                          *
+*     Offsets                                              *
+*                                                          *
+************************************************************
+
+DiskEnt dc.w Init Initialize Storage And Mini Winies
+ dc.w Read Read A Sector
+ dc.w Write Write A Sector
+ dc.w Return No Get Status Supported
+ dc.w PutStat Set Status (Format And Restore)
+ dc.w Term Shut Down Device
+ dc.w 0 Exception handler (0=none)
+
+
+ PAG
+***************
+*
+*    Initialize Controller
+*
+*    This subroutine resets the controller & sets up the
+* drive tables.
+*
+* Passed: (a2) = Address Of Statics Storage
+*         (a1) = Address Of Device Descriptor Module
+*
+* Returns: (cc) = Carry Set If Error
+*          (d1) = Error Code If Error
+*
+
+
+Init moveq #NumDriv,d0 Number Of Drives
+ move.b d0,V_NDRV(a2)
+ moveq #$FF,d1 Init Fake Media Size
+ move.b d1,V_CurDrv(a2) Init high drive #
+ lea DRVBEG(a2),a0 Point At First Table
+ lea V_BufRsv(a2),a3 point at sector zero buffers
+Init10 move.b d1,DD_TOT(a0) Set Up Size
+ move.l a3,V_ScZero(a0)
+ lea BuffSize(a3),a3 point to next buffer
+ lea DRVMEM(a0),a0 Move To Next Table
+ subq.b #1,d0 last drive?
+ bne.s Init10 branch if not
+
+* get verify buffer
+
+ lea VBuffer(a2),a0
+ move.l a0,V_VBuff(a2) save pointer for later use
+
+***
+* Reset controller and interface
+
+ movea.l V_PORT(a2),a3 point to port
+ bset #Rst_Bt,Status(a3) reset the controller
+ move.b #0,Status(a3) disable command and data irqs
+
+
+
+
+***
+* Put Device on The Polling Table
+*
+ move.b M$Vector(a1),d0
+ move.b d0,DataIRQ(a3) setup IRQ vectors
+ move.b d0,CmndIRQ(a3)
+ move.b M$IRQLvl(a1),d2 get irq level
+Init20
+ ifeq IRQ_Used-Included
+ lea DiskIRQ(pcr),a0 Point To IRQ Routine
+ OS9 F$IRQ Get On The Table
+ bcs.s Return
+ addq #1,d2 bump irq
+ OS9 F$IRQ Get On The Table
+ endc
+Return rts
+
+BadUnit movea.l (a7)+,a3
+ move.w #E$Unit,d1
+* start ed.10 change ( was ori #Carry,d1 )
+InitErr ori #Carry,ccr set carry
+* end ed.10 change
+ rts exit with error
+
+
+
+**********
+*
+*     Read Block(s) From Disk
+*
+*     This subroutine reads the block from the disk.  If the
+* block being read is block 0, the first "DRVMEM" bytes
+* are copied into the drive table.
+*
+* Passed:(a2) = Address Of The Device Static Storage
+*        (a1) = Address Of The Path Descriptor
+*        (a4) = Process descriptor
+*        (d0.l) = number of contiguous sectors to read (<256)
+*        (d2.l) = Logical sector #
+*
+* Returns: (CC) = Carry Set If Error
+*          (d1) = Error Code If Error
+*
+*
+
+Read tst.b V_Init(a2) has controller been initialized?
+ bne.s Read10 branch if so
+ bsr InitDriv
+ move.b #1,V_Init(a2)
+
+Read10 moveq #C$RBLK,d1 Load The Opcode
+ move.l d0,d3 number of sectors to transfer (ed 7)
+ cmpi.b #1,d0 transferring more than one sector ?
+ bhi.s Read15 ..yes; read from disk
+ tst.l d2 reading sector zero?
+ beq.s Read20 branch if so
+Read15
+ movea.l PD_BUF(a1),a5
+ bra Execute Read sector and exit
+
+* Here If Sector 0 Being Read
+
+Read20 movea.l PD_DTB(a1),a0 get drive table pointer
+ tst.b V_ZeroRd(a0) sector zero been read?
+ bne.s Read80 branch if so
+ move.l V_ScZero(a0),a5 point to buffer
+ move.w #20000,d4 try several times (in case not spun up)
+Read40 bsr Execute do the read
+ bcc.s Read50 if no error move data
+ cmp.w #E$NotRdy,d1 is it a not ready
+ bne.s InitErr branch if not
+ moveq #C$RBLK,d1 Load The Opcode
+ dbra d4,Read40 try again
+ bra.s InitErr exit with error
+Read50 move.b #1,V_ZeroRd(a0) flag sector zero has been read
+ move.w #DD_SIZ-1,d1 UpDate Drive Table
+Read60 move.b (a5,d1.w),(a0,d1.w)
+ dbra d1,Read60 branch if not
+Read80 movea.l V_ScZero(a0),a0
+ movea.l PD_BUF(a1),a5
+ move.w #63,d1 move 256 bytes
+Read90 move.l (a0)+,(a5)+
+ dbra d1,Read90
+ReadExit moveq #0,d1 No Errors
+ReadEnd rts
+
+ PAG
+**************
+*
+*     WRITE-Write A Block To The Disk
+*
+*     This subroutine writes the contents of PD_BUF to the
+* logical sector specified in d2.l.  A re-read of the
+* block will be done if PD_VFY is 0.
+*
+* Passed: (a2) = Address Of Device Static Storage
+*         (a1) = Address Of Path Descriptor
+*         (d2.l) = The Disk Logical Sector Number
+*
+* Returns: (CC) = Carry Set If Error
+*          (d1.w) = Error Code If Error
+*
+*
+
+Write
+ tst.l d2 writing sector 0
+ bne.s Write09 branch if not writing to sect 0
+ btst #FmtDis_B,PD_Cntl+1(a1) ok to write to sect 0 ?
+ bne.s Not_ok branch if not
+Write09 moveq #C$WBLK,d1 Load The Command Code
+ move.l d0,d3 number of sectors to transfer (ed 7)
+ movea.l PD_BUF(a1),a5 point to data buffer
+ bsr Execute Execute The Command
+ bcs.s WritErr Leave If Error
+ tst.l d2 was it sector 0
+ bne.s WritExit branch if not
+ movea.l PD_DTB(a1),a0 get drive table pointer
+ clr.b V_ZeroRd(a0) flag sector zero writen
+Not_ok move.w #E$Write,d1 flag write error
+VerifyEr ori #Carry,ccr flag error
+ rts
+WritExit moveq #0,d1 No Errors
+WritErr rts
+
+
+***************
+*
+* Init Drive
+*
+
+InitDriv
+ movem.l d0/d2-d7/a0-a6,-(a7)
+ movea.l V_PORT(a2),a3 point to port
+ move.b #C$MINI,V_CMD(a2) init drive params
+ movea.l PD_DEV(a1),a5 get device table pointer
+ movea.l V$DESC(a5),a5 point to descriptor
+ moveq #0,d0
+ move.w M$DevCon(a5),d0 get offset to init bytes
+ addq #2,d0 point past byte count
+ adda.l d0,a5 set up pointer to init bytes
+ bsr Command do the command
+ movem.l (a7)+,d0/d2-d7/a0-a6
+ rts
+
+ pag
+
+************
+*
+*     TERM-Terminate Device
+*
+*     This subroutine waits until V_WAKE is clear, takes
+* the device off the polling table and returns.
+*
+* Passed: (a2) = Address Of Device Static Storage
+*
+* Returns: (CC) = Carry Set If Error
+*          (d1) = Error Code If Error
+*
+*
+
+Term
+ movea.l V_PORT(a2),a0 get port address
+ move.b #0,Status(a0)
+ suba.l a0,a0
+
+ ifeq IRQ_Used-Included
+ OS9 F$IRQ
+ endc
+ rts
+ pag
+
+
+***************
+* GetStat/PutStat
+
+* Passed: (d0.w)=Status Code
+*         (a1)=Path Descriptor
+*         (a2)=Static Storage Address
+* Returns: Depends on status code
+
+PutStat
+ movea.l V_PORT(a2),a3
+ cmpi.w #SS_WTrk,d0 is it a Write Track call?
+ beq.s WriteTrk branch if so
+ cmpi.w #SS_Reset,d0 is it a restore call?
+ beq.s Restore branch if so
+GetStat move.w #E$UnkSvc,d1 flag unknown service code
+ ori #Carry,ccr flag error
+ rts
+
+Restore
+ tst.b V_Init(a2) has controller been initialized?
+ bne.s Rest10 branch if so
+ bsr.s InitDriv Init Controller
+ move.b #1,V_Init(a2) flag drive initialized
+Rest10 move.b #C$RSTR,d1 do restore command
+ moveq #0,d2 fake low sector #
+ bra.s Execute execute command and exit
+ 
+
+***************
+*
+* WriteTrk 
+*
+* Write track buffer to disk
+** ***
+
+WriteTrk
+ btst #FmtDis_B,PD_Cntl+1(a1) enable formatting?
+ beq.s WritTk11 branch if so
+ move.w #E$Format,d1 flag bad mode
+ ori #Carry,ccr exit with flag
+ rts
+
+WritTk11 tst.b V_Init(a2) has controller been initialized?
+ bne.s WritTk10 branch if so
+ bsr InitDriv Init Controller
+ move.b #1,V_Init(a2) flag drive initialized
+WritTk10 movea.l PD_RGS(a1),a4 point to users reg stack
+ move.l R$d2(a4),d2 track zero get track #
+ bne.s WrtTrkEx exit if not
+ move.b R$d3+2(a4),d1 is it side 0
+ bne.s WrtTrkEx exit if not
+
+WritTk20
+ moveq #C$FRMT,d1 get format code
+WritTk21 move.b R$d4+3(a4),d3 get interleve
+ bsr.s Execute do the format
+ bcc.s WrtTrkEx exit if no errors
+ cmp.b #E$Seek,d1 can we continue?
+ bne.s WrtTrkEr branch if not
+ move.l V_ERCODE(a2),d2 valid controller address?
+ bpl.s WrtTrkEr branch if not
+ andi.l #$001FFFE0,d2 get even track #
+ addi.l #32,d2 continue with next track
+ bra.s WritTk20 do command again
+
+WrtTrkEx moveq #0,d1 clear error
+ rts
+
+WrtTrkEr ori #Carry,ccr flag error
+ rts
+
+ pag
+***********
+*
+*     Execute-Wait For Drive Ready Then Execute
+*
+* Passed: (a1.l) = path descriptor
+*         (a2.l) = device static storage
+*         (a5.l) = buffer pointer
+*         (d1.b) = Command Code
+*         (d2.l) = Logical Sector Number
+*         (d3.b) = # of sectors to transfer
+*
+* Returns: (CC) = Carry Set If Error
+*          (d1.b) = Error Code If Error, Else Unchanged
+*
+*
+
+Execute movem.l d2-d4/a0/a3-a5,-(a7) Save These
+ movea.l PD_DTB(a1),a0 point to current drive table
+ move.b PD_DRV(a1),d0 Get Logical Unit Number
+ cmp.b V_CurDrv(a2),d0 same drive as before?
+ beq.s Exec25 branch if so
+ cmp.b V_NDRV(a2),d0 drive in range?
+ bhs.s BadDrive branch if so
+ move.b d0,V_CurDrv(a2)
+Exec25 move.l DD_TOT(a0),d0 get total # of sectors
+ lsr.l #8,d0 adjust for 3 byte value
+* begin ed.10 change
+ andi.l #0xff,d3 strip to just the number of sectors
+ move.l d3,-(sp)  save on the stack
+ add.l d2,(sp) look at last sector being read  (ed 7 )
+ cmp.l (sp)+,d0 sector out of range?
+* end change to ed.10
+ bls.s SectErr branch if so
+ movea.l V_PORT(a2),a3 pointer to port
+ bsr.s SetUp Set Up The Command Buffer
+ bsr.s Command Execute The Command
+ExecExit movem.l (a7)+,d2-d4/a0/a3-a5
+ rts
+
+
+SectErr move.w #E$Sect,d1 flag sector out of range
+ ori #Carry,ccr
+ bra.s ExecExit exit with error
+
+BadDrive move.w #E$Unit,d1
+ ori #Carry,ccr
+ bra.s ExecExit exit with error
+
+ PAG
+***********
+*
+*     Set Up Command Buffer
+*
+*     This subroutine sets up the command buffer using the
+* regs passed by the caller.
+*
+* Passed: (d3.l) = number of sectors to transfer (<256)
+*         (d2.l) = logical sector # (MSByte always 0)
+*         (d1.b) = Command Code
+*         
+* Returns: Nothing
+*
+
+SetUp move.l d2,V_CMD(a2) buffer the logical sector #
+ move.b d1,V_CMD(a2) buffer command
+ move.b d3,V_BLKS(a2) Number Of Blocks (Default)
+ move.b PD_DRV(a1),d2 get drive #
+ lsl.b #5,d2 adjust drive #
+ or.b V_ADDR0(a2),d2 Or Into MSB's Of Address
+ move.b d2,V_ADDR0(a2)
+ move.b PD_STP(a1),V_OPTS(a2) Load The Standard Option Byte
+ rts Return
+
+ PAG
+***********
+*
+*      Command-Execute Command in Command Buffer
+*
+*      This subroutine executes the command which is
+* currently in the command buffer.  This subroutine has
+* another sub-subroutine so that it can call itself to get
+* error details.
+*
+* Passed: (a1.l) = Address Of Path Descriptor
+*         (a2.l) = Static storage
+*         (a3.l) = Port Address
+*         (a5.l) = Buffer Pointer
+* Returns: (CC) = Carry Set If Error
+*          (d1) = Error Code If Error
+*
+*
+
+Command
+ move.w #$0100,d6 get sector size
+ lea V_CMD(a2),a0 point to command buffer
+ moveq #0,d1 clear d1
+ move.b 4(a0),d1 get # of sectors
+ mulu d1,d6 multiply by # of sectors
+ subq.l #1,d6 adjust for dbra
+
+* Here To Execute Command With Data Buffer Pointed By a5
+*
+
+Cmnd05 btst #Busy_Bt,Status(a3) busy?
+ beq.s Cmnd05 branch if not
+ move.b #1,SASIData(a3) select cntlr 1
+Cmnd10 bset #Sel_Bt,Status(a3) Wake Up The Controller
+ btst #Busy_Bt,Status(a3)
+ bne CmndErr exit with error
+ bclr #Sel_Bt,Status(a3)
+Cmnd20 btst #Req_Bt,Status(a3) requesting command?
+ beq.s Cmnd20 branch if not
+
+* move data bytes to controller
+
+MoveCmnd
+ move.b (a0),d3 save command to execute
+ ifeq IRQ_Used-Included
+ moveq #4,d4 move 4 commands
+ else
+ moveq #5,d4 move 5 commands
+ endc
+
+MoveCm10 btst #Req_Bt,Status(a3) requesting command?
+ beq.s MoveCm10 branch if not
+ move.b (a0)+,SASIData(a3)
+ dbra d4,MoveCm10 branch if more data to move
+
+* Wait for command ready
+
+ ifeq IRQ_Used-Included
+ move.w V_BUSY(a2),V_WAKE(a2) get ready for wakeup
+ move.b #EnblData,Status(a3) enable irqs
+ move.b (a0)+,SASIData(a3) move last command
+WaitIRQ moveq #0,d0 sleep forever
+ OS9 F$Sleep sleep waiting for irq
+ tst.w V_WAKE(a2) valid wake-up
+ bne.s WaitIRQ branch if not
+
+ else
+WaitCmnd btst #Cmnd_Bt,Status(a3) in command mode?
+ bne.s WaitCmnd branch if so
+
+WaitDone
+ moveq #1,d0 give up time slice
+ OS9 F$Sleep
+ move.b Status(a3),d0 get controller status
+ btst #Req_Bt,d0 ready to move data?
+ beq.s WaitDone branch if not
+ endc
+ lea SASIData(a3),a0 point at data port
+ andi.b #InptOtpt!CmndData!Message,d0
+ cmpi.b #InptOtpt!CmndData,d0 do we read status?
+ beq.s TranDone branch if so
+ btst #Inp_Bt,d0 doing input?
+ bne.s ReadReq branch if so
+ 
+
+* fall through to Write.
+
+ pag
+
+**************
+
+
+*
+*      WriteReq-Send Data From Buffer To Controller
+*
+*      This subroutine sends data from the buffer pointed
+* by the value stored at DATPTR until the flags change.
+*
+*
+
+ cmpi.b #C$MINI,d3 are we moveing drive params?
+ bne.s WriteReq branch if not
+ move.w #0007,d6 only move 8 bytes
+WriteReq
+ btst #Req_Bt,Status(a3) data ready?
+ beq.s WriteReq branch if not
+ move.b (a5)+,(a0) Get a Data Byte
+ dbra d6,WriteReq
+ bra.s TranDone check for errors and exit
+
+***************
+*
+*      ReadReq-Get Data From Controller
+*
+*      This subroutine takes data from the controller and
+* stores it in the buffer pointed by a5
+*
+
+
+ReadReq
+ReadReq10 cmpi.b #C$RDET,d3 is it a request sense status
+ beq.s ReadErRq branch if so
+ReadRe20
+ btst #Req_Bt,Status(a3) data ready?
+ beq.s ReadRe20 branch if not
+ move.b (a0),(a5)+ get data from controller
+ dbra d6,ReadRe20 branch if more to move
+ bra.s TranDone check for errors and exit
+
+* this routine only moves 1
+
+ReadErRq moveq #3,d6 move 4 bytes
+ReadEr20 btst #Req_Bt,Status(a3) data ready?
+ beq.s ReadEr20 branch if not
+ move.b (a0),(a5)+ move data from controller to memory
+ dbra d6,ReadEr20 branch if more data to move
+ 
+* read completion bytes
+
+TranDone btst #Req_Bt,Status(a3) a read status request?
+ beq.s TranDone branch if not
+ move.b SASIData(a3),d0 get status byte
+TranDo10 btst #Req_Bt,Status(a3) a read status request?
+ beq.s TranDo10 branch if not
+ tst.b SASIData(a3) read completion byte
+ btst #ErrStat,d0 any errors?
+ beq.s CmndExit branch if not
+
+*Here For Error Processing
+*
+
+StatReq move.b #C$RDET,V_CMD(a2) Request Error Details
+ lea V_CMD(a2),a0 Point To The Command Buffer
+ lea V_ERCODE(a2),a5 Point At Error Buffer
+ bsr Cmnd10 Get The Details
+ move.b V_ERCODE(a2),d0 Get The Error Code
+ andi.b #$3F,d0 Mask Out Address Valid
+ cmpi.b #1,PD_Trys(a1)
+ beq.s StatRe05
+ cmp.b #$18,d0 correctable error?
+ beq.s CmndExit branch if so
+StatRe05 lea ErrorTbl(pcr),a0 Point At The Error Table
+ bra.s StatRe20
+StatRe10 cmp.b d1,d0 do error codes match?
+ beq.s StatRe30 branch if so
+ lea 2(a0),a0 skip to next entry
+StatRe20 move.b (a0),d1 get controller error #
+ bpl.s StatRe10 branch if not end of table
+StatRe30 moveq #0,d1 clear for error code
+ move.b 1(a0),d1 move errorcode to d1
+ ori #Carry,ccr flag error
+CmndExit rts
+
+CmndErr move.w #E$NotRdy,d1 flag unit not ready
+ ori #Carry,ccr
+ rts
+
+***************
+* Error translation table
+*  The first byte being the SASI controller code & the
+*  second byte is the corresponding OS-9 error code.
+
+ErrorTbl equ *
+ dc.b $00,E$NotRdy
+ dc.b $01,E$NotRdy
+ dc.b $02,E$Seek no seek complete from dsk drv
+ dc.b $03,E$WP write fault from dsk drv
+ dc.b $04,E$NotRdy drive not ready
+ dc.b $06,E$Seek track 00 not found
+ dc.b $08,E$Seek drive still seeking 
+ dc.b $10,E$Read ID field read error
+ dc.b $11,E$Read uncorrectable data error
+ dc.b $12,E$Seek address mark not found
+ dc.b $14,E$Seek not found
+ dc.b $15,E$Seek seek error
+ dc.b $18,E$Seek seek error
+ dc.b $19,E$Seek bad track flag detected
+ dc.b $1A,E$BTyp format error
+ dc.b $1C,E$Seek illegal alt. tk access
+ dc.b $1D,E$Seek bad alternate track
+ dc.b $1E,E$Seek not an alternate track
+ dc.b $1F,E$Seek alt. tk same as bad
+ dc.b $20,E$Unit invalid command
+ dc.b $21,E$Sect illegal disk address
+ dc.b $30,E$DevBsy ram diagnostic failure
+ dc.b $31,E$DevBsy program memory checksum err
+ dc.b $32,E$DevBsy ecc diagnostic failure
+ dc.b $FF,E$WP flag for end of table
+
+
+
+ PAG
+**************
+*
+*      DiskIRQ-Interrupt Service Routine
+*
+* Passed: 
+*         (a2) = Device Static Storage
+*         (a3) = port address
+*
+* Returns: cc=carry clear
+
+DiskIRQ
+ ifeq IRQ_Used-Included
+ move.b #0,Status(a3) disable irqs
+ move.w V_WAKE(a2),d0 waiting for irq
+ beq.s IRQError branch if not
+ clr.w V_WAKE(a2) flag irq serivced
+ moveq #S$Wake,d1 wake up waiting process
+ OS9 F$Send send signal
+IRQError moveq #0,d1 Interrupt Serviced
+ rts
+ endc
+
+ ends
+

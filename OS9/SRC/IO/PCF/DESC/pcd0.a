@@ -1,0 +1,8 @@
+ nam PCD0 Device Descriptor
+ use defsfile
+
+ use "pcfdesc.a"
+
+DrvNum set 0
+ DiskPCD0
+ ends

@@ -1,0 +1,20 @@
+#
+# INTERNET NETWORK NAMES
+#
+# format:  <Name> <IP-Network-Address> [<Alias1> <Alias2> ...]
+# 
+#
+
+
+#
+# specially-defined internet network names
+#
+loopback	127			# local (software loopback) network
+private-A	10			# private class-A network
+private-B	172.16		# private class-B network
+private-C	192.168.0	# private class-C network
+
+#
+# local network names
+#
+localnet	192.52.109	# local network name

@@ -1,0 +1,1377 @@
+ nam I/O for CD2401
+ ttl Cirrus Logic CD2401 Low level console I/O
+
+* Copyright 1991, 1993, 1994 by Microware Systems Corporation
+* Reproduced Under License
+
+* This source code is the proprietary confidential property of
+* Microware Systems Corporation, and is provided to licensee
+* solely for documentation and educational purposes. Reproduction,
+* publication, or distribution in any form to any party other than
+* the licensee is strictly prohibited.
+
+
+********************
+* Edition History
+*
+* Ed.   Date.    Reason                                           Who
+* --  --------  ------------------------------------------------- ---
+* 00  91/05/21  what the data sheet says                          Rwb
+* 01  91/09/12  start of what the hardware really does            wwb
+* 02  91/09/17  back to cold-start issues                         wwb
+* 03  91/09/25  trim, taught(sic) & terrific.                     wwb
+* 04  91/09/26  improved irq polling issues.                      wwb
+* 05  91/09/26  fixed pernishously bad vsect storage bungle.      wwb
+* 06  91/09/27  made output buffering be for only one character.  wwb
+*               made irq servicing more efficient.                wwb
+*               fixed static storage allocation problems.         wwb
+* 07  91/09/30  skipped (testing version: r1.7)                   wwb
+* 08  91/09 30  let's see if an interrupt driven version (as      wwb
+*               opposed to the psuedoirq version) will work.
+* 09  91/09/30  abandon ed8 (r1.9):  back to psuedo modes.        wwb
+*               added SaveState call to ConsInit.                 wwb
+* 10  91/10/08  fixed problem in InChChek (thanks Rwb)            wwb
+* 11  91/10/10  fixed problem with flow-control.                  wwb
+* 12  91/10/13  Added explicit handling of X-On X-Off             Rwb
+* 13  91/10/21  removed testing hooks.                            wwb
+* 14  91/10/30  ConsDeIn nows delays before calling RestoreState. Rwb
+*               (issue on rev7 silicon).
+* 15  91/11/05  clean-up pass (no code changes).                  wwb
+* 16  91/11/13  still more problems with Rev7 silicon.  Changes   wwb
+*               made to delays/init sequences.  Added flag to
+*               record silicon revision.
+* 17  91/11/22  cleanup pass for release.                         wwb
+*                ---- VME167 V2.4 Release ----
+* 18  93/07/09  reworked for MWOS structure.                      wwb
+* 19  93/08/27  added cache disable code (old mask problems).     wwb
+*                ---- OS-9/68K V3.0 Release ----
+* 20  94/04/19  started mods for MVME177 support.                 wwb
+* 21  94/06/01  fixed problem with echoing of inchars (created    wwb
+*               in ed18/19 - sorry).
+* 22  94/06/08  reworked CACR caring for 68060.                   wwb
+* 23  94/10/12  ensure delay loop is entered after chip reset.    ats
+*                ---- OS-9/68K V3.0.2 Beta Release ----
+*                ---- OS-9/68K V3.0.2 Beta_2 Release ----
+*                ---- OS-9/68K V3.0.2 Release ----
+*                ---- OS-9/68K V3.1 Release ----
+* 24  99/07/15  Since no HW flow control, assertion of RTS/DTR    rkw
+*                signals added to enable standard cable use.
+*
+
+Edition set 24
+
+ psect iocd2401,0,0,Edition,0,0
+
+ use defsfile
+ use <cd2401.d>
+
+
+********************
+*  local definitions
+*
+
+CacheOff equ ^((1<<31)+(1<<15)) disable cache mask
+
+
+ ifndef VME167
+VME167 equ 167 default value for MVME167
+ endc
+
+ ifndef VME177
+VME177 equ 177 default value for MVME167
+ endc
+
+ ifeq (CPUType-VME167)*(CPUType-VME177)
+
+* VME167 uses PCC2 device to route irqs and set levels
+*
+PCC2 set 1 define the label (value irrelevant)
+ endc
+
+TRUE equ 1
+FALSE equ 0
+
+ConsChan equ 0   Console port is always channel 0
+CommChan equ 1   Communications port is always channel 1
+SpecChd  equ $40 Special Character handling. (In-Band: transmit and recieve )
+SpecEn   equ $30 Enable for the special character registers (1 and 2)
+
+* mask which leaves valid receiver exceptions
+*
+m_RxExcp equ (1<<b_RISRl_oe)+(1<<b_RISRl_fe)+(1<<b_RISRl_pe)
+
+* interrupt enables
+*
+RxIntEn equ (1<<b_IER_ret)+(1<<b_IER_rxd)
+TxIntEn equ (1<<b_IER_txmty)+(1<<b_IER_txd)
+
+* Chip Commands
+*
+Rx_en equ (1<<b_CCmdR_enrc) Recevier enable
+Rx_da equ (1<<b_CCmdR_disrc)  Receiver disable
+Tx_en equ (1<<b_CCmdR_entx) Transmitter enable
+Tx_da equ (1<<b_CCmdR_distx)  Transmitter disable
+Ch_init equ (1<<b_CCmdR_initch) Initialize channel
+Ch_clr equ (1<<b_CCmdR_clrch) Clear channel
+ResetAll equ (1<<b_CCmdR_rstall) Reset ALL channels
+
+*  Bit flags for flow control (see FlowStat in static storage)
+*
+InHalt equ 0 input halted
+OutHalt equ 4 output halted
+
+* channel communications modes (can be over-ridden from systype.d)
+*
+* the default mode for each channel is:
+*
+*   9600 baud, 1 stop bit, no parity, 8 bit characters, XON/XOFF protocol
+*
+ ifndef ConsCOR1
+ConsCOR1 equ %00010000+CLEN_8 no parity, 8 bit data
+ endc COnsCOR1
+
+ ifndef ConsCOR3
+ConsCOR3 equ STOP1 1 stop bit
+ endc ConsCOR3
+
+ ifndef CommCOR1
+CommCOR1 equ %00010000+CLEN_8 no parity, 8 bit data
+ endc CommCOR1
+ 
+ ifndef CommCOR3
+CommCOR3 equ STOP1 1 stop bit
+ endc CommCOR3
+
+ConsRates equ (ConsClk<<16)+ConsBaud console clk src & baud rate
+CommRates equ (CommClk<<16)+ConsBaud comm port clk src & baud rate
+
+ ifdef PCC2
+* PCC definitions
+*
+PCCIrqs equ PCCchBase+PCCSCMicr PCC irq control latches
+
+* enable modem, transmit, receive psuedo irqs
+*
+PsIrqs equ 1<<b_PCCicr_IEN set pseudo irq mode
+
+ endc PCC2
+
+********************
+* Local Macro definitions
+*
+DELAY macro
+ move.l d0,-(sp)
+ move.w #50,d0
+delay_\@ dbra d0,delay_\@
+ move.l (sp)+,d0
+ endm
+
+CCmdR_DELAY macro
+
+* wait for chip command to complete
+*
+Cmdelay_\@ DELAY back off from the chip
+ tst.b CCmdR(a3) command completed ?
+ bne.s Cmdelay_\@ ..no; wait till so
+ endm
+
+RestDelay macro
+ movem.l d0/d1,-(sp) save regs
+ move.l #0x2000,d0 base factor
+ moveq.l #0,d1
+ move.b RCOR(a3),d1 get clock divisor
+ lsl.l d1,d0 adjust (roughly) for baud-rate
+RevDel_\@ subq.l #1,d0
+ bne.s RevDel_\@
+ movem.l (sp)+,d0/d1
+RevDelXt_\@ equ *
+ endm
+
+
+ pag
+************************************
+*  Static storage for the low
+*  level driver.
+*
+
+* per channel storage offsets
+*
+ vsect
+
+* Channel status 
+ org 0
+StValid do.b 1 Status for chip channel 0 is valid
+ChanSt do.b 1 Receive/Transmit status for this channel
+Inter do.b 1 IER image
+SpCh1 do.b 1 Special Character 1
+SpCh2 do.b 1 Special Character 2
+Cor2 do.b 1 COR2 register image
+Cor3 do.b 1 COR3 register image
+IPErr do.b 1 Input Error Flag
+ParMask do.b 1 Parity mask
+StateSize equ . State only saved for channels 2 & 3
+RsRv.1 do.b 3 Reserved (alignment)
+
+* buffer management  (only for console and communications port)
+*
+IPStart do.l 1 I/P buffer:  buffer start
+IPEnd do.l 1 I/P buffer:  buffer end
+IPNextIn do.l 1 I/P buffer:  next-in
+IPNextOut do.l 1 I/P buffer:  next-out
+IPCount do.l 1 I/P buffer:  current count
+IPSize do.l 1 I/P buffer:  maximum size
+
+OPBuff do.b 1 O/P buffer (single char)
+OPBusy do.b 1 O/P buffer busy flag (TRUE = busy)
+FlowStat do.b 1 Input/Output Flow controls
+RsRv.2 do.b 1 Reserved (alignment)
+
+SSize equ . Full size state and buffer allocations
+
+* input buffer sizes
+*
+StdBf equ 16  This is a 16 character buffer 
+ExtBf equ 256 This is the extended buffer for Communications input
+
+*  Static storage declaration
+*
+PortAd: ds.l 1         absolute address of the CD2401
+ConSP:  ds.b SSize     Storage for Channel 0  (Console)
+ComSP:  ds.b SSize     Storage for Channel 1  (Comm)
+Chan2:  ds.b StateSize These are only large enough to save state.
+Chan3:  ds.b StateSize
+CARState: ds.b 1       CAR state
+ChipRev: ds.b 1        silicon revision
+
+ ifdef PCC2
+PCCState: ds.b 3       PCC irq control states
+ endc PCC2
+
+* Since the chip contains virtual registers rather that real registers
+* we operate in a pseudo-interrupt mode.  These are the buffers for the
+* console and communications port (input only)
+*
+Ch0IBuf: ds.b StdBf  16 byte input queue
+Ch1IBuf: ds.b ExtBf  256 bytes (enough for two lines of S-record and some spare)
+ ends
+
+* Flow control defs
+*  Note:  because of these defs,  only comm port affected.  This should not
+*  be a problem unless they download through the terminal port.  The fact
+*  that the terminal port is thus unsuited to download should be noted in
+*  the port notes.
+HighWater equ ExtBf-64
+LowWater equ ExtBf-128
+
+ pag
+**************
+* Subroutine:  ConsInit
+*   Inititialize Console Port for non-interrupt I/O
+*
+* Note:  Called once by Boot.a, must do full setup.
+*
+* Passed: none
+* Returns: none
+* Destroys: cc
+
+ConsInit: movem.l d0/a3/a6,-(sp) save regs
+ subq.l #8,a7 get scratch
+ move.w sr,0(sp) save irq masks
+ ori.w #IntMask,sr mask all interrupts
+ movec cacr,d0 get current cacr
+ move.l d0,4(a7) save it
+ cpusha bc flush caches
+ andi.l #CacheOff,d0 turn off cache enable flags
+ nop wait for all writes to complete
+ movec d0,cacr disable caching
+ move.l MemList(pc),a6 address of the start of memory 
+
+ ifdef PCC2
+* initialize PCC irq handler
+*
+ movea.l #PCCIrqs,a3 pointer to PCC's irq controls
+ move.b #PsIrqs,d0 set pseudo irq mode
+ move.b d0,(a3)+ set Modem
+ move.b d0,(a3)+ set Tx
+ move.b d0,(a3) set Rx
+ 
+ endc PCC2
+
+ move.l ConsPort(pc),d0 get the address of the port
+ move.b #0,d0 form hardware base address
+ move.l d0,PortAd(a6) save the address in static storage
+ move.l d0,a3 set hardware base address
+
+* reset all channels
+*
+ move.b #ResetAll,CCmdR(a3) issue full chip reset
+
+* setup channel buffer pointers
+*
+ moveq.l #ConsChan,d0 set console channel
+ bsr SetBuffs setup buffer management for console
+ moveq.l #CommChan,d0 set communications channel
+ bsr SetBuffs setup buffer management for comm port
+
+* bra.s ResetChk wait for chip reset to take
+ 
+ResetChip move.w #1023,d0 get delay factor
+ResetWait dbra d0,ResetWait allow chip to accept command
+ResetChk move.b GFRCR(a3),ChipRev(a6) get chip rev when cmd completed
+ beq.s ResetChip ..not finished; wait some more
+
+* chip reset now done, initialize default modes
+*
+ bsr FullInit setup default chip modes
+ bsr SaveState save the state of the channels
+
+ move.l 4(a7),d0 get saved cacr state
+ movec d0,cacr restore it
+ move.w 0(sp),sr restore irq masks
+ addq.l #8,a7 toss scratch
+ movem.l (sp)+,d0/a3/a6 restore regs
+ rts
+
+ pag
+******************************************************
+* Subroutine ConsSet
+* Initialize Console Port for non-interrupt I/O
+*
+*  Note:  Called by the Debuggers at each entry.
+*         Note that we should not attempt to change baud-rate,
+*         stop-bits, char. length.
+*
+* Passed: none
+* Returns: none
+* Destoys: cc
+*
+ConsSet: movem.l d1-d2/a3/a6,-(sp)
+ subq.l #8,a7 get scratch
+ move.w sr,0(sp) save irq masks
+ ori.w #IntMask,sr mask all interrupts
+ movec cacr,d1 get current cacr
+ move.l d1,4(a7) save it
+ cpusha bc flush caches
+ andi.l #CacheOff,d1 turn off cache enable flags
+ nop wait for all writes to complete
+ movec d1,cacr disable caching
+ move.l MemList(pc),a6 address of the start of memory 
+ move.l PortAd(a6),a3 get the address of the port
+ bsr SaveState save the state of the chip
+ moveq.l #ConsChan,d1 channel in use for console
+ moveq.l #FALSE,d2 keep current communication modes
+
+CommonInit: bsr ChanInit set up this channel
+ bsr PseudoInt service any outstanding requests
+ move.l 4(a7),d1 get saved cacr state
+ movec d1,cacr restore it
+ move.w 0(sp),sr restore irq masks
+ addq.l #8,a7 toss scratch
+ movem.l (sp)+,d1-d2/a3/a6 restore regs
+ rts
+
+
+**************
+* Subroutine:  PortInit
+*   Inititialize Communications Port for non-interrupt I/O
+*
+* Note:  Called debuggers for talk-through and download
+*        This call always establishes the communication mode
+*        to the default.
+*
+* Passed: none
+* Returns: none
+* Destroys: cc
+*
+PortInit: movem.l d1-d2/a3/a6,-(sp)
+ subq.l #8,a7 get scratch
+ move.w sr,0(sp) save irq masks
+ ori.w #IntMask,sr mask all interrupts
+ movec cacr,d1 get current cacr
+ move.l d1,4(a7) save it
+ cpusha bc flush caches
+ andi.l #CacheOff,d1 turn off cache enable flags
+ nop wait for all writes to complete
+ movec d1,cacr disable caching
+ move.l MemList(pc),a6 address of the start of memory 
+ move.l PortAd(a6),a3 get the address of the port
+ moveq.l #CommChan,d1 channel in use for communications
+ 
+ move.b d1,CAR(a3) set channel in use
+ DELAY
+ tst.b IER(a3) does this channel have parameters ?
+ bne.s PortInit_10 ..yes; skip full re-init
+ moveq.l #TRUE,d2 do full channel init
+ bsr ChanInit init the channel
+PortInit_10 moveq.l #FALSE,d2 keep current communications modes
+ bra.s CommonInit
+
+ pag
+***************
+* Subroutine: InChChek & ChekPort
+*   Check for input characters ready at port.
+*
+* Passed: none
+* Returns: (d0.l): -1 indicates no character available, else character.
+*
+InChChek: movem.l d7/a3/a5-a6,-(sp) save regs
+ moveq.l #ConsChan,d0 set console port
+ bra.s InChCkCom
+
+ChekPort: movem.l d7/a3/a5-a6,-(sp) save regs
+ moveq.l #CommChan,d0 set communications port
+
+InChCkCom: subq.l #8,a7 get scratch
+ move.w sr,0(sp) save irq masks
+ ori.w #IntMask,sr mask all interrupts
+ movec cacr,d7 get current cacr
+ move.l d7,4(a7) save it
+ cpusha bc flush caches
+ andi.l #CacheOff,d7 turn off cache enable flags
+ nop wait for all writes to complete
+ movec d7,cacr disable caching
+
+ move.l MemList(pc),a6 pointer to beginning of memory
+ move.l PortAd(a6),a3 pointer to the hardware
+ bsr PseudoInt check for interrupts to handle
+ bsr GetStatStg get static storage ptr into a5
+ move.b d0,CAR(a3) set channel in use
+ DELAY
+ moveq.l #-1,d0 assume no characters present
+ tst.l IPCount(a5) are we correct?
+ beq.s InChExit yes
+ bsr Dequeue get available char
+InChExit: move.l 4(a7),d7 get saved cacr state
+ movec d7,cacr restore it
+ move.w 0(sp),sr restore irq masks
+ addq.l #8,a7 toss scratch
+ movem.l (sp)+,d7/a3/a5-a6
+ rts
+ 
+********************
+* Subroutine OutChar
+*
+* Output one character to console
+*
+* Passed: (d0.b)=char to write
+*
+OutChar:
+
+* We need to emit a LF for each CR sent out...
+*
+ cmpi.b #C$CR,d0 output CR ?
+ bne.s OutRaw if not CR, just output the character
+ bsr.s OutRaw execute as a subroutine for the CR
+ move.l d0,-(sp) save the register
+ moveq.l #C$LF,d0 insert LF into the stream
+ bsr.s OutRaw execute as a subroutine for the LF
+ move.l (sp)+,d0 restore register
+ rts return
+
+
+********************
+* Subroutine OutRaw
+*   Output one character to Acia
+*
+* Passed: (d0.b)=char to write
+* Returns: none
+
+OutRaw: movem.l d0-d2/a3/a5-a6,-(sp) save regs
+ moveq.l #ConsChan,d0 set console port
+ bra.s OutRawCom
+
+OutPort: movem.l d0-d2/a3/a5-a6,-(sp) save regs
+ moveq.l #CommChan,d0 set communications port
+
+TheChar set 0 offset on stack to char to write
+
+OutRawCom: subq.l #8,a7 get scratch
+
+TheChar set TheChar+8 track stacking
+
+ move.w sr,0(sp) save irq masks
+ ori.w #IntMask,sr mask all interrupts
+ movec cacr,d2 get current cacr
+ move.l d2,4(a7) save it
+ cpusha bc flush caches
+ andi.l #CacheOff,d2 turn off cache enable flags
+ nop wait for all writes to complete
+ movec d2,cacr disable caching
+ move.l MemList(pc),a6 pointer to beginning of memory
+ move.l PortAd(a6),a3 pointer to the hardware
+ move.b d0,CAR(a3) set channel in use
+ DELAY
+ bsr GetStatStg get static storage into a5
+ move.l TheChar(sp),d0 get the character to be sent
+ bsr Enqueue enqueue the character and enable transmit
+ move.l 4(a7),d2 get saved cacr state
+ movec d2,cacr restore it
+ move.w 0(sp),sr restore irq masks
+ addq.l #8,a7 toss scratch
+ movem.l (sp)+,d0-d2/a3/a5-a6 restore regs
+ rts
+
+ pag
+***************
+* Subroutines: InChar & InPort
+*   Return one (upper case) byte of input from the Acia
+*
+* Passed: none
+* Returns: (d0.b)=input char
+* Destroys: cc
+
+InChar: movem.l d7/a3/a5-a6,-(sp) save regs
+ moveq.l #ConsChan,d0 set for Console Port
+ bra.s InCharCom
+
+InPort: movem.l d7/a3/a5-a6,-(sp) save regs
+ moveq.l #CommChan,d0 set for Communications Port
+
+InCharCom subq.l #8,a7 get scratch
+ move.w sr,0(sp) save irq masks
+ ori.w #IntMask,sr mask all interrupts
+ movec cacr,d7 get current cacr
+ move.l d7,4(a7) save it
+ cpusha bc flush caches
+ andi.l #CacheOff,d7 turn off cache enable flags
+ nop wait for all writes to complete
+ movec d7,cacr disable caching
+ move.l MemList(pc),a6 pointer to beginning of memory
+ move.l PortAd(a6),a3 pointer to the hardware
+ move.b d0,CAR(a3) set channel in use
+ DELAY
+ bsr GetStatStg get static storage into a5
+ bsr PseudoInt check for interrupts to handle
+ bsr Dequeue get a character
+
+ ifndef ROMBUG
+ cmpi.b #'a',d0 lower case?
+ blo InChCom_10 continue if not
+ cmpi.b #'z',d0 lower case?
+ bhi InChCom_10 continue if not
+ subi.b #('a'-'A'),d0
+ endc
+
+InChCom_10 bsr OutChar echo the character
+ bra InChExit begin exit
+ 
+ pag
+***************
+* Subroutine: ConsDeInit
+*   DeInitialize Console Port, for this device, restore the state of the
+*    chip.
+*
+* Passed: none
+* Returns: none
+* Destroys: cc
+*
+ConsDeIn: movem.l d7/a3/a5/a6,-(sp) save regs
+ subq.l #8,a7 get scratch
+ move.w sr,0(sp) save irq masks
+ ori.w #IntMask,sr mask all interrupts
+ movec cacr,d7 get current cacr
+ move.l d7,4(a7) save it
+ cpusha bc flush caches
+ andi.l #CacheOff,d7 turn off cache enable flags
+ nop wait for all writes to complete
+ movec d7,cacr disable caching
+ move.l MemList(pc),a6 pointer to beginning of memory
+ move.l PortAd(a6),a3 pointer to the hardware
+ move.b #ConsChan,CAR(a3) direct the chip to the console channel
+ DELAY allow select settle
+ConsDeInWt: bsr PseudoInt check for interrupts pending
+ btst.b #b_IER_txmty,IER(a3) still outputting a character?
+ bne.s ConsDeInWt ..yes; wait till finished
+
+* delay about 2mS (Rev 7 silicon issue)
+*
+ move.l d0,-(sp) save reg
+ move.l #0xc00,d0 about 2mS @ 33Mhz
+Rev7Delay subq.l #1,d0
+ bne.s Rev7Delay
+ move.l (sp)+,d0
+ bsr PseudoInt service any pending irqs
+ bsr RestoreState restore chip state
+ConDeXt: move.l 4(a7),d7 get saved cacr state
+ movec d7,cacr restore it
+ move.w 0(sp),sr restore irq masks
+ addq.l #8,a7 toss scratch
+ movem.l (sp)+,d7/a3/a5/a6 restore regs
+ rts
+
+
+***********
+* Subroutine: PortDeIn
+*   DeInitialize Console Port, for this device, disable channel.
+*      If there was a previous state to restore, will be done
+*      by ConsDeInit.
+*
+* Passed: none
+* Returns: none
+* Destroys: cc
+*  
+PortDeIn: movem.l d7/a3/a5/a6,-(sp) save regs
+ subq.l #8,a7 get scratch
+ move.w sr,0(sp) save irq masks
+ ori.w #IntMask,sr mask all interrupts
+ movec cacr,d7 get current cacr
+ move.l d7,4(a7) save it
+ cpusha bc flush caches
+ andi.l #CacheOff,d7 turn off cache enable flags
+ nop wait for all writes to complete
+ movec d7,cacr disable caching
+ move.l MemList(pc),a6 pointer to beginning of memory
+ move.l PortAd(a6),a3 pointer to the hardware
+ move.b #CommChan,CAR(a3) direct the chip to the communications channel
+ DELAY allow select settle
+
+PortDeInWt: bsr PseudoInt check for interrupts pending
+ btst.b #b_IER_txmty,IER(a3) still outputting a character?
+ bne.s PortDeInWt ..yes; wait till finished
+ move.b #0,IER(a3) disable all interrupts from this channel
+ CCmdR_DELAY wait for command to complete
+ move.b #(Rx_da+Tx_da),CCmdR(a3) disable and clear channel
+ CCmdR_DELAY wait for command to complete
+ bra ConDeXt begin exit
+
+ pag
+*******
+* Enqueue:  enqueue a character for the channel
+*
+*  Enter: (a3) = hardware
+*         (a5) = static storage pointer
+*         (a6) MemList
+*         d0.b = character to send
+*
+*  Returns: Character queued for output, all regs intact.
+*
+* NOTE:  CAR must be set to correct channel
+*
+Enqueue: 
+
+* buffer character and enable Tx irqs
+*
+EnqueOne
+ move.b d0,OPBuff(a5) buffer the character
+ st.b OPBusy(a5) flag buffer busy
+ ori.b #TxIntEn,IER(a3) enable transmitter interrupts
+ DELAY allow write to go
+EnqueFlush bsr PseudoInt Give it a chance to send the character right now
+ tst.b OPBusy(a5) data gone ?
+ bne.s EnqueFlush ..no; wait
+ rts
+
+
+*******
+*  Dequeue:  get a character from the device
+*
+*  Enter: (a3) = hardware
+*         (a5) = static storage pointer
+*         (a6) MemList
+*
+*  Returns: d0 is input character -- all other regs intact
+*
+Dequeue: movem.l d1/a0,-(sp)
+
+* check for a character, if none, wait for one.
+*
+DequeLoop: move.l IPCount(a5),d1 any waiting?
+ bne.s DequeOne
+ bsr PseudoInt allow for one to arrive
+ bra.s DequeLoop and try once again...
+
+* character is present, grab it
+*
+DequeOne: movea.l IPNextOut(a5),a0 pointer to next out
+ moveq.l #0,d0 sweep register
+ move.b (a0)+,d0 get the character
+ subq.l #1,d1 one less available
+ cmpa.l IPEnd(a5),a0 at end of queue?
+ bne.s DequeDn
+ movea.l IPStart(a5),a0 wrap to start
+
+* character in, update pointers and size
+*
+DequeDn move.l a0,IPNextOut(a5) next out
+ move.l d1,IPCount(a5) new size
+
+ cmpi.l #HighWater,d1 is it time to X-off?
+ bmi.s DequeDn.a not yet
+ move.l d0,-(sp)
+ moveq.l #C$XOff,d0
+ bsr.s Enqueue send an x-off
+ bset.b #InHalt,FlowStat(a5) mark input frozen
+ move.l (sp)+,d0
+ bra.s DequeDn.b
+DequeDn.a
+ btst.b #InHalt,FlowStat(a5) is input halted?
+ beq.s DequeDn.b no, not now
+ cmpi.l #LowWater,d1 is it time to X-On?
+ bmi.s DequeDn.b
+ move.l d0,-(sp)
+ moveq.l #C$XOn,d0 xon character
+ bsr Enqueue
+ bclr.b #InHalt,FlowStat(a5) clear halted flag
+ move.l (sp)+,d0
+
+DequeDn.b
+ bsr PseudoInt chance for more to come in...
+ movem.l (sp)+,d1/a0
+ rts
+ pag
+********************
+* FullInit:  setup all default ship modes
+*
+* Passed:  (a3) = hardware base address
+*          (a6) = global data ptr
+*
+FullInit:
+ movem.l d1/d2,-(sp) save regs
+ moveq.l #ConsChan,d1 set console channel
+ moveq.l #TRUE,d2 cold-start it
+ bsr.s ChanInit init the channel
+ moveq.l #CommChan,d1 set communications port
+ moveq.l #TRUE,d2 cold-start it
+ bsr.s ChanInit init the channel
+ movem.l (sp)+,d1-d2 restore regs
+ rts
+
+
+********************
+*  ChanInit:  initialize a channel of the CD2401 for use as com or console
+*
+*  Enter: (a3) = hardware base address
+*         (a6) = global data ptr
+*         d1.b = Channel number
+*         d2.b = TRUE: cold-start channel, FALSE: warm-start channel
+*
+*  Returns: none
+*  Destroys: none
+*
+ChanInit:
+ movem.l d0-d1/d3-d4/a5,-(sp) save regs
+ move.l d1,d0 channel number
+ bsr GetStatStg get channel's static storage ptr into a5
+ move.b d1,CAR(a3) Tell chip which channel
+ DELAY allow select settle
+
+ move.b #Rx_da+Tx_da,CCmdR(a3) disable Tx/Rx and clear status
+ CCmdR_DELAY wait for command to complete
+ 
+* check for "warm-start"
+*
+ tst.b d2 cold-start channel ?
+ beq CIWarm ..no; do warm-start
+
+* determine port and continue on....
+*
+ cmpi.b #ConsChan,d1 Console port?
+ bne.s CIComm nope, it's the comm port
+
+ move.l #ConsRates,d1 console clk source & baud rate
+ move.b #ConsCOR1,d3 get COR1 image
+ move.b #ConsCOR3,d4 get COR3 image
+ bra.s CICold
+
+* Set up the Comm port
+*
+CIComm move.l #CommRates,d1 communications port clk source & baud rate
+ move.b #CommCOR1,d3 get COR1 image
+ move.b #CommCOR3,d4 get COR3 image
+
+* perform channel initialization
+*
+CICold:
+
+* tell the chip how to run the channel
+*
+ move.b #CMR_asy,CMR(a3) set asynchronous mode
+ DELAY allow write to go
+
+ move.b #C$XOn,SCHR1(a3) set the special character registers
+ move.b #C$XOff,SCHR2(a3)
+ move.b d3,COR1(a3) set parity and stop bits
+ move.b d4,COR3(a3) set special char handling + char length
+ move.b #SpecChd,COR2(a3) Set the method of handling (transparent to software)
+
+* set baud rates, clocks, FIFO thresholds
+*
+ move.b d1,TBPR(a3) set Tx divisor
+ move.b d1,RBPR(a3) set Rx divisor
+ lsl.w #4,d1 set Rx timeout to 8 char periods
+ move.w d1,RTPRh(a3) set it
+ swap d1 get clock select
+ move.b d1,RCOR(a3) set Rx
+ lsl.b #b_TCOR_sel,d1 shift Tx into correct place
+ move.b d1,TCOR(a3) set Tx
+
+* set Tx FIFO threshold
+*
+ move.b COR4(a3),d0 read current settings
+ andi.b #^m_COR4_fifot,d0 mask off fifo threshold
+ move.b d0,COR4(a3) set threshold at 1
+ 
+ moveq.l #1,d0 as per chip doc.
+ move.b d0,PILR1(a3) set Modem/Timer irq
+ addq.l #1,d0
+ move.b d0,PILR2(a3) set Tx irq
+ addq.l #1,d0
+ move.b d0,PILR3(a3) set Rx irq
+
+ nop
+ DELAY make sure all writes done
+
+* (re-)initialize channel
+*
+ move.b #Ch_init,CCmdR(a3) init the channel
+ CCmdR_DELAY wait for command to complete
+
+* Assert modem status lines RTS/DTR for given channel, since no HW flow,
+*  they wont be set automatically. At the same time ensure that the 
+*  OPT bit (4) is clear.
+*
+* NOTE: The 167/177 have routed the DTR signal where the RTS signal
+*       normally connects to the VME P2 connector, so any HW flow needs 
+*       to use DTR instead or RTS. RTS is routed to the P2's DTR line on
+*       channels which bring the signal all the way out. 
+*
+*  #3 = b_MSRV_rtso+b_MSRV_dtro+~b_MSRV_dtr
+* 
+ move.b #3,MSVR_RTS(a3)	    Cause assertion of RTS for channel
+ move.b #3,MSVR_DTR(a3)  	Cause assertion of DTS for channel
+ nop                        let it happen
+
+* establish warm-start modes
+*
+CIWarm:
+
+ move.b #(Rx_en+Tx_en),CCmdR(a3) enable/init the channel
+ CCmdR_DELAY wait for command to complete
+
+* form current parity mode mask for Rx irqs
+*
+ move.b COR1(a3),d0 retrieve COR1 image
+ andi.b #m_COR1_len,d0 isolate character length
+ move.b #$FF,d1 assume 8 bit data
+ cmpi.b #CLEN_8,d0 good guess ?
+ beq.s CIWarm10 ..yes; continue
+ move.b #$7F,d1 assume 7 bit data
+ cmpi.b #CLEN_7,d0 good guess ?
+ beq.s CIWarm10 ..yes; continue
+ move.b #$3F,d1 assume 6 bit data
+ cmpi.b #CLEN_6,d0 good guess ?
+ beq.s CIWarm10 ..yes; continue
+ move.b #$1F,d1 must be 5 bit data
+CIWarm10 move.b d1,ParMask(a5) set channel parity mask
+
+* enable irq operation
+*
+ move.b #RxIntEn,IER(a3) and enable the Rx interrupts
+ movem.l (sp)+,d0-d1/d3-d4/a5 restore regs
+ rts
+
+ pag
+********************
+* SaveState:  This routine will save the state of the entire
+*             chip and set up the PCC such that interrupts form the 
+*             chip will not go to the processor but rather will go
+*             instead to the PCC.  (see PseudoInt:)
+*
+* Passed:  (a3) = hardware base address
+*          (a6) = global data ptr
+*
+* Returns:   none
+* Destroys:  none
+*
+SaveState:
+ movem.l d0-d1/a0/a5,-(sp) save regs
+
+ ifdef PCC2
+* save PCC2 irq states
+*
+ movea.l #PCCIrqs,a0 set base irq latch
+ lea.l PCCState(a6),a5 point at save area
+ moveq.l #3-1,d0 3 latches (-1 for dbra)
+SaveState05 move.b (a0)+,(a5)+ save current irq latches
+ move.b #PsIrqs,-1(a0) set pseudo irq mode for irq source 
+ dbra d0,SaveState05
+ 
+ endc PCC2
+
+* 
+*  If the system is running and an IRQ has been IACKed then the chip is
+*  in interrupt mode and we MUST service the channel before proceeding.
+*
+*  NOTE:  If an IACK is detected, we service the interrupt by sending a
+*         "no data transfered" end of interrupt.  In the case of the "F"
+*         rev of the chip,  the same interrupt should be resubmitted
+*         immediatly.  In the case of the "G" rev part the interrupt should
+*         be resubmitted in it's proper turn.  In any event,  the CAR should
+*         control the part after the EOI is sent as psuedoint will do the
+*         IACK cycles from this point on.
+*
+ btst.b #b_IR_mact,MIR(a3) has a modem interrupt been IACKed?
+ bne.s chtir no, check transmit interrupt register
+ move.b #0,MEOIR(a3) write Moded End of Interrupt
+chtir btst.b #b_IR_mact,TIR(a3) has a transmit interrupt been IACKed?
+ bne.s chrir no, check receiver interrupt register
+ move.b #(1<<b_TEOIR_noxfr),TEOIR(a3) write no data transfer EOI
+chrir btst.b #b_IR_mact,RIR(a3) has a receiver interrupt been IACKed?
+ bne.s statesave.a no, just proceed with state save
+ move.b #(1<<b_REOIR_noxfr),REOIR(a3) write no data transer EOI
+
+* save current CAR value
+*
+statesave.a
+ move.b CAR(a3),CARState(a6) save current CAR
+ 
+ moveq.l #0,d0 set channel 0
+ moveq.l #FALSE,d1 set no disable after state change
+ lea.l ConSP(a6),a5
+ bsr.s StateSnatch
+ addq.l #1,d0 set to next channel
+ lea.l ComSP(a6),a5
+ bsr.s StateSnatch
+
+* the next two channels are not used by the low level driver
+*  and as such are just disabled after their state is saved.
+*
+ addq.l #1,d0 set to next channel
+ moveq.l #TRUE,d1 signal disable when done
+ lea.l Chan2(a6),a5
+ bsr.s StateSnatch
+ addq.l #1,d0 set to next channel
+ lea.l Chan3(a6),a5
+ bsr.s StateSnatch
+ movem.l (sp)+,d0-d1/a0/a5 restore regs
+ rts
+ 
+***
+*  StateSnatch:  Grab the state of one channel
+*
+*  Enter: d0.b = channel number
+*         d1.b = TRUE: disable channel, FALSE: leave channel alone
+*         (a3) = hardware base address
+*         (a5) = Static Storage for the channel
+*
+*  Returns:  None
+*
+StateSnatch:
+ move.l a5,-(sp)
+ move.b d0,CAR(a3) set chip to the correct channel
+ DELAY allow select settle
+ tas (a5)+
+ bne.s SSNodisable was already done, just return.
+ move.b CSR(a3),(a5)+ get value of the channel status register
+ move.b IER(a3),(a5)+ interrupt enable register
+
+* channel was active, save the rest of the state.
+*
+StateSn1:
+ move.b SCHR1(a3),(a5)+ special character 1
+ move.b SCHR2(a3),(a5)+ special character 2
+ move.b COR2(a3),(a5)+ channel options
+ move.b COR3(a3),(a5)+ 
+ move.b #0,(a5)+ no errors as yet
+ tst.l d1 do we disable this channel?
+ beq.s SSNodisable
+
+* if flag is set, disable the channel
+*
+ move.b #0,IER(a3) disable interrupts from this channel!
+ move.b #(Rx_da+Tx_da),CCmdR(a3) tell chip to disable the channel
+ CCmdR_DELAY wait for command to complete
+
+SSNodisable movea.l (sp)+,a5 restore reg
+ rts and back to caller with state preserved
+
+ pag
+********************
+* RestoreState:  restore chip state to that found when initially called.
+*
+* Passed:  (a3) = hardware base address
+*          (a6) = global data ptr
+*
+RestoreState:
+ movem.l d0-d1/a0/a5,-(sp) save regs
+
+ ifeq 1 cut this out for now
+ moveq.l #0,d0 set channel 0
+ lea.l ConSP(a6),a5
+ bsr.s RestoreIt
+ addq.l #1,d0 set to next channel
+ lea.l ComSP(a6),a5
+ bsr.s RestoreIt
+ addq.l #1,d0 set to next channel
+ lea.l Chan2(a6),a5
+ bsr.s RestoreIt
+ addq.l #1,d0 set to next channel
+ lea.l Chan3(a6),a5
+ bsr.s RestoreIt
+ endc
+ 
+ moveq.l #3,d0 start at channel 3
+ lea.l Chan3(a6),a5
+ bsr.s RestoreIt
+ subq.l #1,d0 set to next channel
+ lea.l Chan2(a6),a5
+ bsr.s RestoreIt
+ subq.l #1,d0 set to next channel
+ lea.l ComSP(a6),a5
+ bsr.s RestoreIt
+ subq.l #1,d0 set channel 0
+ lea.l ConSP(a6),a5
+ bsr.s RestoreIt
+
+ ifdef PCC2
+* restore PCC irq state
+*
+ movea.l #PCCIrqs,a0 point at irq latches
+ lea.l PCCState(a6),a5 point at save area
+ moveq.l #3-1,d0 3 latches (-1 for dbra)
+Restore50 move.b (a5)+,(a0)+ restore irq latch states
+ dbra d0,Restore50
+ 
+ endc PCC2
+
+ move.b CARState(a6),CAR(a3) restore CAR state
+ movem.l (sp)+,d0-d1/a0/a5 restore regs
+ rts
+
+*  restore a single channel
+*
+RestoreIt:
+ move.l d1,-(sp) save register
+ move.b d0,CAR(a3) set chip to current channel
+ DELAY allow select settle
+
+* disable channel while restoring
+*
+ move.b #(Rx_da+Tx_da),CCmdR(a3) disable Rx/Tx
+ CCmdR_DELAY wait for command to complete
+ move.b SpCh1(a5),SCHR1(a3) special character 1
+ move.b SpCh2(a5),SCHR2(a3) special character 2
+ move.b Cor2(a5),COR2(a3) Channel options
+ move.b Cor3(a5),COR3(a3)
+ moveq.l #Ch_init,d1 always init channel
+ btst.b #b_CSR_rxen,ChanSt(a5) check for receiver enabled
+ beq.s RestoreNoRx ..no; skip enable
+ or.b #Rx_en,d1 tell to enable Rx
+RestoreNoRx
+ btst.b #b_CSR_txen,ChanSt(a5) check for transmitter enabled
+ beq.s RestoreNoTx ..no; skip enable
+ or.b #Tx_en,d1 tell to enable Tx
+RestoreNoTx
+ move.b d1,CCmdR(a3) enable/init channel
+ CCmdR_DELAY wait for command to complete
+ move.b Inter(a5),IER(a3) enable same interrupts as at entry
+
+* all done, just leave
+*
+ clr.b (a5) mark state restored
+ 
+ RestDelay allow things to settle out (Silicon Rev issues)
+ 
+ move.l (sp)+,d1 restore reg
+ rts
+
+ pag
+********************
+* PseudoInt:  This is the pseudo-interrupt handler for the chip.
+*             The device does not run in other than an interrupt mode.
+*             As such we have disabled the interrupts to the processor
+*             and must now poll the PCC to determine if an interrupt
+*             has occured.  At interrupt time we complete the IACK
+*             cycle by reading the appropriate PCC register for the
+*             interrupt that has occured.
+*
+* Actions:
+*    - Modem Irqs:    Ensure that these are disabled and send EOI.
+*    - Transmit Irqs: If console or comm port, the buffers are
+*                     checked and characters sent.  Transmit interrupts
+*                     disabled when nothing left to send.  OutChar and
+*                     OutPort will start enable pseudo-interruts
+*    - Receiver Irqs: If console or comm port, characters buffered
+*                     and must be taken by InChar or InPort. 
+*
+* Passed:  (a3) = hardware base address
+*          (a6) = global data ptr
+*
+
+ ifdef PCC2
+PseudoInt:
+
+ movem.l d0-d2/a0-a1/a5,-(sp)
+ move.l #PCCchBase,a1 get PCC2 base address
+PseudoLoop:
+ btst.b #b_PCCicr_INT,PCCSCRicr(a1) receiver interrupt?
+ bne.s Receiver ..yes; service it
+ btst.b #b_PCCicr_INT,PCCSCTicr(a1) transmitter interrupt?
+ bne Transmitter ..yes; service it
+ btst.b #b_PCCicr_INT,PCCSCMicr(a1) modem interrupt?
+ bne.s Modem ..yes; service it
+ movem.l (sp)+,d0-d2/a0-a1/a5
+ rts if it gets here, all have been serviced
+
+ else
+
+* Non-PCC2 interrupt servicing
+*
+* This represents an unknown hardware configuration, thus simply
+* signal to the driver writer that works needs to be done.
+*
+ fail IOCD2401 - Pseudo polling routine required
+ 
+ endc PCC2
+
+
+********************
+* Modem Interrupt - service the interrupt and disable it reguardless of
+*                   the channel on which it occured
+*
+* Passed:  (a1) = base address of external irq hardware
+*          (a3) = hardware base address
+*          (a6) = global data ptr
+*
+Modem:
+* acknowledge the irq to the serial chip
+*
+ ifdef PCC2
+ move.b PCCSCMPiak(a1),d0 read IACK register
+ DELAY
+ else
+ fail IOCD2401 - Modem irq acknowledge required
+ endc PCC2
+ 
+ move.b MIR(a3),d0 Read the status register
+ bclr.b #b_IER_mpcd,IER(a3) clear the interrupt enable for modem
+ move.b #(1<<b_TEOIR_noxfr),MEOIR(a3) send end of interrupt
+
+* delay for "end-of-interrupt" condition to take
+*
+WaitEOIR move.l d0,-(sp) save reg
+ move.w #20,d0 set delay
+WaitEOIR_10 dbra d0,WaitEOIR_10 do delay
+ move.l (sp)+,d0 restore reg
+ bra.s PseudoLoop and look for more to do
+ pag
+********************
+* Receiver Interrupt - process characters from FIFO until empty. If
+*                      console or Comm port, buffer them, else 
+*                      fill bitbucket and disable the interrupt
+*
+* Passed:  (a1) = base address of external irq hardware
+*          (a3) = hardware base address
+*          (a6) = global data ptr
+*
+Receiver:
+
+* acknowledge the irq to the serial chip
+*
+ ifdef PCC2
+ move.b PCCSCRPiak(a1),d0 perform IACK cycle for the chip
+ DELAY
+ else
+ fail IOCD2401 - Receiver irq acknowledge required
+ endc PCC2
+ 
+ move.b RISRl(a3),d1 read the interrupt status register
+ btst.l #b_RISRl_to,d1 was this the inevitable Receiver timeout?
+ beq.s Receive1 no, not this time
+ tst.b RFOC(a3) bytes in the fifo anyway?
+ bne.s Receive1 yes, must read them out
+ move.b #(1<<b_REOIR_noxfr),REOIR(a3) send no-transfer end-of-interrupt
+ bra.s WaitEOIR and see if more to do...
+
+* not receiver timeout, check for console and comm
+*
+Receive1
+ bsr GetStatic get the static storage pointer
+ bcc.s bfReceive continue if channel in use
+
+* Not a channel in use, service out and disable it
+*
+ move.b RFOC(a3),d1 FIFO count for this interrupt
+RecAirLoop
+ move.b RDR(a3),d0 read one character
+ subq.b #1,d1 one less to do
+ bne.s RecAirLoop ok, do it again
+
+* disable the unused channel
+*
+ move.b #0,IER(a3)  disable interrupts
+ move.b #0,REOIR(a3) flag end of interrupt
+ bra.s WaitEOIR go check for more to do
+
+* Comes here to buffer characters for the console and comm ports
+*  (a5) is static storage for the channel
+*   d1  is interrupt status
+*
+bfReceive:
+ andi.b #m_RxExcp,d1 only viable errors reported
+ move.b d1,IPErr(a5) set flag if any present
+ 
+* get the buffer information into registers
+*
+ move.l IPCount(a5),d2 number in buffer
+ move.l IPNextIn(a5),a0 next in location
+ move.b RFOC(a3),d1 number of bytes in the FIFO
+
+* loop until FIFO empty or buffer full
+*
+RCLoop:
+ move.b RDR(a3),d0 read one from the FIFO
+ and.b ParMask(a5),d0 strip parity bits
+ cmp.l IPSize(a5),d2 is the buffer full?
+ bhs.s RCBfull yes, don't buffer
+ addq.l #1,d2 add one to current count
+ move.b d0,(a0)+ put character in the buffer
+
+* check for buffer full and wrap if so.....
+*
+ cmpa.l IPEnd(a5),a0 at the end?
+ bne.s RCLoop1 not yet at the end
+ move.l IPStart(a5),a0 get the start address of the buffer
+
+RCLoop1:
+ move.l a0,IPNextIn(a5) preserve the next in pointer
+ move.l d2,IPCount(a5) save current size of the buffer
+
+RCBfull:
+ subq.b #1,d1 Is the FIFO empty as yet?
+ bne.s RCLoop no, at least have to read them out
+ move.b #0,REOIR(a3) signal EOI to the chip
+ bra WaitEOIR see if more to do
+ pag
+********************
+* Transmitter:  transmit characters till FIFO full
+*
+* Passed:  (a1) = base address of external hardware irq control
+*          (a3) = hardware base address
+*          (a6) = global data ptr
+*
+Transmitter:
+
+* acknowledge irq to serial chip
+*
+ ifdef PCC2
+ move.b PCCSCTPiak(a1),d0 perform IACK cycle for the chip
+ DELAY
+ else
+ fail IOCD2401 - Transmit irq acknowledge required
+ endc PCC2
+
+ move.b TISR(a3),d1 read transmitter status
+
+ bsr.s GetStatic get the static storage pointer
+ bcc.s bfTransmit continue if channel in use
+
+* not a channel we use, just disable and send EOI
+*
+ moveq.l #0,d1 signal disable channel interrupts
+ 
+TranDisable
+ move.b d1,IER(a3) disable required interrupts
+ move.b #(1<<b_TEOIR_noxfr),TEOIR(a3) no-transfer EOI
+ bra WaitEOIR see if more to do
+
+* send the data out
+*
+bfTransmit:
+ tst.b OPBusy(a5) data pending ?
+ bne.s Transmit10 ..continue if data to send
+
+* no data: disable Tx empty irqs
+*
+ move.b IER(a3),d1 get current irq settings
+ btst.b #b_TISR_te,TISR(a3) is the FIFO actually empty ?
+ beq.s TranDisable ..no; keep transmitter empty irqs enabled
+ andi.b #^TxIntEn,d1 disable Tx irqs
+ bra.s TranDisable go disable them
+
+Transmit10 
+ move.b OPBuff(a5),TDR(a3) send a character to the FIFO
+ sf.b OPBusy(a5) flag character sent
+ move.b #0,TEOIR(a3) send transmiter end of interrupt
+ bra WaitEOIR see if more to do
+ pag
+********************
+* GetStatic:   get static storage ptr associated with current irq.
+* GetStatStg:  get static storage associated with specified channel.
+*
+* Enter:  (a6) = global data ptr
+*         d0.b = Channel Number (GetStatStg only)
+*
+* Returns:  (cc) = Carry SET if not ConsChan or CommChan
+*           (a5) = static storage ptr for channel
+*
+* Destroys:  d0 (GetStatic entry)
+*
+GetStatic:
+ move.b LICR(a3),d0 find out which channel
+ andi.b #m_LICR_chan,d0 ... mask proper bits...
+ lsr.b #b_LICR_chan,d0 ...and shift to get channel number
+GetStatStg:
+ cmpi.b #ConsChan,d0 is it the console?
+ bne.s GetStaticCm
+ lea.l ConSP(a6),a5 get static storage to a5
+ rts
+
+* not the console, see if comm and proceed
+*
+GetStaticCm
+ cmpi.b #CommChan,d0 comm channel?
+ bne.s GetStaticErr not a used channel
+ lea.l ComSP(a6),a5 static storage for the comm port
+ rts
+
+* not a usable channel (i.e. channel 2 or 3)
+*
+GetStaticErr ori.w #Carry,sr flag bad channel
+ rts
+
+ pag
+********************
+* SetBuffs:  setup buffer pointers for channels 0 and 1
+*
+* Passed:  d0.b = channel number
+*          (a6) = global data ptr
+*
+SetBuffs:
+ movem.l d0/a0-a1/a5,-(sp) save regs
+ bsr.s GetStatStg get channel's static storage ptr into a5
+
+* determine port and continue on....
+*
+ cmpi.b #ConsChan,d0 Console port?
+ bne.s SetBuff10 ..no, it's the comm port
+
+* Set up for the Console
+*
+ lea.l Ch0IBuf(a6),a0 pointer to input buffer
+ lea.l Ch0IBuf+StdBf(a6),a1 end of the buffer
+ bra.s SetBuff20
+
+* Set up the Comm port
+*
+SetBuff10
+ lea.l Ch1IBuf(a6),a0 pointer to input buffer
+ lea.l Ch1IBuf+ExtBf(a6),a1 end of the buffer
+
+* set storage ptrs for the channel
+*
+SetBuff20:
+ move.l a0,IPNextIn(a5) Input Buffer In/Out pointers
+ move.l a0,IPNextOut(a5)
+ move.l a0,IPStart(a5)
+ move.l a1,IPEnd(a5) End of input buffer
+ move.l a1,d0  end of buffer minus..
+ sub.l a0,d0 ..start is the ...
+ move.l d0,IPSize(a5) ..the size of the buffer
+ moveq.l #0,d0
+ move.l d0,IPCount(a5) set i/p buffer to empty
+ sf.b OPBusy(a5) flag o/p buffer empty
+ movem.l (sp)+,d0/a0-a1/a5 restore regs
+ rts
+
+ ends

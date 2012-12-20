@@ -1,0 +1,11 @@
+
+  psect cdb,(5<<8)+1,$8000,212,0,entry
+
+  org 0
+
+entry:
+	
+  dc.b "5:/tpad/mp_t328ads:TY=\"ptr\":",13
+  dc.b 0
+
+  ends

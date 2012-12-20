@@ -1,0 +1,515 @@
+ nam rtc146818_c.a
+ ttl Real Time Clock Subroutines for the mc146818 RTC
+
+********************
+* Real Time Clock Subroutines for the mc146818 RTC
+
+* Copyright 1987, 1988, 1989, 1990, 1996 by Microware Systems Corporation
+* Reproduced Under License
+
+* This source code is the proprietary confidential property of
+* Microware Systems Corporation, and is provided to licensee
+* solely for documentation and educational purposes. Reproduction,
+* publication, or distribution in any form to any party other than
+* the licensee is strictly prohibited.
+
+********************
+* Edition History
+*
+*  #    Date      Comments                                  By
+* -- -------- --------------------------------------------- ---
+* 00 87/08/03 metamorphosis from 8036 tick driver           jal
+* 01 87/08/06 made into macros for use with "ClkGeneric.a"  jal
+* 02 87/09/11 converted to subroutine module for use with   jal
+*             latest "tickgeneric.a" tick driver
+* 02 87/09/17 eliminated "SetSysTime" subroutine; It is now jal
+*             handled by the "tickgeneric.a" code
+* 03 87/11/30 converted rtc accessing into macros so that   wwb
+*             code section independant of h/w method.
+*             made GetTime error exit return error in d1.
+* 04 88/04/18 made default case be VME050 module.           wwb
+*             ---- OS-9/68K V2.3 Release ----
+*             ---- OS-9/68K V2.4 released ----
+*             ---- OS-9/68K V3.0 released ----
+* 05 96/07/16 Millenium support added                       jf
+*             ---- OS-9/68K V3.0.3 released ----
+*             ---- OS-9/68K V3.1 released ----
+*
+Edition	equ	5
+Revision equ 0
+
+Type set (Sbrtn<<8)!Objct
+Revs set ((ReEnt+SupStat)<<8)!Revision
+
+ use defsfile
+
+ psect RTClock,Type,Revs,Edition,0,RTCTab
+
+
+ page
+********************
+* Hardware access macros.
+*
+* These macros are designed to make the access method to the rtc
+* device in the following code independant of the actual hardware.
+* There are three macros involved:  SETUP, READREG and WRITEREG.
+*
+* These macros assumes that (a3) points to the base of the rtc device.
+*
+* macro to configure "support" harware.
+*
+* syntax:  SETUP
+*           this macro has no arguments.
+*
+* macro to read a byte from the rtc.
+*
+* syntax:  READREG <arg 1>,<arg 2>
+*           where: <arg 1> = offset to rtc register to read
+*                  <arg 2> = register to place rtc value
+*
+* macro to write a byte to the rtc.
+*
+* syntax:  WRITEREG <arg 1>,<arg 2>
+*            where: <arg 1> = value to write to rtc (register or #<data>)
+*                   <arg 2> = offset of register to write
+*
+*
+ ifdef PACERMOS
+SETUP macro
+ bsr SetupPort configure the ports
+ endm
+
+WRITEREG macro
+ ifne \#-2
+ fail Incorrect number of arguments to WRITEREG
+ endc
+ move.b \1,d4 pass value to write
+ move.b #\2,d5 pass rtc register to access
+ bsr DoWrite write the register
+ endm
+
+READREG macro
+ ifne \#-2
+ fail Incorrect number of arguments to READREG
+ endc
+ move.b #\1,d4 pass register to read
+ bsr DoRead
+ move.b d4,\2 put value in desired destination
+ endm
+ else setup for default case
+
+SETUP macro
+* no support initialization required
+ endm
+
+WRITEREG macro
+ ifne \#-2
+ fail Incorrect number of arguments to WRITEREG
+ endc
+ move.b \1,\2(a3) move value to chip directly
+ endm
+
+READREG macro
+ ifne \#-2
+ fail Incorrect number of arguments to READREG
+ endc
+ move.b \1(a3),\2 read value from chip directly
+ endm
+ endc
+
+ page
+********************
+* MC146818 Register Offsets
+*
+
+* default setup case is VME050 addressing
+
+BW set 2 registers are odd-byte addresses
+ org 1
+ ifdef PACERMOS
+BW set 1 registers are consecutive addresses
+ org 0
+ endc
+
+Second do.b BW seconds
+ do.b BW seconds alarm
+Minute do.b BW minutes
+ do.b BW minutes alarm
+Hour do.b BW hour
+ do.b BW hour alarm
+Day do.b BW day of week
+Date do.b BW day
+Month do.b BW month
+Year do.b BW year
+CtlA do.b BW register A (interrupt control)
+CtlB do.b BW register B (time control)
+Status do.b BW register C (IRQ status)
+Valid do.b BW register D (valid time)
+
+
+********************
+* register A (CtlA) values
+*
+Div_4m equ %00000000 divisor: 4.194304 MHz osc.
+Div_1m equ %00010000 divisor: 1.048576 MHz osc.
+Div_32k equ %00100000 divisor: 32.768 kHz osc.
+
+Tick_128 equ %00001001 periodic irqs/sqw = 128 Hz.
+
+ ifdef PACERMOS
+DivRate equ Div_32k 32.768 kHz osc.
+IRQRate equ 0 no periodic irqs
+ else
+* default VME050
+
+DivRate equ Div_4m 4.194304 MHz osc.
+IRQRate equ Tick_128 tick rate = 128/sec
+ endc
+
+TimeBase equ DivRate!IRQRate
+
+
+********************
+* register B (CtlB) values
+*
+SET equ %10000000 set time flag
+PIE equ %01000000 periodic interrupt enable
+AIE equ %00100000 alarm interrupt enable
+UIE equ %00010000 update-ended interrupt enable
+SQWE equ %00001000 square wave o/p enable
+DM equ %00000100 binary data mode flag
+H24 equ %00000010 24 hour clock flag
+DSE equ %00000001 daylight savings time enable
+
+Mode_B equ DM!H24 operation mode: binary data, 24 hour clk.
+
+ page
+ ifdef PACERMOS
+********************
+* MC68230 Definitions:  for access control to the MC146818
+* when interfaced "behind" an MC68230.
+*
+
+* register offsets for accessing the rtc via an MC68230
+
+ org 0
+BW set 2 68230 registers are "every-other-byte"
+
+PGCR do.b BW port general control register
+PSRR do.b BW port service request register
+PortA_ddr do.b BW port A data direction register
+PortB_ddr do.b BW port B data direction register
+PortC_ddr do.b BW port C data direction register
+PIVR do.b BW port interrupt vector register
+PortA_cr do.b BW port A control register
+PortB_cr do.b BW port B control register
+PortA do.b BW port A data register
+PortB do.b BW port B data register
+PortA_alt do.b BW port A alternate register
+PortB_alt do.b BW port B alternate register
+PortC do.b BW port C data register
+PSR do.b BW port status register
+
+* port A:  mc146818 access definitions
+
+b_CS equ 0 CS bit number
+b_AS equ 1 AS bit number
+b_DS equ 2 DS bit number
+b_RW equ 3 Read/Write bit number
+b_PA4 equ 4 PA4 control
+b_Latch equ 5 latch data
+b_Dir equ 6 port direction
+
+* PGCR definitions
+
+Mode_init equ %10000101 mode 2, H34/H12 disabled, H1/H3 normal logic
+Mode equ Mode_init!%00110000 mode 2, H34en, H12en, H1/H3 normal logic
+
+* PSRR definitions
+
+PSRR_def equ %00011100 no dma, PC5/6=PIRQ/PIACK, H3/H1 priority
+
+* data direction registers
+
+PortA_dir equ %01111111 PA6-0 are outputs
+PortC_dir equ %11101011
+
+* control register definitions
+
+PortA_ctrl equ %00000001 H1S=1, Port B o/p latches empty
+PortB_ctrl equ %00000010 irqs from H3
+H3irq equ 1 bit number of H3 irq control
+
+* port status definitions
+
+b_H1S equ 0 H1 status bit number
+b_H2S equ 1 H2 status bit number
+b_H3S equ 2 H3 status bit number
+b_H4S equ 3 H4 status bit number
+
+ endc PACERMOS
+
+********************
+* Century Definitions
+*
+* Support for Millenium works as follows:
+*
+* "NO_MILLENIUM" symbol defined:
+*   GetTime returns two-digit year added to base Century symbol value
+*
+* "NO_MILLENIUM" symbol undefined:
+*    GetTime returns two-digit year added to either CentPreEpoch or
+*    CentPostEpoch symbol value, depending on the two-digit year
+*    value compared to the Epoch symbol value
+*
+* In the event that this code functions near the year 2070,
+* the Century symbol may be updated to the year 2000 and the
+* NO_MILLENIUM symbol defined. Then, in the event that this
+* code functions near the year 2100, the CentPreEpoch symbol
+* may be updated to the year 2100, the CentPostEpoch symbol
+* may be updated to the year 2000, and the NO_MILLENIUM symbol
+* undefined to carry the driver near the year 2170, after
+* which nobody will remember how to do all this. :-)
+*
+
+  ifdef NO_MILLENIUM
+
+ Century equ 1900 years are added to base century
+
+  else
+
+Epoch equ 70 year of epoch within the century
+CentPreEpoch equ 2000 century to add to pre-epoch years
+CentPostEpoch equ 1900 century to add to post-epoch years
+
+  endc NO_MILLENIUM
+
+ page
+
+********************
+* RTCTab: Branch table to subroutines
+*
+RTCTab:
+ bra GetTime
+
+ 
+********************
+* SetTime: Set the time in the RTC chip
+*
+* Passed: (a3) = base address of the ticker chip
+*         (d0) = time data (00hhmmss)
+*         (d1) = date data (yyyymmdd)
+*
+SetTime:
+ movea.l #RTCBase,a3 get mc146818 base address
+ SETUP configure support hardware
+ READREG CtlB,d2 get current register B values
+**
+** CHECK:  what will be value if RESET/first use ??
+**
+ ori.b #SET!Mode_B,d2 stop clock, set rtc operation mode
+ WRITEREG d2,CtlB init control register B
+
+* write to control register A:  Because RESET does not affect any of
+* the bits in this register, we have to write it regardless.
+* If the rtc IS NOT being used for periodic irqs, then we must
+* guarantee that control register A is set correctly.
+* If the rtc IS being used for periodic irqs, then the ticker
+* routines should have written the same values into this register
+* as those we are writing now.  Hopefully, the conditionals in
+* this file will ensure this.
+
+ WRITEREG #TimeBase,CtlA init control register A
+ WRITEREG d0,Second set second
+ lsr.l #8,d0
+ WRITEREG d0,Minute set minute
+ lsr.w #8,d0
+ WRITEREG d0,Hour set hour
+ WRITEREG d1,Date set day
+ lsr.l #8,d1
+ WRITEREG d1,Month set month
+ lsr.l #8,d1
+ divu #100,d1 get year (mod 100)
+ swap d1
+ WRITEREG d1,Year set year
+*
+* Calculate the day of the week
+*
+ move.l D_Julian(a6),d1 get julian date
+ addq.l #2,d1 adjust julian date for 0=Sunday to 6=Saturday
+ divu #7*256,d1 find day of week
+ clr.w d1 clear the quotient
+ swap d1 get the remainder
+ divu #7,d1 do the modulo now
+ clr.w d1 clear the quotient
+ swap d1 get remainder: d1 = day of week
+*
+* Set the day of the week
+*
+ addq.l #1,d1 adjust for clock chip
+ WRITEREG d1,Day set clock chip day of week
+ andi.b #^SET,d2 clear set flag
+ WRITEREG d2,CtlB start clock/calendar chip
+*
+* Exit
+*
+ andi #NoCarry,ccr clear error flag
+ rts
+
+ page
+ 
+********************************
+* GetTime: Get the time from the RTC chip
+*
+* Passed: (a3) = base address of the ticker chip
+*
+* Returns: (d0) = time data
+*          (d1) = date data
+*
+GetTime:
+ movea.l #RTCBase,a3 get mc146818 base address
+ SETUP configure support hardware
+ READREG Valid,d0 does chip have a valid time?
+ beq.s ErrExit ..if not, exit with error
+*
+* Get the time from the RTC chip
+*
+ moveq.l #0,d0 sweep reg
+ moveq.l #0,d1 sweep reg
+GR10: READREG CtlA,d1 is clock update in progress?
+ bmi.s GR10 wait for it if so
+ READREG Year,d1 get year
+
+	ifdef NO_MILLENIUM
+
+ add.w #Century,d1 years are based on turn of the century
+
+	else
+	
+ cmpi.b #Epoch,d1 compare d1 to the year in Epoch
+ blt.s PreEpoch add pre-epoch century if less
+ add.w #CentPostEpoch,d1 add post-epoch century
+ bra.s years_set
+
+PreEpoch
+
+ add.w #CentPreEpoch,d1 add pre-epoch century
+
+years_set equ *
+
+	endc NO_MILLENIUM
+	
+ lsl.l #8,d1
+ READREG Month,d1 get month
+ lsl.l #8,d1
+ READREG Date,d1 get day
+ READREG Hour,d0 get hour
+ lsl.w #8,d0
+ READREG Minute,d0 get minute
+ lsl.l #8,d0
+ READREG Second,d0 get second
+ andi #NoCarry,ccr clear error flag
+ rts 
+*
+* Error Exit
+*
+ErrExit:
+ move.w #E$Param,d1 return "parameter error"
+ ori #Carry,ccr signal error
+ rts return
+
+ ifdef PACERMOS
+ page
+********************
+* SetupPort:  configure operation mode on MC68230
+*
+* Passed:  (a3) = MC68230 base address
+*
+* Returns:  nothing
+*
+SetupPort: move.b #Mode_init,PGCR(a3) iniz PGCR, H34/12 disabled
+ move.b #PortA_dir,PortA_ddr(a3) set port A direction
+ move.b #0,PortA(a3) init port A data
+ move.b #PortA_ctrl,PortA_cr(a3) init port A control
+ move.b #PortB_ctrl,PortB_cr(a3) init port B control
+ move.b #PSRR_def,PSRR(a3) init PSRR
+ move.b #PortC_dir,PortC_ddr(a3) set port C direction
+ bclr.b #b_CS,PortA(a3) set CS low
+ bset.b #b_RW,PortA(a3) set READ
+ bset.b #b_Latch,PortA(a3) set H3 high
+ bset.b #b_Dir,PortA(a3) set bus to input
+ bclr.b #b_DS,PortA(a3) set DS low
+ bclr.b #b_AS,PortA(a3) set AS low
+ bset.b #b_PA4,PortA(a3) connect RTC IRQs
+ move.b #Mode,PGCR(a3) enable H1, H3
+ rts
+
+
+********************
+* DoRead:  read rtc register
+*
+* Passed:  d4.b = rtc register to access
+*
+* Returns:  d4.b = rtc register value
+*
+DoRead00 bclr.b #b_Dir,PortA(a3) toggle data latcher
+ bset.b #b_Dir,PortA(a3)
+ nop delay a little
+DoRead: btst.b #b_H1S,PSR(a3) check H1 status
+ beq.s DoRead00 ..clear buffer if data pending
+ bclr.b #b_PA4,PortA(a3) lock out RTC IRQs
+ bclr.b #H3irq,PortB_cr(a3) disable H3 irqs
+ bclr.b #b_Dir,PortA(a3) set direction = out
+ move.b d4,PortB(a3) set rtc register address
+ bset.b #b_CS,PortA(a3) assert CS
+ bset.b #b_AS,PortA(a3) assert AS
+ bclr.b #b_AS,PortA(a3) negate it
+ bset.b #b_Dir,PortA(a3) set direction = in
+ bset.b #b_DS,PortA(a3) assert DS
+ bclr.b #b_Latch,PortA(a3) latch the data
+ bset.b #b_Latch,PortA(a3)
+DoRead10 move.b PortB(a3),d4 read the port data
+ btst.b #b_H3S,PSR(a3) check port status
+ bne.s DoRead10 ..re-read if data pending
+ bclr.b #b_DS,PortA(a3) negate DS
+ bclr.b #b_CS,PortA(a3) negate CS
+ bset.b #b_PA4,PortA(a3) connect RTC IRQs
+ bset.b #H3irq,PortB_cr(a3) enable H3 irqs
+ rts
+
+
+********************
+* DoWrite:  write rtc register
+*
+* Passed:  d4.b = data to write
+*          d5.b = rtc register to write
+*
+* Returns:  nothing
+*
+DoWrite00 bclr.b #b_Dir,PortA(a3) toggle data latcher
+ bset.b #b_Dir,PortA(a3)
+ nop delay a little
+DoWrite: btst.b #b_H1S,PSR(a3) data pending ?
+ beq.s DoWrite00 ..if so; clear it
+ bclr.b #b_PA4,PortA(a3) lock out RTC IRQs
+ bclr.b #H3irq,PortB_cr(a3) disable H3 irqs
+ bclr.b #b_Dir,PortA(a3) set bus to output
+ move.b d5,PortB(a3) set rtc address to write
+ bset.b #b_CS,PortA(a3) assert CS
+ bset.b #b_AS,PortA(a3) assert AS
+ bclr.b #b_AS,PortA(a3) negate it
+ bset.b #b_Dir,PortA(a3) toggle bus
+ bclr.b #b_Dir,PortA(a3)
+ move.b d4,PortB(a3) set data to write
+ bclr.b #b_RW,PortA(a3) assert WRITE
+ bset.b #b_DS,PortA(a3) assert DS
+ bclr.b #b_DS,PortA(a3) negate it
+ bset.b #b_RW,PortA(a3) negate WRITE
+ bclr.b #b_CS,PortA(a3) negate CS
+ bset.b #b_Dir,PortA(a3) set port to input
+ bset.b #b_PA4,PortA(a3) connect RTC IRQs 
+ bset.b #H3irq,PortB_cr(a3) enable H3 irqs
+ rts
+ endc PACERMOS
+
+ ends

@@ -1,0 +1,8 @@
+ nam D4 Device Descriptor
+ use defsfile
+
+ use "rbfdesc.a"
+
+DrvNum set 2
+ DiskD4
+ ends

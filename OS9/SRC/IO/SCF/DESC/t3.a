@@ -1,0 +1,9 @@
+ nam T3
+ ttl 68000 T3 device descriptor module
+ use defsfile
+
+ use "scfdesc.a"
+
+ T3
+ ends
+

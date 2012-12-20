@@ -1,0 +1,1210 @@
+ opt -l
+ nam System Service Call Definitions
+
+*****************************************************************************
+*                                                                           *
+*              Copyright 1998 by Microware Systems Corporation              *
+*                            All Rights Reserved                            *
+*                          Reproduced Under License                         *
+*                                                                           *
+*  This software is confidential property of Microware Systems Corporation, *
+*  and is provided under license for internal development purposes only.    *
+*  Reproduction, publication, modification, distribution, or creation of    *
+*  derivative works in any form to any party other than the Licensee is     *
+*  strictly prohibited, unless expressly provided for under the terms of a  *
+*  mutually executed written license agreement for this software between    *
+*  the end-user and Microware Systems Corporation, or otherwise expressly   *
+*  authorized in writing by Microware Systems Corporation.  Licensee shall  *
+*  reproduce this copyright notice exactly as provided herein on any copies *
+*  of the software that Licensee is authorized to distribute.               *
+*                                                                           *
+*****************************************************************************
+* Edition History
+*  #   Date    Changes Made                                             by
+* -- -------- --------------------------------------------------------- ---
+* 00 04-11-83 Converted to 68000 from OS-9 Level II Edition 7.          rfd
+* 00 05-24-83 Removed DAT routines with conditional assembly.           rfd
+* 00 06-21-83 Changed from "ds" to "do" (define offset).                rfd
+* 01 02-09-84 converted for linkage use.                                lac
+* 02 09-23-84 Added F$SetSys service code.                              rfd
+* 02 10-29-84 Added I$SGetSt service request for SS_DevNm.              rfd
+* 03 11-06-84 Added ISizBit as a create parameter.                      rfd
+* 04 11-09-85 Revised physical division of modules.                     rfd
+* 05 01-11-85 Added event queue system call.                            rfd
+* 06 02-25-85 Fixed bad definition for "ISize_".                        rfd
+* 07 04-09-85 Changed names of Find64 (etc) to protect innocent.        rfd
+* 08 05-30-85 Moved E$DNE, added E$HangUp (6809 compatability).         rfd
+* 09 06-24-85 Added E$Format.                                           rfd
+* 10 07-05-85 Added SS_DCOn, SS_DCOff, SS_EnRTS, SS_DsRTS               res
+*				---- OS-9/68k V1.2 released ----
+* 11 09-16-85 Added E$Damage.                                           rfd
+* 12 04-08-86 Added new status codes for tape drives.                   rfd
+* 13 09-11-86 Added FPU E$'s, adjusted following errors down(!).        rfd
+* 14 09-16-86 Added trap error codes (from 'traps.a').                  rfd
+* 15 10-01-86 Added SS_Open and SS_Close (for system use only).         rfd
+*             Added E$PthLost.                                          rfd
+* 16 10-13-86 Merged "traps.a" into this file.                          rfd
+*				---- OS-9/68k V2.0 released ----
+* 17 01-15-87 Added F$Gregor, SS$Sound.                                 rfd
+* 18 03-16-87 Added F$SysID, F$Alarm, F$SigMask.                        rfd
+* 19 04-08-87 Added UCM status codes.                                   rfd
+* 20 05-05-87 Added SPU and UsrAct function requests.                   rfd
+* 21 05-19-87 Added E$BadPart.                                          rfd
+* 22 05-27-87 Added F$CCtl.                                             rfd
+*				---- OS-9/68k V2.1 released ----
+* 23 08-18-87 Added "socket" status codes.                              rfd
+* 24 09-15-87 Added alarm function codes.                               rfd
+* 25 10-27-87 Added S$HangUp and E$Hardware.                            rfd
+*				---- OS-9/68k V2.2 released ----
+* 26 01-25-88 Added F$GSPUMp to return SPU map for a process.           rfd
+* 27 04-12-88 Added F$SRqCMem request (colored memory).                 rfd
+* 28 07-07-88 Added CDI error codes (starting at $600)                  tje
+* 29 08-11-88 Added F$Panic call.                                       rfd
+* 30 09-07-88 Added CDI status definitions.                             rfd
+*				---- CD-RTOS V0.97 released ----
+*				---- CD-RTOS V0.99 released ----
+* 31 11-02-88 Added SS_CChan.                                           rfd
+* 32 12-01-88 Added F$MBuf for Kim.                                     rfd
+* 33 01-09-89 Added SS_Install and SS_PCmd codes.                       rfd
+* 34 01-18-89 Added SM_Loop and E$QFull (GFM audio) definitions.        tje
+*				---- OS-9/68k V2.2 edition #50 released ----
+* 35 02-16-89 Added F$Trans.                                            rfd
+* 36 03-02-89 Changed Ev$Incr to Ev$Set$ (as per documentation).        rfd
+*				---- OS-9/68k V2.3 released ----
+* 37 89/05/16 Added SS_VarSect.                                         lac
+* 38 89/07/18 Added SS_FG and its subfunctions for frame grabbers.      jej
+* 39 89/10/10 Added PT_Calib per UCM folks' request.                    jej
+* 40 89/10/12 Added SN_ClutLnk per GFM folks' request.                  jej
+*				---- CD-RTOS V1.1 released ----
+*				---- OS-9/68k V2.4 released ----
+* 41 91/01/29 Added E$CProto, E$StkFmt, E$UnIRQ, E$FPUnData, E$MMUConf, wwb
+*             E$MMUIlleg, E$MMUAcces.
+*				---- OS-9/68k V2.4 68040 released ----
+* 42 91/06/24 Added X-Windows stuff per tje.                            wwb
+* 43 91/07/23 Added RAVE error codes per tje.    	                    wwb
+* 44 91/08/14 Added SS_VolStat for NFS 1.1.                             wwb
+*				---- OS-9/68k V2.4.3 released ----
+* 45 91/11/14 Added F$UsrFPU.                                           wwb
+* 46 91/12/02 Removed ed45 (no longer needed).                          wwb
+* 47 92/03/17 Added SS_MIDI codes for jal.								wwb
+* 48 92/04/27 Added SM_GetMode ( new code for GFM )                     Rwb
+*				>>>>>>>>>>  funcs.a  Rev 1.12
+* 49 92/09/03 Added ISDN status-code info.								wwb
+*             Added comments regarding reserved error-code ranges.		wwb
+*             Added ISDN error codes.									wwb
+*				<<<<<<<<<<  funcs.a  Rev 1.11.1.1
+*             <<< OS-9 V2.5 Mods start >>>								wwb
+* 49 92/07/23 Defined F$SLink.											wwb
+* 50 92/08/25 Removed F$SLink, added F$FIRQ.							wwb
+* 51 92/09/17 Added F$Sema.												wwb
+*				==========
+* 52 92/11/24 edited for merge problems.								wwb
+* 53 92/12/08 added E$BSig (for Semaphores).							wwb
+*				---- OS-9/68k V2.5 (Discovery Pak) released ----
+* 54 93/01/26 added F$FIcpt.											wwb
+* 55 93/02/04 moved Event (subcode) defs to events.a.					wwb
+* 56 93/05/11 renamed F$FIcpt to F$SigReset.							wwb
+*				---- OS-9/68k V3.0 released ----
+* 57 93/12/14 added comments on reserved error codes.					wwb
+* 58 94/01/13 added SS_PMOD and SS_LUOPT (for batman).					wwb
+* 59 94/03/30 added F$DAttach, added signal code range comments, added	wwb
+*             SS_RTNFM and sub-codes.
+*				---- OS-9/68k V3.0.1 released ----
+* 60 95/01/17 added SS_SockMan.											wwb
+* 61 95/05/15 added E$UEA, E$UII.										wwb
+*             added SS_SPF (new version of SS_PMOD).					wwb
+*				---- OS-9/68K V3.0.2 Beta_2 Release ----
+* 62 95/08/10 added E$ReqDenied, SS_Maui, F$Flash.						wwb
+*				---- OS-9/68K V3.0.2 Release ----
+* 63 96/01/22 added F$PwrMan, F$Crypt.									wwb
+*				---- OS-9/68K V3.0.3 PwrMan Beta Release ----
+* 64 96/07/18 fixed comments on start of user-defined area, fixed		wwb
+*             definition of S$UserDef.
+* 65 96/07/23 added F$HLProto.											wwb
+*				---- OS-9/68K V3.0.3 Release ----
+* 66 98/02/27 added SS_SymLink.											wwb
+* 67 98/06/25 added SS_Ftl and its subcodes.							wwb
+* 68 98/07/15 added new copyright info.									wwb
+* 69 98/08/21 added SS_DDC_FUNC.										wwb
+* 70 98/08/26 added A$Reset.											wwb
+* 71 99/04/19 Added S$PrcAbt for Clib/DPIO signal return value for      mgh 
+*             C LIBS if process received SIGKILL (SysState)
+*				---- OS-9/68K V3.1 Release ----								
+* 72 00/01/24 Added SS_ETC and SS_2070 codes (User community code sect) mgh
+* 73 00/02/11 Changed SS_2070 subcodes (removed double underscore)      mgh
+* 74 00/03/07 Changed Added SS_SZ2070  as shadow of 2070 SS_SIZ def     mgh
+*             Added SS_RSig, SS_WSig, GS_WRdy  codes
+* 75 00/04/04 Added SSParm defs for SS_ETC/parameter block style calls  mgh
+* 76 00/05/09 Added SS_ETC_RTCIRQ subcode for SS_ETC                    mgh
+* 77 00/05/13 Moved SS_2070 and SS_2070SZ to mwos/src/defs/user_codes.x mgh
+*             $$                    <RELEASE_INFO>                     $$   *
+*
+edition set 76 current edition number
+
+********************************
+* System call, GetStat, SetStat, and Subcode definitions for
+*   Microware Reserved name space.
+*
+* User Community codes are available in user_codes.h
+* Note: codes in user_codes.h are documented by Microware for the benefit
+*  of our customers.  Codes may overlap other user defined codes and are
+*  not arbitrated to unique values by Microware.
+
+
+ psect oskfuncs,0,0,edition,0,0
+
+ pag
+********************************
+* System Service Request Code Definitions
+*
+*
+			org 0
+F$Link:		do.b 1 Link to Module
+F$Load:		do.b 1 Load Module from File
+F$UnLink:	do.b 1 Unlink Module
+F$Fork:		do.b 1 Start New Process
+F$Wait:		do.b 1 Wait for Child Process to Die
+F$Chain:	do.b 1 Chain Process to New Module
+F$Exit:		do.b 1 Terminate Process
+F$Mem:		do.b 1 Set Memory Size
+F$Send:		do.b 1 Send Signal to Process
+F$Icpt:		do.b 1 Set Signal Intercept
+F$Sleep:	do.b 1 Suspend Process
+F$SSpd:		do.b 1 Suspend Process
+F$ID:		do.b 1 Return Process ID
+F$SPrior:	do.b 1 Set Process Priority
+F$STrap:	do.b 1 Set Trap Intercept
+F$PErr:		do.b 1 Print Error
+F$PrsNam:	do.b 1 Parse Pathlist Name
+F$CmpNam:	do.b 1 Compare Two Names
+F$SchBit:	do.b 1 Search Bit Map
+F$AllBit:	do.b 1 Allocate in Bit Map
+F$DelBit:	do.b 1 Deallocate in Bit Map
+F$Time:		do.b 1 Get Current Time
+F$STime:	do.b 1 Set Current Time
+F$CRC:		do.b 1 Generate CRC
+F$GPrDsc:	do.b 1 get Process Descriptor copy
+F$GBlkMp:	do.b 1 get System Block Map copy
+F$GModDr:	do.b 1 get Module Directory copy
+F$CpyMem:	do.b 1 Copy External Memory
+F$SUser:	do.b 1 Set User ID number
+F$UnLoad:	do.b 1 Unlink Module by name
+F$RTE:		do.b 1 Return from Intercept routine
+F$GPrDBT:	do.b 1 Get system global data copy
+F$Julian:	do.b 1 Convert gregorian to Julian date
+F$TLink:	do.b 1 Link trap subroutine package
+F$DFork:	do.b 1 Debugging Fork call
+F$DExec:	do.b 1 Debugging execution call (single step)
+F$DExit:	do.b 1 Debugging exit call (kill child)
+F$DatMod:	do.b 1 Create data module
+F$SetCRC:	do.b 1 Generate valid header and CRC in module
+F$SetSys:	do.b 1 Set/examine system global variable
+F$SRqMem:	do.b 1 System Memory Request
+F$SRtMem:	do.b 1 System Memory Return
+F$IRQ:		do.b 1 Enter IRQ Polling Table
+F$IOQu:		do.b 1 Enter I/O Queue
+F$AProc:	do.b 1 Enter Active Process Queue
+F$NProc:	do.b 1 Start Next Process
+F$VModul:	do.b 1 Validate Module
+F$FindPD:	do.b 1 Find Process/Path Descriptor
+F$AllPD:	do.b 1 Allocate Process/Path Descriptor
+F$RetPD:	do.b 1 Return Process/Path Descriptor
+F$SSvc:		do.b 1 Service Request Table Initialization
+F$IODel:	do.b 1 Delete I/O Module
+			do.b 1 (old F$SLink) System Link
+			do.b 1 reserved (6809 F$Boot  -Bootstrap System)
+			do.b 1 reserved (6809 F$BtMem -Bootstrap Memory Request)
+F$GProcP:	do.b 1 Get Process ptr
+F$Move:		do.b 1 Move Data
+F$AllRAM:	do.b 1 Allocate and patternize RAM blocks
+
+* semi-obsolete DAT requests
+F$Permit:	do.b 1 (old F$AllImg) Allocate Image RAM blocks
+F$Protect:	do.b 1 (old F$DelImg) Deallocate Image RAM blocks
+F$SetImg	do.b 1 Set Process DAT Image
+F$FreeLB	do.b 1 Get Free Low Block
+F$FreeHB	do.b 1 Get Free High Block
+F$AllTsk:	do.b 1 Allocate Process Task number
+F$DelTsk:	do.b 1 Deallocate Process Task number
+F$SetTsk	do.b 1 Set Process Task DAT registers
+F$ResTsk	do.b 1 Reserve Task number
+F$RelTsk	do.b 1 Release Task number
+F$DATLog	do.b 1 Convert DAT Block/Offset to Logical
+F$DATTmp	do.b 1 Make temporary DAT image
+F$LDAXY		do.b 1 Load A [X,[Y]]
+F$LDAXYP	do.b 1 Load A [X+,[Y]]
+F$LDDDXY	do.b 1 Load D [D+X,[Y]]
+F$LDABX		do.b 1 Load A from 0,X in task B
+F$STABX		do.b 1 Store A at 0,X in task B
+
+F$AllPrc:	do.b 1 Allocate Process Descriptor
+F$DelPrc:	do.b 1 Deallocate Process Descriptor
+F$ELink		do.b 1 Link using Module Directory Entry
+F$FModul:	do.b 1 Find Module Directory Entry
+F$MapBlk	do.b 1 Map Specific Block
+F$ClrBlk	do.b 1 Clear Specific Block
+F$DelRAM	do.b 1 Deallocate RAM blocks
+F$SysDbg:	do.b 1 Invoke system level debugger
+F$Event:	do.b 1 Create/Link to named event
+F$Gregor:	do.b 1 Convert julian date to gregorian date
+F$SysID:	do.b 1 return system identification
+F$Alarm:	do.b 1 send alarm signal
+F$SigMask:	do.b 1 set signal mask
+F$ChkMem:	do.b 1 determine if user process may access memory area
+F$UAcct:	do.b 1 inform user accounting of process status
+F$CCtl:		do.b 1 cache control
+F$GSPUMp:	do.b 1 get SPU map information for a process
+F$SRqCMem:	do.b 1 System Colored Memory Request
+F$POSK:		do.b 1 execute svc request
+F$Panic:	do.b 1 Panic warning
+F$MBuf:		do.b 1 Memory buffer manager
+F$Trans:	do.b 1 Translate memory address to/from external bus
+F$FIRQ:		do.b 1 add/remove from Fast IRQ system.
+F$Sema:		do.b 1 semaphore system
+F$SigReset:	do.b 1 reset signal intercept context
+F$DAttach:	do.b 1 attach debugger to running process.
+F$Flash:	do.b 1 manage FLASH device(s)
+F$PwrMan:	do.b 1 perform Power Management
+F$Crypt:	do.b 1 perform Cryptographic functions
+			do.b 1 reserved
+			do.b 1 reserved
+			do.b 1 reserved
+			do.b 1 reserved
+			do.b 1 reserved
+			do.b 1 reserved
+			do.b 1 reserved
+			do.b 1 reserved
+F$HLProto:	do.b 1 High-Level Protocol Manager request.
+
+
+********************************
+* I/O Service Request Code Definitions
+
+			org $80
+I$Org:		equ . first I/O request code
+I$Attach:	do.b 1 Attach I/O Device
+I$Detach:	do.b 1 Detach I/O Device
+I$Dup:		do.b 1 Duplicate Path
+I$Create:	do.b 1 Create New File
+I$Open:		do.b 1 Open Existing File
+I$MakDir:	do.b 1 Make Directory File
+I$ChgDir:	do.b 1 Change Default Directory
+I$Delete:	do.b 1 Delete File
+I$Seek:		do.b 1 Change Current Position
+I$Read:		do.b 1 Read Data
+I$Write:	do.b 1 Write Data
+I$ReadLn:	do.b 1 Read Line of ASCII Data
+I$WritLn:	do.b 1 Write Line of ASCII Data
+I$GetStt:	do.b 1 Get Path Status
+I$SetStt:	do.b 1 Set Path Status
+I$Close:	do.b 1 Close Path
+			do.b 1 reserved
+			do.b 1 reserved
+I$SGetSt:	do.b 1 Getstat using system path number
+I$Last:		equ . end of I/O function calls
+
+ pag
+********************************
+*  Trap Function Codes
+
+T$Math:		equ 15 math handler trap code assignment
+T$Math1:	equ 15 obsolete
+*T$Math2:	equ 14 obsolete
+
+			org 0
+T$LMul:		do.b 1 Long Multiply
+T$UMul:		do.b 1 Unsigned Multiply
+T$LDiv:		do.b 1 Long Divide
+T$LMod:		do.b 1 Long Modulus
+T$UDiv:		do.b 1 Unsigned Divide
+T$UMod:		do.b 1 Unsigned Modulus
+T$FAdd:		do.b 1 Floating Add
+T$FInc:		do.b 1 Floating Increment
+T$FSub:		do.b 1 Floating Subrtact
+T$FDec:		do.b 1 Floating Decrement
+T$FMul:		do.b 1 Floating Multiply
+T$FDiv:		do.b 1 Floating Divide
+T$FCmp:		do.b 1 Floating Compare
+T$FNeg:		do.b 1 Floating Negate
+T$DAdd:		do.b 1 Double Add
+T$DInc:		do.b 1 Double Increment
+T$DSub:		do.b 1 Double Subrtact
+T$DDec:		do.b 1 Double Decrement
+T$DMul:		do.b 1 Double Multiply
+T$DDiv:		do.b 1 Double Divide
+T$DCmp:		do.b 1 Double Compare
+T$DNeg:		do.b 1 Double Negate
+T$AtoN:		do.b 1 Ascii to Numeric
+T$AtoL:		do.b 1 Ascii to Long
+T$AtoU:		do.b 1 Ascii to Unsigned
+T$AtoF:		do.b 1 Ascii to Float
+T$AtoD:		do.b 1 Ascii to Double
+T$LtoA:		do.b 1 Long to Ascii
+T$UtoA:		do.b 1 Unsigned to Ascii
+T$FtoA:		do.b 1 Float to Ascii
+T$DtoA:		do.b 1 Double to Ascii
+T$LtoF:		do.b 1 Long to Float
+T$LtoD:		do.b 1 Long to Double
+T$UtoF:		do.b 1 Unsigned to Float
+T$UtoD:		do.b 1 Unsigned to Double
+T$FtoL:		do.b 1 Float to Long
+T$DtoL:		do.b 1 Double to Long
+T$FtoU:		do.b 1 Float to Unsigned
+T$DtoU:		do.b 1 Double to Unsigned
+T$FtoD:		do.b 1 Float to Double
+T$DtoF:		do.b 1 Double to Float
+T$FTrn:		do.b 1 Truncate Float to Integer
+T$DTrn:		do.b 1 Truncate Double to Integer
+T$FInt:		do.b 1 Round Float to Integer
+T$DInt:		do.b 1 Round Double to Integer
+T$DNrm:		do.b 1 64-bit integer to Double
+
+* formerly Math2
+T$Sin:		do.b 1 Sine function
+T$Cos:		do.b 1 Cosine function
+T$Tan:		do.b 1 Tangent function
+T$Asn:		do.b 1 Arc Sine function
+T$Acs:		do.b 1 Arc Cosine function
+T$Atn:		do.b 1 Arc Tangent function
+T$Log:		do.b 1 Natural Logarithm function (base e)
+T$Log10:	do.b 1 Common Logarithm function (base 10)
+T$Sqrt:		do.b 1 Square root function
+T$Exp:		do.b 1 Exponentiation function
+T$Power:	do.b 1 Power function
+
+ pag
+********************************
+* File Access Permissions and Mode values
+*  If bit is set, access is permitted.
+
+Read_:		equ %00000001
+Write_:		equ %00000010
+Exec_:		equ %00000100
+Updat_:		equ Read_+Write_
+PRead_:		equ %00001000
+PWrit_:		equ %00010000
+PExec_:		equ %00100000
+PUpdat_:	equ PRead_+PWrit_
+Append_:	equ %00010000 force writes to always append to eof
+ISize_:		equ %00100000 (create Mode value only)
+Share_:		equ %01000000 non-Sharable file if set
+Dir_:		equ %10000000 Directory file if set
+
+* File Open Mode Bit Numbers (correspond to above access modes)
+ReadBit:	equ 0
+WriteBit:	equ 1
+ExecBit:	equ 2
+AppndBit:	equ 4
+ISizBit:	equ 5
+ShareBit:	equ 6
+DirBit:		equ 7
+
+
+********************************
+* Signal Code Values
+*
+* Signal Code range usage:
+*
+* Signal 0 is an unconditional process abort (cannot be intercepted)
+* Signal 1 causes a process to activate.  If the process is in system-state
+*   (and already active) the signal will queue.  If the process is in
+*   user-state (and already active) the signal will have no effect.
+*
+* Deadly I/O signals:
+*
+* Signals 2 - 19 are for Microware defined global signals that are deadly
+*   to I/O (i.e. cause current I/O to abort).
+* Signals 20 - 25 are for Microware defined local-application signals that
+*   are deadly to I/O.
+* Signals 26 - 31 are for User defined signals that are deadly to I/O.
+*
+* Non-Deadly I/O signals:
+*
+* Signals 32 - 127 are for Microware defined non-deadly I/O signals used by
+*   Tools.
+* Signals 128 - 191 are for Microware defined non-deadly I/O signals used
+*   by local-applications.
+* Signals 192 - 255 are for Microware defined non-deadly I/O signals used
+*   for global purposes.
+* Signals 256 - 65535 are for User defined non-deadly I/O signals.
+*
+			org 0
+S$Kill:		do.b 1 Non-Interceptable Abort
+S$Wake:		do.b 1 Wake-up Sleeping Process
+S$Abort:	do.b 1 Keyboard Abort
+S$Intrpt:	do.b 1 Keyboard Interrupt
+S$HangUp:	do.b 1 modem hangup
+S$PrcAbt:	do.b 1 C Return sigvalue for a condemmed proc. (system state)
+			do.b 14 reserved
+S$DeadLoc:	do.b 6 reserved for MW local-application signals
+S$DeadUsr:	do.b 6 reserved for User-defined deadly signals
+S$Deadly:	equ .  above signals may cause I/O operations to abort
+
+S$NDTools:	do.b 96 reserved for MW Tools, non-deadly I/O
+S$NDLocal:	do.b 64 reserved for MW local applications, non-deadly I/O
+S$NDGlobal:	do.b 64 reserved for MW global signals, non-deadly I/O
+
+S$UserDef:	equ .  start of user-defined signal region
+
+
+********************************
+* F$Alarm function code values
+
+			org 0
+A$Delete:	do.b 1 delete alarm(s)
+A$Set:		do.b 1 set alarm after interval
+A$Cycle:	do.b 1 set cycling alarm
+A$AtDate:	do.b 1 set alarm at absolute time
+A$AtJul:	do.b 1 set alarm at absolute time (julian)
+A$Reset:	do.b 1 reset alarm
+
+
+********************************
+* F$Panic function code values
+* uncommon, often disasterous system event codes
+
+			org 1
+K$Idle:		do.b 1 last "official" process has exited
+K$PFail:	do.b 1 power failure
+
+ pag
+********************************
+* Status Codes for GetStat/PutStat
+*
+* NOTE: SS codes 0x00 through 0xFF are reserved for MSC use.
+* 
+
+			org 0
+SS_Opt:		do.b 1 read/write PD options
+SS_Ready:	do.b 1 check for device ready
+SS_Size:	do.b 1 read/Write file size
+SS_Reset:	do.b 1 device restore
+SS_WTrk:	do.b 1 device write track
+SS_Pos:		do.b 1 get file current position
+SS_EOF:		do.b 1 test for End of File
+SS_Link:	do.b 1 link to Status routines
+SS_ULink:	do.b 1 unlink Status routines
+SS_Feed:	do.b 1 destructive forward skip (form feed)
+SS_Frz:		do.b 1 freeze DD_ information
+SS_SPT:		do.b 1 set DD_TKS to given value
+SS_SQD:		do.b 1 sequence down hard disk
+SS_DCmd:	do.b 1 send direct command to device
+SS_DevNm:	do.b 1 return device name
+SS_FD:		do.b 1 return file descriptor
+SS_Ticks:	do.b 1 set lockout honor duration
+SS_Lock:	do.b 1 lock/release record
+SS_DStat:	do.b 1 return display status
+SS_Joy:		do.b 1 return joystick value
+SS_BlkRd:	do.b 1 block read
+SS_BlkWr:	do.b 1 block write
+SS_Reten:	do.b 1 retension cycle
+SS_WFM:		do.b 1 write file mark
+SS_RFM:		do.b 1 read past file mark
+SS_ELog:	do.b 1 read error log
+SS_SSig:	do.b 1 send signal on data ready
+SS_Relea:	do.b 1 release device
+SS_Attr:	do.b 1 set file attributes
+SS_Break:	do.b 1 send break out serial device
+SS_RsBit:	do.b 1 reserve bitmap sector (for disk reorg)
+SS_RMS:		do.b 1 get/set Motorola RMS status
+SS_FDInf:	do.b 1 get FD info for specified FD sector
+SS_ACRTC:	do.b 1 get/set Hitachi ACRTC status
+SS_IFC:		do.b 1 serial input flow control
+SS_OFC:		do.b 1 serial output flow control
+SS_EnRTS:	do.b 1 enable RTS (modem control)
+SS_DsRTS:	do.b 1 disable RTS (modem control)
+SS_DCOn:	do.b 1 send signal DCD TRUE
+SS_DCOff:	do.b 1 send signal DCD FALSE
+SS_Skip:	do.b 1 skip block(s)
+SS_Mode:	do.b 1 set RBF access mode
+SS_Open:	do.b 1 notification of new path opened
+SS_Close:	do.b 1 notification of path being closed
+SS_Path:	do.b 1 (CDFM) return pathlist for open path
+SS_Play:	do.b 1 (CDFM) play (CDI) file
+SS_HEADER:	do.b 1 (CDFM) return header of last sector read
+SS_Raw:		do.b 1 (CDFM) read raw sectors
+SS_Seek:	do.b 1 (CDFM) issue physical seek command
+SS_Abort:	do.b 1 (CDFM) abort asyncrounous operation in progress
+SS_CDDA:	do.b 1 (CDFM) play CD digital audio
+SS_Pause:	do.b 1 (CDFM) pause the disc driver
+SS_Eject:	do.b 1 (CDFM) open the drive door
+SS_Mount:	do.b 1 (CDFM) mount disc by disc number
+SS_Stop:	do.b 1 (CDFM) stop the disc drive
+SS_Cont:	do.b 1 (CDFM) start the disc after pause
+SS_Disable:	do.b 1 (CDFM) disable hardware controls
+SS_Enable:	do.b 1 (CDFM) enable hardware controls
+SS_ReadToc:	do.b 1 (CDFM) read toc (on red discs)
+SS_SM:		do.b 1 (CDFM) soundmap control status code
+SS_SD:		do.b 1 (CDFM) sound data manipulation status code
+SS_SC:		do.b 1 (CDFM) sound control status code
+SS_SEvent:	do.b 1 set event on data ready
+SS_Sound:	do.b 1 produce audible sound
+SS_DSize:	do.b 1 get drive size (in sectors)
+SS_Net:		do.b 1 nfm wild card getstat/setstat, with sub-code
+SS_Rename:	do.b 1 rename file
+SS_Free:	do.b 1 return free statistics (NRF)
+SS_VarSect: do.b 1 variable sector size query
+SS_VolStore:	do.b 1 return volume storage statistics
+SS_MIDI:	do.b 1 MIDI device driver getstat/setstat, with sub-code
+SS_ISDN:	do.b 1 ISDN getstat/setstat, with sub-code
+SS_PMOD:	do.b 1 Protocol module get/setstat, with subcode (X25, ISDN)
+SS_SPF:		equ SS_PMOD SPF version of SS_PMOD.
+SS_LUOPT:	do.b 1 (DPIO) get/set logical unit options
+SS_RTNFM:	do.b 1 RTNFM get/setstat with sub-code
+SS_SymLink:	do.b 1 create symbolic link to file
+SS_UCM:		do.b 5 (UCM) reserved
+SS_DM:		do.b 1 (UCM) drawmap control status code
+SS_GC:		do.b 1 (UCM) graphics cursor status code
+SS_RG:		do.b 1 (UCM) region status code
+SS_DP:		do.b 1 (UCM) drawing parameters status code
+SS_DR:		do.b 1 (UCM) graphics drawing status code
+SS_DC:		do.b 1 (UCM) display control status code
+SS_CO:		do.b 1 (UCM) character output status code
+SS_VIQ:		do.b 1 (UCM) video inquiry status code
+SS_PT:		do.b 1 (UCM) pointer status code
+SS_SLink:	do.b 1 (UCM) Link external subroutine module to UCM
+SS_KB:		do.b 1 (UCM) keyboard status code
+			do.b 16 (UCM) reserved
+SS_Bind:	do.b 1 bind a socket name
+SS_Listen:	do.b 1 listen for connections
+SS_Connect:	do.b 1 initiate a connection
+SS_Resv:	do.b 1 socket characteristics specification
+SS_Accept:	do.b 1 accept socket connections
+SS_Recv:	do.b 1 receive data
+SS_Send:	do.b 1 send data
+SS_GNam:	do.b 1 get socket name
+SS_SOpt:	do.b 1 set socket option
+SS_GOpt:	do.b 1 get socket option
+SS_Shut:	do.b 1 shutdown socket connection
+SS_SendTo:	do.b 1 send to address
+SS_RecvFr:	do.b 1 receive from address
+SS_Install:	do.b 1 install upper level protocal (ulp) handler on ifman list
+SS_PCmd:	do.b 1 protocol direct command
+SS_FTL:		do.b 1 Flash Translation Layer getstat/setstat with sub-code.
+SS_DDC_FUNC:	do.b 1 Direct driver call with sub-code (get/setstat)
+			do.b 15 reserved
+SS_SN:		do.b 1 (DSM) screen functions
+SS_AR:		do.b 1 (DSM) action region functions
+SS_MS:		do.b 1 (DSM) message functions
+SS_AC:		do.b 1 (DSM) action cursor functions
+SS_CDFD:	do.b 1 (CDFM) return file descriptor information
+SS_CChan:	do.b 1 (CDFM) change channel request
+SS_FG:		do.b 1 (GFM) frame grabber set/getstat functions
+SS_XWin:	do.b 1 X windows set/getstat functions
+SS_SockMan:	do.b 1 Sockman set/getstat functions
+SS_Maui:	do.b 1 Maui set/getstat functions
+SS_ETC:		do.b 1 Embedded Traffic Controller  Set/Getstat Functions
+SS_RSig		do.b 1 Send Signal on N characters ready
+SS_WSig		do.b 1 Send Signal on N character space available in buffer
+SS_WRdy		do.b 1 Return space available for writing and Write buffer size
+SS_FlushBuf do.b 1 Flush input/output buffers, Throw away contents
+
+ ttl GetStat/SetStat Status Sub-function codes (CD-I, GFM, etc)
+ pag
+
+			org 0  SS_SM setstat functions (CDFM/GFM)
+SM_Creat:	do.b 1 Create soundmap
+SM_Out:		do.b 1 Output soundmap
+SM_Off:		do.b 1 Turn off Audio processor
+SM_Cncl:	do.b 1 Conceal Error in Soundmap
+SM_Close:	do.b 1 Close Soundmap
+SM_Loop:	do.b 1 Set loopback point in a soundmap
+SM_In:		do.b 1 Input soundmap
+
+			org 0 SS_SM getstat functions (CDFM/GFM)
+SM_Info:	do.b 1 Get soundmap descriptor
+SM_Stat:	do.b 1 Get soundmap status
+SM_GetMode: do.b 1 Get play/record parameters
+
+			org 0	SS_FG get/setstat functions (GFM)
+FG_Info:	do.b 1 Get frame grabber information
+FG_Grab:	do.b 1 Grab one frame of video
+FG_Gain:	do.b 1 Set frame grabber gain
+FG_Offset:	do.b 1 Set frame grabber offset voltage
+
+			org 0 SS_SD status functions (CDFM)
+SD_MMix:	do.b 1 Mix Monaural to Stereo
+SD_SMix:	do.b 1 Mix Stereo to Monaural
+SD_Loop:	do.b 1 Set Soundmap Loopback Points
+
+			org 0 SS_SC status functions (CDFM)
+SC_Atten:	do.b 1 Set Attenuation
+
+			org 0 SS_DM status functions (UCM)
+DM_Creat:	do.b 1 Create Drawmap
+DM_Org:		do.b 1 Set Drawmap Origin
+DM_Copy:	do.b 1 Copy Drawmap to Drawmap
+DM_Exch:	do.b 1 Exchange Data Between Drawmaps
+DM_TCpy:	do.b 1 Copy Drawmap to Drawmap
+DM_TExc:	do.b 1 Exchange Data Between Drawmaps
+DM_Write:	do.b 1 Write Drawmap
+DM_IrWr:	do.b 1 Irregular Write
+DM_Read:	do.b 1 Read Drawmap
+DM_WrPix:	do.b 1 Write Pixel
+DM_RdPix:	do.b 1 Read Pixel
+DM_Cncl:	do.b 1 Conceal Error in Drawmap
+DM_Close:	do.b 1 Close Drawmap
+DM_DMDup:	do.b 1 Duplicate Drawmap Descriptor
+
+			org 0 SS_GC status functions (UCM)
+GC_Pos:		do.b 1 Position Graphics Cursor
+GC_Show:	do.b 1 Show Graphics Cursor
+GC_Hide:	do.b 1 Hide Graphics Cursor
+GC_Ptn:		do.b 1 Set Graphics Cursor Pattern
+GC_Col:		do.b 1 Set Graphics Cursor Color
+GC_Blnk:	do.b 1 Set Graphics Cursor Blink Rate
+GC_Org:		do.b 1 Set Graphics Cursor Origin
+
+			org 0 SS_RG status functions (UCM)
+RG_Creat:	do.b 1 Create Region
+RG_Isect:	do.b 1 Region Intersection
+RG_Union:	do.b 1 Region Union
+RG_Diff:	do.b 1 Region Difference
+RG_XOR:		do.b 1 Region Exclusive Or
+RG_Move:	do.b 1 Move Region
+RG_Del:		do.b 1 Dete Region
+
+			org 0 SS_DP status functions (UCM)
+DP_Ptn:		do.b 1 Set Drawing Pattern
+DP_PAln:	do.b 1 Set Pattern Alignment
+DP_SCMM:	do.b 1 Set Character Code Mapping Method
+DP_SCR:		do.b 1 Set Color Register
+DP_GFnt:	do.b 1 Get Font
+DP_AFnt:	do.b 1 Activate Font
+DP_DFnt:	do.b 1 Deactivate Font
+DP_RFnt:	do.b 1 Release Font
+DP_Clip:	do.b 1 Set Clipping Region
+DP_PnSz:	do.b 1 Set Pen Size
+DP_PStyl:	do.b 1 Set Pen Style
+DP_TCol:	do.b 1 Set Transparent Color
+
+			org 0 SS_DR status functions (UCM)
+DR_Dot:		do.b 1 Draw a Dot
+DR_Line:	do.b 1 Draw a Line
+DR_PLin:	do.b 1 Draw a Polyline
+DR_CArc:	do.b 1 Draw a Circular Arc
+DR_EArc:	do.b 1 Draw an Elliptical Arc
+DR_Rect:	do.b 1 Draw a Rectangle
+DR_ERect:	do.b 1 Draw a Rectangle w/ eliptical corners
+DR_PGon:	do.b 1 Draw a Polygon
+DR_Circ:	do.b 1 Draw a Circle
+DR_CWdg:	do.b 1 Draw a Circular Wedge
+DR_Elps:	do.b 1 Draw an Ellipse
+DR_EWdg:	do.b 1 Draw an Elliptical Wedge
+DR_DRgn:	do.b 1 Draw a Region
+DR_BFil:	do.b 1 Fill a Bounded Area with a Pattern
+DR_FFil:	do.b 1 Flood Fill
+DR_Copy:	do.b 1 Copy Data Within a Drawmap
+DR_Text:	do.b 1 Output Graphics Text
+DR_JTxt:	do.b 1 Output Justified Graphics Text
+
+			org 0 SS_DC status functions (UCM)
+DC_CrFCT:	do.b 1 Create Field Control Table
+DC_RdFCT:	do.b 1 Read Field Control Table
+DC_WrFCT:	do.b 1 Write Field Control Table
+DC_RdFI:	do.b 1 Read Field Control Instruction
+DC_WrFI:	do.b 1 Write Field Control Instruction
+DC_DlFCT:	do.b 1 Delete Field Control Table
+DC_CrLCT:	do.b 1 Create Line Control Table
+DC_RdLCT:	do.b 1 Read Line Control Table
+DC_WrLCT:	do.b 1 Write Line Control Table
+DC_RdLI:	do.b 1 Read Line Control Table Instruction
+DC_WrLI:	do.b 1 Write Line Control Table Instruction
+DC_DlLCT:	do.b 1 Del Line Control Table
+DC_FLnk:	do.b 1 Link LCT to FCT
+DC_LLnk:	do.b 1 Link LCT to LCT
+DC_Exec:	do.b 1 Execute Display Control Program
+DC_Intl:	do.b 1 Interlace
+DC_NOP:		do.b 1 write NOP arrary to LCT
+DC_SSig:	do.b 1 send signal on video interrupt
+DC_Relea:	do.b 1 release from signal request
+DC_SetCmp:	do.b 1 Set compatibility bit in VSC
+DC_DsplSiz:	do.b 1 return display size and resolution
+DC_GetClut:	do.b 1 get a clut value
+DC_GetCluts:do.b 1 get clut values
+DC_SetClut:	do.b 1 set a clut value
+DC_SetCluts:do.b 1 set clut values
+DC_MapDM:	do.b 1 map a drawmap to the screen
+DC_Off:		do.b 1 turn display off
+DC_PRdLCT:	do.b 1 physical read of the LCT
+DC_PWrLCT:	do.b 1 physical read of the LCT
+
+			org 0 SS_VIQ status functions (UCM)
+VIQ_TxtL:	do.b 1 Calculate Text Length
+VIQ_CPos:	do.b 1 Return Relative Character Positions
+VIQ_JCPs:	do.b 1 Return Character Positions for Justified Text
+VIQ_FDta:	do.b 1 Return Font Data
+VIQ_GDta:	do.b 1 Return Glyph Data
+VIQ_PntR:	do.b 1 Test if Point is within Region
+VIQ_RLoc:	do.b 1 Inquire Region Location
+VIQ_RInfo:	do.b 1 Inquire Region Info
+VIQ_DMInfo:	do.b 1 Return Drawmap Descriptor Address
+
+			org 0 SS_CO status functions (UCM)
+CO_COD:		do.b 1 Set Character Output Drawmap
+CO_SCMM:	do.b 1 Set Character Code Mapping Method
+CO_AFnt:	do.b 1 Activate Font
+CO_DFnt:	do.b 1 Deactivate Font
+
+			org 0 SS_PT status functions (UCM)
+PT_Coord:	do.b 1 Obtain Pointer Coordinates
+PT_SSig:	do.b 1 Send Signal on Pointer Change
+PT_Relea:	do.b 1 Release Device
+PT_Pos:		do.b 1 Position relative pointing devices
+PT_Org:		do.b 1 Set Pointer Origin
+PT_Calib:	do.b 1 Calibrate touch screen
+
+			org 0 SS_KB status functions (UCM)
+KB_Rdy:		do.b 1 check keyboard ready
+KB_Read:	do.b 1 obtain keyboard status
+KB_Rel:		do.b 1 release keyboard signal
+KB_Repeat:	do.b 1 set keyboard latency and repeat speed
+KB_SSig:	do.b 1 send signal on keyboard ready
+KB_Stat:	do.b 1 determine keyboard special-key status
+
+			org 0 SS_SN status functions (DSM)
+SN_Open:	do.b 1 open screen
+SN_Close:	do.b 1 close screen
+SN_Raise:	do.b 1 raise screen
+SN_Lower:	do.b 1 lower screen
+SN_Act:		do.b 1 activate screen
+SN_DeAct:	do.b 1 deactivate screen
+SN_CPAct:	do.b 1 activate cursor process on screen
+SN_CPDeAct:	do.b 1 deactivate cursor process on screen
+SN_FLink:	do.b 1 link FCT to screen
+SN_ALink:	do.b 1 link action region to screen
+SN_CP:		do.b 1 run cursor process
+SN_Info:	do.b 1 return screen information
+SN_GetAct:	do.b 1 return active screen
+SN_DMLink:	equ SN_FLink Link a drawmap to a screen
+SN_ClutLnk:	do.b 1 link CLUT to a screen
+
+			org 0 SS_AR status functions (DSM)
+AR_Open:	do.b 1 Open Action Region
+AR_ReDefine:do.b 1 Redefine Action Region
+AR_Close:	do.b 1 Close Action Region
+AR_CloseSub:do.b 1 Close Action Region Sub Regions
+AR_Raise:	do.b 1 Raise Action Region
+AR_Lower:	do.b 1 Lower Action Region
+AR_Act:		do.b 1 Activate Action Region
+AR_DeAct:	do.b 1 Deactivate Action Region
+AR_Move:	do.b 1 Move Action Region
+AR_Mask:	do.b 1 Mask Action Region
+AR_UnGrab:	do.b 1 Ungrab Messages
+AR_Grab:	do.b 1 Grab Messages
+AR_Info:	do.b 1 Return Action Region Information
+AR_Find:	do.b 1 Find the Action Region for a Point
+AR_RelXY:	do.b 1 Return Action Region Relative coords from screen coords
+AR_AbsXY:	do.b 1 Return Absolute coords from relative coords
+
+			org 0 SS_MS status functions (DSM)
+MS_Read:	do.b 1 Read Message Queue
+MS_Write:	do.b 1 Write to Message Queue
+MS_UnRead:	do.b 1 Unread a Message
+MS_Ready:	do.b 1 Check Message Queue
+MS_Signal:	do.b 1 Setup for signal from Message Queue
+MS_Release:	do.b 1 Release Message Queue for Signal call
+MS_Flush:	do.b 1 Empty Message Queue
+MS_Journ:	do.b 1 Setup Journaling
+MS_Stat:	do.b 1 Get input device status
+
+			org 0 SS_AC status functions (DSM)
+AC_Pos:		do.b 1 Position Graphics Cursor
+AC_Act:		do.b 1 Show Graphics Cursor
+AC_DeAct:	do.b 1 Hide Graphics Cursor
+AC_Track:	do.b 1 Track Pointing Device with Graphics Cursor
+AC_Ptn:		do.b 1 Set Graphics Cursor Pattern
+AC_Col:		do.b 1 Set Graphics Cursor Color
+AC_Blnk:	do.b 1 Set Graphics Cursor Blink Rate
+AC_Org:		do.b 1 Set Pointer/Cursor Origin
+
+			org 0 SS_XWin status functions (X Windows)
+XW_GetFB:	do.b 1 Get Frame Buffer address and size
+XW_SetCluts: do.b 1 Set hardware CLUT table
+XW_RetFB:	do.b 1 Return Frame Buffer
+XW_SaveScrn: do.b 1 Set/Reset Screen Saver Mode
+
+* SS_MIDI Getstat/Setstat sub-codes
+*
+			org 0
+MD_Reset:	do.b 1 reset MIDI device
+MD_Abort:	do.b 1 abort current operation
+MD_TmSig:	do.b 1 set time signature (optional)
+MD_Clock:	do.b 1 set MIDI clock source
+MD_Tempo:	do.b 1 get/set tempo and resolution
+MD_Play:	do.b 1 start record/play operation
+MD_Metro:	do.b 1 turn metronome on/off
+MD_Time:	do.b 1 get current time
+MD_Start:	do.b 1 (re)start current operation
+MD_Pause:	do.b 1 pause current operation
+MD_Cont:	do.b 1 continue current operation
+MD_SongPos:	do.b 1 change song position pointer
+MD_Flush:	do.b 1 flush MIDI message input buffer
+MD_StartTimer:	do.b 1 start internal timer
+MD_StopTimer:	do.b 1 stop internal timer
+MD_Thru:	do.b 1 turn MIDI "thru" mode on/off
+MD_Read:	do.b 1 read one or more MIDI messages
+MD_Write:	do.b 1 write one MIDI message
+MD_SSig:	do.b 1 send signal on MIDI message ready
+MD_Release:	do.b 1 release signal pending on MD_SSig
+MD_Ready:	do.b 1 return number of pending MIDI messages
+MD_MMBSize:	do.b 1 change MIDI message buffer size
+MD_SIBSize:	do.b 1 change serial input buffer size
+MD_SOBSize:	do.b 1 change serial output buffer size
+MD_IOMode:	do.b 1 change MIDI I/O mode
+
+* SS_ISDN Driver GetStat/SetStat sub-codes
+*
+			org 0
+			do.b 1 reserved
+IS_Act:		do.b 1 ISDN activate layer 1 protocol
+IS_DeAct:	do.b 1 ISDN deactivate layer 1 protocol
+IS_Mux:		do.b 1 ISDN multiplex setstat
+IG_FState:	do.b 1 ISDN layer 1 state getstat
+IG_Random:	do.b 1 random number getstat
+IG_HSw:		do.b 1 ISDN hookswitch getstat
+IS_BEn:		do.b 1 enable B channel ISDN hardware
+IS_BDis:	do.b 1 disable B channel ISDN hardware
+IS_BIntOn:	do.b 1 turn Bb/Bc interrupt on for AM79C30
+IS_BIntOff:	do.b 1 turn Bb/bc interrupt off for AM79C30
+IS_LED:		do.b 1 toggle (on/off) lights setstat
+IS_Drvr:	do.b 1 driver specific setstat/getstats
+
+* SS_ISDN File Manager (ISM) GetStat/SetStat sub-codes
+*
+				org $80
+				do.b 1 reserved
+IS_L4:			do.b 1 ISDN layer 4 commend setstat
+IS_Rcvr:		do.b 1 ISDN receive call setstat
+IS_PMSet:		do.b 1 set/change protocol modules
+IS_PMod:		do.b 1 protocol module getstat/setstat
+IS_CMod:		do.b 1 configuration module getstat/setstat
+IS_L3Param:		do.b 1 ISDN layer 3 parameters getstat/setstat
+IG_L3Info:		do.b 1 ISDN layer 3 information structure getstat
+IG_L3Display:	do.b 1 get display info from call ref
+IG_L3CallNum:	do.b 1 get calling number from call ref
+IG_L3CallSub:	do.b 1 call calling sub address from call
+IG_L3User:		do.b 1 get user to user info from call
+
+* SS_RTNFM File Manager (RTNFM) GetStat/SetStat sub-codes
+*
+ 				org 0
+RTN_ReadStream:	do.b 1 RTNFM's read stream call
+RTN_WriteStream:	do.b 1 RTNFM's write stream call
+RTN_AbortStream:	do.b 1 RTNFM's abort stream call
+RTN_NetStatus:	do.b 1 RTNFM's network status call
+RTN_PMT:		do.b 1 Get MPEG2 program map table
+RTN_PAT:		do.b 1 Get MPEG2 program association table
+RTN_SetBuf:		do.b 1 Set up a buffer for a PID
+RTN_ReadPID:	do.b 1 RTNFM's PID specific read call
+
+* SS_FTL (Flash Translation Layer) GetStat/SetStat sub-codes 
+*
+ 				org 0
+FTL_DelBlk:		do.b 1 mark flash blocks as deleted
+FTL_Defrag:		do.b 1 defragment flash device
+FTL_Llfmt:		do.b 1 perform low-level format on flash device
+FTL_Deflsh:		do.b 1 report size of flash device
+
+* SS_ETC (Embedded Traffic Controller) GetStat/SetStat sub-codes
+* See SSParm_x definitions for format of call parameter block
+* Subcodes:
+*
+ 				org 0
+ 				do.b 1 Reserved value
+SS_ETC_FFC:		do.b 1 Flush Flash Cache Format 1 (S,  P1=0,    P2=0)
+SS_ETC_RTC:		do.b 1 Get/Set RTC Clock Format 1 (G/S,P1:Date, P2:Time)
+SS_ETC_RTCIRQ:	do.b 1 Get/Set RTCIRQRUN Format 1 (G/S,P1:1=on/0=off, P2=0)
+
+* Parameter defs for New union style set/getstat call.
+* Defined for some compatibilitye with OS9000 parameter block style calls
+* Used by SS_ETC and others
+*
+ 				org 0
+SSParm_subcode:	do.l 1 			Get/SetStat Subcode
+* Format 1:					2 Parameter format
+SSParm_1:		do.l 1 			Parameter 1
+SSParm_2:		do.l 1 			Parameter 2
+* Format 2:					Size/Pointer parameter format
+SSParm_size:	equ SSParm_1 	Size of parameter area
+SSParm_ptr:		equ SSParm_2 	Pointer to parameters for each setstat
+
+
+ ttl System Error Codes
+ pag
+********************************
+* Error Code Definitions
+*
+* Error codes in the range 1 - 31 (0x1 - 0x1f) are reserved for
+* signal errors (e.g. S$Intrpt)
+* Error codes in the range 32 - 47 (0x20 - 0x2f) are reserved for
+* ANSI-C signal errors (see errno.h).
+*
+
+* trap handler errors (usually)
+			org 64
+E$IllFnc:	do.b 1 Illegal Function Code
+E$FmtErr:	do.b 1 Format Error
+E$NotNum:	do.b 1 Number not found
+E$IllArg:	do.b 1 Illegal argument
+
+* hardware exception errors
+			org 102
+E$BusErr:	do.b 1 TRAP 2 bus error
+E$AdrErr:	do.b 1 TRAP 3 address error
+E$IllIns:	do.b 1 TRAP 4 illegal instruction
+E$ZerDiv:	do.b 1 TRAP 5 integer zero divide
+E$Chk:		do.b 1 TRAP 6 CHK/CHK2 instruction
+E$TrapV:	do.b 1 TRAP 7 TrapV/Trapcc/FTrapcc instruction
+E$Violat:	do.b 1 TRAP 8 privilege violation
+E$Trace:	do.b 1 TRAP 9 Uninitialized Trace
+E$1010:		do.b 1 TRAP 10 unimplemented line-A (1010) instruction
+E$1111:		do.b 1 TRAP 11 unimplemented line-F (1111) instruction
+E$Resrvd:	do.b 1 TRAP 12 (Motorola reserved)
+E$CProto:	do.b 1 TRAP 13 coprocessor protocol error
+E$StkFmt:	do.b 1 TRAP 14 stack frame format error
+E$UnIRQ:	do.b 1 TRAP 15 uninitialized interrupt
+			do.b 8 TRAP 16-23 (Motorola reserved)
+			do.b 8 TRAP 24-31 spurious and auto interrupt vectors (reserved)
+			do.b 1 TRAP 32, OS9 call - user TRAP 0 (reserved)
+E$Trap:		do.b 15 TRAP 33-47 uninitialized user TRAP 1-15 executed
+E$FPUnordC:	do.b 1 TRAP 48 FP bra or set on unordered condition
+E$FPInxact:	do.b 1 TRAP 49 FP inexact result
+E$FPDivZer:	do.b 1 TRAP 50 FP divide by zero
+E$FPUndrFl:	do.b 1 TRAP 51 FP underflow
+E$FPOprErr:	do.b 1 TRAP 52 FP operand error
+E$FPOverFl:	do.b 1 TRAP 53 FP overflow
+E$FPNotNum:	do.b 1 TRAP 54 FP not a number
+E$FPUnData: do.b 1 TRAP 55 FP unimplemented data type
+E$MMUConf:	do.b 1 TRAP 56 MMU configuration error
+E$MMUIlleg:	do.b 1 TRAP 57 MMU illegal operation
+E$MMUAcces:	do.b 1 TRAP 58 MMU access level violation
+			do.b 1 TRAP 59 (Motorola reserved)
+E$UEA:		do.b 1 TRAP 60 Unimplemented effective address (68060)
+E$UII:		do.b 1 TRAP 61 Unimplemented integer instruction (68060)
+			do.b 2 TRAP 62-63 (Motorola reserved)
+
+* other errors
+E$Permit:	do.b 1 You must be super user to do that
+E$Differ:	do.b 1 Arguments to F$ChkNam are different
+E$StkOvf:	do.b 1 Stack overflow (pattern to F$ChkNam too complex)
+E$EvntID:	do.b 1 Invalid or Illegal event ID number
+E$EvNF:		do.b 1 Event (name) not found
+E$EvBusy:	do.b 1 The event is busy (and so can't be deleted)
+E$EvParm:	do.b 1 Impossible Event parameters supplied
+E$Damage:	do.b 1 System data structure has been damaged.
+E$BadRev:	do.b 1 Incompatable revision
+E$PthLost:	do.b 1 Path Lost (net node was down)
+E$BadPart:	do.b 1 Bad partition data or no active partition
+E$Hardware:	do.b 1 Hardware is damaged
+E$SectSize: do.b 1 Invalid Sector Size
+E$BSig:		do.b 1 Bad or unexpected signal received
+			do.b 22 reserved
+E$PthFul:	do.b 1 Path Table full
+E$BPNum:	do.b 1 Bad Path Number
+E$Poll:		do.b 1 Polling Table Full
+E$BMode:	do.b 1 Bad Mode
+E$DevOvf:	do.b 1 Device Table Overflow
+E$BMID:		do.b 1 Bad Module ID
+E$DirFul:	do.b 1 Module Directory Full
+E$MemFul:	do.b 1 Process Memory Full
+E$UnkSvc:	do.b 1 Unknown Service Code
+E$ModBsy:	do.b 1 Module Busy
+E$BPAddr:	do.b 1 Bad Page Address
+E$EOF:		do.b 1 End of File
+E$VctBsy:	do.b 1 IRQ Vector is already used
+E$NES:		do.b 1 Non-Existing Segment
+E$FNA:		do.b 1 File Not Accesible
+E$BPNam:	do.b 1 Bad Path Name
+E$PNNF:		do.b 1 Path Name Not Found
+E$SLF:		do.b 1 Segment List Full
+E$CEF:		do.b 1 Creating Existing File
+E$IBA:		do.b 1 Illegal Block Address
+E$HangUp:	do.b 1 communication line down
+E$MNF:		do.b 1 Module Not Found
+E$NoClk:	do.b 1 system has no clock running
+E$DelSP:	do.b 1 Deleting Stack Pointer memory
+E$IPrcID:	do.b 1 Illegal Process ID
+E$Param:	do.b 1 Impossible parameter specified
+E$NoChld:	do.b 1 No Children
+E$ITrap:	do.b 1 Invalid or unavailable Trap code in TLink call
+E$PrcAbt:	do.b 1 Process Aborted
+E$PrcFul:	do.b 1 Process Table Full
+E$IForkP:	do.b 1 Illegal Fork Parameter
+E$KwnMod:	do.b 1 Known Module
+E$BMCRC:	do.b 1 Bad Module CRC
+E$Signal:	do.b 1 signal error (formerly E$USigP - Unprocessed Signal Pending)
+E$NEMod:	do.b 1 Non Existing Module
+E$BNam:		do.b 1 Bad Name
+E$BMHP:		do.b 1 (bad module header parity)
+E$NoRAM:	do.b 1 No RAM Available
+E$DNE:		do.b 1 Directory not empty
+E$NoTask:	do.b 1 No available Task number
+E$Unit:		do.b 1 Illegal Unit (drive)
+E$Sect:		do.b 1 Bad SECTor number
+E$WP:		do.b 1 Write Protect
+E$CRC:		do.b 1 Bad Check Sum
+E$Read:		do.b 1 Read Error
+E$Write:	do.b 1 Write Error
+E$NotRdy:	do.b 1 Device Not Ready
+E$Seek:		do.b 1 Seek Error
+E$Full:		do.b 1 Media Full
+E$BTyp:		do.b 1 Bad Type (incompatable) media
+E$DevBsy:	do.b 1 Device Busy
+E$DIDC:		do.b 1 Disk ID Change
+E$Lock:		do.b 1 Record is busy (locked out)
+E$Share:	do.b 1 Non-sharable file busy
+E$DeadLk:	do.b 1 I/O Deadlock error
+E$Format:	do.b 1 Device is format protected
+
+* codes $100 - $1FF are reserved for C Compiler
+
+			org $600	CD-I/RAVE error codes
+E$IllPrm:	do.b 1 Illegal parameter
+E$IdFull:	do.b 1 Identifier (ID) table full
+E$BadSiz:	do.b 1 Bad size error
+E$RgFull:	do.b 1 Region definition full (overflow)	(*Video*)
+E$UnID:		do.b 1 Unallocated identifer number
+E$NullRg:	do.b 1 Null region							(*Video*)
+E$BadMod:	do.b 1 Bad drawmap/pattern mode				(*Video*)
+E$NoFont:	do.b 1 No active font						(*Video*)
+E$NoDM:		do.b 1 No drawmap							(*Video*)
+E$NoPlay:	do.b 1 No audio play in progress			(*CDAudio*)
+E$Abort:	do.b 1 Asynchronous operation aborted		(*CDFM*)
+E$QFull:	do.b 1 Audio queue is full					
+E$Busy:		do.b 1 Audio processor is busy
+
+			org $664
+E_RES_NOSLOT:	do.b 1	No free slot is left in the resource table.
+E_RES_BADSLOT:	do.b 1  The specified resource module ID is not a valid slot in the resource table.
+E_RES_NOSHARE:	do.b 1	The resource is not sharable.
+E_RES_NOTYPE:	do.b 1	The type of the resource is bad.
+E_RES_NORES:	do.b 1	The ID of a resource is bad.
+				do.b 1	Not Used (006:105)
+				do.b 1	Not Used (006:106)
+				do.b 1	Not Used (006:107)
+				do.b 1	Not Used (006:108)
+				do.b 1	Not Used (006:109)
+E_REQ_NOITEMS:	do.b 1	There are no items specified for the request.
+E_REQ_BADITEM:	do.b 1	The item number is out of range.
+E_REQ_BADCOLS:	do.b 1	The number of columns is out of range.
+E_REQ_BADPTR:	do.b 1	The item array pointer is bad.
+E_REQ_NOCREATE:	do.b 1	Request could not be created.
+E_REQ_TIMEOUT:	do.b 1	A modal request has timed out.
+E_REQ_NOSEL:	do.b 1	No selection was made for a modal request.
+E_REQ_DEFID:	do.b 1	Bad definition function ID.
+E_REQ_DEFACT:	do.b 1	Bad definition action code.
+E_REQ_STATE:	do.b 1	Bad item state value.
+E_REQ_BADRECT:	do.b 1	The request rectangle is bad.
+				do.b 1	Not Used (006:121)
+				do.b 1	Not Used (006:122)
+				do.b 1	Not Used (006:123)
+				do.b 1	Not Used (006:124)
+				do.b 1	Not Used (006:125)
+				do.b 1	Not Used (006:126)
+				do.b 1	Not Used (006:127)
+				do.b 1	Not Used (006:128)
+				do.b 1	Not Used (006:129)
+E_CNT_BHVID:	do.b 1	Bad standard behavior ID.
+E_CNT_DEFID:	do.b 1	Bad standard definition ID.
+E_CNT_DEFACT:	do.b 1	Bad action for definition function.
+E_CNT_BHVACT:	do.b 1	Bad action for behavior function.
+E_CNT_STATE:	do.b 1	Bad control state.
+E_CNT_PART:		do.b 1	Bad control part code.
+E_CNT_FLAGS:	do.b 1	Bad flags.
+E_CNT_MINMAX:	do.b 1	Bad min, max or value.
+E_CNT_TYPE:		do.b 1	Bad Type of control.
+				do.b 1	Not Used (006:139)
+E_CLIP_DEV:		do.b 1	Cannot find the clipboard device in preferences.
+E_CLIP_FULL:	do.b 1	The clipboard is full.
+E_CLIP_TYPE:	do.b 1	Type not represented in clipboard.
+E_CLIP_ACC:		do.b 1	Clipboard not opened for the requested access.
+E_CLIP_CNT:		do.b 1	Type offset is greater than the type count.
+E_CLIP_OPEN:	do.b 1	Clipboard is not currently opened.
+E_CLIP_INIT:	do.b 1	Clipboard is not initialized.
+E_CLIP_CLOSE:	do.b 1	Clipboard is not currently closed.
+E_CLIP_RW:		do.b 1	Can't rewrite, the type is not in the clipboard.
+				do.b 1	Not Used (006:149)
+E_HNDLR_UNKNOWN:do.b 1	The handler is unknown.
+				do.b 1	Not Used (006:151)
+				do.b 1	Not Used (006:152)
+				do.b 1	Not Used (006:153)
+				do.b 1	Not Used (006:154)
+E_ATABL_NOENTRY:do.b 1	No Entry Found.
+				do.b 1	Not Used (006:156)
+				do.b 1	Not Used (006:157)
+				do.b 1	Not Used (006:158)
+				do.b 1	Not Used (006:159)
+E_BOX_TABLE:	do.b 1	Line Table Overflow.
+E_BOX_COUNT:	do.b 1	Text Too Long (Maximum is 65535).
+E_BOX_TYPE:		do.b 1	Bad Type or Type Not Implemented.
+E_BOX_MAXL:		do.b 1	Attempt to draw a line too long.
+E_BOX_NOTAB:	do.b 1	Need A Line Table.
+E_BOX_NOFONT:	do.b 1	Font Not Set In The Drawmap.
+E_BOX_RECT:		do.b 1	Bad Rectangle.
+				do.b 1	Not Used (006:167)
+				do.b 1	Not Used (006:168)
+				do.b 1	Not Used (006:169)
+				do.b 1	Not Used (006:170)
+				do.b 1	Not Used (006:171)
+				do.b 1	Not Used (006:172)
+				do.b 1	Not Used (006:173)
+				do.b 1	Not Used (006:174)
+				do.b 1	Not Used (006:175)
+				do.b 1	Not Used (006:176)
+				do.b 1	Not Used (006:177)
+				do.b 1	Not Used (006:178)
+				do.b 1	Not Used (006:179)
+E_INIT_VARERROR:do.b 1	Global Variable Error.
+				do.b 1	Not Used (006:181)
+				do.b 1	Not Used (006:182)
+				do.b 1	Not Used (006:183)
+				do.b 1	Not Used (006:184)
+E_INTER_NOMOD:	do.b 1	No Preference Module.
+E_INTER_ILLARG:	do.b 1	Illegal Argument
+				do.b 1	Not Used (006:187)
+				do.b 1	Not Used (006:188)
+				do.b 1	Not Used (006:189)
+E_OVL_BADRECT:	do.b 1	Bad Rectangle for Overlay.
+E_OVL_NOTTOP:	do.b 1	The Overlay is not the top of the stack.
+E_OVL_UNKNOWN:	do.b 1	Unknown Overlay.
+				do.b 1	Not Used (006:193)
+				do.b 1	Not Used (006:194)
+				do.b 1	Not Used (006:195)
+				do.b 1	Not Used (006:196)
+				do.b 1	Not Used (006:197)
+				do.b 1	Not Used (006:198)
+				do.b 1	Not Used (006:199)
+E_IND_DEFID:	do.b 1	Bad Definition ID.
+E_IND_DEFACT:	do.b 1	Bad Definition Action.
+E_IND_MINMAX:	do.b 1	Bad min, max or value.
+E_IND_BADCOORDS:do.b 1	Bad Coordinates.
+E_IND_NOCREATE:	do.b 1	Indicator Not Created.
+E_IND_BADFLAGS:	do.b 1	Bad Flags.
+E_IND_BADPTR:	do.b 1	Bad Pointer.
+
+* codes $700 - $7FF are reserved for Ethernet
+
+				org $800 ISDN error codes
+				do.b 1 reserved
+E$LnkDwn:		do.b 1 ISDN layer 1 link is down
+E$Conn:			do.b 1 driver connection error
+E$RxThread:		do.b 1 Error in Rx_Thread.c
+E$ME:			do.b 1 SAPI isn't 63 and in TEI assign msg code
+E$SAPI:			do.b 1 unrecognized SAPI
+E$TEI:			do.b 1 TEI not found in TEI structure
+E$Max_TEI:		do.b 1 maximum number of TEIs met
+E$TState:		do.b 1 illegal TEI state for state machine
+E$TEI_Denied:	do.b 1 network denied the TEI request message
+E$Primitive:	do.b 1 unrecognized primitive
+E$L2In:			do.b 1 error in L2_In.c function
+E$Peer_Busy:	do.b 1 PEER RECEIVER BUSY indication
+E$K:			do.b 1 max number of outstanding I frames exceeded
+E$MaxCRef:		do.b 1 max number of Call references met
+E$CRef:			do.b 1 Call reference doesn't exist in v_unit
+E$CallProg:		do.b 1 error in call progress state
+E$Rcvr:			do.b 1 trying to assign rcvr when already one
+E$ReqDenied:	do.b 1 request denied by far end
+
+ ends
+ opt l

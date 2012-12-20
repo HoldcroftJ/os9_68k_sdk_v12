@@ -1,0 +1,275 @@
+#
+# termcap terminal descriptions
+#
+# The following terminal descriptions were developed at Microware or
+# contributed by friends.  If you wish to have your favorite terminal
+# description included in the next distribution of termcap, send a machine
+# readable (debugged) copy to Microware Customer support or email to
+# <ihnp4!sun!mcrware!mcrware>
+#
+# Keep in mind that not all programs use all the termcap capabilities and
+# there are some capabilities that *no* programs use.  You should consult
+# the documentation for the particular program that is using termcap for
+# its own termcap requirements.  The termcap capability names and definition
+# are *application* defined and anything can appear in the definition as long
+# as it follows the termcap syntax.  The pre-defined termcap names are an
+# attempt to define every possible characteristic that any terminal can posses.
+# Most termcap-based programs, however, use but a small subset of all the
+# capabilities to allow them to run with the widest variety of terminals.
+# The "termlib" C library function are commonly used to extract the termcap
+# information.
+#
+
+ft|fastrak|FasTrak ANSI Emulation:\
+	:co#80:li#24:cl=\E[;H\E[2J:bs:cm=\E[%i%d;%dH:ce=\E[K:ho=\E[H:\
+	:up=\E[A:do=\E[B:le=\E[D:nd=\E[C:dl=\E[M:sf=\E[S:sr=\E[T:al=\E[L:
+
+ka|abm85|kimtron abm85:\
+	:ct=\E3:st=\E1:cr=^M:do=^J:nl=^J:bl=^G:al=\EE:am:bs:ce=\ET:\
+	:cm=\E=%+ %+ :cl=^Z:co#80:dc=\EW:dl=\ER:kb=^h:ku=^K:kd=^J:\
+	:kl=^H:kr=^L:ei=\Er:vs=\EK:ve=\EK:hs:ts=\Eg\Ef:fs=\r:ds=\Eg\Ef\r:\
+	:ho=^^:im=\EQ:li#24:nd=^L:ta=^I:pt:se=\Ek:so=\Ej:up=^K:us=\El:ue=\Em:\
+	:sg#1:sg#1:
+
+kh|abm85h|kimtron abm85h:\
+	:ct=\E3:st=\E1:cr=^M:do=^J:nl=^J:bl=^G:al=\EE:am:bs:ce=\ET:\
+	:cm=\E=%+ %+ :cl=^Z:co#80:dc=\EW:dl=\ER:kb=^h:ku=^K:kd=^V:\
+	:kl=^H:kr=^L:ei=\Er:hs:ts=\Eg\Ef:fs=\r:ds=\Eg\Ef\r:ho=^^:\
+	:im=\EZ:li#24:nd=^L:ta=^I:pt:se=\EG0:so=\EG4:up=^K:us=\EG8:ue=\EG0:
+
+k7|kt7|kimtron kt7:\
+	:k1=\E0:k2=\E1:k3=\E2:k4=\E3:k5=\E4:\
+	:k6=\E5:k7=\E6:k8=\E7:k9=\E8:kA=\E9:\
+	:ku=\EA:kd=\EB:kl=\EC:kr=\ED:kh=\EH:\
+	:tc=abm85h:
+
+sx|ansi|any ansi terminal with pessimistic assumptions:\
+	:co#80:li#24:cl=50\E[;H\E[2J:\
+	:bs:am:cm=\E[%i%d;%dH:nd=\E[C:up=\E[A:\
+	:ce=\E[K:ho=\E[H:pt:
+
+# Tandy CoCo 3 with OS9 Level II and cc3io patched to
+# make 2 byte screen control codes work. --courtesy Mark Sunderlin
+cc|coco3|Tandy CoCo3 24*80:\
+	:am:bs:cl=^L:li#24:co#80:ho=^A:\
+	:cd=^K:ce=^D:cm=%r^B%+ %+ :\
+	:do=^J:up=^I:nd=^F:so=\037 :se=\037!:\
+	:us=\037":ue=\037#:al=\0370:dl=\0371:
+
+Mu|sun|Sun Microsystems Workstation console:\
+	:li#34:co#80:cl=^L:cm=\E[%i%d;%dH:nd=\E[C:up=\E[A:\
+	:am:bs:mi:ms:\
+	:ce=\E[K:cd=\E[J:so=\E[7m:se=\E[m:\
+	:kd=\E[B:kl=\E[D:ku=\E[A:kr=\E[C:kh=\E[H:\
+	:k1=\EOP:k2=\EOQ:k3=\EOR:k4=\EOS:\
+	:al=\E[L:dl=\E[M:im=:ei=:ic=\E[@:dc=\E[P:
+
+pc|pcat|PC-AT System Console:\
+    :cr=^M:do=^J:nl=^J:bl=^G:co#80:li#25:cl=\E[;H\E[2J:le=^H:bs:\
+    :am:cm=\E[%i%d;%dH:nd=\E[C:up=\E[A:ce=\E[K:cd=\E[J:\
+    :so=\E[7m:se=\E[m:us=\E[4m:ue=\E[m:md=\E[1m:mr=\E[7m:\
+    :mb=\E[5m:me=\E[m:is=\E[1;24r\E[24;1H:rf=/usr/lib/tabset/pcat:\
+    :rs=\E>\E[?3l\E[?4l\E[?5l\E[?7h\E[?8h:ks=\E[?1h\E=:ke=\E[?1l\E>:\
+    :ku=^P:kd=^N:kr=^F:kl=^B:kb=^H:ho=\E[H:k1=\EOA:k2=\EOB:\
+    :k3=\EOC:k4=\EOD:ta=^I:pt:sr=\EM:vt#3:xn:sc=\E7:rc=\E8:cs=\E[%i%d;%dr: 
+
+d0|vt100|vt100-am|dec vt100:\
+	:cr=^M:do=^J:nl=^J:bl=^G:co#80:li#24:cl=50\E[;H\E[2J:le=^H:bs:\
+	:am:cm=5\E[%i%d;%dH:nd=2\E[C:up=2\E[A:ce=3\E[K:cd=50\E[J:\
+	:so=2\E[7m:se=2\E[m:us=2\E[4m:ue=2\E[m:md=2\E[1m:mr=2\E[7m:\
+	:mb=2\E[5m:me=2\E[m:is=\E[1;24r\E[24;1H:rf=/usr/lib/tabset/vt100:\
+	:rs=\E>\E[?3l\E[?4l\E[?5l\E[?7h\E[?8h:ks=\E[?1h\E=:ke=\E[?1l\E>:\
+	:ku=\EOA:kd=\EOB:kr=\EOC:kl=\EOD:kb=^H:ho=\E[H:k1=\EOP:k2=\EOQ:\
+ 	:k3=\EOR:k4=\EOS:ta=^I:pt:sr=5\EM:vt#3:xn:sc=\E7:rc=\E8:cs=\E[%i%d;%dr:
+
+n0|nec|NEC Starlet:\
+	:li#16:co#80:tc=vt100:
+
+la|adm3a|3a|lsi adm3a:\
+	:am:cr=^M:do=^J:nl=^J:bl=^G:le=^H:bs:cm=\E=%+ %+ :cl=1^Z:\
+	:co#80:ho=^^:li#24:ma=^K^P:nd=^L:up=^K:
+
+l1|adm31|31|lsi adm31:\
+	:is=\Eu\E0:cr=^M:do=^J:nl=^J:bl=^G:\
+	:al=\EE:am:le=^H:bs:ce=\ET:cm=\E=%+ %+ :cl=\E*:cd=\EY:\
+	:co#80:dc=\EW:dl=\ER:ei=\Er:ho=^^:im=\Eq:\
+	:k0=^A0\r:k1=^A1\r:k2=^A2\r:k3=^A3\r:k4=^A4\r:\
+	:k5=^A5\r:k6=^A6\r:k7=^A7\r:k8=^A8\r:k9=^A9\r:kd=^J:kl=^H:kr=^L:ku=^K:\
+	:li#24:ma=j^Jk^P^K^Pl ^R^L^L :mi:nd=^L:\
+	:se=\EG0:so=\EG1:up=^K:us=\EG1:ue=\EG0:
+
+l3|adm3|3|lsi adm3:\
+	:cr=^M:do=^J:nl=^J:bl=^G:\
+	:am:le=^H:bs:cl=^Z:li#24:ma=^K^P:co#80:
+
+I8|8001|ISC8001|compucolor|intecolor:\
+	:cr=^M:do=^J:nl=^J:bl=^G:\
+	:al=\EU:am:le=^Z:bc=^Z:cl=3*^L:cm=^C%r%.%.:co#80:cd=\EQ:dm=\EQ:ed=\EF:\
+	:dc=\177:dl=\EV:ei=\EF:im=\EQ:li#40:nd=1^Y:ta=8\t:up=^\:ho=1^H:pc=^@:
+
+V1|tvi912|912|920|tvi920|tv920|old televideo:\
+   :ct=\E3:st=\E1:cr=^M:do=^J:nl=^J:bl=^G:\
+   :ko=al,ce,cl,dc,dl,ho,ic:\
+   :al=33*\EE:am:le=^H:bs:ce=\ET:cm=\E=%+ %+ :cl=^Z:co#80:dc=\EW:dl=33*\ER:ei=:\
+   :kb=^h:ku=^K:kd=^J:kl=^H:kr=^L:k0=^A@\r:k1=^AA\r:k2=^AB\r:k3=^AC\r:\
+   :k4=^AD\r:k5=^AE\r:k6=^AF\r:k7=^AG\r:k8=^AH\r:k9=^AI\r:\
+   :ho=^^:im=:ic=\EQ:li#24:nd=^L:ta=^I:pt:se=\Ek:so=\Ej:up=^K:us=\El:ue=\Em:\
+   :ma=^K^P^L :sg#1:ug#1:kRESET=^R:
+
+V2|912b|912c|tvi912b|tvi912c|tvi|new televideo 912:\
+   :al=5*\EE:dl=5*\ER:tc=tvi912:
+
+V3|920b|920c|tvi920b|tvi920c|tvi|new televideo 920:\
+   :k0=^A@\r:k1=^AA\r:k2=^AB\r:k3=^AC\r:k4=^AD\r:k5=^AE\r:\
+   :k6=^AF\r:k7=^AG\r:k8=^AH\r:k9=^AI\r:tc=tvi912b:
+
+at|st|atari st:\
+    :al=\EL:bs:cd=\EJ:cc=\EK:cl=\EE:cm=\EY%+ %+ :co#80:\
+    :dl=\EM:do=\EB:ho=\EH:\
+    :li#24:se=\Eq:so=\Ep:up=\EA:
+
+v1|vme10|motorola vme10:\
+    :co#80:li#24:\
+    :ce=\Et:cl=\E*:cm=\E=%r%+ %+ :\
+    :so=\Ej:se=\Ek:up=^K:
+
+wp|wdpkII:\
+	:ce=^d:\
+	:cl=^l:\
+	:cm=^b%r%+ %+ :\
+	:up=^i:\
+	:co#80:li#24:\
+	:ho=^a:
+
+
+
+
+# Sony local definition
+#
+s0|news42|vt100-bm|sony vt100 emulator 42 lines:\
+	:cr=^M:do=^J:nl=^J:bl=^G:co#80:li#42:cl=\E[;H\E[2J:\
+	:le=^H:bs:am:cm=\E[%i%d;%dH:nd=\E[C:up=\E[A:\
+	:ce=\E[K:cd=\E[J:so=\E[7m:se=\E[m:us=\E[4m:ue=\E[m:\
+	:md=\E[1m:mr=\E[7m:mb=\E[5m:me=\E[m:\
+	:is=\E[?7h\E[?1l\E[?3l\E7\E[1;42r\E8:\
+	:if=/usr/lib/tabset/vt100:\
+	:rs=\E>\E[?3l\E[?4l\E[?5l\E[?7h\E[?8h:ks=\E[?1h\E=:ke=\E[?1l\E>:\
+	:ku=\EOA:kd=\EOB:kr=\EOC:kl=\EOD:kb=^H:\
+	:ho=\E[H:k1=\EOP:k2=\EOQ:k3=\EOR:k4=\EOS:ta=^I:pt:sr=\EM:vt#3:xn:\
+	:sc=\E7:rc=\E8:cs=\E[%i%d;%dr:TY=ascii:\
+	:RP=\E[6n:AP=\E[%d;%dR:
+s1|news|vt100-bm|sony vt100 emulator 40 lines:\
+	:cr=^M:do=^J:nl=^J:bl=^G:co#80:li#40:cl=\E[;H\E[2J:\
+	:le=^H:bs:am:cm=\E[%i%d;%dH:nd=\E[C:up=\E[A:\
+	:ce=\E[K:cd=\E[J:so=\E[7m:se=\E[m:us=\E[4m:ue=\E[m:\
+	:md=\E[1m:mr=\E[7m:mb=\E[5m:me=\E[m:\
+	:is=\E7\E[r\E8\EE\EE\EE\EM\EM\EM\E[?7h\E[?1l\E[?3l\E7\E[1;40r\E8:\
+	:if=/usr/lib/tabset/vt100:\
+	:rs=\E>\E[?3l\E[?4l\E[?5l\E[?7h\E[?8h:ks=\E[?1h\E=:ke=\E[?1l\E>:\
+	:ku=\EOA:kd=\EOB:kr=\EOC:kl=\EOD:kb=^H:\
+	:ho=\E[H:k1=\EOP:k2=\EOQ:k3=\EOR:k4=\EOS:ta=^I:pt:sr=\EM:vt#3:xn:\
+	:sc=\E7:rc=\E8:cs=\E[%i%d;%dr:TY=mskanji:DE=^H:\
+	:RP=\E[6n:AP=\E[%d;%dR:
+s2|newscbm|vt100-bm|sony vt100 emulator 33 lines:\
+	:cr=^M:do=^J:nl=^J:bl=^G:co#80:li#31:cl=\E[;H\E[2J:\
+	:le=^H:bs:am:cm=\E[%i%d;%dH:nd=\E[C:up=\E[A:\
+	:ce=\E[K:cd=\E[J:so=\E[7m:se=\E[m:us=\E[4m:ue=\E[m:\
+	:md=\E[1m:mr=\E[7m:mb=\E[5m:me=\E[m:\
+	:is=\E7\E[r\E8\EE\EE\EE\EM\EM\EM\E[?7h\E[?1l\E[?3l\E7\E[1;31r\E8:\
+	:if=/usr/lib/tabset/vt100:\
+	:rs=\E>\E[?3l\E[?4l\E[?5l\E[?7h\E[?8h:ks=\E[?1h\E=:ke=\E[?1l\E>:\
+	:ku=\EOA:kd=\EOB:kr=\EOC:kl=\EOD:kb=^H:\
+	:ho=\E[H:k1=\EOP:k2=\EOQ:k3=\EOR:k4=\EOS:ta=^I:pt:sr=\EM:vt#3:xn:\
+	:sc=\E7:rc=\E8:cs=\E[%i%d;%dr:TY=mskanji:DE=^H:\
+	:RP=\E[6n:AP=\E[%d;%dR:
+s3|nwp511|nwp-511|nwp-511 vt100:\
+	:co#80:li#23:cl=20\E[;H\E[2J:am:bs:cm=\E[%i%d;%dH:nd=\E[C:up=2\E[A:\
+	:ce=3\E[K:cd=30\E[J:so=2\E[7m:se=2\E[m:us=2\E[4m:ue=2\E[m:\
+	:is=\E[?5l\E7\E[1;23r\E[?1l\E>\E[?7h\E[?8h\E8:\
+	:ku=\E[A:kd=\E[B:kr=\E[C:kl=\E[D:\
+	:kh=\E[H:k1=\EOP:k2=\EOQ:k3=\EOR:k4=\EOS:k5=\EOT:k6=\E#W:pt:sr=5\EM:\
+	:vb=\E[?5h\000\000\000\000\000\000\000\000\000\000\000\000\000\E[?5l:\
+	:GG#3:GS=5\E(0:GE=5\E(B:GV=x:GH=q:GU=v:GD=w:G1=k:G2=l:G3=m:G4=j:\
+	:CO=5\E[0v:CF=5\E[1v:PU=\EOP:PD=\EOQ:PL=\EOR:PR=\EOS:\
+	:YS=\E(J:YE=\E(B:MP=5\E[?1l\E=:TY=mskanji:\
+	:DE=^H:al=\E[L:dl=\E[M:xn:\
+	:RP=\E[6n:AP=\E[%d;%dR:\
+# @(#)termcap	X10/6.6	11/7/86
+vs|xterm|vs100|xterm terminal emulator (X window system):\
+	:cr=^M:do=^J:nl=^J:bl=^G:le=^H:ho=\E[H:\
+	:co#80:li#65:cl=\E[H\E[2J:bs:am:cm=\E[%i%d;%dH:nd=\E[C:up=\E[A:\
+	:ce=\E[K:cd=\E[J:so=\E[7m:se=\E[m:us=\E[4m:ue=\E[m:\
+	:md=\E[1m:mr=\E[7m:me=\E[m:\
+	:ku=\EOA:kd=\EOB:kr=\EOC:kl=\EOD:kb=^H:\
+	:k1=\EOP:k2=\EOQ:k3=\EOR:k4=\EOS:ta=^I:pt:sf=\n:sr=\EM:\
+	:al=\E[L:dl=\E[M:ic=\E[@:dc=\E[P:\
+	:MT:ks=\E[?1h\E=:ke=\E[?1l\E>:\
+	:is=\E[r\E[m\E[2J\E[H\E[?7h\E[?1;3;4;6l:\
+	:rs=\E[r\E<\E[m\E[2J\E[H\E[?7h\E[?1;3;4;6l:xn:\
+	:AL=\E[%dL:DL=\E[%dM:IC=\E[%d@:DC=\E[%dP:\
+	:ti=\E7\E[?47h:te=\E[2J\E[?47l\E8:\
+	:hs:ts=\E[?E\E[?%i%dT:fs=\E[?F:es:ds=\E[?E:\
+	:GG#3:GS=\E(0:GE=\E(B:GV=x:GH=q:GU=v:GD=w:G1=k:G2=l:G3=m:G4=j:\
+	:RP=\E[6n:AP=\E[%d;%dR:
+v2|xterms|vs100s|xterm terminal emulator (small)(X window system):\
+	:co#80:li#24:tc=xterm:
+vs|jterm|vs100|jterm terminal emulator (X window system):\
+	:cr=^M:do=^J:nl=^J:bl=^G:le=^H:ho=\E[H:\
+	:co#80:li#65:cl=\E[H\E[2J:bs:am:cm=\E[%i%d;%dH:nd=\E[C:up=\E[A:\
+	:ce=\E[K:cd=\E[J:so=\E[7m:se=\E[m:us=\E[4m:ue=\E[m:\
+	:md=\E[1m:mr=\E[7m:me=\E[m:\
+	:ku=\EOA:kd=\EOB:kr=\EOC:kl=\EOD:kb=^H:\
+	:k1=\EOP:k2=\EOQ:k3=\EOR:k4=\EOS:ta=^I:pt:sf=\n:sr=\EM:\
+	:al=\E[L:dl=\E[M:\
+	:MT:ks=\E[?1h\E=:ke=\E[?1l\E>:\
+	:is=\E[r\E[m\E[2J\E[H\E[?7h\E[?1;3;4;6l:\
+	:TY=mskanji:DE=:\
+	:rs=\E[r\E<\E[m\E[2J\E[H\E[?7h\E[?1;3;4;6l:xn:\
+	:AL=\E[%dL:DL=\E[%dM:IC=\E[%d@:DC=\E[%dP:\
+	:ti=\E7\E[?47h:te=\E[2J\E[?47l\E8:\
+	:hs:ts=\E[?%i%dT:fs=\E[?F:es:i2=\E[?S:ds=\E[?H:\
+	:GG#3:GS=\E(0:GE=\E(B:GV=x:GH=q:GU=v:GD=w:G1=k:G2=l:G3=m:G4=j:\
+	:RP=\E[6n:AP=\E[%d;%dR:
+v2|jterms|vs100s|jterm terminal emulator (small)(X window system):\
+	:co#80:li#24:tc=jterm:
+vs|xterm_r3|vs100|xterm terminal emulator (X window system):\
+	:cr=^M:do=^J:nl=^J:bl=^G:le=^H:ho=\E[H:\
+	:co#80:li#66:cl=\E[H\E[2J:bs:am:cm=\E[%i%d;%dH:nd=\E[C:up=\E[A:\
+	:ce=\E[K:cd=\E[J:so=\E[7m:se=2\E[m:us=\E[4m:ue=\E[m:\
+	:md=\E[1m:mr=\E[7m:me=2\E[m:\
+	:ku=\EOA:kd=\EOB:kr=\EOC:kl=\EOD:kb=^H:\
+	:k1=\EOP:k2=\EOQ:k3=\EOR:k4=\EOS:ta=^I:pt:sf=\n:sr=\EM:\
+	:al=\E[L:dl=\E[M:ic=\E[@:dc=\E[P:\
+	:MT:ks=\E[?1h\E=:ke=\E[?1l\E>:\
+	:is=\E[r\E\E[m\E[2J\E[H\E[?7h\E[?1;3;4;6l:\
+	:rs=\E[r\E<\E[m\E[2J\E[H\E[?7h\E[?1;3;4;6l:xn
+vs|jterm_r3|vs100|jterm terminal emulator (X window system):\
+	:cr=^M:do=^J:nl=^J:bl=^G:le=^H:ho=\E[H:\
+	:co#80:li#24:cl=\E[;H\E[2J:bs:am:cm=\E[%i%d;%dH:nd=\E[C:up=2\E[A:\
+	:ce=\E[K:cd=\E[J:so=\E[7m:se=2\E[m:us=\E[4m:ue=\E[m:\
+	:md=\E[1m:mr=\E[7m:me=2\E[m:\
+	:ku=\E[A:kd=\E[B:kr=\E[C:kl=\E[D:kb=^H:\
+	:k1=\EOP:k2=\EOQ:k3=\EOR:k4=\EOS:pt:sf=\n:sr=\EM:\
+	:al=\E[L:dl=\E[M:\
+	:MT:ks=\E[?1h\E=:ke=\E[?1l\E>:\
+	:is=\E[r\E\E[m\E[2J\E[H\E[?7h\E[?1;3;4;6l:\
+	:TY=mskanji:DE=:\
+	:rs=\E[r\E<\E[m\E[2J\E[H\E[?7h\E[?1;3;4;6l:xn
+v2|jterms_r3|vs100s|jterm terminal emulator (small)(X window system):\
+	:co#80:li#24:tc=jterm_r3:
+
+# Wyse 50 terminal
+w1|wyse50|wyse 50:\
+    :co#80:li#24:cm=\E=%+ %+ :cl=\E*:cd=\Ey:ce=\Et:up=^K:bs=^h:ho=^^:\
+    :al=\EE:dc=\EW:dl=\ER:im=\Eq:ei=\Er:nd=^L:\
+    :so=\EG4:se=\EG0:us=\EG8:ue=\EG0:sg#1:ug#1:\
+    :ct=\E0:st=\E1:cr=^M:do=^J:nl=^J:bl=^G:am:bs:vs=\E`5:ve=\E`3:hs:\
+	:ts=\EF:fs=\r:ds=\E`c:ta=^I:pt:is=^Z:\
+	:k1=^a@\r:k2=^aA\r:k3=^aB\r:k4=^aC\r:k5=^aD\r:k6=^aE\r:\
+	:k7=^aF\r:k8=^aG\r:k9=^aH\r:kA=^aI\r:kB=^aJ\r:kC=^aK\r:\
+	:kG=^a`\r:kH=^aa\r:kI=^ab\r:kJ=^ac\r:kK=^ad\r:kL=^ae\r:\
+	:kM=^af\r:kN=^ag\r:kO=^ah\r:kP=^ai\r:kQ=^aj\r:kk=^ak\r:\
+	:PU=\EJ:PD=\EK:EN=\ET:HM=^^:\
+	:k0=\Eq:ku=^K:kd=^J:kl=^H:kr=^L:kh=^^:
+
+

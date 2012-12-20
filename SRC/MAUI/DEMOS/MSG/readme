@@ -1,0 +1,52 @@
+**********************************************************************
+MAUI message API demo code
+**********************************************************************
+What this demo does:
+
+  -  This demo shows the use of the message functions using a mailbox.  
+     When the write process 'msgwrtr' is executed the process 
+	 creates a mailbox, then initiates the read process 'msgrdr'.
+	 The two processes then pass messages to each other through the
+	 mailbox.  
+
+  -  When executed, this demo does the following:
+     1.  The message write process will write 1001 messages in the mailbox.
+     2.  While the write process is writing, the read process will read 
+         messages from the mailbox.  If the mailbox becomes full a
+		 diagnostic will be printed and go on.
+     3.  When the read process receives a message of type MSG_DONE, it 
+         will display the number of messages read. This should 
+		 indicate 1001 messages read.  
+     4.  Both the read and write processes then terminate.
+
+
+  -  This demo is capable of showing the use of a filter routine attached
+     to a mailbox.  To enable the use of the filter routine simply
+     define the FILTER environment variable.  The filter will simply 
+     print out the message "filter!" and accept the message.  To enable 
+     the installation of the filter do the following before running msgwrtr:
+     $ setenv FILTER x
+
+**********************************************************************
+System requirements:
+  - A working MAUI environment is assumed.
+  - The demo requires that msgrdr and msgwrtr are in memory.
+ 
+**********************************************************************
+Directories: 
+  - Source code 
+      $MWOS/SRC/MAUI/DEMOS/MSG
+        
+**********************************************************************
+To make this demo:
+  - From the source file directory type:
+      % os9make
+ 
+**********************************************************************
+Operation:
+  - This demo has no command line options. To run simply type the
+    demo name. The shell prompt will return after the demo ends.
+
+      $ msgwrtr
+
+**********************************************************************

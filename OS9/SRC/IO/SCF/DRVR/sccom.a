@@ -1,0 +1,116 @@
+ nam bkplane
+ ttl vme bus backplane driver
+
+* Copyright 1991, 1992, 1993 by Microware Systems Corporation
+* Reproduced Under License
+
+* This source code is the proprietary confidential property of
+* Microware Systems Corporation, and is provided to licensee
+* solely for documentation and educational purposes. Reproduction,
+* publication, or distribution in any form to any party other than
+* the licensee is strictly prohibited.
+
+***************
+* Edition History
+
+*  #    date    comments                                        by
+* --- -------- ------------------------------------------------ ---
+*  0  91/01/16  created                                         djl
+*  1  92/08/27  Changed case in use statement, no code changes  Rwb
+*  2  93/06/30  reworked use pathlists for MWOS structure.		wwb
+*  3  93/07/01  reworked use pathlists for MWOS structure.		wwb
+*
+Edition equ 3 current edition number
+
+Typ_Lang set (Drivr<<8)+Objct
+Attr_Rev set ((ReEnt+SupStat)<<8)+0 Attributes and revision
+
+ psect BkPlane,Typ_Lang,Attr_Rev,Edition,0,BPEnt
+
+ use defsfile
+ use <backplane.d>
+
+ pag
+***************
+* Entry point table
+
+BPEnt dc.w Init
+ dc.w Read
+ dc.w Write
+ dc.w GetStat
+ dc.w PutStat
+ dc.w TrmNat
+ dc.w 0 Exception handler (0=none)
+
+ ttl backplane driver
+ pag
+***************
+* Init
+*   Initialize the driver
+
+* Passed: (a1)=device descriptor address
+*         (a2)=static storage address
+* Returns: cc=carry set if device can't be initialized
+* Destroys: none
+
+Init: moveq.l #0,d1 no error, no carry
+ rts
+
+***************
+* Read
+*   Return one byte of input from the backplane driver
+
+* Passed:  (a1)=Path Descriptor
+*          (a2)=Static Storage Address
+*          (a4)=Current Process Descriptor
+*          (a6)=System Global Pointer
+* Returns: (d0.b)=input char
+* Destroyes: none
+
+Read: movem.l a0,-(a7)
+ move.l D_SysROM(a6),a0 get the rom dispatch address
+ jsr 4(a0) get address of input character routine
+ moveq.l #0,d1 no errors
+ movem.l (a7)+,a0 restore the pointer
+ rts
+ 
+**************
+* Write
+*   Write a character to the back plane driver
+
+* Passed:  (d0.b)=Char to Write
+*          (a1)=Path Descriptor
+*          (a2)=Static Storage Address
+*          (a4)=Current Process Descriptor Ptr
+*          (a6)=System Global Data Ptr
+* Returns: none
+
+Write: movem.l a0,-(a7)
+ move.l D_SysROM(a6),a0 get the rom dispatch address
+ jsr 8(a0) get address of input character routine
+ moveq.l #0,d1 no errors
+ movem.l (a7)+,a0 restore the pointer
+ rts
+ 
+**************
+* GetStat/PutStat
+*   Get/Put Status
+
+* Passed:  (d0.w)=Status Code
+*          (a1)=Path Descriptor
+*          (a2)=Static Storage Address
+* Returns: Depends On Status Code
+
+GetStat:
+ cmpi.w #SS_Ready,d0 ready status ?
+ bne.s GetStat10 no
+ move.w #1,R$d1+2(a0) there is a character
+TrmNat: move.w #0,d1
+ rts good result
+
+PutStat:
+GetStat10: move.w #E$UnkSvc,d1 unknown service code
+GetStat20: ori #Carry,ccr return carry set
+ rts
+
+ ends

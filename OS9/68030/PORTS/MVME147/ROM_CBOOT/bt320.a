@@ -1,0 +1,28 @@
+*
+* Copyright 1993 by Microware Systems Corporation
+* All Rights Reserved
+* Reproduced Under License
+
+*   This source code is the proprietary confidential property of
+* Microware Systems Corporation, and is provided to the licensee
+* for documentation and educational purposes only.  Reproduction,
+* publication, or any form of distribution to any party other than
+* the licensee is strictly prohibited.
+
+**----------------------------------------------!
+* boot_320_fd: Boot from VME320 floppy disk     !
+*----------------------------------------------*/
+boot_320_fd: dc.l ASM_SYNC
+ moveq.l #2,d0
+ bra.s boot_320
+
+*-----------------------------------------------!
+* boot_320_hd: Boot from VME320 hard disk       !
+*----------------------------------------------*/
+boot_320_hd: dc.l ASM_SYNC
+ moveq.l #1,d0
+boot_320: movea.l #VME320Base,a3
+ movea.l #(boot320-*-8)+4,a2
+ jmp (pc,a2)
+
+

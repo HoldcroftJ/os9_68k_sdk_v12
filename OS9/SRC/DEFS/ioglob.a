@@ -1,0 +1,81 @@
+
+*****************************************************************************
+*                                                                           *
+*              Copyright 1998 by Microware Systems Corporation              *
+*                            All Rights Reserved                            *
+*                          Reproduced Under License                         *
+*                                                                           *
+*  This software is confidential property of Microware Systems Corporation, *
+*  and is provided under license for internal development purposes only.    *
+*  Reproduction, publication, modification, distribution, or creation of    *
+*  derivative works in any form to any party other than the Licensee is     *
+*  strictly prohibited, unless expressly provided for under the terms of a  *
+*  mutually executed written license agreement for this software between    *
+*  the end-user and Microware Systems Corporation, or otherwise expressly   *
+*  authorized in writing by Microware Systems Corporation.  Licensee shall  *
+*  reproduce this copyright notice exactly as provided herein on any copies *
+*  of the software that Licensee is authorized to distribute.               *
+*                                                                           *
+*****************************************************************************
+*                                                                           *
+* Edition History:                                                          *
+* #   Date     Comments                                                By   *
+* --- -------- ------------------------------------------------------- ---- *
+*  01 98/07/15 Added edition history.                                  wwb  *
+*				---- OS-9/68K V3.1 Release ----								*
+*             $$                    <RELEASE_INFO>                     $$   *
+*****************************************************************************
+
+********************************
+* System Dependent I/O global static storage definitions
+
+*   This is a 256 byte common global area which can be used
+* by system dependent hardware drivers.  The biggest need
+* for them occurs when a single, write only register is used
+* by more than one device in the system.  They should be
+* used sparingly.  References to this area are usually like:
+* "move.b D_DMAReq(a6),d0".
+
+ org D_IOGlob
+D_DMAReq: do.b 1 DMA request flag
+ do.b 3 reserved for alignment
+D_BootP: do.l 1 reserved for BootP usage
+ do.b 24 reserved for Microware use
+OEM_Glob: equ . end of generic definitions
+
+********************************
+* Definitions for FM16 system
+ org OEM_Glob
+D_IntSel: do.b 1 Interrupt select (enable) master byte
+D_Buzzer: do.b 1 Buzzer/Line printer ack master byte
+D_ExpIRQ: do.b 1 Expansion IRQ enable master byte
+D_DskMot: do.l 1 disk drive motor turn off routine address
+D_DskSta: do.l 1 disk driver storage pointer
+* end
+
+********************************
+* Definitions for Processor 32 system
+ org OEM_Glob
+
+D_MotOn:   do.b 1      ; FDD motor-on flag
+D_MotCnt:  do.b 1      ;     "    -stop counter
+* end
+
+********************************
+* Definitions for Motorola VME10 system
+ org OEM_Glob
+
+D_Start:	do.w 1 current screen start offset
+D_Cursor:	do.w 1 current cursor position
+D_Col:		do.b 1 current column
+D_Row:		do.b 1 current row
+* end
+
+********************************
+* Definitions for GMX Micro-20 system
+ org OEM_Glob
+
+D_DuImr:  do.b 32  interrupt mask register for 32 x 68681 Duarts
+          do.b 64  reserved by GMX for future expansion
+Usr_GLOB  do.b 128 128 bytes of global storage for user definition
+* end

@@ -1,0 +1,75 @@
+ nam scsiglue
+ ttl generic interface for low level scsi drivers
+
+* Copyright 1988, 1990, 1993 by Microware Systems Corporation
+* Reproduced Under License
+
+* This source code is the proprietary confidential property of
+* Microware Systems Corporation, and is provided to licensee
+* solely for documentation and educational purposes. Reproduction,
+* publication, or distribution in any form to any party other than
+* the licensee is strictly prohibited.
+
+
+********************
+* scsiglue:  interface code for C language high-level drivers
+*            and the low-level hardware module.
+*            This psect is the "root psect" for the final
+*            output module, thus it must be linked first.
+
+
+
+********************
+*
+* Edition history
+*
+* Ed#   Date    By   Changes
+* --- --------  ---  ---------------------------------------
+*  1  88/01/14  djl  created
+*  2  88/08/03  srw  reworked for wd33c93
+*  3  88/08/05  wwb  name changing exercise:  high-level drvr is "rb5400",
+*                    low-level is "scsi33c93".
+*  4  88/08/16  lac  revisions to syscalls.a to reduce stack usage.
+*  5  88/09/01  lac  Revised to use SCSI controller interrupts instead of
+*                    DMA interrupts to signal IRQ event.  Added a flag for
+*                    the high-level driver to tell the low-level driver
+*                    which direction to transfer data.
+*  6  88/09/02  lac  Revised static storage usage; now requires the
+*                    high-level driver to supply the RBF static storage
+*                    ptr in a6.
+*  7  90/04/18  wwb  added a5 initialization for stack traceback in
+*                    debuggers.
+*                    ---- OS-9/68K V2.4 released ----
+*  8  93/06/08  ats  Extracted irqsvc into separate .a file for inclusion
+*                    into rb327 for Ultrafication.
+*  9  93/07/02  wwb  converted for UCC.
+*               ---- OS-9/68K V3.0 released ----
+*               ---- OS-9/68K V3.1 released ----
+*
+Edition set 9 low-level module should change this via @_sysedit:
+
+ use defsfile
+
+Typ_Lang set (Sbrtn<<8)+Objct a subroutine module
+Attr_Rev set ((ReEnt+SupStat)<<8)+0 attributes and revision
+
+ psect scsiglue,Typ_Lang,Attr_Rev,Edition,0,Entry
+
+
+* set "init" entry as module entry point
+
+Entry bra init call the init function
+
+
+* RBF static definition
+*
+* this definition resolves references in the C portion of the low-level driver
+* without actually declaring storage.  This requires that the high-level driver
+* pass the static storage ptr in a6.
+
+rbfstat: equ 0
+
+ use ./irqsvc.a
+
+ ends
+

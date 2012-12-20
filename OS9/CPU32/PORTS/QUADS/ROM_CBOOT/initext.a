@@ -1,0 +1,70 @@
+**************************************************
+* Copyright 1994 Microware Systems Corporation.
+* All Rights Reserved
+* Reproduced Under License
+*
+*   This source code is the proprietary confidential property of
+* Microware Systems Corporation, and is provided to the licensee
+* for documentation and educational purposes only.  Reproduction,
+* publication, or any form of distribution to any party other than
+* the licensee is strictly prohibited.
+
+********************************
+* Editon History
+*  #    Date      Comments                                      by
+* -- --------- ------------------------------------------------ ---
+* 01 94/01/02  Initial version: MC683360						arb
+*				---- OS-9/68K V3.0.1 Release ----
+*
+Edition equ 1 current edition number
+
+ use defsfile
+
+ nam initext.a
+ ttl initext.a - Sysinit extension module
+
+********************
+* Debugger usage
+*
+ ifdef DEBUGGER
+USING_DEBUGGER set 1 define primitive debugger in use
+ endc
+
+ ifdef ROMBUG
+USING_DEBUGGER set 1 define smart debugger in use
+ endc
+
+Typ_Lang set (Prgrm<<8)+Objct
+Attr_Rev set (ReEnt<<8)+0
+ psect initext,Typ_Lang,Attr_Rev,Edition,0,Entry
+
+Entry
+ dc.l 1801546857 sync code
+ bra RP_SInit extension to sysinit
+ bra RP_SInit2 extension to sysinit2
+
+***********************************************************************
+*  RP_SInit:  extention to SysInit.
+*
+*  This is the routine that is called from SysInit.  The CPU performs
+*  very little before it reaches this routine. 
+*
+RP_SInit:
+ rts return to SysInit.
+
+*****************************************************************************
+*  RP_SInit2:  extention to SInitTwo.
+*
+*  This is the routine that is called from SInitTwo.  The CPU has constructed
+*  the RAM vectors ( if included ) and the exception jump tables.  This would
+*  be a place to install handlers for boards that generate unsolicited
+*  interrupts that would cause the system to fail it's boot proceedure.
+*
+*   At this time, if the internal registers of the mc68360 have been 
+*      remapped, the remapped addresses are in effect.  Must use the
+*      cccMap version of the registers from here on.
+*
+RP_SInit2:
+ rts return to SInitTwo.
+ 
+ ends

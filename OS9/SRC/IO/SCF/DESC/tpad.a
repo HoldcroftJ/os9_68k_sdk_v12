@@ -1,0 +1,12 @@
+ nam Tpad
+ ttl 68341 Whirlwind Pager Touchpad device descriptor module
+ use defsfile
+
+* The default characteristics in "scfdesc.a" can be overridden
+* by equating the desired values here.  For example:
+
+ use "scfdesc.a"
+
+ TPAD
+ ends
+

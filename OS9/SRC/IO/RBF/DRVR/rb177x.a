@@ -1,0 +1,1285 @@
+ nam Disk Driver Module
+ nam Driver using WD 1770 series controller
+
+* Copyright 1984, 1987, 1988, 1992, 1993 by Microware Systems Corporation
+* Reproduced Under License
+
+* This source code is the proprietary confidential property of
+* Microware Systems Corporation, and is provided to licensee
+* solely for documentation and educational purposes. Reproduction,
+* publication, or distribution in any form to any party other than
+* the licensee is strictly prohibited.
+*
+
+
+********************
+*
+* Microware Systems Corporation
+*
+* OS9/68k Disk Driver Module using WD 177x
+*
+* Implementor: William G. Phelps
+*
+
+
+********************
+* Edition History
+*
+*  #    Date      Comments                                      By
+* -- --------- ------------------------------------------------ ---
+* 00  84/05/18 Created                                          WGP
+* 01  85/06/21 added write protection and disable retry         SMS
+* 02  87/10/20 converted to non-dma 1770 version (PACER),       wwb
+*              fixed bugs in original code (format failed to
+*              return E$Format error, write-verify failed to
+*              return error if readback had problem).
+* 03  87/11/16 debugged for reading, added count checks, fixed  wwb
+*              stack crash bugs in WritVerf.
+* 04  87/12/09 added motor-on time-out code.                    wwb
+* 05  87/12/11 fixed problems with Motor enabling.              wwb
+*              <<<---- OS-9/68000 V2.1 Release ---->>>
+* 06  88/02/12 fixed typo at WTPoll10 loop.                     wwb
+* 07  88/03/17 fixed bugs:                                      jal
+*              1) commented out setting of "in use" line to allow
+*                 normal operation of index pulse pin input during
+*                 a format operation
+*              2) added code to write track section of "IssCmd"
+*                 routine to detect index pulse before issuing the
+*                 write track command
+*              3) added code to detect and defuse any spurious
+*                 data request after the write track command has
+*                 completed
+* 08  92/08/27 Changed case in use statement,  no code change.  Rwb
+* 09  93/03/22 Reworked to maintain stack alignment and proper 
+*			   handling of the interrupt mask.					afh
+* 10  93/07/02 Reworked use statements for MWOS structure.		wwb
+*
+Edition equ 10 current edition number
+
+Typ_Lang set (Drivr<<8)+Objct Device Driver In Assembly Language
+Attr_Rev set ((ReEnt+SupStat)<<8)+0
+
+ psect disk,Typ_Lang,Attr_Rev,Edition,0,DiskEnt
+
+ use defsfile
+
+********************
+* Conditional Setups
+*
+ ifndef PACERMOS
+PACERMOS equ 20790 pacer mos cpu id
+ endc
+
+ page
+********************
+* Macro definitions
+*
+ use <os9svc.m>
+
+
+********************
+* Included Definitions
+*
+ ifne CPUType-PACERMOS
+
+ use <dma68450.h>
+
+ endc
+
+ use <fdc1772.h>
+ 
+ page 
+********************
+* Disk and General definitions
+*
+MaxDisk equ 2560 5" double side, double density 16 sect/trk
+FmtCount equ 6300 byte count for formatting a track
+SectPTrk equ $10 sectors per track (5")
+ ifeq CPUType-PACERMOS
+NumDrivs equ 2 max number of drives connected
+ else
+NumDrivs equ 4 max number of drives connected
+ endc
+BuffSize equ 256 size of sector buffer
+RetryPat equ %00110101 retry pattern:  0=retry, 1=restore/seek/retry
+SelectTime equ 10*TicksSec select-on time (in secs)
+
+
+********************
+* PD_ definitions
+*
+
+* PD_TYP definitions
+
+PD_TrkDn equ 2
+PD_DskDn equ 1
+
+* PD_TYP bit defs
+
+TSiz_Bit equ 0
+Hard_Bit equ 7
+
+* PD_DNS bit definitions
+
+DblD_Bit equ 0
+DblT_Bit equ 1
+
+
+********************
+* DD_ data definitions
+*
+DD_TrkDn equ 4
+DD_DskDn equ 2
+DD_Sides equ 1
+
+* Bit definitions
+
+Side_Bit equ 0
+Dens_Bit equ 1
+Trks_Bit equ 2
+
+
+********************
+* Hardware register declarations
+*
+ ifne CPUType-PACERMOS
+DMADev equ $FFF000 68450 DMA address
+IRQFlags equ $FFF100 interrupt flags (read only)
+MiniFlpy equ $FFF200 floppy controller device address
+
+* IRQFlags (1=asserted)
+
+DMAIRQ_B equ 4 bit number of DMA controller interrupt flag bit
+MFlpy_B  equ 3 bit number of mini floppy interrupt flag bit
+ endc CPUType
+
+ page
+********************
+* Disk port register offsets
+*
+ org 0
+ ifeq CPUType-PACERMOS
+R_Vector do.b 2 disk irq vector
+ do.b 2 spare
+R_Sense do.b 2 disk sense register (read)
+R_Select equ R_Sense disk select register (write)
+ do.b 2 spare
+R_Cmnd do.b 2 fdc1770 status/command register offset
+R_Track do.b 2 fdc1770 track register offset
+R_Sector do.b 2 fdc1770 sector register offset
+R_Data do.b 2 fdc1770 data register offset
+
+* disk select/sense register patterns
+*
+DskRdy equ 0 disk ready bit #
+DskChg equ 1 disk changed bit #
+
+Drive0 equ %00000001 select drive #0
+Drive1 equ %00000010 select drive #1
+Side2 equ %00000100 select side #2
+InUse equ %00001000 set IN USE true/reset disk change status
+
+SideZero equ 0 select pattern: side #1
+SideOne equ Side2 select pattern: side #2
+ else
+R_Cmnd   do.b 1 Fd177x command register offset
+R_Track  do.b 1 Fd177x track register offset
+R_Sector do.b 1 Fd177x sector register offset
+R_Data   do.b 1 Fd177x data reg offset
+R_Side   do.b 1 Drive head select register
+R_Drive  do.b 1 Drive select register
+R_Ready  do.b 1 drive ready status
+R_ReqReg do.b 1 DRQ & IRQ request register
+
+* Some register bit values for name defn
+*
+Done_Bit equ 6 bit number six of R_ReqReg tells done
+MotorOn  equ $80 This value goes into R_Drive register (5" only)
+Motor_B  equ 7 bit number of Motor on bit in R_Drive reg (5" only)
+SftReset equ 7 bit number seven of R_Side aslo does soft reset (8" only)
+DDen_Bit equ 6 bit number six of R_Side also does MFM select (8" only)
+SideOne  equ 1 value of side one for R_Side register
+SideZero equ 0 value of side zero for R_Side register
+DskSid_B equ 0 bit number of side bit in R_Side register
+DrvSelct equ 6 bit number seven of R_Drive enables select (8" only)
+DReady0  equ 0 bit number of R_Selct reg indicating drv0 ready
+DReady1  equ 1 bit number of R_Selct reg indicating drv1 ready
+DReady2  equ 2 bit number of R_Selct reg indicating drv2 ready
+DReady3  equ 3 bit number of R_Selct reg indicating drv3 ready
+ endc CPUType
+
+
+********************
+* Irq Vector Register definitions
+*
+ ifeq CPUType-PACERMOS
+VectMask equ %11111100 vector register mask
+VectCnt equ 4 number of possible irq vectors
+ endc CPUType
+
+ page
+********************
+* Static Storage
+*
+*
+ vsect
+V_VfyBuf ds.l BuffSize/4 write verify buffer
+V_LogSNm ds.l 1 logical sector number to read/write
+V_Buffer ds.l 1 address of buffer to read/write
+V_SlpTim ds.l 1 F$Sleep call tick time
+V_TrackN ds.w 1 track number to read/write 
+V_Sector equ V_TrackN+1 sector number to read/write
+V_Status ds.b 1 save of FDC status at IRQ time
+V_Vector ds.b 1 save of vector number
+V_Side ds.b 1 side byte
+V_EFlag ds.b 1 enable head load delay flag
+ ifeq CPUType-PACERMOS
+V_Select ds.b 1 disk select pattern
+V_Write ds.b 1 transfer direction flag (0=read fdc, else write fdc)
+ endc CPUType
+ ends
+
+
+********************
+* Branch Table
+*
+DiskEnt dc.w InitDisk Initialize i/o
+ dc.w ReadDisk Read sector
+ dc.w WritDisk Write sector
+ dc.w GetStats Get status
+ dc.w PutStats Put status
+ dc.w Terminat Terminate
+ dc.w 0 Exception entry (0 = none)
+
+ page
+********************
+* Initialize The I/O Port, Storage, Etc.
+*
+* Input:
+*   (a1) - Device descriptor pointer
+*   (a2) - Local storage pointer
+*   (a4) - Process descriptor pointer
+*   (a6) - System global data pointer
+*
+* Usage:
+*   (d0) - Numdrives, Vector number
+*   (d1) - Max disk size, IRQ level
+*   (a0) - Drive table pointer, IRQ service routine entry
+*   (a3) - Port base address
+*
+* Output:
+*   V_NDRV contains number of drives
+*   Drive tables initialized DD_TOT non-zero, V_TRAK unk track
+*   FDC cleared of any pending commands
+*   Device on polling table
+*   
+*
+* If Error:
+*   (cc)   - Carry bit set
+*   (d1.w) - Error code
+*
+
+InitDisk:
+
+* Init memory tables and storage variables
+
+ moveq.l #NumDrivs,d0 get count of drives
+ move.b d0,V_NDRV(a2) tell RBF how many there are
+ move.l #MaxDisk<<8,d1 get default media size (left justified)
+ lea DRVBEG(a2),a0 point at first drive table
+Init20 move.l d1,DD_TOT(a0) set media size
+ move.b #$FF,V_TRAK(a0) iniz current track $FF (indicates unknown track)
+ lea DRVMEM(a0),a0 point to next drive table
+ subq.b #1,d0 last drive?
+ bne.s Init20 loop if not
+
+* Init controller hardware
+
+ movea.l V_PORT(a2),a3 get port base address
+ move.b #F_Type1,R_Cmnd(a3) Clear FDC controller
+
+* Put device on polling table
+
+ move.b M$Vector(a1),d0 get vector number from device descriptor
+
+ ifeq CPUType-PACERMOS
+
+* NOTE: for PACERMOS,  there are four possible vectors from the
+* vector register.  These are:
+*
+*   BaseVect+0 = no INTRQ or DRQ active (no interrupt possible)
+*   BaseVect+1 = INTRQ active           (level 5, cmd completed)
+*   BaseVect+2 = DRQ active             (level 6, data transfer requested)
+*   BaseVect+3 = INTRQ and DRQ active   (impossible condition ?)
+*
+ andi.b #VectMask,d0 form base vector #
+ moveq.l #VectCnt-1,d2 get counter for number of vectors
+ endc CPUType
+ move.b d0,V_Vector(a2) save a copy for possible terminate
+ move.b M$Prior(a1),d1 pass IRQ level
+ lea IRQServc(pcr),a0 pass IRQ routine address
+ ifeq CPUType-PACERMOS
+Init40 andi.b #VectMask,d0 make base vector #
+ add.b d2,d0 form vector number
+ endc CPUType
+ os9 F$IRQ call system to get in polling table
+ ifeq CPUType-PACERMOS
+ dbcs d2,Init40 add all vectors to system irq table
+ bcs.s Init99 ..exit if error
+ move.b d0,R_Vector(a3) iniz base vector in hardware
+ move.b #0,R_Select(a3) de-select all drives
+Init99
+ endc CPUType
+ rts
+ page
+********************
+* Read Sector Command
+*
+* Input:
+*   (d0.l) - number of sectors to read
+*   (d2.l) - LSN to be read
+*   (a1)   - path descriptor pointer
+*   (a2)   - driver storage pointer
+*   (a4)   - process descriptor ptr
+*   (a6)   - system global data ptr
+*
+* Usage:
+*   (d0)   - size of DD_ info
+*   (d2)   - Error bit mask for StatChek
+*   (d5)   - DMA count
+*   (d6)   - DMA direction (R/W), command code
+*   (d7)   - error retry bit field
+*   (a0)   - sector buffer pointer
+*   (a3)   - port base address
+*   (a5)   - drive table pointer
+*
+* Output:
+*   sector read into PD_BUF
+*   if LSN zero DD_ info moved to drive table
+*
+* If Error:
+*   (cc)   - carry bit set
+*   (d1.w) - error code
+*
+ReadDisk: move.b PD_Trys(a1),d7 get retry counter
+ beq.s Read01 ...if no value, use default pattern
+ cmpi.b #1,d7 no retries ?
+ bne.s Read01 ..no; set default pattern
+ moveq.l #0,d7 set no retries
+ bra.s Read02
+
+Read01 moveq.l #RetryPat,d7 preset retry shifter
+
+Read02 bsr SetUp prepare for sector transfer
+ bcs.s ReadExit bra if error
+ tst.l V_LogSNm(a2) reading LSN 0?
+ bne.s ReadSect bra if not
+ bsr.s ReadSect read then copy data from sector zero
+ bcs.s ReadExit exit if error
+
+*  LSN 0 read - move data to drive table
+*
+ReadZero: movea.l V_Buffer(a2),a0 point to sector buffer
+ move.w #DD_SIZ-1,d0 get number of bytes to copy
+ReadZer2 move.b (a0,d0.w),(a5,d0.w) move one byte
+ dbra d0,ReadZer2 loop if not done
+ btst #Side_Bit,DD_FMT(a5) media format double sided?
+ beq.s ReadZer4 ...no; device can surely handle it.
+ cmpi.b #2,PD_SID(a1) can device handle two sides?
+ bcs.s TypeErr ...no; report error
+ReadZer4 moveq.l #0,d1 clear carry and error code
+ rts
+ 
+TypeErr: move.w #E$BTyp,d1 load error code
+
+ErrExit: ori #Carry,ccr set the carry bit
+
+ReadExit: rts
+
+ReadSec0 bcc.s ReadSec2 bra if retry without restore
+ bsr Restore2 call for restore
+ReadSect bsr Seek call for seek to sector
+ReadSec2 bsr.s ReadOne Read sector
+ bcc.s ReadExit Return if no error
+ lsr.b #1,d7 done?
+ bne.s ReadSec0 ...no; retry
+
+* fall thru for last try and then return given error
+
+ReadOne: move.w PD_SSize(a1),d5 get byte xfer count
+ ifeq CPUType-PACERMOS
+ sf.b V_Write(a2) flag reading fdc data
+ else
+ moveq.l #DevToMem,d6 get direction (R/W) for DMA xfer
+ bsr SetDMA set up the DMA controller
+ endc CPUType
+ moveq.l #F_RdSect,d6 get sector command
+ bsr IssCmd issue the command
+ moveq.l #ErrBits,d2 get error mask for statchek
+ bra StatChek Check status and return
+ 
+ page
+********************
+* Write Sector Command
+*
+* Input:
+*   (d0.l) - number of sectors to write
+*   (d2.l) - LSN to write
+*   (a1)   - path descriptor pointer
+*   (a2)   - driver storage pointer
+*   (a4)   - process descriptor ptr
+*   (a6)   - system global data ptr
+*
+* Usage:
+*   (d2)   - Error bit mask for StatChek
+*   (d5)   - DMA count
+*   (d6)   - DMA direction (R/W), command code
+*   (d7)   - error retry bit field
+*   (a3)   - port base address
+*
+* Output:
+*   PD_BUF buffer written to givem LSN sector
+*   If verify enabled sector reread after write and buffers compared
+*
+* If Error:
+*   (cc)   - carry set if error found
+*   (d1.w) - error code if needed
+*
+WritDisk: tst.l d2 write to sect 0?
+ bne.s Write00 no not sect 0
+ btst #FmtDis_B,PD_Cntl+1(a1) is formatting enabled?
+ beq.s Write00 branch if so
+ move.w #E$Format,d1
+ bra.s ErrExit return carry set
+
+Write00 move.b PD_Trys(a1),d7 get retry counter
+ beq.s Write01 ...if no value, use default pattern
+ cmpi.b #1,d7 no retries ?
+ bne.s Write01 ..no; set default pattern
+ moveq.l #0,d7 set no retries
+ bra.s Write02
+
+Write01 moveq.l #RetryPat,d7 preset retry shifter
+
+Write02 bsr SetUp call for transfer prep
+ bcs.s WritExit bra if error
+WritDsk0 bsr Seek call for seek to destination sector
+
+WritDsk1 bsr.s WritSect Write sector
+ bcs.s WritDsk3 Write error; check for retry
+ btst #0,PD_VFY(a1) Verify desired?
+ bne.s WritExit done if not
+ bsr WritVerf Do verify of write
+ bcc.s WritExit No errors all done
+WritDsk3 cmpi.w #E$WP,d1 write protected?
+ beq.s ErrExit exit returning error
+ lsr.b #1,d7 retries done?
+ beq.s ErrExit ..yes; return error
+ bcc.s WritDsk1 Retry without restore
+ bsr Restore2 Restore drive
+ bra.s WritDsk0 Retry after restore
+
+WritSect: move.w PD_SSize(a1),d5 get xfer byte count
+ ifne CPUType-PACERMOS
+ moveq.l #MemToDev,d6 get direction (R/W) for DMA xfer
+ bsr.s SetDMA set up for DMA xfer
+ endc CPUType
+ moveq #F_WrSect,d6 Write cmd
+ ifeq CPUType-PACERMOS
+ moveq.l #0,d1 sweep d1
+ move.b V_TRAK(a5),d1 get current track #
+ cmp.w PD_WPC(a1),d1 write precomp req'd ?
+ bcc.s WritSect20 ..yes; precomp is ON
+ bset.l #Prec_Bit,d6 set write precompensation OFF
+WritSect20 st.b V_Write(a2) flag writing fdc data
+ endc CPUType
+ bsr IssCmd Start the write
+ moveq.l #FErrBits,d2 get error mask for statchek
+ bra StatChek Check status and return
+
+ page
+********************
+* Get/Put Status Call
+*
+* Input:
+*   (d0.w) - status code
+*   (a1)   - path descriptor pointer
+*   (a2)   - driver storage pointer
+*   (a4)   - process descriptor ptr
+*   (a5)   - caller's register stack ptr
+*   (a6)   - system global data ptr
+*
+* Usage:
+*   (a3)   - port base address
+*
+* Output:
+*   Depends on Stat call
+*
+* If Error:
+*   (cc)   - carry set
+*   (d1.w) - error code
+*
+PutStats: movea.l V_PORT(a2),a3 get port base address
+ cmpi.w #SS_Reset,d0 Restore call?
+ beq Restore ..yes; do it.
+ cmpi.w #SS_WTrk,d0 Write track call?
+ beq WritTrak ..yes; do it.
+
+* fall into GetStats to return "unknown service request"
+
+GetStats: move.w #E$UnkSvc,d1 Error code
+ ori #Carry,ccr set carry bit
+WritExit: rts
+
+ page
+********************
+* Terminate use of the disk
+*
+* Input:
+*   (a1) - device descriptor ptr
+*   (a2) - driver storage address
+*   (a4) - process descriptor ptr
+*   (a6) - system global data ptr
+*
+* Usage:
+*   (d0) - IRQ vector number
+*   (a0) - 0 indicating remove from poll table
+*
+* Output:
+*   Device removed from poll table
+*
+Terminat: move.b V_Vector(a2),d0 get saved vector number
+ suba.l a0,a0 no service routine (0 means remove from table)
+ ifeq CPUType-PACERMOS
+ movea.l V_PORT(a2),a3 get port address
+ move.b #0,R_Select(a3) de-select all drives
+ moveq.l #VectCnt-1,d2 get vector counter
+Term20 andi.b #VectMask,d0 form base vector #
+ add.b d2,d0 compute vector #
+ endc CPUType
+ os9 F$IRQ remove device from polling table
+ ifeq CPUType-PACERMOS
+ dbcs d2,Term20 remove all irq table entries
+ endc CPUType
+ rts return result
+
+ page
+********************
+* Interrupt Request Service Routine
+*
+*  Clears Pending Intrq From FD177x
+*  Calls Wake Up For Driver
+*  Ignores Interrupt If Driver Not Busy
+*
+* Input:
+*   (a2)   - driver storage pointer
+*   (a3)   - device polling address
+*   (a6)   - system storage pointer
+*
+* Output:
+*   V_Status contains FDC status
+*   IRQ cleared
+*   V_WAKE cleared indicating IRQ wake up
+*   Waiting process sent wake up signal
+*
+* If Error:
+*   (ccr)  - carry bit set if device didn't make IRQ
+*
+* OS-9/68000 V2.0 Release comments:
+* In the interrupt service routine, the kernel only preserves d0, d1,
+* a0, a2, a3 and a6.  All other registers used for interrupt service
+* must be preserved by the driver.
+*
+IRQServc:
+ ifeq CPUType-PACERMOS
+
+* interrupts are to be expected only for non-data transfer commands,
+* as data transfers will be done in IssCmd by polled i/o.
+
+ else
+ btst #MFlpy_B,IRQFlags did mini-floppy cause IRQ?
+ beq.s IRQError exit if not
+ endc CPUType
+ move.b R_Cmnd(a3),V_Status(a2) Clr fdc INTRQ & get status
+ move.w V_WAKE(a2),d0 Device busy?
+ beq.s IRQExit ...no; ignore intrpt
+ moveq.l #S$Wake,d1 get wake up signal
+ clr.w V_WAKE(a2) flag IRQ wake up
+ OS9svc F$Send send wake up signal to waiting process
+ moveq.l #0,d1 insure carry clear
+IRQExit: rts
+
+ ifne CPUType-PACERMOS
+IRQError: ori #Carry,ccr set carry bit
+ rts
+ endc CPUType
+ 
+ page
+********************
+* Set Up for DMA transfer
+*
+* Input:
+*   (d5.b) - byte count for DMA
+*   (d6.b) - R/W direction for DMA
+*   (a1)   - path descriptor ptr
+*   (a2)   - static storage ptr
+*   (a6)   - system global data ptr
+*
+* Usage:
+*   (d0.b) - Function codes byte
+*   (a0)   - DMA device address
+*
+* Output:
+*   DMA device initialized and activated
+*
+ ifne CPUType-PACERMOS
+SetDMA: movea.l #DMADev,a0 get dma address
+ move.b #StealMod+DevAck+Dev8Bit+StatInp,DevCtlRg(a0) set up DCR
+ ori.b #ByteSize+ChainDis+ReqInit,d6 add basic standard values
+ move.b d6,OpsCtlRg(a0) set up OCR
+ move.b #MemCntUp+DevNoCnt,SeqCtlRg(a0) set up SCR
+ move.b #ChPrior3,ChlPriRg(a0) set up CPR
+ moveq.l #SupvData,d0 get supervisor data function codes
+ move.b d0,MemFunCd(a0) set up memory function codes
+ move.b d0,DevFunCd(a0) set up device function codes
+ move.w d5,MemTfrCt(a0) set up byte transfer count
+ move.l V_Buffer(a2),MemAdrRg(a0) set up memory address
+ move.l a3,DevAdrRg(a0) set up device address
+ move.b #StartOp+NoContin+OpNoHalt+NoAbort+IntrptDi,ChlCtlRg(a0) start opn
+ rts
+ endc CPUType
+
+ page
+********************
+* SetUp for Disk operation
+*
+* Input:
+*   (d2.l) - LSN to read/write
+*   (a1)   - path descriptor pointer
+*   (a2)   - driver storage pointer
+*   (a4)   - process descriptor ptr
+*   (a6)   - system global data ptr
+*
+* Usage:
+*   (d0)   - drive number to operate on, FDC status, DD_TOT,
+*            track zero sectors/track, sectors/track
+*   (d2)   - divided to become track number
+*   (d6)   - command code
+*
+* Output:
+*   (a3)   - device base port address
+*   (a5)   - current drive table pointer
+*   Drive number range checked
+*   Drive insured to be ready
+*   Drive restored if at unknown track
+*   V_Buffer has buffer pointer
+*   V_TrackN, V_Sector correspond to the LSN desired
+*   V_Side set for side one or side zero
+*
+SetUp: move.l d2,V_LogSNm(a2) save logical sector number for posterity
+ movea.l V_PORT(a2),a3 get port base address
+ movea.l PD_DTB(a1),a5 get drive table pointer
+ move.b PD_DRV(a1),d0 get drive number
+ cmp.b V_NDRV(a2),d0 test drive number range
+ bhs ErrUnit bra if not in range
+ ifeq CPUType-PACERMOS
+ moveq.l #0,d1 sweep d1
+ bset.l d0,d1 assert correct drive select bit
+* Begin Ed. 7 change
+* ori.b #InUse,d1 add IN USE active
+* End ed. 7 change
+
+*
+* NOTE: here to reset/examine DISK CHANGE status (if desired)
+*
+ move.b d1,V_Select(a2) save select pattern (for IssCmd)
+ clr.b V_Side(a2) default side zero
+ else
+ ori.b #MotorOn,d0 insure motor on
+ move.b d0,R_Drive(a3) select correct drive number
+ move.b #SideZero,V_Side(a2) default side zero
+ btst #NtRy_Bit,R_Cmnd(a3) is drive ready?
+ beq.s SetUp07 bra if so
+ clr.b V_EFlag(a2) insure no eflag
+ move.l #$80000C00,V_SlpTim(a2) set sleep time for twelve seconds
+ moveq.l #F_GoRdy,d6 get command
+ bsr IssCmd await ready or time expired
+ btst #NtRy_Bit,d0 is drive ready?
+ bne StatChk6 bra if not
+ endc CPUType
+SetUp07 cmpi.b #$FF,V_TRAK(a5) is restore needed?
+ bne.s SetUp08 bra if not
+ clr.b V_EFlag(a2) insure no eflag
+ moveq.l #F_Restor,d6 get command code for restore
+ bsr IssCmd do restore
+ clr.b V_TRAK(a5) set current track
+SetUp08 move.l PD_BUF(a1),V_Buffer(a2) prep buffer pointer
+
+* convert LSN to Phy track and sector
+*
+ move.l DD_TOT(a5),d0 get max disk sect
+ lsr.l #8,d0 make it true value
+ cmp.l d2,d0 sector out of range?
+ bls SectErr branch if so
+ moveq.l #0,d0 clear reg
+ move.b d0,V_TrackN(a2) default track zero
+ move.w PD_T0S(a1),d0 get sect/trk trk zero
+ cmp.l d2,d0 sector on first track?
+ bhi.s SetUp50 branch if so
+SetUp10 sub.l d0,d2 subtract track zero sectors
+ beq.s SetUp25 branch if zero created
+ move.b DD_TKS(a5),d0 get sect/track
+ beq.s SectErr exit with funny error if bad sector count
+ divu d0,d2 get track num, and sector num (remainder)
+SetUp25 addq.w #1,d2 bump for track zero subtract
+ btst #Side_Bit,DD_FMT(a5) is media double sided?
+ beq.s SetUp40 branch if not
+ lsr.w #1,d2 div track by two
+ bcc.s SetUp40 bra if side zero
+ move.b #SideOne,V_Side(a2) set side number one
+SetUp40 move.b d2,V_TrackN(a2) save track number
+ swap d2 get sector num in low half (remainder)
+SetUp50: add.b PD_SOffs(a1),d2 add sector base offset to sector number
+ move.b d2,V_Sector(a2) save sector number
+ move.b PD_TOffs(a1),d0 get track base offset
+ add.b d0,V_TrackN(a2) add it to track num
+ rts
+ page
+********************
+* Seek to a Track
+*
+* Input:
+*   (a1)     - path descriptor pointer
+*   (a2)     - driver storage pointer
+*   (a3)     - port base address
+*   (a5)     - drive table pointer
+*   (a6)     - system global data ptr
+*   V_TrackN - desired track
+*   V_Sector - desired sector
+*   V_DoSeek - force seek flag
+*
+* Usage:
+*   (d0) - desired track number
+*   (d6) - command code
+*
+* Output:
+*   Device sector register = desired sector
+*   Device track register = desired track
+*   Device head over desired track
+*   V_EFlag set if seek occurred
+*   V_TRAK set to new track number
+*
+* If Error:
+*   (d1.w) - error code
+*   (ccr)  - carry bit set
+*
+Seek: move.b V_Sector(a2),R_Sector(a3) put sector number in FDC
+ move.b V_TRAK(a5),R_Track(a3) get current track number in reg
+ move.b V_TrackN(a2),d0 get desired track number
+ cmp.b V_TRAK(a5),d0 Same track?
+ beq.s Seek90 bra if so
+Seek60 move.b d0,R_Data(a3) Put new trk in Data reg
+ moveq.l #F_Seek,d6 get command
+ move.b PD_STP(a1),d0 get step rate
+ eor.b d0,d6 Mask in step rate
+ bsr.s IssCmd perform command
+ move.b #EnDelay,V_EFlag(a2) Set "e" flag
+ move.b R_Track(a3),V_TRAK(a5) save new track number
+Seek90: rts
+
+* here when drive number is illegal
+*
+ErrUnit: move.w #E$Unit,d1 Error: illegal unit (drive)
+ ori #Carry,ccr set the carry bit
+ rts
+
+* here when LSN out of range, or DD_TRK value bad
+*
+SectErr: move.w #E$Sect,d1 Error: bad sector number
+ ori #Carry,ccr set the carry bit
+ rts
+
+ page
+********************
+* Issue Command
+*
+* Input:
+*   (d5.w) - transfer count (for r/w, non-dma)
+*   (d6.b) - command code
+*   (a1)   - path descriptor ptr
+*   (a2)   - driver storage pointer
+*   (a3)   - device address pointer
+*   (a6)   - system global data ptr
+*   V_CurDrv current drive number
+*   V_Side desired side
+*   V_EFlag set if head settle delay needed
+*   V_SlpTim set for desired sleep time (0 = default)
+*
+* Usage:
+*   (d0)   - sleep time for sys call, FDC status
+*   (d5)   - current drive number
+*   V_WAKE - busy flag, process ID, IRQ wake up flag
+*
+* Output:
+*   (d0.b) - FDC status
+*   Command executed
+*   V_SlpTim in default state
+*   V_EFlag cleared
+*
+IssCmd: or.b V_EFlag(a2),d6 Add "e" flag to cmd
+
+ ifeq CPUType-PACERMOS
+
+ ori.b #EnMotOn,d6 ensure that motor-on spin-up enabled
+
+* check if disk can be accessed:  the clock routine will
+* set this counter when it detects motor time-out.  The
+* "unsafe" delay is required to allow the fdc to ready
+* itself for the next command.
+
+ moveq.l #0,d0 sweep d0
+ move.w D_UnSafe+D_Start(a6),d0 get remaining sleep time till safe
+ beq.s IssCmd10 ..if safe; lets go on
+ addq.l #1,d0 bump time for giving up this slice
+IssCmd05 os9 F$Sleep wait for fdc to be ready for commands
+ bcs.s IssCmd10 ..if no clock; then continue anyway (no UnSafe possible)
+ tst.l d0 slept full period ?
+ bne.s IssCmd05 ..no; do so
+
+* start disk select time-out:  the clock tick routine is
+* responsible for decrementing this timer and disabling
+* the disk drives when time-out occurs
+
+IssCmd10 move.w #SelectTime,D_Motor+D_Start(a6) start select-on timeout
+
+IssCmd30 move.b V_Select(a2),d0 get select pattern
+ or.b V_Side(a2),d0 add side select pattern
+ move.b d0,R_Select(a3) select the correct side
+ tst.b d6 what type of command ?
+
+* if the command has the high bit set, then it is either a
+* type 2, 3 or 4.  As type 4 (Force Int) is always issued directly,
+* the high bit tells us whether this is a non-data transfer or not.
+
+ bpl IssCmd40 branch if TYPE 1 (irq method) command
+
+* here for data transfers:  we will do polled i/o to move the data
+* NOTE: interrupts must be MASKED for the transfer loop
+
+ movea.l V_Buffer(a2),a0 get buffer pointer
+ movem.l a3/a4,-(sp) save regs
+ lea.l R_Data(a3),a4 point at data register
+ lea.l R_Cmnd(a3),a3 point at status register
+ subq.l #1,d5 adjust count for dbra loop
+ tst.b V_Write(a2) read or write data ?
+ beq RdPoll ..bra if reading data
+ btst.l #6,d6 is this a write-track ?
+ beq.s WrPoll ..no; enter write-sector loop
+
+ page
+
+*****************************************
+* here for write track data
+*
+WTPoll: lea -4(sp),sp get stack space
+ move.w sr,(sp) save irq masks
+ ori.w #IntMask,sr mask all interrupts
+* Begin Ed. 7 Changes
+*
+* Force Type I status
+*
+ move.b #F_Type1,(a3) Force Type I status
+ moveq.l #$40,d0 get delay value
+WTPoll00 dbra d0,WTPoll00 delay a short while
+*
+* Wait for the index pulse
+*
+WTPoll01 move.b (a3),d0 get fdc status
+ btst.l #Indx_Bit,d0 index hole here yet?
+ beq.s WTPoll01 if no, keep polling status register
+
+WTPoll02 move.b (a3),d0 get fdc status
+ btst.l #Indx_Bit,d0 index hole gone yet?
+ bne.s WTPoll02 if no, keep polling status register
+* End Ed. 7 Changes
+*
+* Issue the write track command
+*
+ move.b d6,(a3) issue write-track cmd
+ moveq.l #40,d0 delay till status ready
+* start ed.6 changes
+*WTPoll10 dbra d0,WTPoll delay after issuing cmd
+WTPoll10 dbra d0,WTPoll10 delay after issuing cmd
+* End Ed. 6 Changes
+* Begin Ed. 7 Changes
+* move.b (a0)+,(a4) send first byte quickly
+* subq.l #1,d5 count it
+* bra.s WrPoll40 enter normal write loop
+*
+* Send the write track data to the FDC
+*
+WTPoll20 move.b (a3),d0 get fdc status, clear INTRQ
+ btst.l #Busy_Bit,d0 command completed?
+ beq.s WTPoll40 exit transfer phase
+ btst.l #DatR_Bit,d0 data request active?
+ beq.s WTPoll20 ..no; keep polling status register
+WTPoll30 move.b (a0)+,(a4) write data to controller, clear DRQ
+ dbra d5,WTPoll20 loop until count expired
+ bra.s WrPoll50
+
+WTPoll40 move.b (a4),d0
+ bra.s PollDone exit transfer phase
+* End Ed. 7 Changes
+
+ page
+*****************************
+* here for write sector data
+*
+WrPoll: move.b d6,(a3) issue the command
+ lea -4(sp),sp get stack space
+ move.w sr,(sp) save irq masks (timing delay also)
+ ori.w #IntMask,sr mask all interrupts
+ move.w #40,d0 delay till status ready
+WrPoll20 dbra d0,WrPoll20
+WrPoll40 move.b (a3),d0 get fdc status, clear INTRQ
+ btst.l #Busy_Bit,d0 command completed?
+ beq.s PollDone ..yes; exit transfer phase
+ btst.l #DatR_Bit,d0 data request active?
+ beq.s WrPoll40 ..no; keep polling status register
+ move.b (a0)+,(a4) write data to controller, clear DRQ
+ dbra d5,WrPoll40 loop thru till count expired
+*
+* here when count has been serviced, but requests still pending
+*
+WrPoll50 move.b (a3),d0 get fdc status, clear INTRQ
+ btst.l #Busy_Bit,d0 command completed ?
+ beq.s PollDone ..yes; exit transfer phase
+ btst.l #DatR_Bit,d0 data request active ?
+ beq.s WrPoll50 ..no; keep polling status register
+ move.b -1(a0),(a4) write last byte again, clear DRQ
+ bra.s WrPoll50 loop till cmd complete
+
+* here for reading data
+
+RdPoll: move.b d6,(a3) issue the command
+ lea -4(sp),sp get stack space
+ move.w sr,(sp) save irq masks (timing delay also)
+ ori.w #IntMask,sr mask all interrupts
+ move.w #40,d0 delay till status ready
+RdPoll20 dbra d0,RdPoll20
+
+RdPoll40 move.b (a3),d0 get fdc status, clear INTRQ
+ btst.l #Busy_Bit,d0 command completed ?
+ beq.s PollDone ..yes; exit transfer phase
+ btst.l #DatR_Bit,d0 data request active ?
+ beq.s RdPoll40 ..no; keep polling status register
+ move.b (a4),(a0)+ read data from controller, clear DRQ
+ dbra d5,RdPoll40 loop thru till count expired
+
+* here when count expired and requests still pending
+
+RdPoll50 move.b (a3),d0 get fdc status, clear INTRQ
+ btst.l #Busy_Bit,d0 command completed ?
+ beq.s PollDone ..yes; exit transfer phase
+ btst.l #DatR_Bit,d0 data request active ?
+ beq.s RdPoll50 ..no; keep polling status register
+ move.b (a4),d0 read data from controller, clear DRQ
+ bra.s RdPoll50 continue transfer loop
+
+* here when transfer phase completed.  DRQ will be clear from
+* servicing the DR, INTRQ will be clear from reading status reg.
+*
+PollDone: move.w #13,d0
+
+PollDone10 dbra d0,PollDone10 delay while INTRQ asserts
+ move.b (a3),d0 get status, clear INTRQ while irqs masked
+ move.w (sp),sr restore irq masks
+ lea 4(sp),sp adjust stack
+ movem.l (sp)+,a3/a4 restore registers
+ move.b d0,V_Status(a2) save fdc status
+ bra.s IssCmd80 begin exit
+
+IssCmd40
+
+ else
+ move.b V_Side(a2),R_Side(a3) set side select reg
+ endc CPUType
+ move.w V_BUSY(a2),V_WAKE(a2)
+ move.b d6,R_Cmnd(a3) Send command to ctlr
+ move.l V_SlpTim(a2),d0 sleep given time
+IssCmd50 OS9 F$Sleep Sleep awaiting intrpt
+ bcc.s IssCmd60 bra if no errors
+ moveq.l #0,d0 clear count reg
+ cmpi.w #E$NoClk,d1 is clock not running?
+ beq.s IssCmd50 bra if so
+IssCmd60 tst.w V_WAKE(a2) true IRQ?
+ beq.s IssCmd80 bra if so
+ tst.l V_SlpTim(a2) timed sleep?
+ beq.s IssCmd50 loop if not
+ tst.l d0 time expired?
+ bne.s IssCmd50 loop if not
+ move.b #F_Type1,R_Cmnd(a3) clear FDC pending command
+ moveq.l #23,d0 get counter
+IssCmd70 dbra d0,IssCmd70 loop til delay over
+ move.b R_Cmnd(a3),V_Status(a2) set up status
+IssCmd80: clr.l V_SlpTim(a2) default sleep time is indefinite
+ clr.b V_EFlag(a2) Insure only one "e" set.
+ move.b V_Status(a2),d0 return controller status
+ rts
+
+ page
+********************
+* Check For Error Conditions
+*
+* Input:
+*   (d0.b) - FDC status byte
+*   (d2.b) - Error mask
+*
+* Usage:
+*   (d0)   - masked with d2
+*   (d1)   - DMA error code, intermediate error codes
+*   (d3)   - DMA status
+*   (a0)   - DMA device address
+*
+* Output:
+*   (ccr)  - carry clear indicating no error found
+*   DMA device cleared for next use
+*
+* If Error:
+*   (d1.w) - Error code
+*   (ccr)  - carry bit set
+*
+* Checks for these error conditions;
+*
+*           1 - FD177x Lost Data (Read Or Write Error)
+*           2 - Rnf  Record Not Found (Seek Error)
+*           3 - Crc  Check Sum Bad    (Bad Disk Data)
+*           4 - Nrdy  Drive Not Ready
+*           5 - Write protect (writes only)
+*           6 - Write fault (writes only)
+*
+StatChek:
+ ifne CPUType-PACERMOS
+ movea.l #DMADev,a0 get DMA device address
+ move.b StatusRg(a0),d3 get status
+ move.b ErrorReg(a0),d1 save possible error code
+ lsl.w #8,d1 shift to upper half of word
+ move.b #$FF,StatusRg(a0) clear channel
+ andi.b #OperComp+ErrorSet+ActiveCh,d3
+ cmpi.b #OperComp,d3 any errors?
+ beq.s StatChk2 bra if no errors
+ btst #Active_B,d3 is channel still active?
+ beq.s StatChk1 bra if not
+ move.b #OpAbort,ChlCtlRg(a0) stop channel
+ move.b #$FF,StatusRg(a0) clear channel
+StatChk1 move.b #E$Read,d1 preset read error
+ btst #XfrDir_B,OpsCtlRg(a0) reading?
+ bne.s StatCh15 bra if so
+ move.b #E$Write,d1 set write error
+StatCh15 and.b d2,d0 FDC report error?
+ beq.s StatChk8 bra if not
+ endc CPUType
+StatChk2
+ and.b d2,d0 mask all but error bits
+ beq.s StatChk9 branch if no errors
+ move.w #E$CRC,d1 preset crc error
+ btst #CRCE_Bit,d0 bad CRC?
+ bne.s StatChk8 branch if so
+ move.w #E$Seek,d1 preset seek error
+ btst #SkEr_Bit,d0 record not found?
+ bne.s StatChk8 branch if so
+ move.w #E$Read,d1 preset read error
+ btst #WrPr_Bit,d2 write statchek?
+ beq.s StatChk4 bra if not
+ move.w #E$WP,d1 preset write protect error
+ btst #WrPr_Bit,d0 write protect error?
+ bne.s StatChk8 branch if so
+ move.w #E$Write,d1 preset write error
+ ifne CPUType-PACERMOS
+ btst #WrFl_Bit,d0 write fault?
+ bne.s StatChk8 bra if so
+ endc CPUType
+StatChk4 btst #LDat_Bit,d0 lost data?
+ bne.s StatChk8 branch if so
+StatChk6 move.w #E$NotRdy,d1 must be not ready error
+
+StatChk8 ori #Carry,ccr preset error flag
+
+StatChk9: rts
+
+ page
+********************
+* Write Verify Routine
+*
+* Input:
+*   (a1) - path descriptor ptr
+*   (a2) - driver storage pointer
+*   (a6) - system global data pointer
+*
+* Usage:
+*   (d0) - verify counter
+*   (a0) - temp verify buffer pointer
+*   (a5) - write buffer pointer
+*   (a6) - verify buffer pointer
+*
+* Output:
+*   Sector read from disk
+*   Read buffer compared to write buffer
+*
+* If Error:
+*   (d1.w) - error code
+*   (ccr)  - carry bit set
+*
+WritVerf: move.l V_Buffer(a2),-(a7) Save present buffer addr on stack
+ lea V_VfyBuf(a2),a0 get verify buffer pointer
+ move.l a0,V_Buffer(a2) make it current buffer
+ bsr ReadOne go read sector
+ scs.b d0 retain error state
+ move.l (a7)+,V_Buffer(a2) restore buffer pointer
+ lsl.b #1,d0 was there an error ?
+ bcs.s RestorEx ...yes; return it
+ movem.l a5/a6,-(a7) save regs
+ movea.l V_Buffer(a2),a5 get write buffer pointer
+ lea V_VfyBuf(a2),a6 get verify buffer pointer
+ move.w PD_SSize(a1),d0 get sector size
+ lsr.w #2,d0 convert to longs count
+ subq.l #1,d0 adjust for dbra loop
+WrtChk cmpm.l (a5)+,(a6)+ compare data
+ dbne d0,WrtChk loop if not done
+ beq.s WrtChkXt ...if no error; return carry clear
+ move.w #E$Write,d1 set write error for data compare failure
+ ori.b #Carry,ccr Set carry
+WrtChkXt movem.l (a7)+,a5/a6 restore regs
+
+RestorEx: rts
+ page
+********************
+* Restore Drive To Track 00
+*
+* Input:
+*   (a1)   - path description pointer
+*   (a2)   - driver storage pointer
+*   (a4)   - process descriptor ptr
+*   (a5)   - caller's register stack ptr
+*   (a6)   - system global data ptr
+*
+* Usage:
+*   (d0)   - step rate value
+*   (d2.l) - LSN number for set up
+*   (d6)   - command code
+*   (a3)   - port base address
+*
+* Output:
+*   Device heads on given track
+*   V_TRAK set to zero
+*
+* If Error:
+*   (d1.w) - error code
+*   (ccr)  - set to bury
+*
+Restore: moveq.l #0,d2 default LSN 0
+ bsr SetUp set up for command performance
+ bcs.s RestorEx bra if error
+Restore2: move.b #0,V_TRAK(a5) set current track to 0
+ move.b #F_Type1,R_Cmnd(a3) get tr00 info in status
+ nop
+ btst #Tr00_Bit,R_Cmnd(a3) on track zero?
+ beq.s Restor5 bra if not
+ move.b #0,R_Track(a3) set on track zero
+ move.b #3,R_Data(a3) set seek to track three
+ moveq.l #F_Seek,d6 get seek command
+ move.b PD_STP(a1),d0 get step rate
+ eor.b d0,d6 Mask in step rate
+ bsr IssCmd do seek command
+Restor5 moveq.l #F_Restor,d6 get restore command
+ move.b PD_STP(a1),d0 get step rate
+ eor.b d0,d6 Mask in step rate
+ bra IssCmd do restore command
+
+ page
+********************
+* Write Track (For Format Only)
+*
+* Input:
+*   (a1) - path descriptor pointer
+*   (a2) - static storage ptr
+*   (a4) - process descriptor ptr
+*   (a5) - caller's register stack ptr
+*   (a6) - system global data ptr
+*
+* Usage:
+*   (d2) - command code
+*   (d5) - DMA byte count
+*   (d6) - DMA direction
+*   (a4) - process register stack pointer
+*   (a5) - drive table pointer
+*
+* Output:
+*   given track formatted using track buffer
+*
+*
+*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+* NOTE:  no provision for spiral offsets
+*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+*
+WritTrak: btst #FmtDis_B,PD_Cntl+1(a1) is formatting enabled?
+ beq.s WrtTrk10 branch if so
+ move.w #E$Format,d1 set 'format protected'
+ ori #Carry,ccr flag error
+ rts return it
+ 
+WrtTrk10 movea.l a5,a4 get callers register stack pointer in a4
+ movea.l PD_DTB(a1),a5 get drive table pointer
+
+ ifeq CPUType-PACERMOS
+*
+* double-density formats only allowed
+*
+ btst.b #Dens_Bit,R$d3+3(a4) is it MFM format ?
+ beq TypeErr ..no; abort with error
+ endc CPUType
+
+ move.b R$d3+3(a4),DD_FMT(a5) set media format byte
+ moveq #0,d2 fake LSN
+ bsr SetUp prepare for data xfer
+ bcs.s RestorEx Error; return it
+ clr.b V_Side(a2) default side zero
+ btst #Side_Bit,R$d3+3(a4) side zero?
+ beq.s WrtTrk30 bra if so
+ cmpi.b #2,PD_SID(a1) is device capable of double-sided operation ?
+ bne TypeErr ..no; abort with error
+ move.b #SideOne,V_Side(a2) set side one
+WrtTrk30 move.b R$d2+3(a4),V_TrackN(a2) set up track number
+ bsr Seek call for seek to track
+ move.l R$a0(a4),V_Buffer(a2) set buffer address
+
+ ifne CPUType-PACERMOS
+ move.l #FmtCount,d5 get xfer byte count
+ moveq.l #MemToDev,d6 get DMA direction (R/W)
+ bsr SetDMA set up for DMA xfer
+ endc CPUType
+
+ moveq.l #F_WrtTrk,d6 get fdc command
+
+ ifeq CPUType-PACERMOS
+ moveq.l #0,d1 sweep d1
+ move.b V_TRAK(a5),d1 get current track #
+ cmp.w PD_WPC(a1),d1 write precomp req'd ?
+ bcc.s WrtTrk50 ..yes; cmd says precomp ON
+ bset.l #Prec_Bit,d6 set write precompensation OFF
+WrtTrk50 st.b V_Write(a2) flag writing fdc data
+ move.w #FmtCount,d5 get byte count
+ endc CPUType
+
+ bsr IssCmd go do command
+
+ ifne CPUType-PACERMOS
+ movea.l #DMADev,a0 get DMA device address
+ ori.b #OpAbort,ChlCtlRg(a0) abort DMA opn
+ move.b #$FF,StatusRg(a0) clear channel
+ endc CPUType
+
+ move.b #FErrBits,d2 get status check error mask
+ bra StatChek return with errors checked 
+
+ ends

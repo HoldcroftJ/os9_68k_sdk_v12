@@ -1,0 +1,73 @@
+*
+* Template for ifdgen descriptor generation utility
+*
+ nam ie0 device descriptor module
+
+ use <oskdefs.d>
+
+TypeLang set (Devic<<8)+0
+Attr_Rev set (ReEnt<<8)+0
+ psect ie0,TypeLang,Attr_Rev,1,0,0
+
+ dc.l 0xfff46000 port base address
+ dc.b 0x67  LANC irq vector (also uses 0x66 for LANC buserr irq)
+ dc.b 5 IRQ hardware interrupt level
+ dc.b 0 exclusive polling table priority
+ dc.b Updat_ device mode capabilities
+ dc.w FM_name file manager name offset
+ dc.w Dvr_name device driver name offset
+ dc.w 0 DevCon
+ dc.w 0,0,0,0 reserved
+ dc.w 2 option byte count
+
+OptTbl dc.b 0x9 DT_INET
+ dc.b 0 pad
+OptLen equ *-OptTbl
+
+* Internet address
+ dc.l bname		; offset to interface name
+ dc.w 1500		; maximum transmission unit
+ dc.w 0x22		; interface flags
+ dc.w interface_addr ; struct sockaddr
+ dc.l 0		; subnet mask
+ dc.w broadcast_addr ; broadcast/dest address
+ dc.w linkaddr	; link-level (Ethernet) addresss
+ dc.l 0
+ dc.l 0
+ dc.l 0
+ dc.l 0
+ dc.l 0
+*
+* driver-specific stuff can be placed here
+*
+ use ie0.d
+
+ align
+net_name dc.b "",0
+ align
+linkaddr dc.b 0,0,0,0,0,0
+ align
+broadcast_addr dc.w 2 AF_INET
+ dc.w 0 port
+ dc.b 192,9,200,255 broadcast address (internet)
+ align
+br_addr_siz equ *-broadcast_addr
+ ifgt 16-br_addr_siz	padd to at least 16 bytes
+ rept 16-br_addr_siz
+ dc.b 0
+ endr
+ endc
+interface_addr dc.w 2 AF_INET address family
+ dc.w 0 port
+ dc.b 192,9,200,96 direct address (internet)
+in_addr_siz equ *-interface_addr
+ ifgt 16-in_addr_siz	padd to at least 16 bytes
+ rept 16-in_addr_siz
+ dc.b 0
+ endr
+ endc
+ align
+FM_name dc.b "ifman",0  file manager
+ align
+Dvr_name dc.b "ie167",0 device driver
+ ends

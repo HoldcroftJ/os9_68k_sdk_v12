@@ -1,0 +1,24 @@
+**********************************************************************
+MAUI libsrc demo code
+**********************************************************************
+What this library does:
+  - This library contains common functions for demo programs. 
+
+**********************************************************************
+System requirements:
+  - A working MAUI environment is assumed.
+  - The caller is responsible for calling the necessary *_init() 
+    functions before calling functions in this file.
+ 
+*********************************************************************
+Directories: 
+  - Source code 
+       $MWOS/SRC/MAUI/DEMOS/LIBSRC/MAUIDEMO
+        
+*********************************************************************
+To make this demo:
+  - From the directory ABOVE the source file directory type:
+      % os9make
+
+*********************************************************************
+

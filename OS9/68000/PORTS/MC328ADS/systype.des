@@ -1,0 +1,180 @@
+/*****************************************************************************
+** System EditMod descriptions                                              **
+******************************************************************************
+** Copyright 1996 by Microware Systems Corporation                          **
+** Reproduced Under License                                                 **
+**                                                                          **
+** This source code is the proprietary confidential property of             **
+** Microware Systems Corporation, and is provided to licensee               **
+** solely for documentation and educational purposes. Reproduction,         **
+** publication, or distribution in any form to any party other than         **
+** the licensee is strictly prohibited.                                     **
+******************************************************************************
+** Edition History:                                                         **
+** #   Date     Comments                                          By        **
+** --- -------- ------------------------------------------------- --------- **
+**  1  11/15/96 Creation                                          bat       **
+*****************************************************************************/
+
+
+#if defined(socket)           /* SOCKMAN socket descriptor */
+
+	#include <sockman.des>
+
+	/* SOCKMAN fields */
+	string hostname = "LocalHost";
+	string devnames = "/lo0 /nr0 /sl1";
+	init socketdd {
+		sock_recvlimit = 16384;
+		sock_sendlimit = 16384;
+	};
+	init protocols[0] {
+		addrfam = PF_INET;
+		socktype = 0;
+		protype = 0;
+		sockmodtype = SMTYPE_SHARED;
+		protname = inet_name;
+	};
+	string inet_name = "inet";
+	init protocols[1] {
+		addrfam = PF_INET;
+		socktype = SOCK_RAW;
+		protype = 0;
+		sockmodtype = SMTYPE_PROTOCOL;
+		protname = ip_name;
+	};
+	string ip_name = "ip";
+	init protocols[2] {
+		addrfam = PF_INET;
+		socktype = SOCK_DGRAM;
+		protype = IPPROTO_UDP;
+		sockmodtype = SMTYPE_PROTOCOL;
+		protname = udp_name;
+	};
+	string udp_name = "udp";
+	init protocols[3] {
+		addrfam = PF_INET;
+		socktype = SOCK_STREAM;
+		protype = IPPROTO_TCP;
+		sockmodtype = SMTYPE_PROTOCOL;
+		protname = tcp_name;
+	};
+	string tcp_name = "tcp";
+	init protocols[4] {
+		addrfam = PF_ETHER;
+		socktype = SOCK_RAW;
+		protype = 0;
+		sockmodtype = SMTYPE_PROTOCOL;
+		protname = ether_name;
+	};
+	string ether_name = "af_ether";
+	init protocols[5] {
+		addrfam = PF_UNIX;
+		socktype = SOCK_STREAM;
+		protype = 0;
+		sockmodtype = SMTYPE_PROTOCOL;
+		protname = unix_name;
+	};
+	string unix_name = "af_unix";
+	init protocols[6] {
+		addrfam = 0;
+	};
+
+#endif
+
+#if defined(ipconfig)         /* IFMAN IPCONFIG data module */
+
+	#include <ipconfig.des>
+
+	/* IPCONFIG fields */
+	init ipconfig_info {
+
+		flags = 0;            /* this is not a gateway */
+/*    flags = INET_GATEWAY;     /* uncomment if this is a gateway */
+
+		default = 0.0.0.0;        /* default internet route */
+
+	};
+
+	/* list of host routes */
+	init hosts[0] {
+		host = 0.0.0.0;
+		gw = 0.0.0.0;
+	};
+
+	/* list of network routes */
+	init nets[0] {
+		net = 0.0.0.0;
+		gw = 0.0.0.0;
+	};
+
+#endif
+
+#if defined(sl1)            /* IFMAN IFSLIP descriptor #1 */
+
+	#include <ifslip.des>
+
+	/* OS fields */
+	string mod_name = "sl1";
+
+	/* IFMAN fields */
+	init ifdevdd {
+		dd_subnet = 0xFFFFFF00;
+	};
+	init interface_addr {
+		sin_addr = 206.72.8.90;
+	};
+	init broadcast_addr {
+		sin_addr = 206.72.8.255;
+	};
+
+	/* IFITS fields */
+	init localdesc {
+		inp_prior = 128;
+		out_prior = 128;
+		rcvbufsiz = 4096;
+		par_bits = 0x00;
+		compress_flg = 1; /* compression ON */
+		baud_rate = 0x0f; /* 19200 baud */
+	};
+	string idev = "/t1";
+	string odev = "/t1";
+
+#endif
+
+
+#if defined(nr0)                        /* IFMAN IFNETROM descriptor #1 */
+		
+		#include <ifnetrom.des>
+			
+		/* OS fields */
+		string mod_name = "nr0";
+		
+		/* IFMAN fields */  
+		init ifdevdd {
+				dd_subnet = 0xFFFFFF00;
+		};
+				
+		/* ip address of the board */
+		init interface_addr {
+				sin_addr = 206.72.9.108;
+		};
+		init broadcast_addr {
+				sin_addr = 206.72.9.255;
+		};
+		/* ethernet address of the netrom */
+		init link_addr {
+				addr = 0:0:f6:0:6b:28;
+		};
+				
+		/* INITS fields */
+		init localdesc {
+				nr_rdonly = 1; /*Access NetRom using read only protocol*/
+				nr_has_cache = 0; /*ROM space is cached*/
+				nr_rom_base = 0x500000; /*Base address of NetRom ROM*/
+				nr_num_accesses = 1; /*Number of ROM accesses/read*/
+				nr_rom_size = 0x80000; /*Size of NetRom ROM*/
+				nr_wordwidth = 2; /*Size of ROM word*/
+		};
+				
+#endif

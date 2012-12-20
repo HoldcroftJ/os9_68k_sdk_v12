@@ -1,0 +1,24 @@
+
+* Copyright 1993 by Microware Systems Corporation.
+* All Rights Reserved
+* Reproduced Under License
+
+*   This source code is the proprietary confidential property of
+* Microware Systems Corporation, and is provided to the licensee
+* for documentation and educational purposes only.  Reproduction,
+* publication, or any form of distribution to any party other than
+* the licensee is strictly prohibited.
+
+trappit:
+ move usp,a6 get statics pointer
+ movea.l mpuptr(a6),a6 get ptr to MPUType
+ tst.l (a6) is this a 68000/008 ?
+ beq.s trappit10 ..yes; branch on
+ move.w 4(sp),sr get back the pre-exception SR (68010 or better)
+ bra.s trappit20 continue on
+
+trappit10 move.w 12(sp),sr get back the pre-exception SR (68000/008)
+
+trappit20 move usp,a6 get statics pointer again
+ move.l (a7),d0 get vector address
+ bra trap_it

@@ -1,0 +1,671 @@
+ nam ioz8530
+ ttl Low Level I/O Routines for Z8530 dual port SIO
+
+* Copyright 1986, 1987, 1988, 1989, 1993, 1995 by Microware Systems Corporation
+* Reproduced Under License
+
+* This source code is the proprietary confidential property of
+* Microware Systems Corporation, and is provided to licensee
+* solely for documentation and educational purposes. Reproduction,
+* publication, or distribution in any form to any party other than
+* the licensee is strictly prohibited.
+
+
+********************
+* Edition History
+*
+*  #    Date      Comments                                  By
+* -- -------- --------------------------------------------- ---
+* 00 86/04/16 out of the void in to the light               sms
+* 01 86/??/?? modified init routines                        djl
+* 02 86/11/20 repaired stack pulling bug in InPort, added   wwb
+*             IFNDEF case for VME117, added VME117 case
+*             to register offset definitions.
+* 03 86/12/09 added ifndef for CPUType to help systype files
+*             which don't have CPUType.                     djl
+* 04 86/12/19 Fixed typos "#$R9" to "#R9" (r68 bug fails    wwb
+*             to tell the error, r68020 does tell).
+* 05 86/12/22 Added VME117 conditional to default WR14      wwb
+*              ---- OS-9/68K V2.0 Release ---- 
+*              ---- OS-9/68K V2.1 Release ---- 
+* 06 87/07/20 Added VME10x conditionals                     jal
+*             Added ConsPort and CommPort conditionals      jal
+* 07 87/10/08 Added conditionals for VME134                 djl
+* 08 87/10/27 Fixed ed.6 so that vme117 assembles.          wwb
+*              ---- OS-9/68K V2.2 Release ---- 
+* 09 88/05/25 added VME333 conditionals                     srw
+* 10 88/06/11 added VME147 conditionals, removed pre-ed9    wwb
+*             change comment.
+* 11 88/11/29 changed "deinit" routine to not assume 4k     wwb
+*             space between Mem.Beg and ResetSSP.
+* 12 89/01/12 Disabled upper casing when using ROMBUG       jal
+*             changed system alive check in "ConsDeIn"      jal
+* 13 89/02/27 made baud-rate be definable via "systype.d".  wwb
+* 14 89/03/13 added conditionals for FORCE                  Rwb
+*              ---- OS-9/68K V2.3 Release ---- 
+*              ---- OS-9/68K V2.4 Release ----
+* 15 93/02/16 added conditionals for 85230 on VME162		ats
+* 16 93/07/09 reworked for MWOS structure.					wwb
+*              ---- OS-9/68K V3.0 Release ----
+* 17 95/05/12 Added NODATAPORT conditional for indirect     ats
+*             data access.
+*              ---- OS-9/68K V3.0.2 Release ----
+* 18 97/03/26 added conditionals for VME172                 gdw
+*              ---- OS-9/68K V3.1 Release ----
+*
+edition set 18
+
+
+********************
+* I/O Port Type definitions
+*
+MC6850 set 1
+NEC7201 set 2
+FM16sIO equ 3
+Int8251a set 4
+SC2661 set 5
+MOS68901 set 6
+R68560 set 7
+ZA set 8 
+ZB set 9 
+
+ use defsfile
+
+ use <sysglob.m>
+
+
+ psect ioz8530_a,0,0,edition,0,0
+
+
+********************
+* Conditional assembly definitions
+*
+
+ ifndef VME172
+VME172 equ 172 default value for VME172
+ endc VME172
+
+ ifndef VME162
+VME162 equ 162 default value for VME162
+ endc VME162
+
+ ifndef VME147
+VME147 equ 147 default value for VME147
+ endc VME147
+
+* start ed.14 addition
+ ifndef PCB1782
+PCB1782 equ 1782
+ endc
+* end ed.14 addition
+
+ ifndef VME333
+VME333 equ 333 default value for VME333
+ endc
+
+ ifndef VME107
+VME107 equ 107 default value for VME107
+ endc
+
+ ifndef CommType
+CommType set 0 default for conditionals
+ endc
+
+ ifndef ConsType
+ConsType set 0 default for conditionals
+ endc
+
+ ifndef VME117
+VME117 equ 117 default value for VME117
+ endc
+
+ ifndef CPUType
+CPUType set 0 default for conditionals
+ endc
+
+ ifndef VME133
+VME133 equ 133
+ endc
+
+ ifndef VME134
+VME134 equ 134
+ endc
+
+ page
+* Warning this will only work with ports A and B of the Huerikon 
+* or Ports C and D
+* this chip multiplexes it registers  (except its data buffers) so
+* it  is necessary to first write to the WR0 (write register zero)
+* register with the number of the internal register you wish to read or
+* write before you accually do the read or write. All reads or writes to
+* the chip to set parameters or to learn status info is classified as a 
+* control access. The only registers that can be accessed directly are the 
+* data buffers ie transmit data or receive data.
+
+* write registers layout
+* WR0
+
+R0 equ %00000000
+R1 equ %00000001
+R2 equ %00000010
+R3 equ %00000011
+R4 equ %00000100
+R5 equ %00000101
+R6 equ %00000110
+R7 equ %00000111
+R8 equ %00001000
+R9 equ %00001001
+R10 equ %00001010
+R11 equ %00001011
+R12 equ %00001100
+R13 equ %00001101
+R14 equ %00001110
+R15 equ %00001111
+
+*WR1
+
+WDMARqEn equ %10000000 wait/dma reqst enable
+WDMARqFn equ %01000000 wait/dma reqst function
+WDMARqRT equ %00100000 wait/dma reqst on receive or transmit
+RxID equ %00000000 receive interupt disable
+RxIOF equ $00001000 receive interupt on first char or special conditions
+RxIOA equ %00010000 receive irq on all char or special conditions
+RxIOS equ %00011000 receive irq on special conditions only
+PISC equ %00000100 parity is special condition
+TxIE  equ %00000010 transmitter irq enabled
+ESMIEn equ %00000001 external status master irq enable
+WR1Std equ 00 no irqs or dma thankyou
+
+*WR2 write reg 2 is irq vector reg for entire chip
+
+*WR3 write reg 3 Receiver parameters and control
+
+RxBPC8 equ %11000000 eight bits
+RxBPC7 equ %01000000 seven bits
+RxBPC6 equ %10000000 six bits
+RxBPC5 equ %00000000 five bits
+Auto equ %00100000 auto enable
+Hunt equ %00010000 enter hunt mode sych
+RxCRC equ %00001000 enable receiver crc
+AdSch equ %00000100 address search mode (sdlc)
+SyCLI equ %00000010 sych char load inhibit 
+RxEn equ %00000001 receiver enable
+WR3Std equ RxBPC8!RxEn  8 bits and receiver enable
+
+*WR4 write reg 4 transmitter and misc receiver parameters
+
+Cm64 equ %11000000 x64 clock mode
+Cm32 equ %10000000 x32 clock mode
+Cm16 equ %01000000 x16 clock mode
+Cm01 equ %00000000 x1  clock mode
+SB1  equ %00000100 1 stop bit
+SB15 equ %00001000 1.5  stop bit
+SB2  equ %00001100 2 stop bits
+PEnable equ %00000001 parity enable
+PEven equ %00000010 parity enable
+
+* parity odd = PEnable, parity even= PEven ! PEnable
+WR4Std equ Cm16!SB1 no parity 1 stop bit and x16 clock
+
+*WR5 write reg 5 tx and controls 
+
+DTRon  equ %10000000 dtr is set (ie asserted low)
+TxBpC8 equ %01100000 tx 8 bits per char
+TxBpC7 equ %00100000 tx 7 bits per char
+TxBpC6 equ %01000000 tx 6 bits per chars
+TxBpC5 equ %00000000 tx 5 bits per chars
+SdBrk equ %00010000 send break now!
+TxEn equ %00001000 Tx enable
+RTSon equ %00000010 rts on
+*WR5Std equ TxBpC8!TxEn!RTSon
+WR5Std equ TxBpC8!TxEn!RTSon!DTRon
+*WR5Std equ TxBpC8!TxEn!RTSon
+
+*WR6 write reg 6 Tx sych char and sdlc address field
+
+*WR7 write reg 7 Rx sych char and sdlc address field
+
+*WR8 write reg 8 is transmitter buffer
+
+*WR9 master irq control
+
+Reset equ %11000000 resets both sides of chip
+ResetA equ %10000000 reset only channel A
+ResetB equ %01000000 reset only channel B
+StHL equ %00010000 controls which bits (6-4 or 3-1) of the irq vect will 
+* be modified by special conditions which cause irq
+MIRQ equ %00001000 Master IRQ enable
+NoVect equ %00000010 cntls irq response of chip
+VectISt equ %00000001 vector includes status
+
+*WR10 misc Tx Rx control bits
+* not used by asych protocal
+
+*WR11 Clock mode 
+
+RxClkS equ %01000000 clock source for rx is baud rate gen
+TxClkS equ %00010000 clock source for tx is baud rate gen
+TRClkO equ %00000100 tr rx clock out put
+BRGS equ %00000010 baud rate gen is source
+WR11Std equ RxClkS!TxClkS!TRClkO!BRGS
+
+*WR12 lower byte of baud count
+
+ ifeq CPUType-VME107
+WR12Std equ 11 for x16 clock 9600 baud
+ else
+ ifeq (CPUType-VME133)*(CPUType-VME134)
+WR12Std equ 2 for x16 clock 9600 baud
+ else
+ ifeq CPUType-VME333
+WR12Std equ 14 for x16 clock 9600 baud
+ else
+ ifeq (CPUType-VME162)*(CPUType-VME172)
+WR12Std equ $1e for x16 clock 9600 baud
+ else
+WR12Std equ 14 for x16 clock 9600 baud
+ endc VME162/VME172
+ endc VME333
+ endc VME133/134
+ endc VME10X
+
+* set default baud-rate if not over-ridden from systype.d
+
+ ifndef ConsBaud
+ConsBaud set WR12Std default baud-rate for console
+ endc
+
+ ifndef CommBaud
+CommBaud set WR12Std default baud-rate for console
+ endc
+ 
+*WR13 upper byte of baud count
+
+WR13Std equ 0 
+
+*WR14  misc control bits
+
+DTRR equ %00000100 dtr functions
+BaudEn equ %00000001 enable baud rate gen
+BClkS equ %00000010
+DDPLL equ %01100000 disable DPLL
+SSBRG equ %10000000 source = BRG
+ ifeq (CPUType-VME117)*(CPUType-VME107)*(CPUType-VME147)*(CPUType-VME162)*(CPUType-VME172)
+WR14Std equ SSBRG!BClkS!BaudEn
+ else
+ ifeq (CPUType-VME133)*(CPUType-VME134)
+WR14Std equ SSBRG+BaudEn
+ else
+ ifeq CPUType-VME333
+WR14Std equ SSBRG!BClkS!BaudEn
+ else
+WR14Std equ BaudEn!BClkS
+ endc VME333
+ endc VME133/134
+ endc VME117/107/147/162/172
+
+
+*WR15 external status and irqs
+
+CTSIrq equ %00100000 enable irq when cts asserted
+DCDIrq equ %00001000 enable irq when cts asserted
+
+*Read registers
+
+*RR0 tx / rx  buffer status and external status
+
+CTS equ %00100000 cts transistion unlatched
+DCD equ %00001000 dcd trans       unlatched
+TxEmp equ %00000100 tx buffer is empty
+RxAval equ %00000001 char available at
+
+* RR0 bits
+
+Rx_bit equ 0
+Tx_bit equ 2
+DCD_bit equ 3
+CTS_bit equ 5
+
+*RR1 sdlc mode stuff 
+
+*RR2 interupt vector with status info 
+
+*RR3
+
+*RR8 data reg for rx
+
+* RR10 nothing applicable for asych
+
+*RR12 lower byte of time constant for baud rate gen
+*RR13 high  etc
+
+*RR15 
+
+DCDIS equ %00001000 dcd irq status
+CTSIS equ %00100000 ctc irq statu
+TxIS equ %01000000 tx under run (buffer empty)
+
+
+* register layout of Z8530
+
+ ifeq (CPUType-VME117)*(CPUType-VME107)*(CPUType-VME162)*(CPUType-VME172)
+ org 1
+Control do.b 2 control read/write
+Datas do.b 2 read or write data here
+ else
+ ifeq (CPUType-VME133)*(CPUType-VME134)*(CPUType-VME147)
+ org 0
+Control do.b 1 control read/write
+Datas do.b 1 read or write data here
+ else
+ org 0
+* begin ed.14 changes
+ ifeq (CPUType-VME333)*(CPUType-PCB1782)
+* end ed.14 changes
+Control do.b 2
+Datas do.b 2
+ else
+ org 0
+Control do.b 4 control read/write
+Datas do.b 1 read or write data here
+ endc
+ endc
+ endc
+
+ page
+ ifeq (ConsType-ZA)*(ConsType-ZB)
+********************
+* Subroutine OutRaw (for Console port )
+* Output one character to SCC without concern for xoff
+* Passed: (d0.b)=char to write
+*
+OutRaw: movem.l d1/a3,-(a7)
+ move sr,-(a7) save status and regs
+ ori #IntMask,sr mask interrupts
+ movea.l ConsPort(pc),a3 get console address
+ bra.s OutChar2
+
+********************
+* Subroutine OutChar (for Console port)
+* Output one character to SCC
+* Passed: (d0.b)=char to write
+*
+OutChar: cmpi.b #C$CR,d0 output CR ?
+ bne.s OutChar1 branch if not
+ bsr.s OutChar1 output the CR
+ moveq #C$LF,d0 insert LF
+ bsr.s OutChar1 output it
+ move.b #C$CR,d0 restore d0
+ rts
+
+OutChar1 movem.l d1/a3,-(a7)
+ move sr,-(a7) save status and regs
+ ori #IntMask,sr
+ movea.l ConsPort(pc),a3
+ endc ConsType
+ 
+ ifeq (CommType-ZA)*(CommType-ZB)*(ConsType-ZA)*(ConsType-ZB)
+ ifdef NODATAPORT
+OutWait move.b #R8,Control(a3)
+ cmpi.b #C$XOff,Control(a3)
+ else
+OutWait	cmpi.b #C$XOff,Datas(a3)
+ endc NODATAPORT
+ beq.s OutWait loop if so
+ 
+OutChar2 btst.b #Tx_bit,Control(a3)
+ beq.s OutChar2 poll constantly
+ ifdef NODATAPORT
+ move.b #R8,Control(a3)
+ move.b d0,Control(a3) write char
+ else
+ move.b d0,Datas(a3) write char
+ endc NODATAPORT
+OutChar3 move (a7)+,sr
+ movem.l (a7)+,d1/a3
+ rts
+ endc ConsType/CommType
+ 
+ page
+ ifeq (ConsType-ZA)*(ConsType-ZB)
+********************
+* Subroutine InChar
+* Return one (upper case) byte of input from the SCC
+* Passed: none
+* Returns: (d0.b)=input char
+*
+InChar: movem.l d1/a3,-(a7)
+ move sr,-(a7) save status and regs
+ ori #IntMask,sr
+ movea.l ConsPort(pc),a3
+ endc ConsType
+ 
+ ifeq (CommType-ZA)*(CommType-ZB)*(ConsType-ZA)*(ConsType-ZB)
+InChar10 btst.b #Rx_bit,Control(a3) is char avail ?
+ beq.s InChar10 poll until data to read
+ ifdef NODATAPORT
+InChar5 move.b #R8,Control(a3)
+ move.b Control(a3),d0 get data
+ else
+InChar5 move.b Datas(a3),d0 get data
+ endc NODATAPORT
+ bsr OutChar echo the character
+ ifndef ROMBUG
+ cmp.b #'a',d0 lower case?
+ blo.s InChar90 exit if not
+ cmp.b #'z',d0 lower case?
+ bhi.s InChar90 exit if not
+ subi.b #('a'-'A'),d0
+ endc
+InChar90 move (a7)+,sr
+ movem.l (a7)+,d1/a3 restore reg
+ rts
+ endc ConsType/CommType
+ 
+ page
+ ifeq (ConsType-ZA)*(ConsType-ZB)
+********************
+* Subroutine ConsInit & ConsSet
+*   Initialize Console Port for non-interrupt I/O
+* Passed: none
+* Returns: none
+* Destoys: cc,d1
+*
+ConsInit: movem.l d1/a3,-(a7)
+ move sr,-(a7) save status and regs
+ ori #IntMask,sr
+ movea.l ConsPort(pc),a3 get port address
+ move.b #R0,Control(a3) 
+ move.b #R9,Control(a3) reset port
+ move.b Control(a3),d1
+ move.b #R9,Control(a3)
+ ifeq ConsType-ZA
+ ori.b #ResetA,d1 reset A
+ andi.b #^ResetB,d1
+ move.b d1,Control(a3) port A is consport
+ else 
+ ori.b #ResetB,d1 reset B
+ andi.b #^ResetA,d1
+ move.b d1,Control(a3) port B is consport
+ endc ConsType
+ endc ConsType
+ 
+ ifeq (CommType-ZA)*(CommType-ZB)*(ConsType-ZA)*(ConsType-ZB)
+ConsIn10 move.b #R4,Control(a3) asych x16 1 stop 
+ move.b #WR4Std,Control(a3) 
+ move.b #R5,Control(a3)
+ move.b #WR5Std,Control(a3)  tx enable
+ move.b #R3,Control(a3)
+ move.b #WR3Std,Control(a3) rx enable 8 bits
+ move.b #R1,Control(a3)
+ move.b #WR1Std,Control(a3)  no irq/dma
+ move.b #R11,Control(a3)
+ move.b #WR11Std,Control(a3) 
+
+ move.b #R12,Control(a3)
+ cmpa.l ConsPort(pc),a3 is this the console port ?
+ bne.s ConsIn20 ..no; skip on
+ move.b #ConsBaud,Control(a3) set console baud-rate
+ bra.s ConsIn25
+
+ConsIn20 move.b #CommBaud,Control(a3) set comms ports baud-rate
+
+ConsIn25 move.b #R13,Control(a3) always 0
+ move.b #WR13Std,Control(a3) set up baud rate
+ move.b #R14,Control(a3)
+ move.b #WR14Std,Control(a3) enable baud rate clk
+ move (a7)+,sr
+ movem.l (a7)+,d1/a3 restore reg
+ rts 
+ endc ConsType/CommType
+ 
+ page
+ ifeq (ConsType-ZA)*(ConsType-ZB)
+********************
+* Subroutine InChChek (for console port)
+* Passed: none
+* Returns: (d0.l)=input char or -1 if no data
+*
+InChChek: movem.l d1/a3,-(a7)
+ move sr,-(a7) save status and regs
+ ori #IntMask,sr
+ movea.l ConsPort(pc),a3
+ endc ConsType
+ 
+ ifeq (ConsType-ZA)*(ConsType-ZB)*(CommType-ZA)*(CommType-ZB)
+InChCk10 btst.b #Rx_bit,Control(a3)  data to read ?
+ bne.s InChCk5 ..yes; get the char
+ moveq #-1,d0 signal no data
+ bra.s InChCk90 exit
+
+InChCk5 moveq #0,d0 clr d0 
+ ifdef NODATAPORT
+ move.b #R8,Control(a3)
+ move.b Control(a3),d0 get data
+ else
+ move.b Datas(a3),d0 get data	
+ endc NODATAPORT
+InChCk90 move (a7)+,sr
+ movem.l (a7)+,d1/a3 restore reg
+ rts
+ endc ConsType/CommType
+  
+ ifeq (CommType-ZA)*(CommType-ZB)
+********************
+* Subroutine ChekPort (for communications port)
+* Passed: none
+* Returns: (d0.b)=input char or -1 if no char
+*
+ChekPort: movem.l d1/a3,-(a7)
+ move sr,-(a7) save status and regs
+ ori #IntMask,sr
+ movea.l CommPort(pc),a3
+ bra.s InChCk10
+ 
+ page
+********************
+* Subroutine OutPort (for communications port)
+* Passed: none
+* Returns: (d0.b)=input char or -1 if no char
+*
+OutPort: movem.l d1/a3,-(a7)
+ move sr,-(a7) save status and regs
+ ori #IntMask,sr
+ movea.l CommPort(pc),a3
+ bra OutWait
+
+********************
+* Subroutine InPort (for Communications port)
+*   Input char from auxilliary port
+* Passed: none
+* Returns: (d0.b) = input char
+*
+InPort: movem.l d1/a3,-(a7)
+ move sr,-(a7)
+ ori #IntMask,sr mask irqs to level 7
+ movea.l CommPort(pc),a3
+InPort10 btst.b #Rx_bit,Control(a3) char avail?
+ beq.s InPort10 ..no; wait for it
+ ifdef NODATAPORT
+ move.b #R8,Control(a3)
+ move.b Control(a3),d0 get data
+ else
+ move.b Datas(a3),d0 get data
+ endc NODATAPORT
+ move (a7)+,sr
+ movem.l (a7)+,d1/a3
+ rts
+
+ page
+********************
+* Subroutine PortInit (for communications port)
+* Passed: none
+* Returns: nothing, initializes port
+
+PortInit: movem.l d1/a3,-(a7)
+ move sr,-(a7) save status and regs
+ ori #IntMask,sr
+ movea.l CommPort(pc),a3
+ move.b #R0,Control(a3) 
+ move.b #R9,Control(a3) 
+ move.b Control(a3),d1 read rr9
+ move.b #R9,Control(a3) 
+ ifeq CommType-ZA
+ ori.b #ResetA,d1 reset A
+ andi.b #^ResetB,d1
+ move.b d1,Control(a3) portA is comport
+ else 
+ ori.b #ResetB,d1 reset B
+ andi.b #^ResetA,d1
+ move.b d1,Control(a3) portB is comport
+ endc CommType
+ bra ConsIn10  use the code in ConsInit 
+
+********************
+* PortDeIn is needed for the newest debug
+*
+PortDeIn: rts no action req'd
+ endc CommType
+
+ ifeq (ConsType-ZA)*(ConsType-ZB)
+ page
+********************
+* Console routine 
+* this routine disables the serial chip from causing irqs
+* ,it is called each time the debugger is called, but is 
+* intended to disable irqs from occurring primarily after the 
+* system has been booted up and the system debugger is being used, 
+* ie to trace thur system code or when "break" utility is called.
+*
+ConsSet: move.l a3,-(a7) save reg
+ movea.l ConsPort(pc),a3 get device address
+ move.b #R9,Control(a3) select wr9
+ move.b #$00,Control(a3) turn of master irq enable and vis
+ move.b #R1,Control(a3) select rx Tx enable regs
+ move.b #$0,Control(a3) turn of irqs 
+ movea.l (a7)+,a3 restore reg
+ rts
+
+********************
+* Subroutine ConsDeInit
+*   ReInitialize Console Port for interrupt I/O ; this code 
+* is entended to re-enable irqs for the serial chip.
+*
+* Passed: none
+* Returns: none
+* Destroys: cc
+*
+ConsDeIn: movem.l d0/a3,-(a7) save regs
+ sysglob a3 get system globals ptr
+ cmpi.w #M$ID12,(a3) is system running ?
+ bne.s ConsDeEx branch if not
+ movea.l ConsPort(pc),a3
+ move.b #R1,Control(a3) select Rx Tx enable regs
+ move.b #$12,Control(a3) turn on irqs 
+ move.b #R9,Control(a3) select wr9
+ move.b #$08,Control(a3) turn on master irq enable and vis
+ConsDeEx movem.l (a7)+,d0/a3 restore regs
+ rts
+ endc
+ 
+ ends

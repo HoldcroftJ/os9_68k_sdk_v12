@@ -1,0 +1,8 @@
+ nam MT3 Device Descriptor
+ use defsfile
+ 
+ use "sbfdesc.a"
+ 
+DrvNum set 3
+ TapeMT3
+ ends

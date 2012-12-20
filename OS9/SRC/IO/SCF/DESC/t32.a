@@ -1,0 +1,9 @@
+ nam T32
+ ttl 68000 T32 device descriptor module
+ use defsfile
+
+ use "scfdesc.a"
+
+ T32
+ ends
+

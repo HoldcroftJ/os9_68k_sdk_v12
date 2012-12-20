@@ -1,0 +1,774 @@
+   1                             ;  
+   2                             ;   v167ll.ss - low level driver script for scsi710 driver.
+   3                             ;   
+   4                             ;**********************************************************************  
+   5                             ;*  Copyright 1991, 1995-1997 by Microware Systems Corporation       *
+   6                             ;*  Reproduced Under License                                          *
+   7                             ;*                                                                    * 
+   8                             ;*  This source code is the proprietary confidential property of      *
+   9                             ;*  Microware Systems Corporation, and is provided to licensee        *
+  10                             ;*  solely for documentation and educational purposes. Reproduction,  *
+  11                             ;*  publication, or distribution in any form to any party other than  *
+  12                             ;*  the licensee is strictly prohibited.                              *
+  13                             ;**********************************************************************  
+  14                             ;  
+  15                             ;  Edition History
+  16                             ;
+  17                             ;  ed#   date    by   changes
+  18                             ;  --- --------  ---  -----------------------------------------
+  19                             ;   1  91/08/20  Rwb  Phase I script initial edits
+  20                             ;   2  91/08/30  Rwb  Added definitions of the Table Indirect
+  21                             ;                     Structure,  No patching nessesary at run time.
+  22                             ;                     ERR6 removed (not nessesary).
+  23                             ;   3  91/08/30  Rwb  Reincarnated ERR6 (phase mismatch) and added
+  24                             ;                     ERR8,  unknown phase after mismatch.
+  25                             ;   4  91/09/03  Rwb  Added reselect code to cover those devices that
+  26                             ;                     refuse to obey the standard and disconnect without
+  27                             ;                     being allowed the option (via Identify w/ disconnect).
+  28                             ;   5  91/09/04  Rwb  revised attempt at un-solicicted disconnect. (err9)
+  29                             ;   -  91/09/05  Rwb  <<< Phase I script frozen >>>
+  30                             ;   6  91/09/04  Rwb  first work on select with ATN (for disconnect)
+  31                             ;   7  91/09/10  Rwb  phase identification code in place.
+  32                             ;   8  91/09/12  Rwb  <<< Phase II script frozen >>>>
+  33                             ;	9  91/09/16  Rwb  Added select timeout flag clear routine.
+  34                             ;  10  91/09/18  Rwb  Learned some things about the internal workings
+  35                             ;                     of the DSP.  We now have a different flow to all
+  36                             ;                     operations.
+  37                             ;  11  91/09/19  Rwb  First cut of extended message handling
+  38                             ;  12  91/09/24  Rwb  Removed bug in reselect that could allow data to arrive
+  39                             ;                     before chip setup (synchronus)
+  40                             ;  13  91/09/30  Rwb  began bus lock recovery testing
+  41                             ;  14  91/11/03  Rwb  Added test for message phase after data transfer to
+  42                             ;                     to support devices that insist on disconnecting after
+  43                             ;                     data phase with no further data to transfer....
+  44                             ;  15  94/01/19  Rwb  Annoted a hand patch made to the script, actual 
+  45                             ;                     recompilation defered.  (see scrptasm.a)
+  46                             ;  16  95/04/15  GbG  Fixed for use with FAST SCSI II drives
+  47                             ;  17  95/06/15  GbG  Fixed problem in WAITFORRESELECT:
+  48                             ;  18  95/09/24  GbG  Fixed problem with FREEIT:
+  49                             ;  19  96/03/27  GbG  Fixed problem with ermsgin
+  50                             ;  20  96/03/28  GbG  Fixed problem with extended message
+  51                             ;  21  96/03/30  GbG  FREEIT no longer does initial ACK, some delays added
+  52                             ;  22  96/04/02  GbG  Fixed problem with resel_adr and ncrdsa
+  53                             ;*                    ---- OS-9000/x86 V2.1 Released ----                    *
+  54                             ;*                    ---- OS-9000/PPC V2.1.1 Released ----                  *
+  55                             ;  23 97/04/09   GbG  Fixed problem with resel_adr
+  56                             ;*                    $$                  <RELEASE_INFO>              $$     *
+  57                             ;  
+  58                             ARCH 710
+  59                             pass(#define NCR_REVISION 23)
+  60                             ;
+  61                             pass( )
+  62                             pass(/*)
+  63                             pass(*   Compile instructions:)
+  64                             pass(*   1. Delete the line below 'typedef unsigned long ULONG;')
+  65                             pass(*   2. Delete *External_Names array) 
+  66                             pass(*   3. Delete *Absolute_Names array)
+  67                             pass(*   4. Compile using 'nasm v53c710.ss -u -o v53c710.c')
+  68                             pass(*   5. Copy v53c710.c to SCSI53c710 directory and re-make)
+  69                             pass(*/)
+  70                             pass( )
+  71                             pass(typedef unsigned long const ULONG;)
+  72                             ;
+  73                             ;
+  74                             ;		Definition area
+  75                             ;  These definitions provide the offset in bytes from the DSA register
+  76                             ;  to the values to be used.  If there is a change to the static storage
+  77                             ;  definition of logical thread (lthread - see scsi710.h) these defs
+  78                             ;  would also change.
+  79                             ;
+  80                             ABSOLUTE datacount    = 0x0000	; Data phase size and pointer
+  81                             ABSOLUTE cdblength    = 0x0008	; Command size and pointer
+  82                             ABSOLUTE statucount   = 0x0010	; Status size and pointer
+  83                             ABSOLUTE msgoptr      = 0x0018	; Message Out size and pointer
+  84                             ABSOLUTE msgiptr      = 0x0020	; Message In size and pointer 
+  85                             ABSOLUTE devfield     = 0x0028	; Target ID, Synchronous/Parity register
+  86                             ;
+  87                             ;  This is the offset to the extended message frame which is created when
+  88                             ;  an extended message in is detected.
+  89                             ;
+  90                             ABSOLUTE extmsgcount  = 0x0000
+  91                             ;
+  92                             ;   Message definitions
+  93                             ;
+  94                             ABSOLUTE M_COMPLETE    =  0x0	; Command complete message
+  95                             ABSOLUTE M_EXTENDED    =  0x1	; message identifier
+  96                             ABSOLUTE M_SAVEPOINT   =  0x2	; Save data pointers
+  97                             ABSOLUTE M_RESTPOINT   =  0x3	; Restore data pointers
+  98                             ABSOLUTE M_DISCONNECT  =  0x4	; Disconect message (interum discon.)
+  99                             ABSOLUTE M_INITERROR   =  0x5	; Initiator detected an error
+ 100                             ABSOLUTE M_ABORT       =  0x6	; Abort Operation Message
+ 101                             ABSOLUTE M_REJECT      =  0x7	; Message Rejected
+ 102                             ABSOLUTE M_NOOP        =  0x8	; No-Op -- no other message to send
+ 103                             ABSOLUTE M_PARITYER    =  0x9	; Message parity error
+ 104                             ABSOLUTE M_DEVRESET    =  0xC	; Tell the device to reset
+ 105                             ;
+ 106                             ABSOLUTE SYNC_REQEST       = 0x1	; Synchronus Transfer Negotiations
+ 107                             ABSOLUTE SYNCREQ_SIZE      = 0x3	; Size of additional bytes in Sync Req.
+ 108                             ;
+ 109                             ABSOLUTE IDENTIFY_NODISCON = 0x80	; Identify message, no disconnect
+ 110                             ABSOLUTE IDENTIFY_DISCON   = 0xC0	; Identify message, disconnect allowed
+ 111                             ;
+ 112                             ;   We use the scratch register to determine flag certain phase information
+ 113                             ;   to the CPU side of the driver.  These values appear in scratch0 of the
+ 114                             ;   SIOP at certain times.
+ 115                             ;
+ 116                             ABSOLUTE PH_MASK   = 0x0F  ; only least significant bits count 
+ 117                             ABSOLUTE PH_SELECT = 0x01  ; Attempting to select a device
+ 118                             ABSOLUTE PH_MESS   = 0x02  ; message phase (at connection)
+ 119                             ABSOLUTE PH_MESSD  = 0x12  ; message phase (which disconnect)
+ 120                             ABSOLUTE PH_MESSC  = 0x22  ; message phase (command complete)
+ 121                             ABSOLUTE PH_MESSA  = 0x03  ; message out -- abort
+ 122                             ABSOLUTE PH_CMD    = 0x04  ; command phase
+ 123                             ABSOLUTE PH_IDATA  = 0x05  ; input data phase in progress
+ 124                             ABSOLUTE PH_ODATA  = 0x15  ; output data phase in progress
+ 125                             ABSOLUTE PH_STATUS = 0x06  ; status phase
+ 126                             ABSOLUTE PH_DONE   = 0x00  ; not a special phase
+ 127                             ABSOLUTE PH_RES4   = 0x30  ; Reserved Out
+ 128                             ABSOLUTE PH_RES5   = 0x31  ; Reserved In
+ 129                             ABSOLUTE PH_WHICH  = 0x44  ; Which Phase
+ 130                             ;
+ 131                             ; Absolute values are stored in DSPS Register for
+ 132                             ; purposes of interrupt processing.  These values and their
+ 133                             ; meaning must aggree between the CPU driver and SIOP script.
+ 134                             ;
+ 135                             ;     DSPS messages -- not of the error or problem variety 
+ 136                             ;
+ 137                             ABSOLUTE SC_DONE   = 0x0080	;   command complete, target disconnected
+ 138                             ABSOLUTE SC_SIGP   = 0x0090	;   SIGP creates this when wait for reselect 
+ 139                             ABSOLUTE SC_RESEL  = 0x00A0	;   reselected 
+ 140                             ABSOLUTE SC_IDISC  = 0x00B0	;   intermediate disconnect received 
+ 141                             ABSOLUTE SC_EXMSG  = 0x00C0 	;   extended message received.
+ 142                             ABSOLUTE SC_MSGREJ = 0x00D0 	;	message reject received 
+ 143                             ;
+ 144                             ;    DSPS messages of the error variety (usually protocol violations) 
+ 145                             ;
+ 146                             ABSOLUTE NOTMSGO = 0x0FF01	;   not message out after selection 
+ 147                             ABSOLUTE NOTCMD  = 0x0FF02	;   unexpected phase before command 
+ 148                             ABSOLUTE NOTSTAT = 0x0FF03	;   not status phase after data transfer 
+ 149                             ABSOLUTE NOTMSGI = 0x0FF04	;   not message in at reselection time
+ 150                             ABSOLUTE UNKNPH  = 0x0FF05	;   unidentified next phase 
+ 151                             ABSOLUTE BADMSG  = 0x0FF06	;   unidentified message in recieved 
+ 152                             
+ 153                             ABSOLUTE SEL_DONE     = 0x0000	; value written to scratch(memory) to indicate
+ 154                                                             ;  selection phase complete.
+ 155                             ;
+ 156                             ;  These contents are used as masks for CTEST7 to enable and
+ 157                             ;  disable the SELECT TIMOUT.
+ 158                             ;
+ 159                             ABSOLUTE TimeOn = 0xEF
+ 160                             ABSOLUTE NoTime = 0x10
+ 161                             ;
+ 162                             ; Other register defs
+ 163                             ;
+ 164                             ABSOLUTE B_CON   = 0x10
+ 165                             ABSOLUTE B_RSIGP = 0x40
+ 166                             ;
+ 167                             ;
+ 168                             ;   Entry points for the SIOP.  These are the various starting points
+ 169                             ;   at which the CPU starts the SIOP.
+ 170                             ;
+ 171                             ENTRY WAITFORRESELECT      ; No commands ready, wait for reselect (Idle)
+ 172                             ENTRY SELECTNOATN          ; Select Target without asserting attention
+ 173                             ENTRY SELECTATN            ; Select Target with attention asserted
+ 174                             ENTRY WHICHPHASE           ; Determime current phase and route accordingly
+ 175                             ENTRY GETSTATUS            ; Get the status in message
+ 176                             ENTRY RESELECTED           ; check for more messages to come on reselection
+ 177                             ENTRY ABORTMESSAGE         ; Send an abort message to the Target and disconnect
+ 178                             ENTRY REJECTMESSAGE        ; Send a message reject
+ 179                             ENTRY PEMESSAGE	           ; Send a message parrity error message
+ 180                             ENTRY SENDMESSAGE          ; Send an arbitrary message out
+ 181                             ENTRY FREEIT               ; Free bus on fatal error
+ 182                             ENTRY ACKANYMSG			   ; Ack any message
+ 183                             ;
+ 184                             extern statadr, phythread, lcrcid_tid, lcrcid_idmsg,  extcntptr
+ 185                             extern  extcntptr1,  extmframeptr,  armsg_abort,  armsg_reject
+ 186                             extern  armsg_mpe,  bitbucket
+ 187                             ;
+ 188                             ;  NCR 53C710 register addresses used for the memory move commands
+ 189                             ;
+ 190                             extern ncrscratch3  	; address of scratch 3 register
+ 191                             extern ncrscratch1 	; address of scratch 1 register
+ 192                             extern ncrscratch0 	; address of scratch 0 register
+ 193                             extern ncrdsa 		; data storage address
+ 194                             extern ncrlcrc		; for id of reselector
+ 195                             ;
+ 196                             ;
+ 197                             ; This is the SCSI SCRIPT itself.
+ 198                             ;
+ 199                             ;  Idle entry point,  no commands ready so hang out in case reselected.
+ 200                             ;
+ 201 00000000:                   WAITFORRESELECT:
+ 202 00000000: 78340000 00000000 move PH_DONE to scratch0
+ 203 00000008: 60000200 00000000 clear target
+ 204 00000010: 54000000 00000008 wait reselect REL(alt_sig_p1)
+ 205 00000018: 80880000 0000031C jump REL(resel_adr)
+ 206                             ;
+ 207 00000020:                   alt_sig_p1:
+ 208 00000020: 7A1B1000 00000000 move ctest7 | NoTime to ctest7
+ 209 00000028: 74011000 00000000 move scntl1 & B_CON to sfbr ; connected?
+ 210 00000030: 808C0010 00000028 jump REL(alt_sig_p2) if B_CON 
+ 211                             ;
+ 212 00000038: 74164000 00000000 move ctest2 & B_RSIGP to sfbr
+ 213 00000040: 808C0040 00000008 jump REL(sig_p_set) if B_RSIGP 
+ 214 00000048: 80880000 FFFFFFB0 jump REL(WAITFORRESELECT)
+ 215                             ;
+ 216 00000050:                   sig_p_set:
+ 217 00000050: 98080000 00000090 int SC_SIGP
+ 218 00000058: 80880000 000002DC jump REL(resel_adr)
+ 219                             ;
+ 220                             ;
+ 221 00000060:                   alt_sig_p2:
+ 222 00000060: 72160000 00000000 move ctest2 to sfbr
+ 223 00000068: 80880000 FFFFFF90 jump REL(WAITFORRESELECT)
+ 224                             ;
+ 225                             ; already selected of re-selected
+ 226                             ;
+ 227 00000070:                   already_selected:
+ 228 00000070: 7A1B1000 00000000 move ctest7 | NoTime to ctest7
+ 229 00000078: 7C00DF00 00000000 move scntl0 & 0xdf to scntl0
+ 230 00000080: 80880000 000002B4 jump REL(resel_adr)
+ 231                             ;
+ 232                             ; select without attention
+ 233                             ;  This routine will not assert attention at selection.  When the
+ 234                             ;  path options do not have SCSI_ATN set, this is the entry point
+ 235                             ;  that is used to start off the command.  Devices should not disconnect
+ 236                             ;  as there is no message phase after selection with which to tell the
+ 237                             ;  device that it is legal to disconnect.
+ 238                             ;
+ 239 00000088:                   SELECTNOATN:
+ 240 00000088: 78340100 00000000 move PH_SELECT to scratch0  ; indicate entering attempt to reach target
+ 241 00000090: 60000200 00000000 clear target
+ 242 00000098: 7C1BEF00 00000000 move ctest7 & TimeOn to ctest7 ; turn on the select timer
+ 243 000000A0: 46000028 FFFFFFC8 select FROM devfield, REL(already_selected)
+ 244 000000A8: 828B0000 00000010 jump REL(snatn1) when CMD ; wait for phase change... must be command phase.
+ 245 000000B0: 7A1B1000 00000000 move ctest7 | NoTime to ctest7
+ 246 000000B8: 80880000 00000144 jump REL(WHICHPHASE)
+ 247                             ;
+ 248                             ;  If selection does not timeout, we will arrive here.
+ 249                             ;
+ 250 000000C0:                   snatn1:
+ 251 000000C0: 7A1B1000 00000000 move ctest7 | NoTime to ctest7
+ 252 000000C8: 78370000 00000000 move SEL_DONE to scratch3 ; status for the driver
+ 253 000000D0: C0000001 00000000 00000000 move memory 1, ncrscratch3, statadr ; to the flag location
+ 254 000000DC: C0000004 00000000 00000000 move memory 4, phythread, ncrdsa ; now restore the dsa
+ 255 000000E8: 828B0000 00000088 jump REL( send_cmd ) when CMD
+ 256 000000F0: 80880000 0000010C jump REL(WHICHPHASE)
+ 257                             ;
+ 258                             ; select with attention
+ 259                             ;	This entry point will assert attention with select.  This entry point
+ 260                             ; is used when SCSI_ATN is set in the path options.  We also advertise that
+ 261                             ; interrmediate disconnect is allowed during selection.
+ 262                             ;
+ 263 000000F8:                   SELECTATN:
+ 264 000000F8: 78340100 00000000 move PH_SELECT to scratch0  ; indicate entering attempt to reach target
+ 265 00000100: 60000200 00000000 clear target
+ 266 00000108: 7C1BEF00 00000000 move ctest7 & TimeOn to ctest7
+ 267 00000110: 47000028 FFFFFF58 select atn FROM devfield, REL(already_selected)
+ 268 00000118: 868B0000 00000010 jump REL(satn1) when MSG_OUT ; wait for selection ... must be message out
+ 269 00000120: 7A1B1000 00000000 move ctest7 | NoTime to ctest7 ; insure select timer off..
+ 270 00000128: 80880000 000000D4 jump REL(WHICHPHASE)
+ 271                             ;
+ 272 00000130:                   satn1:
+ 273 00000130: 7A1B1000 00000000 move ctest7 | NoTime to ctest7 ; insure select timer off..
+ 274 00000138: 78370000 00000000 move SEL_DONE to scratch3 ; status for the driver
+ 275 00000140: C0000001 00000000 00000000 move memory 1, ncrscratch3, statadr ; to the flag location
+ 276 0000014C: C0000004 00000000 00000000 move memory 4, phythread, ncrdsa ; now restore the dsa
+ 277                             ;
+ 278                             ; Have entered message out phase...
+ 279                             ;
+ 280 00000158: 78340200 00000000 move PH_MESS to scratch0 ; set phase flag 
+ 281 00000160: 1E000000 00000018 move FROM msgoptr, when MSG_OUT ; send the i.d. message out to the target
+ 282                             ;
+ 283                             ;  Look for a message in phase.  Some devices will try to go synchronus
+ 284                             ;  at the first time they see select with attention.  Under normal
+ 285                             ;  circumstances however, we will have sent the negotiation request and
+ 286                             ;  are about to receive his answer.  It is not an error if we don't do
+ 287                             ;  this phase at this time.
+ 288                             ;
+ 289 00000168: 878B0000 0000024C jump REL(messgin) when MSG_IN ; message in requested
+ 290 00000170: 82830000 0000008C jump REL(WHICHPHASE) when not CMD
+ 291                             ;
+ 292                             ; Command phase
+ 293                             ;
+ 294 00000178:                   send_cmd:
+ 295 00000178: 60000008 00000000 clear ATN
+ 296 00000180: 78340400 00000000 move PH_CMD to scratch0 ; entered command phase when 
+ 297 00000188: C0000004 00000000 00000000 move memory 4, phythread, ncrdsa ; now restore the dsa 
+ 298 00000194: 1A000000 00000008 move FROM cdblength, when CMD ; send the command to the target
+ 299                             ;
+ 300                             ; At this point, there are several options as to how to proceed.  The next
+ 301                             ; phase will be selected by the target dependent on the command and what
+ 302                             ; needs to be done.  We depart for a slice of code that will route on the
+ 303                             ; phase.
+ 304                             ;
+ 305 0000019C: 80880000 00000060 jump REL(WHICHPHASE) 
+ 306                             ;
+ 307                             ; Data_In phase operation.
+ 308                             ;
+ 309 000001A4:                   input_data:
+ 310 000001A4: 78340500 00000000 move PH_IDATA to scratch0  ; indicate start of data phase
+ 311 000001AC: C0000004 00000000 00000000 move memory 4, phythread, ncrdsa ; now restore the dsa 
+ 312 000001B8: 19000000 00000000 move FROM datacount, when DATA_IN ; transfer data
+ 313 000001C0: 878B0000 000001F4 jump REL(messgin) when MSG_IN
+ 314 000001C8: 838A0000 00000110 jump REL(get_status) if STATUS
+ 315 000001D0: 80880000 0000002C jump REL(WHICHPHASE)
+ 316                             ;
+ 317                             ; Data_Out phase operation.
+ 318                             ;
+ 319 000001D8:                   output_data:
+ 320 000001D8: 78341500 00000000 move PH_ODATA to scratch0  ; indicate start of data phase
+ 321 000001E0: C0000004 00000000 00000000 move memory 4, phythread, ncrdsa ; now restore the dsa 
+ 322 000001EC: 18000000 00000000 move FROM datacount, when DATA_OUT ; transfer data
+ 323 000001F4: 878B0000 000001C0 jump REL(messgin) when MSG_IN
+ 324 000001FC: 838A0000 000000DC jump REL(get_status) if STATUS
+ 325                             ;
+ 326                             ; Route operation based on next detected phase.
+ 327                             ;
+ 328 00000204:                   WHICHPHASE:
+ 329 00000204: 80000000 00000000 nop
+ 330 0000020C: 80000000 00000000 nop
+ 331 00000214: 78344400 00000000 move PH_WHICH to scratch0  ; indicate start of data phase
+ 332 0000021C: 78360100 00000000 move 0x01 to scratch2
+ 333 00000224: 878B0000 00000190 jump REL(messgin) when MSG_IN		; message in
+ 334 0000022C: 828B0000 FFFFFF44 jump REL(send_cmd) when CMD         	; command phase
+ 335 00000234: 818B0000 FFFFFF68 jump REL(input_data) when DATA_IN	; data input
+ 336 0000023C: 808B0000 FFFFFF94 jump REL(output_data) when DATA_OUT	; data output
+ 337 00000244: 838B0000 00000094 jump REL(get_status) when STATUS	; status phase
+ 338 0000024C: 868B0000 00000020 jump REL(messgout) when MSG_OUT		; message out
+ 339 00000254: 848B0000 0000003C jump REL(undefout) when RES4		; reserved out
+ 340 0000025C: 858B0000 00000058 jump REL(undefin) when RES5		; reserved in
+ 341 00000264: 78360200 00000000 move 0x02 to scratch2
+ 342 0000026C: 98080000 0000FF05 int UNKNPH                          	; unexpected next phase 
+ 343                             ;
+ 344                             ; do message out phase
+ 345                             ; 
+ 346 00000274:                   messgout:
+ 347 00000274: 78340300 00000000 move PH_MESSA to scratch0 ; have entered Message Out
+ 348 0000027C: C0000004 00000000 00000000 move memory 4, phythread, ncrdsa ; now restore the dsa 
+ 349 00000288: 1E000000 00000018 move FROM msgoptr, when MSG_OUT
+ 350 00000290: 80880000 FFFFFF6C jump REL(WHICHPHASE)
+ 351                             ;
+ 352                             ; do undefined out phase
+ 353                             ; this phase should not occur but if it does we will
+ 354                             ; allow it.
+ 355                             ;
+ 356 00000298:                   undefout:
+ 357 00000298: 78343000 00000000 move PH_RES4 to scratch0 ; have entered Reserved Out
+ 358 000002A0: C0000004 00000000 00000000 move memory 4, phythread, ncrdsa ; now restore the dsa 
+ 359 000002AC: 0C000001 00000000 move 1, bitbucket, when RES4
+ 360 000002B4: 80880000 FFFFFF48 jump REL(WHICHPHASE)
+ 361                             ;
+ 362                             ; do undefined in phase
+ 363                             ; this phase should not occur but if it does we will
+ 364                             ; allow it.
+ 365                             ;
+ 366 000002BC:                   undefin:
+ 367 000002BC: 78343100 00000000 move PH_RES5 to scratch0 ; have entered Reserved In
+ 368 000002C4: C0000004 00000000 00000000 move memory 4, phythread, ncrdsa ; now restore the dsa 
+ 369 000002D0: 0D000001 00000000 move 1, bitbucket, when RES5
+ 370 000002D8: 80880000 FFFFFF24 jump REL(WHICHPHASE)
+ 371                             ;
+ 372                             ; Status Phase
+ 373                             ;
+ 374 000002E0:                   GETSTATUS:
+ 375 000002E0:                   get_status:
+ 376 000002E0: 78340600 00000000 move PH_STATUS to scratch0 ; have entered status phase
+ 377 000002E8: C0000004 00000000 00000000 move memory 4, phythread, ncrdsa ; now restore the dsa 
+ 378 000002F4: 1B000000 00000010 move FROM statucount, when STATUS ;get status byte into memory
+ 379 000002FC: 878B0000 000000B8 jump REL(messgin) when MSG_IN ; message in requested
+ 380 00000304: 80880000 FFFFFEF8 jump REL(WHICHPHASE) 
+ 381                             ;
+ 382                             ; Resume point after message in, also logical conclusion to the
+ 383                             ; normal flow of command.  When the SIOP reads data during message_in
+ 384                             ; it will leave ACK asserted,  which effectivly locks the SCSI Bus until
+ 385                             ; we have a chance to parse the message.
+ 386 0000030C:                   ackanddisc:
+ 387 0000030C: 60000040 00000000 clear ack
+ 388                             ;
+ 389                             ; wait for a physical disconnect from the bus and inform driver when it
+ 390                             ; occurs.
+ 391                             ;
+ 392 00000314: 48000000 00000000 wait DISCONNECT
+ 393 0000031C: 98080000 00000080 int SC_DONE
+ 394                             ;
+ 395 00000324:                   ACKANYMSG:
+ 396 00000324:                   ackanymsg:
+ 397 00000324: 60000040 00000000 clear ack
+ 398 0000032C: 878B0000 00000088 jump REL(messgin) when MSG_IN		; message in
+ 399 00000334: 80880000 FFFFFEC8 jump REL(WHICHPHASE)
+ 400                             ;
+ 401                             ;  Reselected:  the target has awakened and is now awakening us.
+ 402                             ;
+ 403                             ;  Note:  The message buffer that is being written may be one of:
+ 404                             ;     The idle ID (selfid) message in buffer.
+ 405                             ;     A newly started commands message in buffer.
+ 406                             ;	If the driver is concerned with the contents of the message in it
+ 407                             ;   must look in the message buffer of the "current physical thread"
+ 408                             ;   for the data.  This should not be a problem in any known case, as
+ 409                             ;   a pointer to the block is present at interrupt time.  Note that only
+ 410                             ;   the entire message phase IS NOT preserved.
+ 411                             ;
+ 412                             ;   Note:  DSA is destroyed...
+ 413                             ;
+ 414 0000033C:                   resel_adr:
+ 415 0000033C: C0000004 00000000 00000000 move memory 4, phythread, ncrdsa ; now restore the dsa
+ 416 00000348: C0000001 00000000 00000000 move memory 1, ncrlcrc, lcrcid_tid ; save reselector's ID.
+ 417 00000354: 87820000 00000028 jump REL(idmsgin) if NOT MSG_IN
+ 418 0000035C: 60000040 00000000 clear ACK
+ 419 00000364: 0F000001 00000000 move 1, lcrcid_idmsg, when MSG_IN ; get message from target
+ 420 0000036C: 6C088000 00000000 move sfbr & IDENTIFY_NODISCON to sfbr
+ 421 00000374: 80840000 00000008 jump rel(idmsgin) if not 0 
+ 422 0000037C: 98080000 0000FF04 int NOTMSGI
+ 423                             ;
+ 424 00000384:                   idmsgin: 
+ 425 00000384: 98080000 000000A0 int SC_RESEL
+ 426 0000038C:                   RESELECTED:
+ 427 0000038C: 80880000 FFFFFF90 jump REL(ackanymsg)
+ 428                             ;
+ 429                             ;  If we suspect an intermediate disconnect is occuring, we will
+ 430                             ;  come here an process the message in phase.  The SIOP will route
+ 431                             ;  based on the message byte received.
+ 432 00000394:                   messginloop:
+ 433 00000394: 60000040 00000000 clear ACK ; acknowledge the last byte, fall through to get next...
+ 434 0000039C: 878B0000 00000018 jump REL(messgin) when MSG_IN
+ 435 000003A4: 60000040 00000000 clear ACK ; one more try
+ 436 000003AC: 878B0000 00000008 jump REL(messgin) when MSG_IN
+ 437 000003B4: 80880000 FFFFFE48 jump REL(WHICHPHASE)
+ 438                             ;
+ 439                             ;
+ 440 000003BC:                   messgin:
+ 441 000003BC: 78341200 00000000 move PH_MESSD to scratch0
+ 442 000003C4: 78360300 00000000 move 0x03 to scratch2
+ 443 000003CC: C0000004 00000000 00000000 move memory 4, phythread, ncrdsa ; now restore the dsa 
+ 444 000003D8: 80000000 00000000 nop
+ 445 000003E0: 1F000000 00000020 move FROM msgiptr, when MSG_IN
+ 446 000003E8: 80000000 00000000 nop
+ 447 000003F0: 808C0000 FFFFFF14 jump REL(ackanddisc) if M_COMPLETE	; Command Complete
+ 448 000003F8: 808C0002 FFFFFF94 jump REL(messginloop) if M_SAVEPOINT	; expect interum disconn.
+ 449 00000400: 808C0004 00000048 jump REL(idiscn) if M_DISCONNECT	; interum disconnect 
+ 450 00000408: 808C0007 00000058 jump REL(rejected) if M_REJECT		; message reject received
+ 451 00000410: 808C0001 00000068 jump REL(extended) if M_EXTENDED	; extended message request
+ 452 00000418: 808C0003 00000010 jump REL(irpmsg) if M_RESTPOINT		; restore pointers message
+ 453 00000420: 78360400 00000000 move 0x04 to scratch2
+ 454 00000428: 98080000 0000FF06 int BADMSG				; wasn't disconnect message!
+ 455                             ;
+ 456 00000430:                   irpmsg:
+ 457 00000430: 60000040 00000000 clear ack ; accecpt restore pointers message
+ 458 00000438: 808B0000 FFFFFD98 jump REL(output_data) when DATA_OUT	; data output
+ 459 00000440: 818B0000 FFFFFD5C jump REL(input_data) when DATA_IN ; data input
+ 460 00000448: 80880000 FFFFFDB4 jump REL(WHICHPHASE) 
+ 461                             ;
+ 462                             ; intermediate disconnect requested, inform CPU as soon as target clears
+ 463                             ;
+ 464 00000450:                   idiscn:
+ 465 00000450: 60000040 00000000 clear ACK
+ 466 00000458: 48000000 00000000 wait DISCONNECT
+ 467 00000460: 98080000 000000B0 int SC_IDISC
+ 468                             ;
+ 469                             ; rejected message received
+ 470                             ;
+ 471 00000468:                   rejected:
+ 472 00000468: 98080000 000000D0 int SC_MSGREJ ; inform driver of problem
+ 473 00000470: 60000040 00000000 clear ACK ; accept the rejection gracefully
+ 474 00000478: 80880000 FFFFFD84 jump REL(WHICHPHASE) 
+ 475                             ;
+ 476                             ; extended message arriving:
+ 477                             ;	Here we must set up to receive a message of indeterminant length.
+ 478                             ;   The way we do this is to get the size byte and save it into
+ 479                             ;      a data frame for the SIOP.  We then switch context via the DSA
+ 480                             ;      register and take in whatever the target is sending.  
+ 481                             ;      When the message is in, we pass it along to the driver to decide
+ 482                             ;      how to proceed.
+ 483                             ;
+ 484                             ;	NOTE:  ack is left asserted and as such we must clear it either at the
+ 485                             ;          resumption point, or at the outset of our rejection of the message.
+ 486                             ;	NOTE ALSO:  DSA register is destroyed prior to the interrupt to the driver,
+ 487                             ;          and thus must be retored prior to reentry into the scripts.
+ 488                             ;
+ 489 00000480:                   extended:
+ 490 00000480: 60000040 00000000 clear ACK ; accept the extended message flag
+ 491 00000488: 1F000000 00000020 move FROM msgiptr, when MSG_IN ; read in the size bytes
+ 492 00000490: 6A340000 00000000 move sfbr to scratch0 ; save in the scratch0 register
+ 493 00000498: C0000001 00000000 00000000 move memory 1, ncrscratch0, extcntptr ; save in extended frame
+ 494 000004A4: 80840000 00000014 jump REL(acksize) if not 0
+ 495 000004AC: 78350100 00000000 move 1 to scratch1
+ 496 000004B4: C0000001 00000000 00000000 move memory 1, ncrscratch1,  extcntptr1 ; 0 := 0x100 bytes comming
+ 497 000004C0:                   acksize:
+ 498 000004C0: 60000040 00000000 clear ACK
+ 499 000004C8: C0000004 00000000 00000000 move memory 4, extmframeptr, ncrdsa ; extended message frame
+ 500 000004D4: 1F000000 00000000 move FROM extmsgcount, when MSG_IN ; read in the extended message
+ 501 000004DC: 98080000 000000C0 int SC_EXMSG ; wake the driver
+ 502 000004E4: 60000040 00000000 clear ACK
+ 503 000004EC: 878B0000 FFFFFEC8 jump REL(messgin) when MSG_IN ; in case sending another message in.
+ 504 000004F4: 80880000 FFFFFD08 jump REL(WHICHPHASE) ; the message is understood, just proceed (resume point)
+ 505                             ;
+ 506                             ; send abort message and signal bus free at disconnect time.
+ 507                             ;
+ 508 000004FC:                   ABORTMESSAGE:
+ 509 000004FC:                   abortmessage:
+ 510 000004FC: 58000008 00000000 set ATN ; inform target of message about to be sent
+ 511 00000504: 60000040 00000000 clear ACK
+ 512 0000050C: 78340300 00000000 move PH_MESSA to scratch0 ; set flag for ourselves
+ 513 00000514: 0E000001 00000000 move 1,  armsg_abort, when MSG_OUT ; send out the message
+ 514 0000051C: 80880000 FFFFFCE0 jump REL(WHICHPHASE) ; let the target decide what to do
+ 515                             ;
+ 516                             ; send a message reject to the target
+ 517                             ;
+ 518 00000524:                   REJECTMESSAGE:
+ 519 00000524: 58000008 00000000 set ATN  ; tell him we are about to transmit
+ 520 0000052C: 60000040 00000000 clear ACK ; now tell him we have received the message
+ 521 00000534: 0E000001 00000000 move 1,  armsg_reject, when MSG_OUT ; send the rejected message
+ 522 0000053C: 80880000 FFFFFCC0 jump REL(WHICHPHASE) ; let the target decide what to do
+ 523                             ;
+ 524                             ; send a message indicating message parity error 
+ 525 00000544:                   PEMESSAGE:
+ 526 00000544: 58000008 00000000 set ATN  ; tell him we are about to transmit
+ 527 0000054C: 60000040 00000000 clear ACK ; now tell him we have received the message
+ 528 00000554: 0E000001 00000000 move 1, armsg_mpe, when MSG_OUT ; send the rejected message
+ 529 0000055C: 80880000 FFFFFCA0 jump REL(WHICHPHASE) ; let the target decide what to do
+ 530                             
+ 531                             ;
+ 532                             ; send an arbitrary message
+ 533 00000564:                   SENDMESSAGE:
+ 534 00000564: 58000008 00000000 set ATN
+ 535 0000056C: 60000040 00000000 clear ACK
+ 536 00000574: 1E000000 00000018 move FROM msgoptr, when MSG_OUT
+ 537 0000057C: 80880000 FFFFFC80 jump REL(WHICHPHASE)
+ 538                             ;
+ 539                             ;
+ 540                             ; some form of fatal error has been detected and as such we must free
+ 541                             ;  the SCSI bus.  The target is in some undetermined state and as
+ 542                             ;  such we try to fullfil the target's requirements.
+ 543                             ;
+ 544                             ;
+ 545 00000584:                   erdout:
+ 546 00000584: 08000001 00000000 move 1, bitbucket, when DATA_OUT
+ 547 0000058C: 808B0000 FFFFFFF0 jump REL(erdout) when DATA_OUT
+ 548 00000594: 80880000 0000019C jump REL(freeit_loop)
+ 549                             ;
+ 550 0000059C:                   erdin:
+ 551 0000059C: 09000001 00000000 move 1, bitbucket, when DATA_IN
+ 552 000005A4: 818B0000 FFFFFFF0 jump REL(erdin) when DATA_IN
+ 553 000005AC: 80880000 00000184 jump REL(freeit_loop)
+ 554                             ;
+ 555 000005B4:                   ercmd:
+ 556 000005B4: 78340000 00000000 move 0 to scratch0 
+ 557 000005BC: C0000001 00000000 00000000 move memory 1, ncrscratch0, bitbucket
+ 558 000005C8: 0A000001 00000000 move 1, bitbucket, when COMMAND
+ 559 000005D0: 828B0000 FFFFFFDC jump REL(ercmd) when COMMAND
+ 560 000005D8: 80880000 00000158 jump REL(freeit_loop)
+ 561                             ;
+ 562 000005E0:                   erstatus:
+ 563 000005E0: 0B000001 00000000 move 1, bitbucket, when STATUS
+ 564 000005E8: 838B0000 FFFFFFF0 jump REL(erstatus) when STATUS
+ 565 000005F0: 80880000 00000140 jump REL(freeit_loop)
+ 566                             ;
+ 567 000005F8:                   ermsgout:
+ 568 000005F8: 78340800 00000000 move M_NOOP to scratch0 
+ 569 00000600: C0000001 00000000 00000000 move memory 1, ncrscratch0, bitbucket
+ 570 0000060C: 0E000001 00000000 move 1, bitbucket, when MSG_OUT
+ 571 00000614: 868B0000 FFFFFFDC jump REL(ermsgout) when MSG_OUT
+ 572 0000061C: 80880000 00000114 jump REL(freeit_loop)
+ 573                             ;
+ 574 00000624:                   ermsgin:
+ 575 00000624: 0F000001 00000000 move 1, bitbucket, when MSG_IN
+ 576 0000062C: 808C0000 00000028 jump REL(erdone) if M_COMPLETE		; Command Complete
+ 577 00000634: 808C0004 00000038 jump REL(erdc) if M_DISCONNECT		; disconnect 
+ 578 0000063C: 808C0003 00000048 jump REL(errp) if M_RESTPOINT		; restore pointers msg
+ 579 00000644: 60000040 00000000 clear ack
+ 580 0000064C: 878B0000 FFFFFFD0 jump REL(ermsgin) when MSG_IN
+ 581 00000654: 80880000 000000DC jump REL(freeit_loop)
+ 582                             ;
+ 583 0000065C:                   erdone:
+ 584 0000065C: 60000040 00000000 clear ack
+ 585 00000664: 48000000 00000000 wait disconnect
+ 586 0000066C: 98080000 00000080 int SC_DONE
+ 587                             ;
+ 588 00000674:                   erdc:
+ 589 00000674: 60000040 00000000 clear ack
+ 590 0000067C: 48000000 00000000 wait disconnect
+ 591 00000684: 98080000 000000B0 int SC_IDISC
+ 592                             ;
+ 593 0000068C:                   errp:
+ 594 0000068C: 58000008 00000000 set atn
+ 595 00000694: 60000040 00000000 clear ack
+ 596 0000069C: 86830000 00000094 jump REL(freeit_loop) when not MSG_OUT
+ 597 000006A4: 78340700 00000000 move M_REJECT to scratch0 
+ 598 000006AC: C0000001 00000000 00000000 move memory 1, ncrscratch0, bitbucket
+ 599 000006B8: 0E000001 00000000 move 1, bitbucket, when MSG_OUT
+ 600 000006C0: 86830000 00000070 jump REL(freeit_loop) when not MSG_OUT
+ 601 000006C8:                   ersnop:
+ 602 000006C8: 78340800 00000000 move M_NOOP to scratch0 
+ 603 000006D0: C0000001 00000000 00000000 move memory 1, ncrscratch0, bitbucket
+ 604 000006DC: 0E000001 00000000 move 1, bitbucket, when MSG_OUT
+ 605 000006E4: 86830000 0000004C jump REL(freeit_loop) when not MSG_OUT
+ 606 000006EC: 80880000 FFFFFFD4 jump REL(ersnop)
+ 607                             ;
+ 608 000006F4:                   erundefout:
+ 609 000006F4: 78340000 00000000 move 0 to scratch0 
+ 610 000006FC: C0000001 00000000 00000000 move memory 1, ncrscratch0, bitbucket
+ 611 00000708: 0C000001 00000000 move 1, bitbucket, when RES4
+ 612 00000710: 848B0000 FFFFFFDC jump REL(erundefout) when RES4
+ 613 00000718: 80880000 00000018 jump REL(freeit_loop)
+ 614                             ;
+ 615 00000720:                   erundefin:
+ 616 00000720: 0D000001 00000000 move 1, bitbucket, when RES5
+ 617 00000728: 858B0000 FFFFFFF0 jump REL(erundefin) when RES5
+ 618 00000730: 80880000 00000000 jump REL(freeit_loop)
+ 619                             ;
+ 620                             ;
+ 621                             ;  loop to free the bus
+ 622                             ;
+ 623 00000738:                   freeit_loop:
+ 624                             ;
+ 625                             ;  enter here for bus freedom movement.
+ 626 00000738:                   FREEIT:
+ 627 00000738: 808A0000 FFFFFE44 jump REL(erdout) if DATA_OUT
+ 628 00000740: 818A0000 FFFFFE54 jump REL(erdin) if DATA_IN
+ 629 00000748: 828A0000 FFFFFE64 jump REL(ercmd) if COMMAND
+ 630 00000750: 838A0000 FFFFFE88 jump REL(erstatus) if STATUS
+ 631 00000758: 868A0000 FFFFFE98 jump REL(ermsgout) if MSG_OUT
+ 632 00000760: 878A0000 FFFFFEBC jump REL(ermsgin) if MSG_IN
+ 633 00000768: 848A0000 FFFFFF84 jump REL(erundefout) if RES4
+ 634 00000770: 858A0000 FFFFFFA8 jump REL(erundefin) if RES5
+ 635 00000778: 80880000 FFFFF880 jump REL(WAITFORRESELECT)
+ 636                             
+ 637                             
+ 638                             
+ 639                             
+ 640                             
+ 641                             
+ 642                             
+
+--SYMBOL---------------------------VALUE------TYPE-------
+B_CON                             00000010  ABSOLUTE              
+BADMSG                            0000FF06  ABSOLUTE              
+B_RSIGP                           00000040  ABSOLUTE              
+cdblength                         00000008  ABSOLUTE              
+devfield                          00000028  ABSOLUTE              
+datacount                         00000000  ABSOLUTE              
+extmsgcount                       00000000  ABSOLUTE              
+IDENTIFY_DISCON                   000000C0  ABSOLUTE              
+IDENTIFY_NODISCON                 00000080  ABSOLUTE              
+M_DEVRESET                        0000000C  ABSOLUTE              
+M_ABORT                           00000006  ABSOLUTE              
+M_DISCONNECT                      00000004  ABSOLUTE              
+M_EXTENDED                        00000001  ABSOLUTE              
+M_COMPLETE                        00000000  ABSOLUTE              
+M_INITERROR                       00000005  ABSOLUTE              
+M_NOOP                            00000008  ABSOLUTE              
+M_PARITYER                        00000009  ABSOLUTE              
+M_REJECT                          00000007  ABSOLUTE              
+M_RESTPOINT                       00000003  ABSOLUTE              
+M_SAVEPOINT                       00000002  ABSOLUTE              
+msgiptr                           00000020  ABSOLUTE              
+msgoptr                           00000018  ABSOLUTE              
+NOTMSGI                           0000FF04  ABSOLUTE              
+NOTCMD                            0000FF02  ABSOLUTE              
+NOTMSGO                           0000FF01  ABSOLUTE              
+NOTSTAT                           0000FF03  ABSOLUTE              
+NoTime                            00000010  ABSOLUTE              
+PH_DONE                           00000000  ABSOLUTE              
+PH_IDATA                          00000005  ABSOLUTE              
+PH_CMD                            00000004  ABSOLUTE              
+PH_MESSA                          00000003  ABSOLUTE              
+PH_MESSC                          00000022  ABSOLUTE              
+PH_MESSD                          00000012  ABSOLUTE              
+PH_MESS                           00000002  ABSOLUTE              
+PH_ODATA                          00000015  ABSOLUTE              
+PH_RES4                           00000030  ABSOLUTE              
+PH_RES5                           00000031  ABSOLUTE              
+PH_SELECT                         00000001  ABSOLUTE              
+PH_MASK                           0000000F  ABSOLUTE              
+PH_STATUS                         00000006  ABSOLUTE              
+PH_WHICH                          00000044  ABSOLUTE              
+SC_EXMSG                          000000C0  ABSOLUTE              
+SC_IDISC                          000000B0  ABSOLUTE              
+SC_MSGREJ                         000000D0  ABSOLUTE              
+SC_RESEL                          000000A0  ABSOLUTE              
+SC_SIGP                           00000090  ABSOLUTE              
+SC_DONE                           00000080  ABSOLUTE              
+SEL_DONE                          00000000  ABSOLUTE              
+SYNCREQ_SIZE                      00000003  ABSOLUTE              
+SYNC_REQEST                       00000001  ABSOLUTE              
+statucount                        00000010  ABSOLUTE              
+TimeOn                            000000EF  ABSOLUTE              
+UNKNPH                            0000FF05  ABSOLUTE              
+SCRIPT                            00000000  CODE SEGMENT          
+ABORTMESSAGE                      000004FC  ENTRY                 
+ACKANYMSG                         00000324  ENTRY                 
+FREEIT                            00000738  ENTRY                 
+GETSTATUS                         000002E0  ENTRY                 
+PEMESSAGE                         00000544  ENTRY                 
+REJECTMESSAGE                     00000524  ENTRY                 
+RESELECTED                        0000038C  ENTRY                 
+SELECTATN                         000000F8  ENTRY                 
+SELECTNOATN                       00000088  ENTRY                 
+SENDMESSAGE                       00000564  ENTRY                 
+WHICHPHASE                        00000204  ENTRY                 
+WAITFORRESELECT                   00000000  ENTRY                 
+armsg_abort                       00000000  EXTERNAL              
+armsg_mpe                         00000000  EXTERNAL              
+armsg_reject                      00000000  EXTERNAL              
+bitbucket                         00000000  EXTERNAL              
+extcntptr1                        00000000  EXTERNAL              
+extcntptr                         00000000  EXTERNAL              
+extmframeptr                      00000000  EXTERNAL              
+lcrcid_idmsg                      00000000  EXTERNAL              
+lcrcid_tid                        00000000  EXTERNAL              
+ncrdsa                            00000000  EXTERNAL              
+ncrlcrc                           00000000  EXTERNAL              
+ncrscratch0                       00000000  EXTERNAL              
+ncrscratch1                       00000000  EXTERNAL              
+ncrscratch3                       00000000  EXTERNAL              
+phythread                         00000000  EXTERNAL              
+statadr                           00000000  EXTERNAL              
+abortmessage                      000004FC  LABEL                 
+ackanddisc                        0000030C  LABEL                 
+ackanymsg                         00000324  LABEL                 
+acksize                           000004C0  LABEL                 
+already_selected                  00000070  LABEL                 
+alt_sig_p1                        00000020  LABEL                 
+alt_sig_p2                        00000060  LABEL                 
+erdc                              00000674  LABEL                 
+ercmd                             000005B4  LABEL                 
+erdin                             0000059C  LABEL                 
+erdone                            0000065C  LABEL                 
+erdout                            00000584  LABEL                 
+ermsgin                           00000624  LABEL                 
+ermsgout                          000005F8  LABEL                 
+errp                              0000068C  LABEL                 
+ersnop                            000006C8  LABEL                 
+erstatus                          000005E0  LABEL                 
+erundefin                         00000720  LABEL                 
+erundefout                        000006F4  LABEL                 
+extended                          00000480  LABEL                 
+freeit_loop                       00000738  LABEL                 
+get_status                        000002E0  LABEL                 
+idiscn                            00000450  LABEL                 
+idmsgin                           00000384  LABEL                 
+input_data                        000001A4  LABEL                 
+irpmsg                            00000430  LABEL                 
+messgin                           000003BC  LABEL                 
+messginloop                       00000394  LABEL                 
+messgout                          00000274  LABEL                 
+output_data                       000001D8  LABEL                 
+rejected                          00000468  LABEL                 
+resel_adr                         0000033C  LABEL                 
+satn1                             00000130  LABEL                 
+send_cmd                          00000178  LABEL                 
+sig_p_set                         00000050  LABEL                 
+snatn1                            000000C0  LABEL                 
+undefin                           000002BC  LABEL                 
+undefout                          00000298  LABEL                 
+#define NCR_REVISION 23           00000000  PASS                  
+                                  00000000  PASS                  
+/*                                00000000  PASS                  
+*   Compile instructions:         00000000  PASS                  
+*   1. Delete the line below 'typedef unsigned long ULONG;'  00000000  PASS                  
+*   2. Delete *External_Names array  00000000  PASS                  
+*   3. Delete *Absolute_Names array  00000000  PASS                  
+*   4. Compile using 'nasm v53c710.ss -u -o v53c710.c'  00000000  PASS                  
+*   5. Copy v53c710.c to SCSI53c710 directory and re-make  00000000  PASS                  
+*/                                00000000  PASS                  

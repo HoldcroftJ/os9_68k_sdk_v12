@@ -1,0 +1,161 @@
+ nam tk147
+ ttl VME147 tick driver for use with tickgeneric.a
+
+********************
+* tk147:  VME147 tick driver for use with "tickgeneric.a"
+
+* Copyright 1988 by Microware Systems Corporation
+* Reproduced Under License
+
+* This source code is the proprietary confidential property of
+* Microware Systems Corporation, and is provided to licensee
+* solely for documentation and educational purposes. Reproduction,
+* publication, or distribution in any form to any party other than
+* the licensee is strictly prohibited.
+
+
+********************
+* Edition History
+*  #    Date      Comments                                      By
+* -- -------- ------------------------------------------------ ---
+* 01 88/05/24 implemented                                      wwb
+* 02 88/12/02 added conditional (WDTMode) so that irq service  wwb
+*             only resets wdt if enabled.
+*             ---- OS-9/68K V2.3 Release ----
+*             ---- OS-9/68K V2.4 Release ----
+* 03 91/11/18 added support for using Timer2 as tick timer.    wwb
+*             ---- OS-9/68K V2.4.4 Release ----
+*             ---- OS-9/68K V3.0 released ----
+*             ---- OS-9/68K V3.1 released ----
+*
+
+Edition equ 3 current edition number
+
+ psect Ticker,0,0,0,0,0
+
+ use defsfile
+
+ pag
+********************
+* Timer Select definitions
+*
+ ifdef TIMER2
+timx_ctl equ tim2_ctl control register
+timx_irq equ tim2_irq interrupt control
+timx_preload equ tim2_preload pre-load counter
+ else using timer #1
+timx_ctl equ tim1_ctl control register
+timx_irq equ tim1_irq interrupt control
+timx_preload equ tim1_preload pre-load counter
+ endc TIMER2
+
+* if using Timer #2, then Watch Dog Timer code inappropriate
+*
+ ifne WDTMode
+ ifdef TIMER2
+ fail tk147 - watch dog timer only available on timer #1
+ endc TIMER2
+ endc WDTMode
+
+
+********************
+* Expected variables and constants:
+* 
+* The following constants are used in the generic
+* code and must be defined GLOBALLY by this file:
+*
+TiksPerSec: equ TicksSec (Ticks Per Second) - Pretty self-explanatory.
+ClockVect: equ ClkVect clock vector
+ClockPort: equ ClkPort tick device base address
+ClockPrior: equ ClkPrior clock priority
+
+
+********************
+* StartTick: (Subroutine) Initialize
+*            the "ticker" device hardware
+*            and enable it to produce "tick" IRQs
+*
+* General Description: This subroutine is called by the "tickgeneric"
+*                      initialization code.  The purpose of this
+*                      subroutine is to program the hardware registers
+*                      of the "ticker" device so that it will produce
+*                      "tick" interrupts at the rate specified by the
+*                      variable "TicksSec" - ticks per second.  This
+*                      variable is generally defined in "systype.d"
+*                      and is often set to a value of 100 ticks per
+*                      second.
+*
+* Registers Passed: (a3) = The base address of the "ticker" hardware
+*                   (a5) = Caller's register stack pointer
+*                   (a6) = Global storage pointer
+*
+* Registers Returned: (d1) = Error code if error occurred
+*                            Zero if no error
+*                     (cc) = carry set if error occurred
+*                            carry clear if no error
+*
+* NOTE: This subroutine may alter registers d0, d1, a0, a1 and a2 without
+*       consequence.  All others MUST be preserved!
+*
+* ANOTHER NOTE: The tickgeneric code that calls this subroutine DOES NOT
+*               MASK the interrupts!  If the initialization code for the
+*               tick device needs the interrupts masked, it must be done
+*               in THIS subroutine!
+*
+StartTick: move.b timx_ctl(a3),d0 get current timer control
+ andi.b #^tct_cntenab,d0 clear counter enable
+ ori.b #tct_clrovf,d0 clear overflow counters
+ move.b d0,timx_ctl(a3) tell the timer
+ move.b #tirq_irq,timx_irq(a3) clear/disable time 1 irqs
+ move.w #TPreload,timx_preload(a3) init timer 1 preload register
+ move.b #tirq_enab+ClkLevel,timx_irq(a3) enable timer irqs & level
+ move.b #tct_enab+tct_cntenab,timx_ctl(a3) enable timer, start counter
+ ifne WDTMode
+* watch dog timer enabled
+ move.b #wdt_wdclr+wdt_wdto,WDTCtl clear/stop wdt
+ move.b #WDTMode,WDTCtl setup watchdog timer
+ endc WDTMode
+ moveq.l #0,d1 flag no errors
+ rts
+
+ page
+********************
+* TickIRQ: (Interrupt Service Routine)
+*
+* General Description: Check the "ticker" device hardware
+*                      to determine if it caused the interrupt.
+*                      If it did, clear the interrupt in the 
+*                      "ticker" device hardware.
+*                      If it did not cause the interrupt, return
+*                      with the carry bit set in the Condition
+*                      Code Register to flag that an error occurred.
+*
+* Registers Passed: (a3) = ticker chip base address
+*                   (a6) = system global storage pointer
+*
+* Registers Returned: (cc) = Carry set if an error occurred
+*                            If no error occurred, this routine
+*                            does not return, but jumps to the
+*                            Kernel's clock handling routine.
+*
+* Register Usage:  may only destroy D0, D1, A0, A2, A3 and A6.
+*                  any other registers used MUST be preserved.
+*
+TickIRQ:
+
+* check if timer caused irq
+
+ move.b timx_irq(a3),d0 read timer irq status
+ bpl.s NotClock ..not the clock, return carry set
+ ifne WDTMode
+* clear down watch-dog timer
+ ori.b #wdt_wdto+wdt_wdclr,WDTCtl clear wdt t/o status & o/f counters
+ endc WDTMode
+ move.b d0,timx_irq(a3) rewrite the register to clear timer interrupt
+ movea.l D_Clock(a6),a0 get clock service routine
+ jmp (a0) enter it
+
+NotClock ori.b #Carry,ccr set carry
+ rts 
+
+ ends

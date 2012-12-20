@@ -1,0 +1,54 @@
+*
+* startspf 
+* Shell Script to Start SPF System
+*
+* Set default directories before starting daemon programs
+*
+chd /h0
+chx /h0/cmds
+*
+* Load SPF modules
+*
+SYS/loadspf
+*
+* Load and start mbuf handler  (May be done via p2 list in init module)
+*   Allow for error returned in case sysmbuf is already initialized.
+*
+-nx
+mbinstall
+-x
+*
+* Start SPF system using ipstart
+*
+ipstart
+*
+* Add interfaces not specified in inetdb2
+*
+*ifconfig enet0 <my_address> binding /<dev>/enet
+*ifconfig ppp0 binding /ipcp0
+*
+* Add any static routes. Even if running routed it may be useful
+*   to add multicast routes.
+*
+*route add -net 224.0.0.0 <my_address>
+*
+* Start service daemons
+*   routed: Dynamic routing server
+*   inetd: FTP/Telnet and other protocols server
+*   telnetd: Remote terminal server 
+*   ftpd: Remote file-transfer server (FTP)
+*   bootpd: Network boot protocol server
+*   tftpd: Trivial file transfer protocol server
+*
+routed <>>>/nil&
+inetd <>>>/nil&
+*telnetd <>>>/nil &
+*ftpd <>>>/nil &
+*bootpd /h0/TFTPBOOT/bootptab <>>>/nil&
+*tftpd /h0/TFTPBOOT <>>>/nil &
+*   
+*   spfndpd: Hawk User state debugging daemon           
+*   spfnppd: Hawk Profiling daemon
+* 
+spfndpd <>>>/nil &
+*spfnppd <>>>/nil &

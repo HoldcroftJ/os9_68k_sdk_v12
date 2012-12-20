@@ -1,0 +1,8 @@
+ nam MT2 Device Descriptor
+ use defsfile
+ 
+ use "sbfdesc.a"
+ 
+DrvNum set 2
+ TapeMT2
+ ends

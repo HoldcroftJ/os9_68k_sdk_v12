@@ -1,0 +1,89 @@
+1  (EPERM)  Operation not permitted.
+2  (ENOENT)  No such file or directory.
+3  (ESRCH)  No such process.
+4  (EINTR)  Interrupted function call.
+5  (EIO)  Input/output error.
+6  (ENXIO)  No such device or address.
+7  (E2BIG)  Arg list too long.
+8  (ENOEXEC)  Exec format error.
+9  (EBADF)  Bad file descriptor.
+10  (ECHILD)  No child processes.
+11  (EAGAIN)  Resource temporarily unavailable.
+12  (ENOMEM)  Not enough space.
+13  (EACCES)  Permission denied.
+14  (EFAULT)  Bad address.
+16  (EBUSY)  Resource device.
+17  (EEXIST)  File exists.
+18  (EXDEV)  Improper link.
+19  (ENODEV)  No such device.
+20  (ENOTDIR)  Not a directory.
+21  (EISDIR)  Is a directory.
+22  (EINVAL)  Invalid argument.
+23  (ENFILE)  Too many open files in system.
+24  (EMFILE)  Too many open files.
+25  (ENOTTY)  Inappropriate I/O control operation.
+27  (EFBIG)  File too large.
+28  (ENOSPC)  No space left on device.
+29  (ESPIPE)  Invalid seek.
+30  (EROFS)  Read-only file system.
+31  (EMLINK)  Too many links.
+32  (EPIPE)  Broken pipe.
+33  (EDOM)  Domain error.
+34  (ERANGE)  Result too large.
+36  (EDEADLK)  Resource deadlock avoided.
+38  (ENAMETOOLONG)  Filename too long.
+39  (ENOLCK)  No locks available.
+40  (ENOSYS)  Function not implemented.
+41  (ENOTEMPTY)  Directory not empty.
+42  (EILSEQ)  Illegal byte sequence.
+10004  (WSAEINTR)  Interrupted system call.
+10009  (WSAEBADF)  Bad file number.
+10013  (WSAEACCES)  Permission denied.
+10014  (WSAEFAULT)  Bad address.
+10022  (WSAEINVAL)  Invalid argument.
+10024  (WSAEMFILE)  Too many open files.
+10035  (WSAEWOULDBLOCK)  Operation would block.
+10036  (WSAEINPROGRESS)  Operation now in progress.
+10037  (WSAEALREADY)  Operation already in progress.
+10038  (WSAENOTSOCK)  Socket operation on nonsocket.
+10039  (WSAEDESTADDRREQ)  Destination address required.
+10040  (WSAEMSGSIZE)  Message too long.
+10041  (WSAEPROTOTYPE)  Protocol wrong type for socket.
+10042  (WSAENOPROTOOPT)  Protocol not available.  
+10043  (WSAEPROTONOSUPPORT)  Protocol not supported.
+10044  (WSAESOCKTNOSUPPORT)  Socket type not supported.
+10045  (WSAEOPNOTSUPP)  Operation not supported on socket.
+10046  (WSAEPFNOSUPPORT)  Protocol family not supported.
+10047  (WSAEAFNOSUPPORT)  Address family not supported by protocol family.
+10048  (WSAEADDRINUSE)  Address already in use.
+10049  (WSAEADDRNOTAVAIL)  Can't assign requested address.
+10050  (WSAENETDOWN)  Network is down.
+10051  (WSAENETUNREACH)  Network is unreachable.
+10052  (WSAENETRESET)  Network dropped connection on reset.
+10053  (WSAECONNABORTED)  Software caused connection abort.
+10054  (WSAECONNRESET)  Connection reset by peer.
+10055  (WSAENOBUFS)  No buffer space available.
+10056  (WSAEISCONN)  Socket is already connected.
+10057  (WSAENOTCONN)  Socket is not connected.
+10058  (WSAESHUTDOWN)  Can't send after socket shutdown.
+10059  (WSAETOOMANYREFS)  Too many references can't splice.
+10060  (WSAETIMEDOUT)  Connection timed out.
+10061  (WSAECONNREFUSED)  Connection refused.
+10062  (WSAELOOP)  Too many levels of symbolic links.
+10063  (WSAENAMETOOLONG)  File name too long.
+10064  (WSAEHOSTDOWN)  Host is down.
+10065  (WSAEHOSTUNREACH)  No route to host.
+10066  (WSAENOTEMPTY)  Directory is empty.
+10067  (WSAEPROCLIM)  Too many processes.
+10068  (WSAEUSERS)  Too many users.
+10069  (WSAEDQUOT)  Disk quota exceeded.
+10070  (WSAESTALE)  Stale NFS file handle.
+10071  (WSAEREMOTE)  Too many levels of remote in path.
+10091  (WSASYSNOTREADY)  Network subsystem is unusable.
+10092  (WSAVERNOTSUPPORTED)  WinSock DLL cannot support this application.
+10093  (WSANOTINITIALISED)  WinSock not initialized.
+10101  (WSAEDISCON)  Disconnect
+11001  (WSAHOST_NOT_FOUND)  Host not found.
+11002  (WSATRY_AGAIN)  Nonauthoritative host not found.
+11003  (WSANO_RECOVERY)  Nonrecoverable error.
+11004  (WSANO_DATA)  Valid name, no data record of requested type.

@@ -1,0 +1,10 @@
+#if !defined(__CFCNTL)
+#	define __CFCNTL
+
+#ifndef __cplusplus
+#	error <cfcntl> to be included  only when using C++ Std library
+#endif
+ 
+#include <fcntl.h>
+
+#endif  /* __CFCNTL */

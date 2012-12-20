@@ -1,0 +1,148 @@
+ nam tk167
+ ttl VME167 tick driver for use with tickgeneric.a
+
+********************
+* tk167:  VME167 tick driver for use with "tickgeneric.a"
+
+* Copyright 1991, 1993 by Microware Systems Corporation
+* Reproduced Under License
+
+* This source code is the proprietary confidential property of
+* Microware Systems Corporation, and is provided to licensee
+* solely for documentation and educational purposes. Reproduction,
+* publication, or distribution in any form to any party other than
+* the licensee is strictly prohibited.
+
+
+********************
+* Edition History
+*  #    Date      Comments                                      By
+* -- -------- ------------------------------------------------ ---
+* 01 91/05/09 implemented                                      Rwb
+* 02 93/03/31 fixed divisor operation - counts that produce    wwb
+*             a remainder cause LONG tick periods!
+*             ---- OS-9/68K V3.0 released ----
+*             ---- OS-9/68K V3.1 released ----
+*
+
+Edition equ 2 current edition number
+
+ psect Ticker,0,0,0,0,0
+
+ use defsfile
+
+ pag
+********************
+* Expected variables and constants:
+* 
+* The following constants are used in the generic
+* code and must be defined GLOBALLY by this file:
+*
+TiksPerSec: equ TicksSec (Ticks Per Second) - Pretty self-explanatory.
+ClockVect: equ ClkVect clock vector
+ClockPort: equ ClkPort tick device base address
+ClockPrior: equ ClkPrior clock priority
+ 
+
+********************
+* StartTick: (Subroutine) Initialize
+*            the "ticker" device hardware
+*            and enable it to produce "tick" IRQs
+*
+* General Description: This subroutine is called by the "tickgeneric"
+*                      initialization code.  The purpose of this
+*                      subroutine is to program the hardware registers
+*                      of the "ticker" device so that it will produce
+*                      "tick" interrupts at the rate specified by the
+*                      variable "TicksSec" - ticks per second.  This
+*                      variable is generally defined in "systype.d"
+*                      and is often set to a value of 100 ticks per
+*                      second.
+*
+* Registers Passed: (a3) = The base address of the "ticker" hardware
+*                   (a5) = Caller's register stack pointer
+*                   (a6) = Global storage pointer
+*
+* Registers Returned: (d1) = Error code if error occurred
+*                            Zero if no error
+*                     (cc) = carry set if error occurred
+*                            carry clear if no error
+*
+* NOTE: This subroutine may alter registers d0, d1, a0, a1 and a2 without
+*       consequence.  All others MUST be preserved!
+*
+* ANOTHER NOTE: The tickgeneric code that calls this subroutine DOES NOT
+*               MASK the interrupts!  If the initialization code for the
+*               tick device needs the interrupts masked, it must be done
+*               in THIS subroutine!
+*
+StartTick:
+ move.l #1000000,d0 number of usecs/sec
+* note - we are NOT interested in the remainder
+ divu.l #TiksPerSec,d0 number of counts to produce desired results
+ move.l BDCTL(a3),d1 get current control register
+ bclr #b_TT2CTL_en,d1 clear out enable bit (if present)
+ move.l d1,BDCTL(a3) ensure counter disabled.
+ move.l d0,VMETT_tt2cmp(a3) tell the chip number of counts to compare
+ moveq.l #0,d0
+ move.l d0,VMETT_tt2cnt(a3) zero the counter
+ move.l BDCTL(a3),d1 get control register again
+ or.l #((1<<b_TT2CTL_coc)+(1<<b_TT2CTL_covf)),d1
+ move.l d1,BDCTL(a3) clear overflow counter and sets compare mode
+ move.l #ClkLevel,d0 Set the interrupt level
+ lsl.l #b_ILVLR1_tic2,d0 put level in place
+ move.l ILVLR1(a3),d1 get the current level registers
+ andi.l #^(m_ILVLR1_tic2),d1 remove any previous bits
+ or.l d0,d1
+ move.l d1,ILVLR1(a3) give IRQ level to the VMEChip
+ move.l #m_IRQ_tic2,d0
+ move.l d0,INTCLR(a3) clear any pending interrupt from counter
+ move.l BDCTL(a3),d1 once again, the counter control register 
+ bset #b_TT2CTL_en,d1 set enable bit
+ move.l d1,BDCTL(a3) set the counter enable
+ or.l d0,LBIER(a3) enable the interrupt from the VMEchip to the CPU
+ moveq.l #0,d1 flag no errors
+ rts
+
+ page
+********************
+* TickIRQ: (Interrupt Service Routine)
+*
+* General Description: Check the "ticker" device hardware
+*                      to determine if it caused the interrupt.
+*                      If it did, clear the interrupt in the 
+*                      "ticker" device hardware.
+*                      If it did not cause the interrupt, return
+*                      with the carry bit set in the Condition
+*                      Code Register to flag that an error occurred.
+*
+* Registers Passed: (a3) = ticker chip base address
+*                   (a6) = system global storage pointer
+*
+* Registers Returned: (cc) = Carry set if an error occurred
+*                            If no error occurred, this routine
+*                            does not return, but jumps to the
+*                            Kernel's clock handling routine.
+*
+* Register Usage:  may only destroy D0, D1, A0, A2, A3 and A6.
+*                  any other registers used MUST be preserved.
+*
+TickIRQ:
+
+* check if timer caused irq
+ move.l LBISR(a3),d0  get interrupt status register
+ btst #b_IRQ_tic2,d0  was this a clock interrupt? 
+ beq.s NotClock not us....
+
+* it was us, clear irq and proceed
+Clockint:
+ move.l #m_IRQ_tic2,d0 set proper clear bit
+ move.l d0,INTCLR(a3) clear any pending interrupt from counter
+ movea.l D_Clock(a6),a0 get clock service routine
+ jmp (a0) enter it
+
+NotClock
+ ori.b #Carry,ccr set carry
+ rts 
+
+ ends

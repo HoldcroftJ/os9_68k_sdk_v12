@@ -1,0 +1,55 @@
+**********************************************************************
+MAUI winink demo code
+**********************************************************************
+What this demo does:
+  - This is an example of a windowing program.
+  - This program opens a window that the user can ink in.
+
+**********************************************************************
+System requirements:
+  - A working MAUI environment is assumed.
+  - The demo requires that maui_win is in memory or is in the execution
+	directory.
+  - The demo requires that maui_inp is running.
+  - The demo requires that winmgrdemo is running.
+    Note: To resolve a module name conflict the module has been
+    renamed to winmgrdemo, but the filename is still winmgr so the
+    bootlists would still work.
+  - The demo requires that gfx is in memory.
+  - The demo requires that mfm is in memory.
+ 
+*********************************************************************
+Directories: 
+  - Source code 
+      $MWOS/SRC/MAUI/DEMOS/WININK
+        
+*********************************************************************
+To make this demo:
+  - From the source file directory type:
+      % os9make
+
+*********************************************************************
+Operation:
+  - To list the usage information for this demo type the demo name.
+
+  - The process' 'maui_inp' and 'winmgrdemo' must be running in the 
+    background.  To verify that they are use the os9000 command 
+    'procs'. If they are not present run it before starting the 
+    demo. e.g.
+
+      $ maui_inp <>>>/nil &
+
+  - Run 'winmgrdemo' in the background.
+
+      $ winmgrdemo <>>>/nil &
+
+  - Note: on some platforms the priorities of 'maui_inp' and
+    'winmgrdemo' need to be higher than the default (128). Set the
+    priority using the '^' character. e.g.
+
+      $ maui_inp ^255 <>>>/nil &
+      $ winmgrdemo ^201 <>>>/nil &
+
+**********************************************************************
+
+

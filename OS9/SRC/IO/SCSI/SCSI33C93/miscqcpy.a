@@ -1,0 +1,25 @@
+* 
+* qcopy -  quick copy for under 256 bytes 
+*
+*  Syntax: qcopy( d, s, size )
+*        where d = destination
+*              s = source
+*              size is size in bytes
+*
+*
+qcopy:
+	link a5,#0
+	movem.l a0-a2,-(sp) save a few registers
+	move.l d0,a1
+	move.l d1,a0
+	move.l 8(a5),d1
+	 bra.s qcopyent
+qcopyloop
+	move.b (a0)+,(a1)+
+qcopyent
+	 dbra d1,qcopyloop
+	movem.l (sp)+,a0-a2
+	unlk a5
+	 rts
+
+

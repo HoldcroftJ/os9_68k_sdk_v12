@@ -1,0 +1,93 @@
+ nam Snoop172
+ ttl MVME172 Snooper Enable Module
+
+* Copyright 1991 by Microware Systems Corporation
+* Reproduced Under License
+
+* This source code is the proprietary confidential property of
+* Microware Systems Corporation, and is provided to licensee
+* solely for documentation and educational purposes. Reproduction,
+* publication, or distribution in any form to any party other than
+* the licensee is strictly prohibited.
+
+********************************
+* Edition History
+*  #   date   Comments                                          by
+* -- -------- ------------------------------------------------- ---
+* 01 97/03/21 adapted from vme162 version                       gdw
+*
+Edition equ 1 current edition number
+
+
+********************
+* Snoop172
+*
+*   This module provides the enable for the MVME172 cache snooping
+*   logic.  This is a "P2" module.
+*
+*   If this module is not present in the boot file the systems
+*   snooper circuit will not be enabled.  When the snooper is
+*   enabled, the system variables D_Compat2 and D_SnoopD are also
+*   modified to reflect that the snooper is enabled.
+*
+*   This module should precede the "syscache" module in the Init
+*   module's Extens list.
+
+
+
+********************
+* Module Header
+*
+Typ_Lang set (Systm<<8)+Objct system module, object code
+Attr_Rev set ((ReEnt+SupStat)<<8)+0 supervisor state, sharable
+
+ psect snoop172,Typ_Lang,Attr_Rev,Edition,0,Init
+
+ use defsfile
+
+ pag
+***************************
+* Entry Point for P2 Module
+*
+* Passed:  (a3) = vsect data ptr  (none used in this module)
+*          (a6) = system global data ptr
+*          (sp) = (system) stack ptr
+*
+* Returns:  nothing
+*
+* Error Return:  d1.w = error code
+*                (cc) = carry set
+*
+* Destroys:  only d1 and cc may be modified.
+*
+Init:
+ movem.l d2/a1,-(sp) save regs
+ movea.l #MCchBase,a1 get base address of MCChip
+ btst.b #b_V1_NOVME,MC162VR(a1) check if VMEChip2 is installed
+ bne.s Init5 if not, nothing to do
+
+ movea.l #VMEchBase+SAATTR,a1 get base address of VMEChip2 snoop control
+ move.w sr,-(sp) save irq masks
+ ori.w #IntMask,sr mask interrupts
+ move.l (a1),d2 get current slave window attributes
+
+* sysinit will make all on-board ram contiguous, and accessible via
+* the Slave #1 control, thus we only need to set snooping for Slave #1's
+* attributes.
+*
+ bclr.l #9,d2 make snoop control be...
+ bset.l #10,d2 .. 1:0
+ move.l d2,(a1) set snoop control into slave #1 attributes
+
+Init5
+* update system globals
+*
+ bclr.b #B_SOD,D_Compat2(a6) on-chip d-cache is not snoopy
+ bclr.b #B_SOI,D_Compat2(a6) on-chip i-cache is not snoopy
+ sf.b D_SnoopD(a6) advise bus_master drivers to perform flushing
+ move.w (sp)+,sr restore interrupts to previous level 
+ moveq.l #0,d1 return no error
+ movem.l (sp)+,d2/a1 restore regs
+ rts
+
+ ends

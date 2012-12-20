@@ -1,0 +1,34 @@
+#
+# PROTOCOL NAMES
+#
+# format:  <Name> <Number> [<Alias1> <Alias2> ...]
+# 
+#
+
+
+#
+# Microware OS9/OS9000 supported protocols
+#
+
+ip		0	IP		# internet protocol, pseudo protocol number
+icmp	1	ICMP	# internet control message protocol
+igmp    2   IGMP    # internet group management protocol
+tcp		6	TCP		# transmission control protocol
+udp		17	UDP		# user datagram protocol
+
+
+#
+# other protocols
+#
+
+#ggp     3   GGP     # gateway-gateway protocol
+#ipip    4   IPIP    # ip in ip (encapsulation)
+#st      5   ST      # stream
+#ucl     7   UCL     # UCL
+#egp     8   EGP     # exterior gateway protocol
+#igp     9   IGP     # any private interior gateway protocol
+#pup     12  PUP     # PARC universal packet control
+#hmp     20  HMP     # host monitoring protocol
+#xns-idp 22  XNS-IDP # Xerox NS IDP
+#rdp     27  RDP     # "reliable datagram" protocol
+#nd      77  ND		 # Sun ND protocol

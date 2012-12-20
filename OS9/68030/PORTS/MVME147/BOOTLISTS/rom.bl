@@ -1,0 +1,483 @@
+********************************
+**	Bootlist for the MVME147
+**
+**  Pathlists are relative to the MWOS/OS9/68030/PORTS/MVME147 or machine
+**    directories based on and parallel to the MVME147 Port directory.
+**  NOTE: .stb modules are only available when building modules from SRC.
+**  NOTE: remove/add leading comment "*" to add/remove modules in the OS-9 boot
+*
+*   OS-9 Kernel - select one variant:
+*   All modules named: kernel
+*
+*   Development kernel - Standard memory allocator
+../../../68020/CMDS/BOOTOBJS/dker030s
+*../../../68020/CMDS/BOOTOBJS/STB/dker030s.stb
+*   Development kernel - Buddy memory allocator
+*../../../68020/CMDS/BOOTOBJS/dker030b
+*../../../68020/CMDS/BOOTOBJS/STB/dker030b.stb
+*   Atomic kernel - Standard memory allocator
+*../../../68020/CMDS/BOOTOBJS/aker030s
+*../../../68020/CMDS/BOOTOBJS/STB/aker030s.stb
+*   Atomic kernel - Buddy memory allocator
+*../../../68020/CMDS/BOOTOBJS/aker030b
+*../../../68020/CMDS/BOOTOBJS/STB/aker030b.stb
+*
+*   Ioman: select one to match selected kernel above:
+*
+../../../68000/CMDS/BOOTOBJS/ioman_DEV
+*../../../68000/CMDS/BOOTOBJS/STB/ioman_DEV.stb
+*../../../68000/CMDS/BOOTOBJS/ioman_ATOM
+*../../../68000/CMDS/BOOTOBJS/STB/ioman_ATOM.stb
+*
+*   Init module: Select ONLY one.
+*   init_dd: Init module with /DD initial disk device and runs sysgo
+*   init_h0: Init module with /h0 initial disk device and runs sysgo
+*   init_d0: Init module with /D0 initial disk device and runs sysgo
+*   init_tape: Init module with /DD initial disk device and runs tapestart
+*   init_rom: Init module with NO initial disk device and runs sysgo
+*
+CMDS/BOOTOBJS/INITS/init_dd
+*CMDS/BOOTOBJS/INITS/init_h0
+*CMDS/BOOTOBJS/INITS/init_d0
+*CMDS/BOOTOBJS/INITS/init_tape
+*CMDS/BOOTOBJS/INITS/init_rom
+*
+*   Customization modules:
+*
+*
+*    Cache Control module
+*   (If not present, cache is disabled!)
+*
+../../../68020/CMDS/BOOTOBJS/cache030
+*../../../68020/CMDS/BOOTOBJS/STB/cache030.stb
+*
+*   MMU Control module
+*
+*   ssm851 provides write-thru caching in supervisor state,
+*   User state cache mode default (both versions) is write-thru,
+*     and this can be over-ridden via the CacheList entries in systype.d
+*
+../../../68020/CMDS/BOOTOBJS/ssm851
+*../../../68020/CMDS/BOOTOBJS/STB/ssm851.stb
+*
+*
+*    System clock module:
+*    System ticker hardware driver
+*
+CMDS/BOOTOBJS/tk147
+*CMDS/BOOTOBJS/STB/tk147.stb
+*
+*   Battery backed time of day chip driver
+*   Real Time Clock module named: rtclock
+*   rtc147: rtclock module for MVME147
+*
+CMDS/BOOTOBJS/rtc147
+*CMDS/BOOTOBJS/STB/rtc147.stb
+*
+*   Sequential Character
+*     File Managers, Drivers and Descriptors:
+*   scf: Serial Character File Manager
+*   null: Null Driver
+*   nil: Null Driver's device descriptor
+*   pipeman: Pipe File Manager (used Null Driver)
+*   pipe: Pipe device descriptor
+*
+../../../68000/CMDS/BOOTOBJS/scf
+*../../../68000/CMDS/BOOTOBJS/STB/scf.stb
+../../../68000/CMDS/BOOTOBJS/null
+../../../68000/CMDS/BOOTOBJS/nil
+../../../68000/CMDS/BOOTOBJS/pipeman
+*../../../68000/CMDS/BOOTOBJS/STB/pipeman.stb
+../../../68000/CMDS/BOOTOBJS/pipe
+*
+*   SCF Serial port Drivers and Descriptors
+*
+CMDS/BOOTOBJS/sc147
+*CMDS/BOOTOBJS/STB/sc147.stb
+CMDS/BOOTOBJS/term
+CMDS/BOOTOBJS/t1
+CMDS/BOOTOBJS/t2
+CMDS/BOOTOBJS/t3
+CMDS/BOOTOBJS/p1
+*CMDS/BOOTOBJS/p2
+*CMDS/BOOTOBJS/p3
+*
+*   parallel printer port
+*
+CMDS/BOOTOBJS/scp147
+*CMDS/BOOTOBJS/STB/scp147.stb
+CMDS/BOOTOBJS/p
+*
+*   Random Block File Manager,			 
+*   Drivers and Descriptors:
+*
+../../../68000/CMDS/BOOTOBJS/rbf
+*../../../68000/CMDS/BOOTOBJS/STB/rbf.stb
+../../../68000/CMDS/BOOTOBJS/ram
+CMDS/BOOTOBJS/r0
+CMDS/BOOTOBJS/dd_r0
+*CMDS/BOOTOBJS/r0_3m
+*CMDS/BOOTOBJS/dd_r0_3m
+*
+*   SCSI Controller
+*
+CMDS/BOOTOBJS/scsi147
+*CMDS/BOOTOBJS/STB/scsi147.stb
+*
+*   SCSI Hard Drive Support
+*   RBVCCS driver and descriptors
+*
+../../../68000/CMDS/BOOTOBJS/rbvccs
+*../../../68000/CMDS/BOOTOBJS/STB/rbvccs.stb
+CMDS/BOOTOBJS/VCCS/h0
+CMDS/BOOTOBJS/VCCS/h0fmt
+*
+*   RBSCCS driver and descriptors (obsolete)
+*
+*../../../68000/CMDS/BOOTOBJS/rbsccs
+*../../../68000/CMDS/BOOTOBJS/STB/rbsccs.stb
+*CMDS/BOOTOBJS/SCCS/h0
+*CMDS/BOOTOBJS/SCCS/h0fmt
+*
+*   SCSI Floppy Drive Support
+*   RBTEAC driver and descriptors
+*
+*../../../68000/CMDS/BOOTOBJS/rbteac
+*../../../68000/CMDS/BOOTOBJS/STB/rbteac.stb
+*CMDS/BOOTOBJS/TEACFC1/d0
+*
+*   Tape Manager:
+*
+*../../../68000/CMDS/BOOTOBJS/sbf
+*../../../68000/CMDS/BOOTOBJS/STB/sbf.stb
+*
+*   Tape Drivers and Descriptors
+*
+*   Archive Viper/DAT drives
+*
+*../../../68000/CMDS/BOOTOBJS/sbviper
+*../../../68000/CMDS/BOOTOBJS/STB/sbviper.stb
+*CMDS/BOOTOBJS/VIPER/mt0
+*CMDS/BOOTOBJS/VIPER/mt1
+*CMDS/BOOTOBJS/VIPER/dat
+*
+*   TEAC Cassette
+*
+*../../../68000/CMDS/BOOTOBJS/sbteac
+*../../../68000/CMDS/BOOTOBJS/STB/sbteac.stb
+*CMDS/BOOTOBJS/TEACMT2/mt0
+*
+*   Exabyte drive
+*
+*../../../68000/CMDS/BOOTOBJS/sbgiga
+*../../../68000/CMDS/BOOTOBJS/STB/sbgiga.stb
+*CMDS/BOOTOBJS/EXABYTE/mt2
+*
+*   Initial system process:
+*   sysgo: runs SYS/startup script, (re)forks mshell
+*   sysgo_nodisk: forks mshell (no startup file run)
+*   sysgo_tsmon: runs SYS/startup script, chains to tsmon
+*   sysgo_shell: runs startup script, (re)forks shell
+*     compatible with earlier OS-9 versions
+*   NOTE: sysgo modules require mshell except sysgo_shll
+*     which requires shell.
+*   NOTE: the init module can be configured to use shell
+*     or mshell as the initial process instead of sysgo.
+*   mshell: extended functionality shell (standard)
+*   shell: origininal small shell
+*   tapestart: used in tape based initial shipping boots
+*
+../../../68000/CMDS/BOOTOBJS/sysgo
+*../../../68000/CMDS/BOOTOBJS/sysgo_nodisk
+*../../../68000/CMDS/BOOTOBJS/sysgo_tsmon
+*../../../68000/CMDS/BOOTOBJS/sysgo_shell
+../../../68000/CMDS/mshell
+*../../../68000/CMDS/shell
+*../../../68000/CMDS/tapestart
+*
+*   Additional system Support modules can be added here.
+*   csl: C Shared Library for Ultra C compiled binaries
+*   cio: C I/O library for Microware C compiled binaries
+*   math881: Math881 simulation library for Microware C
+*     compiled binaries
+../../../68020/CMDS/csl
+*../../../68020/CMDS/cio
+*../../../68020/CMDS/math881
+*
+*   OS Utilitities used during System configuration
+*     See utilities manual for usage.
+*
+../../../68000/CMDS/attr
+../../../68000/CMDS/break
+*../../../68000/CMDS/chown
+*../../../68000/CMDS/copy
+../../../68000/CMDS/date
+*../../../68000/CMDS/dcheck
+../../../68000/CMDS/deiniz
+*../../../68000/CMDS/del
+*../../../68000/CMDS/deldir
+../../../68000/CMDS/devs
+../../../68000/CMDS/dir
+../../../68000/CMDS/diskcache
+*../../../68000/CMDS/dsave
+*../../../68000/CMDS/dump
+*../../../68000/CMDS/echo
+*../../../68000/CMDS/fixmod
+../../../68000/CMDS/format
+../../../68000/CMDS/free
+*../../../68000/CMDS/frestore
+*../../../68000/CMDS/help
+../../../68000/CMDS/ident
+../../../68000/CMDS/iniz
+*../../../68000/CMDS/kermit
+*../../../68000/CMDS/link
+../../../68000/CMDS/list
+*../../../68000/CMDS/lmm
+../../../68000/CMDS/load
+../../../68000/CMDS/makdir
+../../../68000/CMDS/mdir
+../../../68000/CMDS/mfree
+*../../../68000/CMDS/os9gen
+*../../../68000/CMDS/p2init
+../../../68000/CMDS/partition
+../../../68000/CMDS/pd
+../../../68000/CMDS/printenv
+../../../68000/CMDS/procs
+../../../68000/CMDS/rename
+../../../68000/CMDS/save
+../../../68000/CMDS/setime
+../../../68000/CMDS/tar
+../../../68000/CMDS/tmode
+*../../../68000/CMDS/tsmon
+../../../68000/CMDS/unlink
+*
+*   SPF/Lancom Networking
+*
+*   System MBuf Service
+*
+../../../68020/CMDS/BOOTOBJS/SPF/sysmbuf
+*../../../68020/CMDS/BOOTOBJS/SPF/STB/sysmbuf.stb
+*
+*   Pseudo Keyboard FM/Driver/Descriptors
+*   pkman: File Manager
+*   pkdvr: Driver
+*   pk: pkdvr descriptor
+*   pks: pkdvr (scf) descriptor
+*   NOTE: all required with Telnet and other applications needing
+*      Pseudo Keyboard fuctionality
+*
+../../../68020/CMDS/BOOTOBJS/SPF/pkman
+*../../../68020/CMDS/BOOTOBJS/SPF/STB/pkman.stb
+../../../68020/CMDS/BOOTOBJS/SPF/pkdvr
+*../../../68020/CMDS/BOOTOBJS/SPF/STB/pkdvr.stb
+../../../68020/CMDS/BOOTOBJS/SPF/pk
+../../../68020/CMDS/BOOTOBJS/SPF/pks
+*
+*   SPF/Lancom FM/Drivers/Descriptors
+*
+*   SPF/Lancom Protocol Drivers/Descriptors
+*   spf: SoftStax File Manager
+*   spip: SPF IP driver module
+*   ip0: spip descriptor module
+*   sptcp: SPF TCP driver module
+*   tcp0:: sptcp descriptor module
+*   spudp: SPF UDP driver module
+*   udp0: spudp descriptor module
+*   spraw: SPF RAW driver module
+*   raw0: spraw descriptor module
+*   sproute: SPF Routing driver module
+*   route0: sproute descriptor module
+*
+../../../68020/CMDS/BOOTOBJS/SPF/spf
+*../../../68020/CMDS/BOOTOBJS/SPF/STB/spf.stb
+../../../68020/CMDS/BOOTOBJS/SPF/spip
+*../../../68020/CMDS/BOOTOBJS/SPF/STB/spip.stb
+../../../68020/CMDS/BOOTOBJS/SPF/ip0
+../../../68020/CMDS/BOOTOBJS/SPF/sptcp
+*../../../68020/CMDS/BOOTOBJS/SPF/STB/sptcp.stb
+../../../68020/CMDS/BOOTOBJS/SPF/tcp0
+../../../68020/CMDS/BOOTOBJS/SPF/spudp
+*../../../68020/CMDS/BOOTOBJS/SPF/STB/spudp.stb
+../../../68020/CMDS/BOOTOBJS/SPF/udp0
+../../../68020/CMDS/BOOTOBJS/SPF/spraw
+*../../../68020/CMDS/BOOTOBJS/SPF/STB/spraw.stb
+../../../68020/CMDS/BOOTOBJS/SPF/raw0
+*../../../68020/CMDS/BOOTOBJS/SPF/sproute
+*../../../68020/CMDS/BOOTOBJS/SPF/STB/sproute.stb
+*../../../68020/CMDS/BOOTOBJS/SPF/route0
+*
+*   Ethernet Support Driver/Descriptor
+*     Required for sp147/spie0 below
+*   spenet: Ethernet protocol driver
+*   enet: spenet descriptor
+*
+../../../68020/CMDS/BOOTOBJS/SPF/spenet
+../../../68020/CMDS/BOOTOBJS/SPF/enet
+*
+*   Network specific modules
+*   netdb_local: resolve network info from inetdb modules
+*   netdb_dns: resolve from inetdbs then use DNS
+*
+*../../../68020/CMDS/BOOTOBJS/SPF/netdb_local
+../../../68020/CMDS/BOOTOBJS/SPF/netdb_dns
+*
+*   System specific modules
+*
+*   inetdb: local network info module
+*   inetdb2: Machine lancom configuration Module
+*   sp147: Ethernet Hardware Driver
+*   spie0: Ethernet Hardware Descriptor
+*   NOTE: often inetdb is made with just network info so
+*     it can be used in all machines.  inetdb2 etc. modules
+*     are created for machine specific info.
+*
+CMDS/BOOTOBJS/SPF/inetdb
+*CMDS/BOOTOBJS/SPF/inetdb2
+CMDS/BOOTOBJS/SPF/sp147
+CMDS/BOOTOBJS/SPF/sple0
+*
+*   SPF/Lancom Utilities
+*
+*   SPF Startup/Configuration Utilitities
+*   mbinstall: install sysmbuf p2 module
+*   ipstart: start spf system
+*   ifconfig: configure spf/lancom devices
+*   route: control/display routing entries
+*   ndbmod: build/modify Inetdb module
+*   netstat: display lancom information
+*   idbdump: display inetdb modules
+*   hostname: set/display system hostname
+*
+*../../../68020/CMDS/mbinstall
+../../../68020/CMDS/ipstart
+*../../../68020/CMDS/ifconfig
+../../../68020/CMDS/route
+../../../68020/CMDS/ndbmod
+../../../68020/CMDS/netstat
+../../../68020/CMDS/idbdump
+../../../68020/CMDS/hostname
+*
+*   SPF Applications
+*   arp:
+*   bootpd: Bootp server
+*   ftp: Ftp user program
+*   ftpd: FTP daemon (or use inetd)
+*   ftpdc: FTP daemon child (use w/ftpd or inetd)
+*   inetd: Master Daemon
+*   ping: User "system up?" utility
+*   routed: routing Daemon
+*   telnet: Telnet user program
+*   telnetd: Telnet daemon (or use inetd)
+*   telnetdc: Telnet daemon child (use w/telnetd or inetd)
+*   tftpd: TFTP server daemon
+*   tftpdc: TFTP server daemon child (required w/tftpd)
+*../../../68020/CMDS/arp
+*../../../68020/CMDS/bootpd
+../../../68020/CMDS/ftp
+../../../68020/CMDS/ftpd
+../../../68020/CMDS/ftpdc
+*../../../68020/CMDS/inetd
+*../../../68020/CMDS/ping
+*../../../68020/CMDS/routed
+../../../68020/CMDS/telnet
+../../../68020/CMDS/telnetd
+../../../68020/CMDS/telnetdc
+*../../../68020/CMDS/tftpd
+*../../../68020/CMDS/tftpdc
+*
+*   NFS Client Modules
+*     select all for nfs client
+*   nfs: NFS Filemanager
+*   nfsnul: NFS Driver
+*   nfs_devices: NFS Descriptor
+*   rpcdb: rpc information data module
+*
+*../../../68020/CMDS/BOOTOBJS/SPF/nfs
+*../../../68020/CMDS/BOOTOBJS/SPF/nfsnul
+*../../../68020/CMDS/BOOTOBJS/SPF/nfs_devices
+*CMDS/BOOTOBJS/SPF/rpcdb
+*
+*   NFS Client Utilities
+*   nfsc: nfs client daemon (required with nfs FM)
+*   mount: mount nfs served devices
+*   rpcdbgen: generate rpcdb module
+*   rpcdump: display rpcdb contents
+*   nfsstat: nfs status program
+*   rpcinfo: display rpc information from specific calls
+*
+*../../../68020/CMDS/nfsc
+*../../../68020/CMDS/mount
+*../../../68020/CMDS/rpcdbgen
+*../../../68020/CMDS/rpcdump
+*../../../68020/CMDS/nfsstat
+*../../../68020/CMDS/rpcinfo
+*
+*   NFS Server application Modules
+*   exportfs: export file systems
+*   portmap: port mapping daemon (required)
+*   nfsd: nfs daemon (required)
+*   mountd: mount request servicing daemon
+*   showmount: show systems that have mounted locally exported devices
+*
+*../../../68020/CMDS/exportfs
+*../../../68020/CMDS/portmap
+*../../../68020/CMDS/nfsd
+*../../../68020/CMDS/mountd
+*../../../68020/CMDS/showmount
+*
+*   RPC Client Applications
+*
+*../../../68020/CMDS/rcopy
+*../../../68020/CMDS/rload
+*../../../68020/CMDS/rpr
+*../../../68020/CMDS/on
+*../../../68020/CMDS/rup
+*../../../68020/CMDS/rusers
+*../../../68020/CMDS/spray
+*
+*   RPC Server Applications
+*
+*../../../68020/CMDS/rldd
+*../../../68020/CMDS/rexdc
+*../../../68020/CMDS/rexd
+*../../../68020/CMDS/rstatd
+*../../../68020/CMDS/rusersd
+*../../../68020/CMDS/sprayd
+*
+*   Hawk Debugging
+*
+*   User State
+*    SPF Networking is required in addition to these modules
+*   spfndpd:    Network Debugger Protocol (NDP) Daemon
+*   spfndpdc:   NDP Server Daemon Child
+*   ndpio:      NDP I/O Server
+*   spfnppd:    Hawk Profiler Daemon
+*   spfnppdc:   Hawk Profiler Daemon Child
+*
+../../../68000/CMDS/spfndpd   
+../../../68000/CMDS/spfndpdc
+../../../68000/CMDS/ndpio
+*../../../68000/CMDS/spfnppd
+*../../../68000/CMDS/spfnppdc
+*
+*   In-House file managers/drivers/descriptors.
+*
+*   OS-9 networking (obsolete NOT SHIPPED)
+*   nfm: Network file manager (arcnet, obsolete)
+*   n9026: arcnet hardware driver
+*   n0: arcnet descriptor
+*
+*../../../68000/CMDS/BOOTOBJS/nfm
+*../../../68000/CMDS/BOOTOBJS/n9026
+*../../../68000/PORTS/MB2470/CMDS/BOOTOBJS/n0
+*
+*   In-House applications
+*
+*   OS-9 networking (obsolete)
+*   nmon: OS-9 Net master daemon
+*   ndir: arcnet query utiltity
+*   nwatch: arcnet reliability timer
+*
+*../../../68000/CMDS/nmon
+*../../../68000/CMDS/ndir
+*../../../68000/CMDS/nwatch

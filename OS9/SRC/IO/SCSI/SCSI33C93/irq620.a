@@ -1,0 +1,22 @@
+
+*
+* flush_dcache() - flush the data cache for the VME620.
+* 
+* NOTE that the MVME620 is an external bus master, so it may work
+* with a cpu that has external cache hardware.
+*
+flush_dcache:
+
+* NOTE: a better way to do this would be to check D_SnoopD (system global)
+*       to find whether a flush is required, but as there (currently) isn't
+*       a true, generic way get get the global ptr.......
+	link	a5,#0
+	move.l	d1,-(sp)		save reg
+	moveq.l	#fldata,d0		flush data caches request
+	os9		F$CCtl			call the system-wide routine (ignore errors)
+	moveq.l	#0,d0			signal no error
+	move.l	(sp)+,d1		restore reg
+	unlk	a5
+	rts
+
+

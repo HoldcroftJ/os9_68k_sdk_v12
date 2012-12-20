@@ -1,0 +1,90 @@
+*
+* loadspf for SPF LAN Communication Package Release
+*
+
+*
+* Load SPF System Modules
+*
+chd CMDS/BOOTOBJS/SPF
+*
+load -d inetdb  inetdb2                 ;* Load system specific inetdb modules
+load -d sysmbuf                         ;* System Mbuf module
+                                        ;* (sets size of mbuf pool on OS-9)
+load -d pkman pkdvr pk                  ;* Pseudo keyboard modules
+*load -d pks;                           ;* Pseudo keyboard addtional for OS-9
+                                        ;* (pttys required by telnetdc)
+*
+*
+load -d spf                             ;* SPF file manager
+load -d spip ip0                        ;* IP driver and descriptor
+load -d sptcp tcp0                      ;* TCP driver and descriptor
+load -d spudp udp0                      ;* UDP driver and descriptor
+load -d spraw raw0                      ;* RAW IP driver and descriptor
+load -d sproute route0                  ;* Routing Domain driver and descriptor
+*
+* Load LAN Trap library and Commands
+* Load one of the following Netdb name resolution trap handlers
+*
+load -d netdb_local     ;* Load trap handler for local name resolution
+*load -d netdb_dns      ;* Load trap handler for  DNS  name resolution
+*
+* Load SPF Ethernet Drivers and Descriptors
+*
+*load -d spenet enet                    ;* Ethernet Protocol driver and
+                                        ;* descriptor (req. by Eth HW Drvrs)
+*
+* Load SPF Hardware Drivers and Descriptors ... Uncomment those needed
+* This should not be taken as an authoritative list of available hardware
+* drivers. Not all drivers ship with every package, and new drivers may
+* be added that are not reflected here.
+*
+* OS9/680x0 Hardware drivers
+*load -d sp162 spie0                    ;* MVME162
+*load -d sp167 spie0                    ;* MVME167
+*load -d sp172 spie0                    ;* MVME172
+*load -d sp177 spie0                    ;* MVME177
+*load -d sp147 sple0                    ;* MVME147
+*load -d sp360 spqe0                    ;* QUADS/68360
+*
+* OS9000 Hardware drivers
+*
+*load -d sp403evb spne0                 ;* PPC 403GAEVB
+*load -d sp821 spqe0                    ;* PowerQUICC (821XXX/MBX)
+*load -d spf8260 spfe0                  ;* PowerQUICC II (FCC)
+*load -d sps8260 spse0                  ;* PowerQUICC II (SCC)
+*load -d sp91c94 spsm0                  ;* SMC 91C94 (Thinclient/Graphicsclient)
+*load -d sp21140 spde0                  ;* DEC 21040/21140/21143
+*load -d spne2000 spne0                 ;* NE2000 and clones
+*load -d spe509 spe30_isa               ;* 3COM Etherlink III ISA
+*load -d spe509 spe30_pci               ;* 3COM Etherlink III PCI
+*load -d spe509_pcm spe30               ;* 3COM Etherlink III PCMCIA
+*load -d sp8390 spwd0                   ;* SMC Elite
+*load -d sp83c790 spns0                 ;* SMC Ultra
+*
+* Serial Drivers and Descriptors
+*
+*load -d spslip    spsl0                ;* Slip /t1
+*load -d spipcp    ipcp0                ;* PPP IPCP
+*load -d splcp     lcp0                 ;* PPP LCP
+*load -d sphdlc    hdlc0                ;* PPP HDLC
+*chd ../..; load -d chat pppd ppplog pppauth; chd BOOTOBJS/SPF   ;* PPP Utilities
+*
+*
+* Chd up to CMDS directory
+*
+chd ../..
+load -d mbinstall                       ;* Load mbinstall memory handler
+                                        ;* (or can be done within init)
+*
+load -d ipstart                         ;* Load ipstart stack initializer
+*
+*
+*load -d routed                         ;* Dynamic routing daemon
+*load -d telnet telnetd telnetdc        ;* Telnet support modules
+*load -d ftp ftpd ftpdc                 ;* FTP support modules
+*load -d tftpd tftpdc bootpd            ;* Bootp/TFTP support modules
+*load -d inetd                          ;* Super-Server Daemon
+
+*load -d idbgen idbdump ndbmod          ;* Development tools
+*load -d route hostname ifconfig arp    ;* Runtime tools
+*load -d netstat ping                   ;* Statistics/verification tools

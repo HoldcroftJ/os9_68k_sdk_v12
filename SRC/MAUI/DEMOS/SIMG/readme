@@ -1,0 +1,26 @@
+**********************************************************************
+MAUI show image example code
+**********************************************************************
+What this example does:
+    - 'show_img' displays an IFF image file for about 10 seconds. The 
+      image filename must be included on the command line.
+
+**********************************************************************
+System requirements:
+  - A working MAUI environment is assumed.
+  - The demo requires that gfx is in memory.
+  - The demo requires that mfm is in memory.
+  - IFF assets must be available
+ 
+*********************************************************************
+Directories: 
+  - Source code 
+       $MWOS/SRC/MAUI/DEMOS 
+        
+*********************************************************************
+To make this example:
+  - From the source file directory type:
+% os9make
+
+*********************************************************************
+

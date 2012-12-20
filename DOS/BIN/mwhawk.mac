@@ -1,0 +1,518 @@
+// $Header:   K:/source/cwright/cwright.mav   1.7   24 Feb 1999 15:14:02   robertw  $
+[API Macro:StripWhite]
+/*
+ ** StripWhite
+ *
+ * Strip trailing whitespace from all lines.
+ */
+void StripWhite( void )
+{
+	int count;
+
+	MarkSavePos();
+	count = SrchTranslate( "[ \\t]+$", "",
+			SEARCH_REGEX | SEARCH_FORWARD | SEARCH_GLOBAL | SEARCH_BEGIN_END );
+	if (count > 0)
+		MsgMessage( "Trailing whitespace removed from " + count + " lines." );
+	else
+		MsgMessage( "No trailing whitespace found." );
+	MarkRestorePos();
+}
+
+[API Macro:SrchToggleDir]
+/*
+ ** SrchToggleDir
+ *
+ * Toggle the search direction.
+ */
+void SrchToggleDir( void )
+{
+	if (SrchQFlags() & SEARCH_FORWARD)
+	{
+		SrchSetFwd( 0 );
+		MsgMessage( "Search direction is BACKWARDS" );
+	}
+	else
+	{
+		SrchSetFwd( 1 );
+		MsgMessage( "Search direction is FORWARDS" );
+	}
+}
+
+[API Macro:SrchToggleCase]
+/*
+ ** SrchToggleCase
+ *
+ * Toggle the search case sensitivity.
+ */
+void SrchToggleCase( void )
+{
+	if (SrchQFlags() & SEARCH_IGCASE)
+	{
+		SrchSetCase( 1 );
+		MsgMessage( "Search is case sensitive" );
+	}
+	else
+	{
+		SrchSetCase( 0 );
+		MsgMessage( "Search ignores case" );
+	}
+}
+
+[API Macro:SrchToggleRegex]
+/*
+ ** SrchToggleRegex
+ *
+ * Toggle regular expression on/off.
+ */
+void SrchToggleRegex( void )
+{
+	if (SrchQFlags() & SEARCH_REGEX)
+	{
+		SrchSetRegex( 0 );
+		MsgMessage( "Search regex is OFF" );
+	}
+	else
+	{
+		SrchSetRegex( 1 );
+		MsgMessage( "Search regex is ON" );
+	}
+}
+
+[API Macro:SrchToggleSelection]
+/*
+ ** SrchToggleSelection
+ *
+ * Toggle the search restrict to selection.
+ */
+void SrchToggleSelection( void )
+{
+	if (SrchQFlags() & SEARCH_SELECTION)
+	{
+		SrchSetSelection( 0 );
+		MsgMessage( "Search restrict to selection is OFF" );
+	}
+	else
+	{
+		SrchSetSelection( 1 );
+		MsgMessage( "Search restrict to selection is ON" );
+	}
+}
+
+[API Macro:SrchToggleWrap]
+/*
+ ** SrchToggleWrap
+ *
+ * Toggle wrap at beginning/end.
+ */
+void SrchToggleWrap( void )
+{
+	if (SrchQFlags() & SEARCH_WRAP)
+	{
+		SrchSetWrap( 0 );
+		MsgMessage( "Search wrapping is OFF" );
+	}
+	else
+	{
+		SrchSetWrap( 1 );
+		MsgMessage( "Search wrapping is ON" );
+	}
+}
+
+[API Macro:SrchToggleSelect]
+/*
+ ** SrchToggleSelect
+ *
+ * Toggle Select Matching String.
+ */
+void SrchToggleSelect( void )
+{
+	if (SrchQFlags() & SEARCH_HIGHLIGHT)
+	{
+		SrchSetFlags( SrchQFlags() & ~SEARCH_HIGHLIGHT );
+		MsgMessage( "Select matching string set OFF" );
+	}
+	else
+	{
+		SrchSetFlags( SrchQFlags() | SEARCH_HIGHLIGHT );
+		MsgMessage( "Select matching string set ON" );
+	}
+}
+
+[API Macro:SrchToggleMaximal]
+/*
+ ** SrchToggleMaximal
+ *
+ * Toggle maximal match.
+ */
+void SrchToggleMaximal( void )
+{
+	if (SrchQFlags() & SEARCH_MAXIMAL)
+	{
+		SrchSetFlags( SrchQFlags() & ~SEARCH_MAXIMAL );
+		MsgMessage( "Search maximal match is OFF" );
+	}
+	else
+	{
+		SrchSetFlags( SrchQFlags() | SEARCH_MAXIMAL );
+		MsgMessage( "Search maximal match is ON" );
+	}
+}
+
+[API Macro:SrchToggleRetainSelection]
+/*
+ ** SrchToggleRetainSelection
+ *
+ * Toggle retain selection.
+ */
+void SrchToggleRetainSelection( void )
+{
+	if (SrchQFlags() & SEARCH_RETAIN_HIGHLIGHT)
+	{
+		SrchSetFlags( SrchQFlags() & ~SEARCH_RETAIN_HIGHLIGHT );
+		MsgMessage( "Search retain selection is OFF" );
+	}
+	else
+	{
+		SrchSetFlags( SrchQFlags() | SEARCH_RETAIN_HIGHLIGHT );
+		MsgMessage( "Search retain selection is ON" );
+	}
+}
+
+[API Macro:RemoveBlankLines]
+/*
+ ** RemoveBlankLines
+ *
+ * Remove all blank lines from document.
+ */
+void RemoveBlankLines( void )
+{
+	MarkSavePos();
+	MovToOffset(0);
+	SrchTranslate( "^[ \\t]*\\n", "",
+			SEARCH_FORWARD | SEARCH_GLOBAL | SEARCH_REGEX | SEARCH_MAXIMAL );
+	MarkRestorePos();
+}
+
+[API Macro:CopyVisibleLines]
+/*
+ ** CopyVisibleLines
+ *
+ * Copy all visible lines in a document to the clipboard.
+ */
+void CopyVisibleLines( void )
+{
+	if ((BufQSysFlags() & BUFFER_COMPACT) == 0)
+	{
+		MsgWarning( "Couldn't copy, not in Selective Display mode." );
+		return;
+	}
+	MsgMessage( "Copying visible lines..." );
+	MarkSavePos();
+	MovToOffset( 0 );
+
+	// find the first visible line
+	AttrFindVisible( 1, TRUE, TRUE );
+	if (AttrQVisible() > 0)
+	{
+		MarkBeginSel( SELECTION_LINE );
+		ClipboardCopy();
+		while (MovDown( 1 ))
+		{
+			if (AttrQVisible() > 0)
+			{
+				MarkBeginSel( SELECTION_LINE );
+				ClipboardAppend();
+			}
+		}
+		MarkRemoveSel();
+	}
+	MarkRestorePos();
+	MsgMessage( "Finished copying visible lines." );
+}
+
+[API Macro:Differ]
+/*
+ ** Differ
+ *
+ * Do a difference of the current document against the original in
+ *  a relative nearby subdirectory.
+ */
+void Differ( void )
+{
+	string file = BufQFilename();
+	string ext  = TransformFilename( file, "%e" );
+	string origFile = TransformFilename( file, "%v%p" );
+	
+	// finish building full original filename
+	if ((ext == ".h" ) || (ext == ".dlg"))
+		origFile += "inc\\";
+	else
+		origFile += "src\\";
+	origFile += TransformFilename( file, "%f" );
+
+	if (FileExists( origFile ))
+	{
+		// Side-by-side difference showing intraline differences
+		//  - see DIFF_ and DIFFX_ flags for flags used.
+		CWDiff( origFile, file, 0x02020040 );
+	}
+	else
+		MsgMessage( "Couldn't find original file to compare with." );
+}
+
+[API Macro:UnixEOLs]
+/*
+ ** UnixEOLs
+ *
+ * Convert all Dos end of lines to Unix type.
+ */
+void UnixEOLs( void )
+{
+	int count;
+
+	MarkSavePos();
+	count = SrchTranslate( "\\x0d\\x0a", "\\x0a",
+			SEARCH_REGEX | SEARCH_FORWARD | SEARCH_GLOBAL | SEARCH_BEGIN_END );
+	if (count > 0)
+		MsgMessage( "Converted " + count + " Dos end of lines." );
+	else
+		MsgMessage( "No Dos end of lines found." );
+	MarkRestorePos();
+}
+
+[API Macro:DosEOLs]
+/*
+ ** DosEOLs
+ *
+ * Convert all Unix end of lines to Dos type.
+ */
+void DosEOLs( void )
+{
+	int count;
+
+	MarkSavePos();
+	count = SrchTranslate( "$\\x0a", "\\x0d\\x0a",
+			SEARCH_REGEX | SEARCH_FORWARD | SEARCH_GLOBAL | SEARCH_BEGIN_END );
+	if (count > 0)
+		MsgMessage( "Converted " + count + " Unix end of lines." );
+	else
+		MsgMessage( "No Unix end of lines found." );
+	MarkRestorePos();
+}
+
+[API Macro:_API_Macro_string_handler]
+/*
+ ** _API_Macro_string_handler
+ *
+ * This macro is provided as an example event handler
+ *  where the event data is known to be of type string.
+ * 
+ */
+int _API_Macro_string_handler( int event, string data )
+{
+	if (BufQSysFlags() & BUFFER_SYSTEM)
+		return 0;
+
+	switch (event)
+	{
+	case EVENT_FILE_READ:
+//		MsgNotify( "EVENT_FILE_READ event, data = " + data );
+		break;
+	}
+	return 0;
+}
+
+[API Macro:_API_Macro_int_handler]
+/*
+ ** _API_Macro_int_handler
+ *
+ * This macro is provided as an example event handler.
+ * 
+ */
+int _API_Macro_int_handler( int event, int data )
+{
+	if (BufQSysFlags() & BUFFER_SYSTEM)
+		return 0;
+
+	switch (event)
+	{
+	case EVENT_SAVE_BUFFER:
+//		MsgNotify( "EVENT_SAVE_BUFFER event" );
+		break;
+	case EVENT_BUFFER_CREATED:
+//		MsgNotify( "EVENT_BUFFER_CREATED event" );
+		break;
+	}
+	return 0;
+}
+
+[API Macro:_Init_API_Macro]
+/*
+ ** _Init_API_Macro
+ *
+ * This macro is called on EVENT_PROCESS_BEGIN which
+ *  only happens when CodeWright is started.
+ * 
+ * This macro gives an opportunity to register other macros
+ *  as event handlers.
+ *
+ * Note: Either restart CodeWright or call this macro directly after
+ *   making changes.
+ */
+void _Init_API_Macro( void )
+{
+	// Register events for API macro handlers.
+	// Note: Use _API_Macro_int_handler unless the event data is of type LPSTR.
+
+	// EventRegister( EVENT_SAVE_BUFFER, EVENT_NORMAL, "_API_Macro_int_handler" );
+	// EventRegister( EVENT_BUFFER_CREATED, EVENT_NORMAL, "_API_Macro_int_handler" );
+
+	// EventRegister( EVENT_FILE_READ, EVENT_NORMAL, "_API_Macro_string_handler" );
+}
+
+[API Macro:SrchPrevious]
+/*
+ ** SrchPrevious
+ *
+ * Search again but in the opposite direction.
+ */
+void SrchPrevious( void )
+{
+	int flags = SrchQAgainFlags( FALSE );
+
+	SrchSetAgainFlags( flags ^ SEARCH_FORWARD, FALSE );
+	CUA_search_again();
+	SrchSetAgainFlags( flags, FALSE );
+}
+
+[API Macro:MinimizeAllWindows]
+/*
+ ** MinimizeAllWindows
+ *
+ * Cycle through all windows and minimize.
+ */
+void MinimizeAllWindows( void )
+{
+	int start = WinQCurrentWindow();
+	int win;
+	int flags;
+
+	do
+	{
+		flags = WinQSysFlags();
+		if ((flags & (WINDOW_SYSTEM | WINDOW_MINIMIZED | WINDOW_NON_MDI)) == 0)
+			WinSetSysFlags( flags | WINDOW_MINIMIZED );
+		win = WinQNext(TRUE);
+		WinSetCurrentWindow(win);
+	} while (win != start);
+}
+
+[API Macro:RestoreAllWindows]
+/*
+ ** RestoreAllWindows
+ *
+ * Cycle through all windows and restore.
+ */
+void RestoreAllWindows( void )
+{
+	int start = WinQCurrentWindow();
+	int win = start;
+	int flags;
+
+	do
+	{
+		flags = WinQSysFlags();
+		if ((flags & (WINDOW_SYSTEM | WINDOW_MINIMIZED)) == WINDOW_MINIMIZED)
+		{
+			WinSetSysFlags( flags & ~WINDOW_MINIMIZED );
+			WinUpdate();
+			SetWindowTitle( win ); 
+		}
+		win = WinQNext(TRUE);
+		WinSetCurrentWindow(win);
+	} while (win != start);
+}
+
+[API Macro:NumsToHex]
+/*
+ ** NumsToHex
+ *
+ * Convert all numbers in the selection to hexadecimal.
+ * 
+ * Note: if there is no selection, the current line is converted.
+ * Note: column selections are not supported.
+ */
+void NumsToHex(void)
+{
+	string s;
+	int i, len;
+	int type, startID, endID;
+	int startLine, startCol, endLine, endCol;
+
+	type = MarkQSelType();
+
+	if (BufQIsReadOnly() || (type == SELECTION_COLUMN))
+	{
+		SysBeep();
+		return;
+	}
+
+	if (type != SELECTION_NONE)
+	{
+		MarkEndSel();
+		MarkNormalizeSel();
+		startID = MarkQSelBeginID();
+		endID = MarkQSelEndID();
+		startLine = MarkQLine(startID);
+		endLine = MarkQLine(endID);
+		if (type == SELECTION_LINE)
+		{
+			startCol = 1;
+			endCol = 0x7fffffff;
+		}
+		else
+		{
+			startCol = MarkQColumn(startID);
+			endCol = MarkQColumn(endID);
+		}
+		MarkRemoveSel();
+	}
+	else
+	{
+		endLine = startLine = BufQCurrentLine();
+		startCol = 1;
+		endCol = 0x7fffffff;
+	}
+	SysWaitStart();
+
+	MovAbs(startLine, startCol);
+	if (!ReadWord())
+		NextWord();
+	while (SelectWord() && ((s = MarkGetSelStr()) != ""))
+	{
+		// if word only contains digits
+		if (StrTrim(s, "0123456789") == "")
+		{
+			BufDelSelection();
+			// convert to hex and insert the result
+			BufInsertStr("0x" + StrItoA(s,16));
+		}
+		else
+			MarkRemoveSel();
+			
+		if (!MoveWord(0))
+			break;
+		if ((BufQCurrentLine() > endLine) ||
+				((BufQCurrentLine() == endLine) && (BufQCurrentCol() > endCol)))
+			break;
+	}
+	SysWaitEnd();
+}
+[API Macro:CreateNewFile]
+void CreateNewFile(void)
+{
+        BufEditFile("C:\\TEMP\\FUNCT.PAS");
+        ExtExpandTemplate("%ffunct.tpl$");
+}
+

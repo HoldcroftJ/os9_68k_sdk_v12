@@ -1,0 +1,1436 @@
+ nam sc68070.a
+ ttl Interrupt-Driven UART driver
+
+*******************************************************************
+* Copyright 1988, 1989, 1990, 1991, 1992, 1993 by
+* Microware Systems Corporation
+* Reproduced Under License
+*
+* This source code is the proprietary confidential property of
+* Microware Systems Corporation, and is provided to licensee
+* solely for documentation and educational purposes. Reproduction,
+* publication, or distribution in any form to any party other than
+* the licensee is strictly prohibited.
+
+*******************************************************************
+* Edition History
+*
+* #    date   Comments                                          by
+* -- -------- ------------------------------------------------- ---
+* 01 88/03/21 Hacked from sc2661.a                              jal
+* 02 88/04/08 Added PVB070 conditional for external clock use   jal
+* 03 88/04/22 added instruction to clear any pending IRQs       jal
+*             added instruction to set unused bit in clock ctl reg
+* 04 89/01/04 added CLKINT to select internal clock from        wwb
+*             systype.d file.
+*              ---- OS-9/68K V2.3 Release ----
+* 05 90-03-05  Changed to check for deadly signal ala 2.4 defs  Rwb
+*              ---- OS-9/68K V2.4 Release ----
+*105 91-09-27 Added KANJI condition								zoo
+*              ---- OS-9/68K V2.4J released ----
+* 06 92-02-24 ed.105 merged into mainstream.					wwb
+* 07 92-08-05 fixed SS_Break (a3 was not pointing at h/w),		wwb
+*             added BrkRcvd to InputErr status.
+* 08 92-08-31 SS_Ssig handler masked at wrong level             Rwb
+* 09 93/03/22 Reworked to maintain stack alignment and proper 
+*			  handling of the interrupt mask.					afh
+* 10 93/07/01 reworked use pathlists for MWOS structure.		wwb
+*              ---- OS-9/68k V3.0 released ----
+*              ---- OS-9/68k V3.1 released ----
+*
+Edition equ 10 current Edition number
+
+ use defsfile
+
+ use <os9svc.m>
+
+Typ_Lang set (Drivr<<8)+Objct
+Attr_Rev set ((ReEnt+SupStat)<<8)+0 Attributes and Revision
+
+ psect scgen,Typ_Lang,Attr_Rev,Edition,0,EntryPoint
+
+ page
+
+**********************************
+* Alternative Register Names
+*
+ModeReg equ u_rmr
+StatReg equ u_rsr
+ClkSlct equ u_cls
+CmndReg equ u_rcr
+TxData equ u_thr
+RxData equ u_rhr
+
+IRQCtrl equ u_icr
+
+**********************************
+* status register bit layout
+*
+BrkRcvd set %10000000 break received
+Frame set %01000000 framing error
+Parity set %00100000 parity error
+Overun set %00010000 over run error
+TxEmp set %00001000 Tx shift register empty
+TxRdy set %00000100 Tx data ready
+RxRdy set %00000001 Rx data ready
+InputErr set Parity+Overun+Frame+BrkRcvd error bits
+*
+* Status Register Bit Equates
+*
+RxRdyBit equ 0 1 = receive character ready
+TxRdyBit equ 2 1 = transmit buffer empty
+
+****************************
+* Command register equates
+*
+EnRx set %0001 Enable receiver
+DsRx set %0010 Disable receiver
+EnTx set %0100 Enable transmitter
+DsTx set %1000 Disable transmitter
+
+NoCmnd set	%0000<<4 No command
+NoCmnd set	%0001<<4 No command
+ResetRx set %0010<<4 Reset the receiver
+ResetTx set %0011<<4 Reset the transmitter
+ResetEr set %0100<<4 Reset error status
+NoCmnd set	%0101<<4 No command
+StrtBrk set %0110<<4 Start break
+StopBrk set %0111<<4 Stop break
+*
+* Mode register equates
+*
+CharLen7 equ 0 7 bits/char
+CharLen8 equ 1 8 bits/char
+
+StpBt1 equ (0<<1) 1 stop bit
+StpBt2 equ (1<<1) 2 stop bits
+
+OddPar equ (0<<2) Odd parity
+EvenPar equ (1<<2) Even Parity
+
+DisblPar equ (0<<3) Disable Parity
+EnablPar equ (1<<3) Enable Parity
+
+DisblCTS equ (0<<5) Disable CTS
+EnablCTS equ (1<<5) Enable CTS
+
+Normal equ (0<<6) Normal mode
+AutoEcho equ (1<<6) Auto Echo Mode
+LocLoop equ (2<<6) Local Loopback Mode
+RemLoop equ (3<<6) Remote Loopback Mode
+
+Standard equ Normal+StpBt1+DisblPar+CharLen8
+*
+* Clock Select Register Equates
+*
+ExtClock equ $80 bit 7 set = use external clock
+SetUBit equ %00001000 set the unused bit
+*
+* Interrupt Control Register equates
+*
+ClrPIRQs equ %10001000 clear pending irqs bits
+KillTxIRQ equ %01110000 disable Tx IRQ
+KillIRQs equ 0
+
+ page
+
+********************************
+* Static storage requirements
+*
+ vsect
+V_OutBufAd ds.l 1 output buffer address
+V_InBufAd ds.l 1 input buffer address
+V_InFill ds.l 1 input buffer next-in ptr
+V_InEmpty ds.l 1 input buffer next-out ptr
+V_InEnd ds.l 1 end of input buffer
+V_OutFill ds.l 1 output buffer next-in ptr
+V_OutEmpty ds.l 1 output buffer next-out ptr
+V_OutEnd ds.l 1 output buffer end of buffer pointer
+V_OutCount ds.w 1 # of chars in output buffer
+V_RxIRQMask ds.w 1 receiver interrupt mask word
+V_TxIRQMask ds.w 1 transmitter interrupt mask word
+V_InCount ds.w 1 # of chars in input buffer
+V_InSize ds.w 1 size of input buffer
+V_OutSize ds.w 1 size of output buffer
+V_MaxBuff ds.w 1 Send XOFF when buffer contains this many
+V_SigProc ds.w 1 Process to signal
+ ds.w 1 signal code
+ ds.w 1 associated (system) path number
+V_DCDOff: ds.w 1 process to signal on loss of DCD
+ ds.w 1 signal process
+ ds.w 1 associated (system) path number
+V_DCDOn: ds.w 1 process to signal on loss of DCD.
+ ds.w 1 signal code
+ ds.w 1 associated system path number
+V_PortType ds.b 1 port type definition
+V_OutHalt ds.b 1 output IRQ's disabled when non-Zero
+V_Baud ds.b 1 Baud rate value from the descriptor
+V_Parity ds.b 1 Parity, stop bits & word size from descriptor
+V_Shake ds.b 1 current level of DCD line.
+V_InHalt ds.b 1 input halted flag (non-zero if XOFF has been sent)
+V_EnTxIRQ ds.b 1 Value to enable Tx IRQs to the right level
+ align
+ ends
+
+************************************** 
+* I/O buffer sizes
+*
+InSize set 128 input buffer size
+OutSize set 256 output buffer size
+
+MaxBuff equ InSize-10 Send XOFF when buffer contains this many
+MinBuff equ 10 Send XON when buffer contains this few
+LowCount set 10
+
+* V_OutHalt bit numbers (causes of disabled output IRQ)
+
+H_XOFF equ 0 V_XOFF has been received; awaiting V_XON
+H_Empty equ 1 output buffer is empty
+
+CarryBit equ 0 carry bit in status register (or d7)
+
+
+********************
+* V_ERR bit assignments
+*
+eb_SOvrRun equ 0 bit 0 = software buffer overrun
+eb_DCDLost equ 1 bit 1 = data carrier lost
+eb_NotCTS equ 2 bit 2 = not Clear To Send
+* Bit3 not used
+eb_HOvrRun equ 4 bit 4 = hardware overrun
+eb_Parity equ 5 bit 5 = parity error
+eb_Framing equ 6 bit 6 = framing error
+eb_Break equ 7 bit 7 = break detected
+
+
+********************
+* Module Header
+
+EntryPoint:
+ ifndef	KANJI
+ dc.w Init
+ dc.w Read
+ dc.w Write
+ dc.w GetStat
+ dc.w PutStat
+ dc.w Terminate
+ else
+ dc.w K_Init
+ dc.w K_Read
+ dc.w K_Write
+ dc.w K_GetStt
+ dc.w K_PutStt
+ dc.w K_TrmNat
+ endc KANJI
+ dc.w 0 Exception handler (0=none)
+
+ page
+
+***************
+* Init: Initialize device and static storage
+*
+* Passed: (a1) = device descriptor address
+*         (a2) = static storage address
+*         (a4) = process descriptor pointer
+*         (a6) = system global data pointer
+*
+* Returns: (cc) = carry set if device can't be initialized
+*        (d1.w) = error code (if any)
+*
+Init:
+ movem.l d0/d2-d4/a0/a3/a5,-(sp) save the registers
+*
+* Save IRQ level mask in static storage
+* for future use and mask the interrupts
+*
+ move.b M$IRQLvl(a1),d2
+
+* form interrupt mask value.
+* NOTE: the IRQMasking is always performed "outside" of the Interrupt
+* Service context, thus move.w V_XxIRQMask(a2),sr is ok, as there will not
+* be an accidental stack switch.
+*
+ move.b M$IRQLvl(a1),d2 get irq level
+ asl.w #8,d2 shift into priority
+ move.w sr,d0 get sr (for stack/trace flags)
+ andi.w #IntEnab,d0 clear irq masks
+ or.w d0,d2 form "current stack, irqs masked to this level" value
+ move.w d2,V_RxIRQMask(a2) save for future use
+ move.w d2,d3 make a copy in d3
+ sub.w #$0100,d3 adjust for transmitter level
+ move.w d3,V_TxIRQMask(a2) save for future use
+
+ move sr,d6 save the IRQ status
+ move.w d2,sr mask the interrupts
+ move.b #(1<<H_Empty),V_OutHalt(a2) flag output buffer empty
+*
+* Initialize registers for IRQ polling table entry
+*
+ movea.l V_PORT(a2),a3 get the I/O port address
+ move.b M$Vector(a1),d4 get the IRQ base vector from the descriptor
+ lea IRQTable(pc),a5 get address of IRQ table
+ move.w (a5)+,d2 get number of entries in IRQ Table
+*
+* Install the device IRQ service routine(s) in the IRQ polling table
+*
+InstIRQ move.b M$Prior(a1),d1 get IRQ priority from descriptor
+ move.l d4,d0 get the root vector
+ lea btext(pc),a0 get base address of this module
+ move.w d2,d3 copy table entry number to d3
+ lsl.w #2,d3 multiply by 4 (4 bytes/entry)
+ add.w (a5,d3.w),d0 add in the vector offset entry
+ addq.b #2,d3 bump table pointer to address offset entry
+ add.w (a5,d3.w),a0 add in the IRQ routine address offset
+ OS9 F$IRQ Add to IRQ polling table
+ bcs InitErr exit with error (if any)
+ dbra d2,InstIRQ loop until all IRQs installed
+*
+* Get baud rate, parity, stop bits and word size from the
+* device descriptor and save them in static storage
+*
+ move.b PD_PAR-PD_OPT+M$DTyp(a1),d2 get parity, stop bits & word size
+ move.b d2,V_Parity(a2) save in static storage
+ move.b PD_BAU-PD_OPT+M$DTyp(a1),d3 get baud rate
+ move.b d3,V_Baud(a2) save in static storage
+*
+* Initialize the hardware and return
+* buffer sizes in d0: LSW = output buffer size
+*                     MSW = input buffer size
+*
+ bsr InitHdwe initialize the hardware
+ bcs.s InitErr exit with error (if any)
+*
+* initialize Static Storage pointers to the buffers
+*
+ move.w d0,V_OutSize(a2) set output buffer size
+ swap d0 move input buffer size to LSW of d0
+ move.w d0,V_InSize(a2) set input buffer size
+ sub.w #LowCount,d0 calculate MaxBuff
+ move.w d0,V_MaxBuff(a2) set V_MaxBuff
+  
+  page
+  
+********************
+* Init: Continued
+*
+* Dynamically allocate input buffer
+* 
+ moveq.l #0,d0 sweep d0
+ move.w V_InSize(a2),d0 get input buffer size
+ beq.s AB10 if zero, no buffer; skip allocation call
+ move.l a2,-(sp) save static storage pointer
+ OS9 F$SRqMem allocate input buffer
+ movea.l a2,a0 copy input buffer pointer to a0
+ movea.l (sp)+,a2 retrieve static storage pointer
+ bcs.s InitErr exit with error (if any)
+ move.w d0,V_InSize(a2) save real input buffer size
+ move.l a0,V_InFill(a2) initialize input buffer pointers
+ move.l a0,V_InEmpty(a2)
+ move.l a0,V_InBufAd(a2)
+ lea (a0,d0.w),a0 figure size of buffer
+ move.l a0,V_InEnd(a2) mark end of input buffer
+*
+* Dynamically allocate output buffer
+* 
+AB10 moveq.l #0,d0 sweep d0
+ move.w V_OutSize(a2),d0 get output buffer size
+ beq.s AB20 if zero, no buffer; skip allocation call
+ move.l a2,-(sp) save static storage pointer
+ OS9 F$SRqMem allocate input buffer
+ movea.l a2,a0 copy output buffer pointer to a0
+ movea.l (sp)+,a2 retrieve static storage pointer
+ bcs.s InitErr exit with error (if any)
+ move.w d0,V_OutSize(a2) save real output buffer size
+ move.l a0,V_OutFill(a2) initialize output buff pointers
+ move.l a0,V_OutEmpty(a2)
+ move.l a0,V_OutBufAd(a2)
+ lea (a0,d0.w),a0 figure size of out buffer
+ move.l a0,V_OutEnd(a2) mark end of output buffer
+*
+* Exit
+*
+InitExit:
+ move d6,sr restore interrupts
+ moveq.l #0,d1 no errors
+ movem.l (sp)+,d0/d2-d4/a0/a3/a5 retrieve the registers
+ rts
+*
+*
+* Execution reaches this point if no output buffer was allocated.
+* This code tests for an input buffer.  If no input buffer was
+* allocated either, initialization exits with a "Bad Unit" error.
+*
+*
+AB20 tst.w V_InSize(a2) any buffers allocated?
+ bne.s InitExit if yes, simply exit
+*
+* Error Exit
+*
+InitErr:
+ move d6,sr restore interrupts
+ move.w #E$Unit,d1 flag unit error
+ ori #Carry,ccr
+ movem.l (sp)+,d0/d2-d4/a0/a3/a5 retrieve the registers
+ rts
+ 
+ page
+
+***************
+* Read
+*   Return one byte of input from the device
+*
+* Passed:  (a1)=Path Descriptor
+*          (a2)=Static Storage address
+*          (a4)=current process descriptor
+*          (a6)=system global ptr
+*
+* Returns: (cc) = carry set if error
+*        (d0.b) = input character
+*        (d1.w) = error code if error
+*
+Read: movem.l a0/a3,-(sp) save the registers
+Read05 tst.b V_InHalt(a2) is input halted?
+ ble.s Read10 if no, go do read
+ cmpi.w #MinBuff,V_InCount(a2) buffer mostly emptied?
+ bhi.s Read10 if no, go do read
+*
+* Send XON
+*
+ movea.l V_PORT(a2),a3 get port address
+ move.b V_XON(a2),d0 get XON char
+ bsr Send_XX send the XON (or flag it to be sent)
+ tst.b V_OutHalt(a2) is output halted?
+ beq.s Read10 if yes, skip enable transmitter IRQs
+ bsr EnTxIRQ enable transmitter IRQs
+ 
+Read10 tst.w V_SigProc(a2) a process waiting for device?
+ bne.s ErrNtRdy if yes, return dormant terminal error
+ move sr,d6 save current IRQ status
+ move.w V_RxIRQMask(a2),sr mask irqs
+ tst.w V_InCount(a2) any data?
+ bne.s Read15 if yes, go read from buffer
+*
+* Go to sleep to wait for data
+*
+ move.w V_BUSY(a2),V_WAKE(a2) arrange wake up signal
+ move d6,sr restore IRQs
+ bsr.s GoToSleep go sleep
+ bcc.s Read05 if no error, simply continue
+ tst.b V_ERR(a2) was it an I/O error?
+ beq.s ReadErr if no, exit with other error
+ bra.s Read30 else, go process error and exit
+*
+* Read data from buffer
+* 
+Read15 move d6,sr unmask IRQs
+ movea.l V_InEmpty(a2),a0 point to next char
+ move.b (a0)+,d0 get character
+ subq.w #1,V_InCount(a2) dec buffer size by one
+ cmpa.l V_InEnd(a2),a0 at end of buffer?
+ blo.s Read20 branch if not
+ movea.l V_InBufAd(a2),a0 point to start of buffer
+Read20 move.l a0,V_InEmpty(a2) update buffer pointer
+*
+* Process I/O error (if any)
+*
+Read30 move.b V_ERR(a2),PD_ERR(a1) copy I/O status to PD
+ beq.s ReadExit return if no error
+ clr.b V_ERR(a2) clear the error byte
+ move.w #E$Read,d1 signal read error
+ bra.s ReadErr exit with error
+
+ErrNtRdy move.w #E$NotRdy,d1
+ReadErr ori #Carry,ccr return Carry set
+ReadExit movem.l (sp)+,a0/a3 retrieve the registers
+ rts
+ 
+ page
+
+******************
+* GoToSleep: Sleep until interrupt occurs
+*
+* Passed: (a2) = driver global storage
+*         (a4) = current process descriptor ptr
+*
+* Returns: (cc) = carry set if error
+*        (d1.w) = some kind of error code (zero if no error)
+*
+GoToSleep:
+ moveq.l #0,d0 sleep indefinitely
+ OS9svc F$Sleep wait for input Data
+ move.w P$Signal(a4),d1 is there a signal present?
+ beq.s GTS10 if no, go check for other errors
+ cmpi.w #S$Deadly,d1 Deadly signal?
+ blo.s GTSErr if yes, return with error
+GTS10 btst.b #Condemn,P$State(a4) has process died?
+ bne.s GTSErr if yes, return with error
+ move.b V_ERR(a2),d1 any other errors?
+ bne.s GTSErr if yes, return with error
+ rts * ("move.b" instruction clears carry)
+
+GTSErr ori #Carry,ccr return Carry set
+ rts
+
+ page
+
+********************
+* Write: Output one character
+*        to the hardware
+*
+* Passed: (a1) = Path Descriptor
+*         (a2) = Static Storage address
+*         (a4) = current process descriptor ptr
+*         (a6) = system global data ptr
+*       (d0.b) = character to write
+*
+* Returns: none
+*
+Write:
+ movem.l a0/a3,-(sp) save the registers
+Write05 move sr,d6 save current IRQ status
+ move.w V_TxIRQMask(a2),sr mask IRQs
+ movea.l V_PORT(a2),a3 get port address
+ move.w V_OutCount(a2),d1 Any data in buffer?
+ bne.s Write10 if yes, go try to send some
+ btst.b #H_XOFF,V_OutHalt(a2) halted for X_OFF?
+ bne.s Write15 if yes, go write to the buffer
+ bsr PutChar try to send a character to the hardware
+ bcs.s Write15 if hardware is full, go write to SS buffer
+ bra.s WriteExit
+*
+* Send some output ("prime the pump")
+*
+Write10 move.l d0,-(sp) save the incoming character
+ bsr SendOut send some output to prime the pump
+ move.l (sp)+,d0 retrieve the incoming character
+*
+* Check for buffer full (d1 = V_OutCount)
+*
+Write15 cmp.w V_OutSize(a2),d1 room for more data?
+ blo.s Write17 if no, go sleep until there is room
+*
+* Sleep until buffer isn't so full
+*
+ move.w V_BUSY(a2),V_WAKE(a2) arrange wake up signal
+ move d6,sr restore IRQs
+ movem.l d0,-(sp) save any character
+ bsr GoToSleep sleep until IRQ wakes me
+ movem.l (sp)+,d0 retrieve character
+ bcs.s WriteErr exit with error (if any)
+ bra.s Write05 else, go try again
+*
+* Buffer the character
+*
+Write17 addq.w #1,V_OutCount(a2) increment byte count
+ movea.l V_OutFill(a2),a0 point to next char location
+ move.b d0,(a0)+ store char and inc pointer
+*
+* Update buffer pointers
+*
+ cmpa.l V_OutEnd(a2),a0 end of buffer?
+ blo.s Write20 branch if not
+ movea.l V_OutBufAd(a2),a0 point to start of buffer
+Write20 move.l a0,V_OutFill(a2) update buffer pointer
+
+ page
+ 
+********************
+* Write: Continued
+*
+* Clear the flag (in V_OutHalt) thus indicating that
+* the static storage output buffer is not empty
+*
+ bclr.b #H_Empty,V_OutHalt(a2) test the flag and clear it
+*
+* Was the output buffer empty before the previous flag clearing?
+*
+ beq.s WriteExit if no, just exit; IRQ is already on
+ tst.b V_OutHalt(a2) still halted due to other cause?
+ bne.s WriteExit don't enable IRQs if so
+*
+* Enable the transmitter IRQs
+*
+ bsr EnTxIRQ enable transmitter IRQs
+*
+* Exit
+*
+WriteExit:
+ move d6,sr unmask IRQs
+ moveq.l #0,d1 clear carry
+ movem.l (sp)+,a0/a3 retrieve the registers
+ rts
+
+WriteErr:
+ tst.b V_ERR(a2) was it a DCD error?
+ beq.s WE99 if no, exit with error
+ move.w #E$Write,d1 else, return write error
+WE99 ori #Carry,ccr set the error flag
+ movem.l (sp)+,a0/a3 retrieve the registers
+ rts
+
+ page
+
+***************
+* GetStat
+*   Get Device Status
+*
+* Passed: (d0.w)=Status Code
+*         (a1)=Path Descriptor
+*         (a2)=Static Storage address
+*
+* Returns: depends on status code
+*
+* Alters: d0,d1,a0
+*
+GetStat: cmpi.w #SS_Ready,d0 Ready status?
+ bne.s GS10 ..no
+ movea.l PD_RGS(a1),a0 get caller's register stack
+ clr.w R$d1(a0) sweep reg
+ move.w V_InCount(a2),R$d1+2(a0) return input char count to caller
+ bne.s GSExit if data available exit with no error
+ move.w #E$NotRdy,d1 else, get not ready error number
+ ori #Carry,ccr set the error flag
+ rts
+*
+* Handle SS_EOF
+*
+GS10 cmpi.b #SS_EOF,d0 End of file?
+ bne.s GS20 if no, go check hardware code for other calls
+GSExit moveq.l #0,d1
+ rts
+*
+* Go handle hardware specific GetStat calls (if any)
+*
+GS20 bra GetStatus 
+ 
+ page
+
+***************
+* PutStat: Put Device Status
+*
+* Passed: (d0.w) = Status Code
+*           (a1) = Path Descriptor
+*           (a2) = Static Storage address
+*           (a6) = system global data ptr
+*
+* Returns: depends on status code
+*
+* Alters: d0,d1,d2,a0,a3
+*
+PutStat:
+*
+* SS_SSig
+*
+ cmpi.w #SS_SSig,d0 signal process when ready?
+ bne.s PS20 ..No
+ tst.w V_SigProc(a2) somebody already waiting?
+ bne ErrNtRdy ..Yes; error
+ move.w PD_CPR(a1),d0 get caller's process ID
+ movea.l PD_RGS(a1),a0 get caller's register ptr
+ move.w R$d2+2(a0),d1 get signal code
+ tst.w V_InCount(a2) any data available?
+ beq.s PS10 branch if not
+ bra SendSig send the signal
+
+PS10 move sr,d6 save IRQ status
+* move.w V_TxIRQMask(a2),sr disable IRQs   ed.8
+ move.w V_RxIRQMask(a2),sr disable IRQs
+ move.w d0,V_SigProc(a2) save process ID
+ move.w d1,V_SigProc+2(a2) save the desired signal code
+ move.w PD_PD(a1),V_SigProc+4(a2) save system path number
+ movea.l V_PORT(a2),a3 point a3 to port base address
+ bsr EnTxIRQ enable transmitter IRQs
+ move d6,sr unmask IRQs
+ moveq.l #0,d1
+ rts
+*
+* SS_Release
+*
+PS20 cmpi.w #SS_Relea,d0 Release Device?
+ bne.s PS30 bra if not
+ move.w PD_CPR(a1),d2 get current process ID
+ lea V_SigProc(a2),a3 test V_SigProc
+ move.w PD_PD(a1),d0 get path number
+ bsr.s ClearSig
+ lea V_DCDOff(a2),a3
+ bsr.s ClearSig
+ lea V_DCDOn(a2),a3
+ bsr.s ClearSig
+ move.w #SS_Relea,d0 restore calling code
+ bra PutStatus check hdwe code for additional "SS_Relea" processing
+*
+* Clear Signals
+* 
+ClearSig cmp.w (a3),d2 does it concern this process?
+ bne.s ClrSig20 ..no; just return
+ cmp.w 4(a3),d0 does it concern this path?
+ bne.s ClrSig20 ..no; just return
+ clr.w (a3) no more signals for him
+ClrSig20 moveq.l #0,d1
+ rts
+*
+* SS_DCOn
+*
+PS30 cmpi.w #SS_DCOn,d0 signal on carrier detect?
+ beq.s PSDCD if yes, go handle SS_DCOn
+*
+* SS_DCOff
+*
+ cmpi.w #SS_DCOff,d0 signal on loss of carrier?
+ bne.s PS35 if no, go check next possible call
+PSDCD move.w PD_CPR(a1),d0 get process id
+ move.w R$d2+2(a5),d1 get signal code
+ move.w PD_PD(a1),d2 get associated path #
+ movem.w d0-d2,V_DCDOff(a2) save them
+ moveq.l #0,d1
+ rts
+
+ page
+
+********************
+* PutStat: Continued
+*
+* SS_Open
+* 
+PS35 cmpi.w #SS_Open,d0 new path opened ?
+ beq.s FixPort ..yes; go check if configuration changed
+*
+* SS_Opt
+*
+ cmpi.w #SS_Opt,d0 putstat options call ?
+ bne PutStatus if no, go handle all hardware specific PutStat calls (if any)
+* else fall through to FixPort: go check if configuration changed
+
+
+********************
+* FixPort: Check for baud-rate or
+*          i/o configuration change
+*
+FixPort:
+ move.b PD_PAR(a1),d2 get path descriptor's PD_PAR
+ move.b PD_BAU(a1),d3 get path descriptor's PD_BAU
+ movea.l V_PORT(a2),a3 get port base address
+ cmp.b V_Baud(a2),d3 baud rate changed ?
+ bne.s FP10 if yes, go change serial configuration
+ cmp.b V_Parity(a2),d2 configuration changed ?
+ beq PutStatus if no, don't change; go check hdwe code
+FP10 move.l d0,-(sp) save PutStat calling code
+ bsr Config go change serial configuration
+ movem.l (sp)+,d0 retrieve PutStat calling code
+ bcc.s FP20 if no error, go update baud and parity in static storage
+ rts else exit with error
+
+FP20 move.b d3,V_Baud(a2) update baud rate in static storage
+ move.b d2,V_Parity(a2) update configuration in static storage
+ bra PutStatus go check hdwe code for additional processing
+ 
+ page
+ 
+***************
+* Subroutine Terminate
+*   Terminate SIO processing
+*
+* Passed: (a1) = device descriptor pointer
+*         (a2) = static storage
+*         (a4) = current process descriptor ptr
+*
+* Returns: none
+*
+ ifdef	KANJI
+TrmNat:
+ endc KANJI
+Terminate:
+ movem.l d0/d2-d4/a0-a3/a5,-(sp) save the registers
+TN05 move.w P$ID(a4),d0
+ move.w d0,V_BUSY(a2)
+ move.w d0,V_LPRC(a2)
+ move sr,d6 save current IRQ status
+ move.w V_RxIRQMask(a2),sr mask IRQs
+ tst.w V_OutCount(a2) any data?
+ beq.s TN10 if no, trash the device
+*
+* Go to sleep while sending late data
+*
+ move.w V_BUSY(a2),V_WAKE(a2) arrange wake up signal
+ move d6,sr restore IRQs
+ bsr GoToSleep wait for I/O activity
+ bcc.s TN05 if no errors, go try again
+*
+* Remove all entries for this device
+* from the IRQ polling table
+* 
+TN10 movea.l V_PORT(a2),a3 get port address
+ bsr DsAllIRQ disable all physical IRQs
+ move d6,sr restore IRQs in the status register
+ lea IRQTable(pc),a5 get address of IRQ table
+ move.w (a5)+,d2 get number of entries in IRQ Table
+ move.b M$Vector(a1),d4 get root vector from descriptor
+ suba.l a0,a0 clear a0
+DtchIRQ move.l d4,d0 get the root vector
+ move.w d2,d3 copy table entry number to d3
+ lsl.w #2,d3 multiply by 4 (4 bytes/entry)
+ add.w (a5,d3.w),d0 add in the vector offset entry
+ OS9 F$IRQ Add to IRQ polling table
+ dbra d2,DtchIRQ loop until all IRQs removed
+*
+* Deallocate buffers
+*
+ moveq.l #0,d0 sweep d0
+ movea.l a2,a0 copy static storage pointer to a0
+ move.w V_InSize(a0),d0 get input buffer size
+ beq.s DB10 if zero, no buffer allocated; skip deallocation
+ movea.l V_InBufAd(a0),a2 get address of input buffer
+ OS9 F$SRtMem return input buffer memory to the system
+DB10 move.w V_OutSize(a0),d0 get output buffer size
+ beq.s TNExit if zero, no buffer allocated; skip deallocation
+ movea.l V_OutBufAd(a0),a2 get address of output buffer
+ OS9 F$SRtMem return output buffer memory to the system
+*
+* Exit
+*
+TNExit:
+ movem.l (sp)+,d0/d2-d4/a0-a3/a5 retrieve the registers
+ rts
+
+ page
+ 
+****************
+* OutIRQ
+*   SIO output interrupt service
+*
+* Passed: (a3) = SIO port address
+*         (a2) = Static Storage address
+
+OutIRQ:
+ move.b V_InHalt(a2),d0 XON or XOFF to send?
+ bpl.s Out10 if no, go send output
+ bsr.s Send_XX send XON/XOFF (or flag it to be sent)
+Out10 move.w V_OutCount(a2),d1 any characters to send?
+ beq.s Out20 if no, go wake owner, set flag and disable Tx IRQs
+ bsr.s SendOut send output until hardware is full
+ cmpi.w #LowCount,V_OutCount(a2) is SS output buffer low on data?
+ bhs.s OutExit if no, go to exit
+*
+* Wake up owner and disable Tx IRQs if SS output buffer empty
+*
+Out20 bsr.s WakeUp send a wake-up signal to owner
+ tst.w V_OutCount(a2) is the static storage output buffer empty?
+ bne.s OutExit if no, go to exit
+ bset.b #H_Empty,V_OutHalt(a2) flag ouput halted; buffer empty
+ bra DsTxIRQ go disable Tx IRQs and exit w/no error
+
+ 
+********************
+* WakeUp: Send a wake-up signal
+*         to the owner
+*
+WakeUp:
+ move.w #S$Wake,d1 get wake-up signal
+ move.w V_WAKE(a2),d0 is owner waiting?
+Wake10 beq.s OutExit if no, go exit
+ clr.w V_WAKE(a2) tell owner we sent signal
+
+
+********************
+* SendSig: Send a signal
+* 
+SendSig:
+ OS9svc F$Send send a signal
+OutExit moveq.l #0,d1
+ rts
+
+ page
+  
+********************
+* SendOut: Send output from the static storage
+*          buffer to the hardware buffer until
+*          the hardware buffer is full.
+*
+* Passed: (a2) = Static storage pointer
+*         (a3) = Hardware Base Address
+*       (d1.w) = Static storage output buffer character counter
+*
+* Returns: nothing
+*
+SendOut:
+ tst.b V_OutHalt(a2) is output halted?
+ bne.s SOExit if yes, return to caller
+ movea.l V_OutEmpty(a2),a0 get output buffer pointer
+*
+* Move a character from the static storage output
+* buffer to the hardware transmitter buffer
+*
+SO15 move.b (a0)+,d0 get the next character to send
+ bsr PutChar try to send a character to the hardware
+ bcs.s SO25 if hardware was full, go backup the buffer pointer
+ cmpa.l V_OutEnd(a2),a0 end of memory buffer?
+ blo.s SO20 if no, don't reset buffer pointer
+ movea.l V_OutBufAd(a2),a0 reset buffer pointer (in a0)
+SO20 subq.w #1,d1 decrement the character counter
+ bne.s SO15 if not zero, go try to send more data
+ bra.s SO30 else, go update the pointers and exit
+*
+* Update the static storage output buffer pointers and EXIT
+*
+SO25 subq.l #1,a0 backup the buffer pointer
+SO30 move.l a0,V_OutEmpty(a2) update pointer
+ move.w d1,V_OutCount(a2) update character count
+SOExit rts
+
+
+********************
+* Send_XX:  [commented out] 1) Check if output is halted
+*           [commented out] 2) If yes, set sign bit, move chr to V_InHalt and exit
+*           3) Else check if chip Tx buffer is empty
+*           4) If no, set sign bit, move chr to V_InHalt and exit
+*           5) Else clear the sign bit from XON or XOFF char.
+*           6) Send XON or XOFF through the device
+*           7) If XON was sent, clear V_InHalt
+*           8) Else if XOFF was sent, set V_InHalt non-zero but msb cleared
+*
+* Passed: (d0.b) = XON/XOFF character
+*
+Send_XX: move.w sr,d6 save IRQ status
+ move.w V_TxIRQMask(a2),sr mask the IRQs
+* btst.b #H_XOFF,V_OutHalt(a2) is output halted from XOFF?
+* bne.s SX10 if yes, go set flag, stuff & exit
+ bclr #SignBit,d0 clear the sign bit of XON/XOFF character
+ bsr PutChar try to send XON/XOFF character through the device
+ bcs.s SX10 if hardware Tx buffer is full, go set flag, stuff & exit
+ move.b V_XON(a2),d1 get XON value
+ eor.b d1,d0 get Zero if XON
+ bra.s SX20 go flag V_InHalt and exit
+SX10 bset.l #SignBit,d0 set the sign bit of the XON/XOFF character
+SX20 move.b d0,V_InHalt(a2) set condition of input halt
+ move.w d6,sr re-enable the IRQs
+ rts
+
+ page
+
+***************
+* InIRQ: Input interrupt service
+*
+* Passed: (a3) = Hardware base address
+*         (a2) = Static Storage address
+*
+InIRQ:
+ move.b V_InHalt(a2),d0 XON or XOFF to send?
+ bpl.s In10 if no, go service input IRQ
+ bsr.s Send_XX send XON/XOFF character (or flag it to be sent)
+
+In10 bsr GetChar attempt to get input character
+ bcc.s In20 if character was received, go process it
+*
+* Check the transmitter and go send data if able
+*
+ move.w V_OutCount(a2),d1 any data to send?
+ beq WakeUp if no, go wakeup owner and exit
+ bsr.s SendOut else go send some output
+ bra WakeUp go wakeup owner and exit
+*
+* Process input character
+* 
+In20 or.b d1,V_ERR(a2) update cumulative errors (if any)
+ tst.b d0 is incoming character a null?
+ beq.s In30 ..NULL, impossible ctl chr
+ cmp.b V_INTR(a2),d0 keyboard Interrupt?
+ beq InAbort ..Yes
+ cmp.b V_QUIT(a2),d0 keyboard Quit?
+ beq InQuit ..Yes
+ cmp.b V_PCHR(a2),d0 keyboard Pause?
+ beq InPause ..Yes
+ cmp.b V_XON(a2),d0 XON continue?
+ beq InXON ..Yes
+ cmp.b V_XOFF(a2),d0 XOFF Immediate Pause request?
+ beq InXOFF ..Yes
+*
+* Buffer the incoming character
+*
+In30 movea.l V_InFill(a2),a0 point to current character
+ move.b  d0,(a0)+ put Data in buffer
+ addq.w #1,V_InCount(a2) increment character count
+ move.w V_InSize(a2),d1 get buffer size
+ cmp.w V_InCount(a2),d1 is the buffer full?
+ bhi.s In40 if no, don't flag an overrun
+*
+* Flag a buffer overrun
+*
+ subq.w #1,V_InCount(a2) decrement the character count
+ bset.b #eb_SOvrRun,V_ERR(a2) set the software overrun error bit
+ bra.s In65 go send one more XOFF
+*
+* Update the buffer pointer
+*
+In40 cmp.l V_InEnd(a2),a0 end of buffer ?
+ blo.s In50 branch if not
+ movea.l V_InBufAd(a2),a0 point to start of buffer
+In50 move.l a0,V_InFill(a2) update the buffer pointer
+*
+* Check if any process needs a signal
+*
+ move.w V_SigProc(a2),d0 any process to notify?
+ beq.s In60 if no, go check buffer status
+ move.w V_SigProc+2(a2),d1 get signal code
+ clr.w V_SigProc(a2) clear signal sending
+ bsr SendSig Signal Controlling process
+*
+* Check buffer and send XOFF if it's getting full
+*
+In60 move.w V_MaxBuff(a2),d0 get max buffer count
+ cmp.w V_InCount(a2),d0 is buffer almost full?
+ bhi In10 if no, go check for more Rx data
+In65 move.b V_XOFF(a2),d0 else, get X-OFF character
+ beq In10 if XOFF not enabled, go check for more Rx data
+* move.b V_InHalt(a2),d1 have we sent XOFF already?
+* bne In10 if yes, then go check for more RxData
+ bclr #SignBit,d0 insure that the Sign bit is cleared
+ move.b d0,V_XOFF(a2) save XOFF character
+ ori.b #Sign,d0 set the Sign bit
+ move.b d0,V_InHalt(a2) flag XOFF to be sent
+ bsr Send_XX send XOFF character (or flag it to be sent)
+ bra In10 Go check receiver for more data 
+
+ page
+
+****************
+* Control character routines
+*
+InAbort move.w #S$Intrpt,d1 keyboard INTERRUPT signal
+ bra.s InQuit10
+
+InQuit move.w #S$Abort,d1 Abort signal
+InQuit10 move.l d0,-(sp) save input char
+ move.w V_LPRC(a2),d0 last process ID
+ bsr Wake10 Send error signal
+ move.l (sp)+,d0 restore input char
+ bra In30 buffer char, exit
+
+InPause tst.l V_DEV2(a2) any echo device?
+ beq In30 buffer char and exit if not
+ movea.l V_DEV2(a2),a0 get echo device static ptr
+ move.b d0,V_PAUS(a0) request pause
+ bra In30 buffer char and exit
+
+InXON bclr.b #H_XOFF,V_OutHalt(a2) clear "Halted for XOFF" flag
+ tst.b V_OutHalt(a2) still halted due to output buffer empty?
+ bne In10 if yes, go check for more Rx data
+ bsr.s EnTxIRQ enable transmitter interrupts
+ bra In10 if yes, go check for more Rx data
+ 
+InXOFF bset.b #H_XOFF,V_OutHalt(a2) flag output halted for XOFF
+ bra.s DsTxIRQ go disable the Tx IRQs and exit w/no error
+
+ ttl Hardware Routines Specific to the 68070
+ page
+
+********************
+* PutChar: 1) Check if the hardware's transmitter buffer is full.
+*          2) If not, transfer the character passed in d0 to the
+*             hardware, clear the carry bit in cc and exit.
+*          3) Else, set the carry bit in cc and exit.
+*
+* Passed: (a3) = Hardware Base Address
+*       (d0.b) = Character to be sent
+*
+* Returns (cc) = carry set if error occured
+*                carry cleared if no error
+*
+* NOTE: ANY additional registers used in this routine
+*       MUST be preserved by this routine!!
+*
+PutChar:
+ btst.b #TxRdyBit,StatReg(a3) transmit register empty?
+ beq.s PCErr if yes, exit with error
+ move.b d0,TxData(a3) else, move character to hardware
+ rts * (previous move instruction clears the carry)
+PCErr ori #Carry,ccr set the carry
+ rts
+
+
+********************
+* GetChar: Subroutine
+*
+* Requirements: 1) Check if hardware Rx buffer has a
+*                  character ready.  If no, goto step 5.
+*               2) Get any reception errors in d1.
+*               3) Get a character from the physical
+*                  chip data register.
+*               4) Clear the carry and return
+*               5) Set the carry and return
+*
+* Passed: (a3) = Port Address
+*
+* If character is available:
+* Returns: (d0.b) = Input character
+*          (d1.b) = Receiver error status (zero if no errors)
+*            (cc) = carry clear - character was available
+*
+* NOTE: Receiver error bit designations ARE defined.  It is the
+*       responsibility of this routine to return the proper bits
+*       in the proper positions.
+*
+* If character is NOT available:
+* Returns: (d0.b) = garbage
+*          (d1.b) = garbage
+*            (cc) = carry set - character was NOT available
+*
+GetChar:
+ btst.b #RxRdyBit,StatReg(a3) is character waiting?
+ beq.s GCErr if no, return no character error
+ move.b StatReg(a3),d1 get error status
+ andi.b #InputErr,d1 any errors?
+ beq.s GC10 if no, don't bother clearing them
+ move.b #ResetEr,CmndReg(a3) reset special error condition
+GC10 move.b RxData(a3),d0 get data
+ rts * (Carry is cleared by "move.b" instruction)
+
+GCErr ori #Carry,ccr set the error flag
+ rts
+
+ page
+
+********************
+* DsAllIRQ: (Subroutine) Disable all
+*           physical IRQs from this device
+*
+* Passed: (a2) = Static Storage Pointer
+*         (a3) = Port Address
+*         (a6) = Global storage pointer
+*
+* Returns: (cc) = carry cleared
+*          (d1) = zero
+*
+DsAllIRQ:
+ move.b #KillIRQs,IRQCtrl(a3) disable all IRQs
+ move.b #DsTx+DsRx,CmndReg(a3) disable transmitter and receiver
+ rts
+
+
+********************
+* DsTxIRQ: (Subroutine) Disable transmit IRQs
+*
+* Passed: (a2) = Static Storage Pointer
+*         (a3) = Port Address
+*         (a6) = Global storage pointer
+*
+* Returns: (cc) = carry cleared
+*          (d1) = zero
+*
+DsTxIRQ:
+ andi.b #KillTxIRQ,IRQCtrl(a3) disable transmit IRQs
+ rts
+
+
+********************
+* EnTxIRQ: Enable Transmitter IRQs
+*
+* Passed: (a2) = Static Storage Pointer
+*         (a3) = Port Address
+*         (a6) = Global storage pointer
+*
+* Returns: (cc) = carry cleared
+*          (d1) = zero
+*
+EnTxIRQ:
+ move.b V_EnTxIRQ(a2),d0 get Tx IRQ enable value
+ or.b d0,IRQCtrl(a3) enable output IRQs
+ rts
+ 
+ page
+ 
+********************
+* PutStatus: Any hardware dependent PutStat
+*            calls are handled here
+*
+* Passed: d0.w = SS_ status code
+*         (a1) = path descriptor ptr
+*         (a2) = Static storage
+*         (a6) = system global data ptr
+*
+* Returns (cc) = carry set if error
+*       (d1.b) = error code (0 if no error)
+*
+* NOTE: Any PutStat calls not handled should return
+*       an "Unknown Service Call" error (E$UnkSvc)
+*
+PutStatus:
+*
+* SS_Break
+*
+ cmpi.w #SS_Break,d0 send break?
+ beq.s SendBreak if yes, go send break
+*
+* SS_Relea
+*
+ cmpi.w #SS_Relea,d0 release device?
+ beq.s PSExit if yes, exit with no errors
+*
+* SS_Open
+*
+ cmpi.w #SS_Open,d0 open device?
+ beq.s PSExit if yes, exit with no errors
+*
+* SS_Opt
+*
+ cmpi.w #SS_Opt,d0 set options?
+ beq.s PSExit if yes, exit with no errors
+* Else, fall through to unknown service call
+
+
+********************
+* GetStatus: Handle any GetStat calls
+*            other than "SS_Ready" and "SS_EOF"
+*
+* Passed: (a2) = Static storage
+*
+* Returns: (cc) = carry set if error
+*        (d1.b) = error code (0 if no error)
+*
+* NOTE: Any GetStat calls not handled should return
+*       an "Unknown Service Call" error (E$UnkSvc)
+*
+GetStatus:
+ move.w #E$UnkSvc,d1 Unknown service code
+ ori #Carry,ccr return Carry set
+ rts
+
+
+********************
+* SendBreak: Send "Break"
+*
+SendBreak:
+ movea.l V_PORT(a2),a3 get hardware port address
+ move.b #StrtBrk,CmndReg(a3) start break
+ move.l #$80000066,d0 set to sleep for .4 seconds
+ OS9 F$Sleep duration of "Break" = .4 seconds
+ move.b #StopBrk,CmndReg(a3) stop break
+PSExit:
+ moveq.l #0,d1 clear errors
+ rts
+
+ page
+ 
+********************
+* InitHdwe: (Subroutine) Cold initialization
+*           of the physical hardware
+*
+* Passed: (a1) = device descriptor address
+*         (a2) = static storage address
+*         (a3) = Port Address
+*		  (a4) = address of process discriptor 
+* 		  (a6) = address of system global variable storage
+*
+*         (d2) = parity code, number of stop bits and word size
+*         (d3) = baud rate (OS9 standard code)
+*         (d4) = IRQ Vector (from descriptor)
+* 
+* Returns: (d0) = MSW - Input Buffer Size
+*                 LSW - Output Buffer Size
+*          (d1) = error code if error occurred (else 0)
+*          (cc) = carry set if error occurred
+*
+* Requirements: 1) Any code required to reset the device
+*               2) Initialize device's vector register (with d4.b)
+*               3) "bsr Config" before d2 & d3 are destroyed!
+*                  "bcs(.s) IHExit" to trap configuration errors
+*               4) Clear any pending interrupts
+*               5) Enable transmitter interrupts
+*               
+InitHdwe:
+ move.b #ResetRx,CmndReg(a3) reset receiver
+ move.b #ResetTx,CmndReg(a3) reset transmitter
+ move.b #ResetEr,CmndReg(a3) reset error status
+ bsr.s Config set the baud rate and parity etc...
+ bcs.s IHExit exit with configuration error (if any)
+ move.b #EnTx+EnRx,CmndReg(a3) enable transmitter and receiver
+ move.b M$IRQLvl(a1),d0 get Rx interrupt level from descriptor
+ sub.b #1,d0 derive Tx interrupt level
+ move.b d0,V_EnTxIRQ(a2) save it for Tx enable
+ move.b M$IRQLvl(a1),d0 get Rx interrupt level from descriptor
+ lsl.b #4,d0 shift level into position for IRQCtrl register
+ ori.b #ClrPIRQs,d0 clear any pending IRQs
+ move.b d0,IRQCtrl(a3) enable receiver IRQs
+ move.l #(InSize<<16)+OutSize,d0 return buffer sizes
+*
+* Exit
+*
+ moveq.l #0,d1 clear error
+IHExit rts
+
+********************
+* Config: (Subroutine) Set the baud rate,
+*         parity, stop bits and word size
+*         in the physical hardware
+*
+* Passed: (a1) = path descriptor
+*         (a2) = static storage
+*         (a3) = Port Address
+*         (d2) = parity code, number of stop bits and word size
+*         (d3) = baud rate (OS9 standard code)
+*
+* Returns: (d1) = E$BMode if error occurs
+*          (cc) = carry set if error occurred
+*
+* NOTE: All drivers should somehow handle a baud rate code
+*       for 38400 baud (OS9 code = $10).  If the device is
+*       unable to operate at 38400 baud, the driver should
+*       return a E$BMode error if this value is passed.
+*
+* NOTE2: Registers d2, d3 and a0 MUST be preserved!!!
+*
+* NOTE3: No hardware registers should be changed until ALL values
+*        to be altered have been determined to be non-bogus.
+*        (i.e. Make hardware changes the last thing before exiting.)
+*
+Config:
+ movem.l d2/d3/a0,-(sp) save the registers
+*
+* isolate word size
+*
+ move.b d2,d0 make copy to isolate word size bits
+ andi.b #%00001100,d0 mask out word size bits
+ lsr.b #2,d0 align position to mode control register
+ btst.l #1,d0 out of range? (5 or 6 bits/char illegal)
+ bne.s ConfigErr if yes, exit with BMODE error
+ bchg.l #0,d0 invert to match mode control register
+*
+* get parity value
+*
+ move.b d2,d1 make copy to isolate parity bits
+ andi.b #%00000011,d1 mask out parity bits
+ ext.w d1 make it an offset
+ lea ParityTab(pc),a0 get parity table address
+ or.b (a0,d1.w),d0 OR in the parity code
+*
+* get stop bits value
+* 
+ move.b d2,d1 make copy to isolate stop bits
+ andi.b #%00110000,d1 mask out stop bits
+ lsr.b #4,d1 move to match position in mode register
+ btst.l #0,d1 check for illegal value (1 1/2 bits illegal)
+ bne.s ConfigErr if yes, exit with BMODE error
+ or.b d1,d0 OR in the stop bit length code
+*
+* get the baud rate
+*
+ ext.w d3 sign extend the baud rate value to use as offset
+ lea BaudTable(pc),a0 get baud table address
+ move.b (a0,d3.w),d2 get baud rate control byte
+ bmi.s ConfigErr if bit 7 set, it is an illegal baud rate
+ ifndef CLKINT
+ ifdef PVB070
+ ori.b #ExtClock,d2 OR in external clock select bit
+ endc
+ endc CLKINT
+ ori.b #SetUBit,d2 OR in the unused bit in the clock control register
+*
+* set baudrate, stop bits/parity and word size in hardware
+*
+ move.b d2,ClkSlct(a3) set TxC & RxC, Baudrate generator enable
+ move.b d0,ModeReg(a3) set word size, stop bits & parity
+*
+* Exit
+*
+ConfigExit moveq.l #0,d1
+CFExit movem.l (sp)+,d2/d3/a0 retrieve registers
+ rts
+*
+* Error Exit
+*
+ConfigErr move.w #E$BMode,d1
+ ori #Carry,ccr
+ bra.s CFExit
+
+********************
+* BaudTable: Baud Rate translation table
+*
+ParityTab:
+ dc.b %00000000 no parity
+ dc.b %00001000 odd parity
+ dc.b %00000000 no parity
+ dc.b %00001100 even parity
+
+********************
+* BaudTable: Baud Rate translation table
+*
+BaudTable:
+ dc.b $00 50 baud
+ dc.b $FF 75 baud (illegal)
+ dc.b $FF 110 baud (illegal)
+ dc.b $FF 134.5 baud (illegal)
+ dc.b $11 150 baud
+ dc.b $22 300 baud
+ dc.b $FF 600 baud (illegal)
+ dc.b $33 1200 baud
+ dc.b $FF 1800 baud (illegal)
+ dc.b $FF 2000 baud (illegal)
+ dc.b $44 2400 baud
+ dc.b $FF 3600 baud (illegal)
+ dc.b $55 4800 baud
+ dc.b $FF 7200 baud (illegal)
+ dc.b $66 9600 baud
+ dc.b $77 19200 baud
+ dc.b $FF 38400 baud (illegal)
+
+ page
+ 
+********************
+* IRQTable: IRQ vector offsets and
+*           routine address offsets
+*
+IRQTable: dc.w IRQQty
+ dc.w 0 no vector offset
+ dc.w RxIRQ offset to the receiver IRQ routine
+ dc.w -1 vector offset of -1 (Tx vector = (Rx vector)-1)
+ dc.w TxIRQ offset to the transmitter IRQ routine
+IRQQty equ ((*-IRQTable)/4)-1 number of table entries
+
+********************
+* RxIRQ: Check for Rx interrupt and transfer
+*        control to the input IRQ routine
+*
+* Passed: (a2) = Static Storage Pointer
+*         (a3) = Port Address
+*
+* IMPORTANT WARNING!: The kernel will only save registers
+*                     D0, D1, A0, A2, A3 and A6 when calling
+*                     this IRQ routine!  Any other registers
+*                     used must be saved by this routine!
+* 
+* ANOTHER WARNING!: The generic "InIRQ" routine exits back to the
+*                   Kernel wit a simple RTS instruction.  Therefore,
+*                   any registers saved on the stack in this routine
+*                   MUST BE PULLED OFF THE STACK BEFORE TRANSFERRING
+*                   CONTROL TO "InIRQ"!!!!!!
+*
+RxIRQ: btst.b #RxRdyBit,StatReg(a3) input ready?
+ bne InIRQ if yes, go process input IRQ
+ ori #Carry,ccr exit with carry
+ rts
+
+
+********************
+* TxIRQ: Check for Tx interrupt and transfer
+*        control to the input IRQ routine
+*
+* Passed: (a2) = Static Storage Pointer
+*         (a3) = Port Address
+*
+* IMPORTANT WARNING!: The kernel will only save registers
+*                     D0, D1, A0, A2, A3 and A6 when calling
+*                     this IRQ routine!  Any other registers
+*                     used must be saved by this routine!
+* 
+* ANOTHER WARNING!: The generic "OutIRQ" routine exits back to the
+*                   Kernel wit a simple RTS instruction.  Therefore,
+*                   any registers saved on the stack in this routine
+*                   MUST BE PULLED OFF THE STACK BEFORE TRANSFERRING
+*                   CONTROL TO "OutIRQ"!!!!!!
+*
+TxIRQ: btst.b #TxRdyBit,StatReg(a3) input ready?
+ bne OutIRQ if yes, go process input IRQ
+ ori #Carry,ccr exit with carry
+ rts
+
+ ends
+

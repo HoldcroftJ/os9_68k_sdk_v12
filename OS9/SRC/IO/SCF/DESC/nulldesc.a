@@ -1,0 +1,94 @@
+ ttl Device Descriptor for SCF serial device
+
+* Copyright 1984, 1985 by Microware Systems Corporation.
+* Reproduced Under License.
+
+* This source code is the proprietary confidential property of
+* Microware Systems Corporation, and is provided to licensee
+* solely for documentation and educational purposes. Reproduction,
+* publication, or distribution in any form to any party other
+* than the licensee is prohibited.
+
+********************************
+* Edition History
+*  #   date    comments                                         by
+* -- -------- ------------------------------------------------- ---
+* 00 09-28-83 Converted to 68000 from 6809 source               rfd
+* 00 04-06-84 Added use of TrmDrNam macro for driver name       WGP
+* 01 10-12-84 Added IRQ Level & resesrved bytes.                rfd
+* 02 10-24-84 Changed to "use" file format.                     rfd
+* 03 11-05-84 Inserted macro for descriptor generation.         rfd
+* 04 06-27-85 Added mode byte.									rfd
+*             <<<---- OS-9/68000 V2.1 Release ---->>>
+*
+Edition equ 4 current edition number
+
+TypeLang set (Devic<<8)+0
+Attr_Rev set (ReEnt<<8)+0
+ psect ScfDesc,TypeLang,Attr_Rev,Edition,0,0
+
+ dc.l Port port address
+ dc.b Vector auto-vector trap assignment
+ dc.b IRQLevel IRQ hardware interrupt level
+ dc.b Priority irq polling priority
+ dc.b Mode Device mode capabilities
+ dc.w FileMgr file manager name offset
+ dc.w DevDrv device driver name offset
+ dc.w DevCon (reserved)
+ dc.w 0,0,0,0 reserved
+ dc.w OptSiz option byte count
+
+* Default Parameters
+Options
+*                                       default
+*       name    function                value
+*     -------- --------------------     -------
+ dc.b DT_SCF   device type              SCF
+ dc.b 0
+ dc.b 0
+ dc.b 0
+ dc.b 0
+ dc.b 0
+ dc.b 0
+ dc.b 0
+ dc.b 0
+ dc.b 0
+ dc.b 0
+ dc.b 0
+ dc.b 0
+ dc.b 0
+ dc.b 0
+ dc.b 0
+ dc.b 0
+ dc.b 0
+ dc.b 0
+ dc.b 0
+ dc.b Parity   stop bits and parity
+ dc.b BaudRate bits/char and baud rate
+ dc.w EchoNam  offset of echo device    none
+ dc.b 0
+ dc.b 0
+ dc.b 0
+ dc.b 0
+OptSiz equ *-Options
+
+FileMgr dc.b "Scf",0  file manager
+
+* Macro to generate main features of device descriptor
+SCFDesc macro
+ ifne \#-7 must have exactly seven arguments
+ FAIL SCFDesc: must specify all 7 arguments
+ endc
+
+Port     equ \1 Port address
+Vector   equ \2 autovector number
+IRQLevel equ \3 hardware interrupt level 
+Priority equ \4 polling priority
+Parity   equ \5 parity, stop bits
+BaudRate equ \6 baud rate
+DevDrv   dc.b "\7",0 driver module name
+EchoNam equ bname echo device descriptor (self)
+ endm
+
+Mode set ISize_+Updat_ default device mode capabilities
+

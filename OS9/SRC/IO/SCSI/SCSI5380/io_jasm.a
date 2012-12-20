@@ -1,0 +1,85 @@
+
+*
+* This is the glue code into the alarm system for the JNMS player.
+* It consists of the two 'C' calls and the glue code for the
+* driver as detailed below:
+*
+*  (Alarm ID) int _f_set_alarm( time, regs, lst )
+*      where:  time is the number of 256ths of a seconds for cycle period
+*              regs is a _zeroed_ space used for the register set
+*              low level static storage pointer
+*      Returns -1 on error, or alarm ID if all ok.
+*
+*  (void) _f_delete_alarm( alarm_id )
+*      where: alarm_id is the ID returned from _f_set_alarm()
+*
+*  NON-CALLABLE ENTRY POINT:
+*
+*  alarmglue -- This is the entry point used by the alarm routine,
+*               it preserves registers and routes to 'C' handler.
+*  
+*
+
+params      set  8     offset on stack of passed parameters after link
+arg1        set  0     offset to first argument passed 'params'
+DMA_MON_SIG set  280   signal value sent by alarm
+
+_f_set_alarm:
+ link a5,#0 
+ movem.l d1-d4/a0-a1/a6,-(sp) preserve what's used
+ move.l d1,a0 pointer to the alarm register set
+ move.l #A$Cycle,d1 code name for cyclic alarm
+ move.l d0,d3 set number of 256ths needed
+ bset #31,d3 and tell alarm 256ths of a second required
+ moveq.l #0,d0 F$Alarm wants some of these as zeros
+ move.l d0,d4
+ move.l d0,d2
+ move.l arg1+params(a5),R$d0(a0) pointer to driver static storage
+ lea.l alarmglue(pc),a1
+ move.l a1,R$pc(a0) entry point address
+_f_alarm_com
+ movea.l 0.w,a6 grab system global pointer
+ move.l D_Proc(a6),-(sp) save current process ID
+ move.l D_SysPrc(a6),D_Proc(a6) swap system process in as owner
+ os9 F$Alarm request the alarm be started
+ bcc.s _f_set_alarm_ex
+ move.w d1,d0 error return from alarm call
+ andi.l #0xFFFF,d0 zero extended to longword
+ neg d0 and negated (result < 0 )
+_f_set_alarm_ex
+ move.l (sp)+,D_Proc(a6) restore current process descriptor
+ movem.l (sp)+,d1-d4/a0-a1/a6
+ unlk a5
+ rts
+ 
+_f_delete_alarm:
+ link a5,#0 
+ movem.l d1-d4/a0-a1/a6,-(sp)
+ moveq.l #0,d2 zero some for the alarm calls
+ move.l d2,d3
+ move.l d2,d4
+ moveq.l #A$Delete,d1 delete the alarm code
+ bra.s _f_alarm_com
+
+***********
+*  Not a user call!! This is the alarm entry point for the driver.
+***********
+alarmglue:
+ movem.l d0-d7/a0-a6,-(sp) preserve all
+ bsr dma_monitor 
+ movem.l (sp)+,d0-d7/a0-a6 restore all
+ rts
+
+
+*
+* get_system_ticks() - return D_Ticks from system globals
+*
+
+get_system_ticks:
+ move.l a0,-(sp)
+ move.l $0,a0 get pointer to system globals
+ move.l D_Ticks(a0),d0
+ move.l (sp)+,a0
+ rts
+
+

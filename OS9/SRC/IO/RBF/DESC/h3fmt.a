@@ -1,0 +1,10 @@
+ nam H3 Device Descriptor
+ use defsfile
+
+ use "rbfdesc.a"
+
+DrvNum set 3
+ DiskH3
+Control set Control&(^FmtDsabl) disk is formattable
+Trys set 1
+ ends

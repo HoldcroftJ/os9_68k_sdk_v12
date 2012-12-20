@@ -1,0 +1,8 @@
+ nam H7 Device Descriptor
+ use defsfile
+
+ use "rbfdesc.a"
+
+DrvNum set 8
+ DiskH7
+ ends

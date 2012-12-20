@@ -1,0 +1,8 @@
+ nam H6 Device Descriptor
+ use defsfile
+
+ use "rbfdesc.a"
+
+DrvNum set 6
+ DiskH6
+ ends

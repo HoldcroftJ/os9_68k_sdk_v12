@@ -1,0 +1,9 @@
+ nam T33
+ ttl 68000 T33 device descriptor module
+ use defsfile
+
+ use "scfdesc.a"
+
+ T33
+ ends
+

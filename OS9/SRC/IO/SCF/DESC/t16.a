@@ -1,0 +1,9 @@
+ nam T16
+ ttl 68000 T16 device descriptor module
+ use defsfile
+
+ use "scfdesc.a"
+
+ T16
+ ends
+

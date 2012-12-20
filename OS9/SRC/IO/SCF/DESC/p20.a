@@ -1,0 +1,16 @@
+ nam P20
+ ttl 68000 P20 device descriptor module
+ use defsfile
+
+* changes to default values
+bsb       equ OFF backspace=BS only
+pagpause  equ OFF turn off pause
+autoecho  equ OFF no echo for printer
+pagsize   equ 66  default to 66 lines/page
+
+ use "scfdesc.a"
+
+ P20
+ ends
+
+

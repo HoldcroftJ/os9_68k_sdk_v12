@@ -1,0 +1,15 @@
+ nam R2 Device Descriptor
+ use defsfile
+
+ use "rbfdesc.a"
+
+DrvNum set 0
+ DiskR2
+Control set Control&(^FmtDsabl) disk is formattable
+Trys set 1
+
+ ifndef DevCon
+DevCon dc.b 0 default device setup flags
+ endc
+
+ ends

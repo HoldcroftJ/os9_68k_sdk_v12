@@ -1,0 +1,404 @@
+ opt -l
+ nam Process Descriptor Format
+
+*****************************************************************************
+*                                                                           *
+*              Copyright 1998 by Microware Systems Corporation              *
+*                            All Rights Reserved                            *
+*                          Reproduced Under License                         *
+*                                                                           *
+*  This software is confidential property of Microware Systems Corporation, *
+*  and is provided under license for internal development purposes only.    *
+*  Reproduction, publication, modification, distribution, or creation of    *
+*  derivative works in any form to any party other than the Licensee is     *
+*  strictly prohibited, unless expressly provided for under the terms of a  *
+*  mutually executed written license agreement for this software between    *
+*  the end-user and Microware Systems Corporation, or otherwise expressly   *
+*  authorized in writing by Microware Systems Corporation.  Licensee shall  *
+*  reproduce this copyright notice exactly as provided herein on any copies *
+*  of the software that Licensee is authorized to distribute.               *
+*                                                                           *
+*****************************************************************************
+* Edition History
+*  #   Date    Changes Made                                             by
+* -- -------- --------------------------------------------------------- ---
+* 00 04-11-83 Converted to 68000 from OS-9 Level II Edition 7.          rfd
+* 00 05-24-83 Removed DAT routines with conditional assembly.           rfd
+* 00 06-21-83 Changed from "ds" to "do" (define offset).                rfd
+* 01 02-09-84 Converted for linkage use.                                lac
+* 02 03-23-84 Added D_TckSec word.                                      rfd
+* 03 05-21-84 Rearranged D_ variables for convenience.                  rfd
+* 04 08-24-84 Added new codes for scheduler changes.                    rfd
+* 05 09-06-84 Increased Process Local stack size.                       rfd
+* 05 10-16-84 Added D_UnkIRQ in reserved byte.                          rfd
+* 06 10-24-84 Added P$QueuID, P$SCall, and D_Debug variables.           rfd
+* 07 11-05-84 Added D_ActMod.                                           rfd
+*             Added machine characteristics.                            rfd
+* 08 11-09-84 Removed system globals, rearranged.                       rfd
+* 09 01-08-85 Reworked P$Queue pointers.                                rfd
+* 10 05-15-85 Added P$Sched variable, changed process aging.            rfd
+* 11 05-31-85 Added P$Acct space for accounting module.                 rfd
+*				---- OS-9/68k V1.2 released ----
+* 12 08-12-85 Eliminated P$Queue, moved P$QueueN, P$QueueP.             rfd
+* 13 09-09-85 Added P$Frags.                                            rfd
+* 14 09-16-85 Added SPU/MMU definitions.                                rfd
+* 15 01-17-86 Added P$Data and P$DataSz for new memory alloc.           rfd
+* 16 07-16-86 Added 68881 FPU definitions.                              rfd
+* 17 09-03-86 Reorganized for better (020) long-word alignment.         rfd
+* 18 09-16-86 Removed 'T_' names, moved to sysglob.a.                   rfd
+*				---- OS-9/68k V2.0 released ----
+* 19 03-20-87 Added signal mask and queue.                              rfd
+*             Removed P$Size; D_ProcSz(a6) must be used instead.        rfd
+* 20 04-21-87 Reworked the signal variables.                            rfd
+* 21 05-05-87 Changed (removed) SPU definitions.                        rfd
+* 22 05-27-87 Added cache control definitions.                          rfd
+*				---- OS-9/68k V2.1 released ----
+* 23 08-25-87 Added thread block definition and "Q_None".               rfd
+* 24 09-25-87 Added P$Thread queue head.                                rfd
+* 25 01-19-87 Added P$BkPtCnt.                                          rfd
+*				---- OS-9/68k V2.2 released ----
+* 26 06-13-88 Added 68030 cache control definitions.                    rfd
+* 27 07-05-88 Changed cache control definitions for wwb.                rfd
+* 28 08-11-88 Added P$Baked.                                            rfd
+*				---- CD-RTOS V0.97 released ----
+* 29 10-01-88 Added P$MOwn.                                             rfd
+*				---- CD-RTOS V0.99 released ----
+* 30 01-09-89 Nervously added P$ExpStk for temporary use of SockMan.    rfd
+*				---- OS-9/68k V2.2 edition #50 released ----
+*				---- OS-9/68k V2.3 released ----
+* 31 06-15-89 Added FPU$Busy field in fpu save area.                    rfd
+*				---- CD-RTOS V1.1 released ----
+*				---- OS-9/68k V2.4 released ----
+* 32 91/01/29 Added 68040 FP state frame definitions.                   wwb
+*				---- OS-9/68k V2.4 68040 released ----
+*				---- OS-9/68k V2.4.3 released ----
+* 33 91/11/21 Added P$EmuState.                                         wwb
+* 34 91/12/02 Added fpusrext, fpundata040 to P$EmuState.                wwb
+*             Reworked FPU state defs, adding emulator defs.            wwb
+* 35 91/12/10 Reworked FPU state defs again for robb.                   wwb
+* 36 91/12/11 Fixed (potential) naming problem from ed35.               wwb
+* 37 92/11/24 added P$Preempt and state flag (ChildDead).				wwb
+*				---- OS-9/68k V2.5 (Discovery Pak) released ----
+* 38 93/01/26 reworked process descriptor end defs:  with the size of	wwb
+*             stack being settable from the Init module, defs that
+*             reference the sizeof the process descriptor, or the top
+*             of stack are not accurate.
+*             Added Trace-conditional and MSP/ISP defs.					wwb
+* 39 93/01/28 named P$ExpStkSz, added reserved space at end of "body".	wwb
+* 40 93/02/09 Named reserved fields in signal block.					wwb
+* 41 93/03/24 Added P$SigIRet.											wwb
+* 42 93/06/11 Added fpucalm040 defs (for P$EmuState).					wwb
+*				---- OS-9/68k V3.0 released ----
+* 43 95/05/10 Added Q_Sema definition.									wwb
+* 44 95/05/15 Added Q_MBuf definition.									wwb
+*             Added 68060 FPU defs.										wwb
+*				---- OS-9/68K V3.0.2 Beta_2 Release ----
+*				---- OS-9/68K V3.0.2 Release ----
+*				---- OS-9/68K V3.0.3 PwrMan Beta Release ----
+*				---- OS-9/68K V3.0.3 Release ----
+* 45 98/07/15 Added new copyright info.									wwb
+* 46 98/08/26 Added Thread state field.									wwb
+*				---- OS-9/68K V3.1 Release ----								*
+* 47 00/06/11 Added Defintions for b_Thr_DelIP                          mgh 
+*             $$                    <RELEASE_INFO>                     $$   *
+*
+edition set 47 current edition
+
+ psect process,0,0,edition,0,0
+ pag
+
+MemBlks:	equ 32 number of separate memory blocks per process
+NumPaths:	equ 32 number of local I/O paths
+DefIOSiz:	equ 32 default I/O data area size (RBF requires >=20)
+ExecDir:	equ DefIOSiz/2 offset of default execution directory data
+
+********************************
+* Process Descriptor Definitions
+ProcDsc: equ 1<<16 process descriptor format revision (for D_Cigar)
+
+ org 0
+P$ID:		do.w 1 process ID
+P$PID:		do.w 1 parent's ID
+P$SID:		do.w 1 sibling's ID
+P$CID:		do.w 1 child's ID
+P$sp:		do.l 1 system stack ptr
+P$usp:		do.l 1 user stack ptr
+P$MemSiz:	do.l 1 total combined non-module memory consumption
+P$User:		do.w 2 user index (group, user)
+P$Prior:	do.w 1 priority
+P$Age:		do.w 1 age
+P$State:	do.w 1 status
+P$Task:		do.w 1 process task number
+P$QueuID:	do.b 1 current queue; what process is doing
+P$SCall:	do.b 1 last system call executed
+P$Baked:	do.b 1 non-zero if process was created by Fork
+P$EmuState:	do.b 1 emulation status
+P$DeadLk:	do.w 1 dominant Process ID if I/O locked
+P$Signal:	do.w 1 signal code
+P$SigVec:	do.l 1 signal intercept vector
+P$SigDat:	do.l 1 signal intercept data address
+P$QueueN:	do.l 1 next process queue ptr
+P$QueueP:	do.l 1 previous process queue ptr
+P$PModul:	do.l 1 primary module
+P$Except:	do.l 10 Program error exception vectors
+P$ExStk:	do.l 10 program error exception stack frame ptrs
+P$Traps:	do.l 15 user's TRAP vectorltable
+P$TrpMem:	do.l 15 trap handler static memory block ptrs
+P$TrpSiz:	do.l 15 trap handler static memory block sizes
+P$ExcpSP:	do.l 1 system state exception recovery stack
+P$ExcpPC:	do.l 1 system state exception recovery program counter
+P$DIO:		do.b DefIOSiz default I/O data
+P$Path:		do.w NumPaths I/O path table
+P$MemImg:	do.l MemBlks allocated memory block ptrs
+P$BlkSiz:	do.l MemBlks size of each allocated memory block
+P$DbgReg:	do.l 1 debugged process register stack frame
+P$DbgPar:	do.l 1 debugged process parent Proc Desc ptr
+P$DbgIns:	do.l 1 debugged process instruction count
+P$UTicks:	do.l 1 user state ticks elapsed
+P$STicks:	do.l 1 system state ticks elapsed
+P$DatBeg:	do.l 1 fork system julian date
+P$TimBeg:	do.l 1 fork julian time when forked
+P$FCalls:	do.l 1 number of function calls executed
+P$ICalls:	do.l 1 number of I/O system calls executed
+P$RBytes:	do.l 1 number of bytes read
+P$WBytes:	do.l 1 number of bytes written
+P$IOQP:		do.w 1 previous I/O queue (process ID) link
+P$IOQN:		do.w 1 next I/O queue (process ID) link
+P$Frags:	do.l 2 free memory fragment list head
+P$Sched:	do.l 1 active queue scheduling constant
+P$SPUMem:	do.l 1 ptr to process' SPU data
+P$BkPtCnt:	do.l 1 number of breakpoints set
+P$BkPts:	do.w 16 reserved for contents of breakpoint instructions
+P$Acct:		do.l 8 reserved for user accounting module
+P$Data:		do.l 1 ptr to process primary data area
+P$DataSz:	do.l 1 size of process primary data area
+P$FPUSave:	do.l 1 ptr to FPU save area
+P$FPExcpt:	do.l 7 floating point error exception vectors
+P$FPExStk:	do.l 7 floating point error exception stack frame ptrs
+P$SigLvl:	do.b 1 signal interrupt level
+P$SigFlg:	do.b 1 signal flag
+P$Sigxs:	do.w 1 number of excess signal blocks allocated
+P$SigMask:	do.l 1 mask to disable signals 2-31
+P$SigCnt:	do.l 1 number of signals pending
+P$SigQue:	do.l 1 ptr to head of signal queue
+P$DefSig:	do.l 4 default initial signal queue element
+P$Thread:	do.l 2 doubly linked thread queue
+P$frag:		do.l 2 new-style memcolor lists
+P$MOwn:		do.l 1 original owner of primary module (for security)
+P$ExpStk:	do.l 1 reserved for more stack space
+P$ExpStkSz:	do.l 1 reserved for more stack space (size)
+P$Preempt:	do.l 1 process level system-state pre-emption flag (0=allowed)
+P$ProcSiz:	do.w 1 total size of this process descriptor
+P$StackSiz:	do.w 1 size of process stack area
+P$SigIRet:	do.l 1 signal intercept recursion counter
+			do.l 2 reserved (and make next long aligned)
+			do.l 16 reserved
+
+P$PrcBody:	equ . size of basic process descriptor (non-volatile)
+
+*P$Last:		equ . non-stack data requirement
+*StackRoom	do.b $800-. Local stack
+*P$Stack:	equ . Top of Stack
+*P$ProcSz:	equ . Size of Proc Desc (for coldstart - others must use D_ProcSz)
+
+ pag
+********************************
+* Process State Flag Bits (P$State high byte)
+*
+SysState:	equ 7 1xxx xxxx executing system state routine
+TimSleep:	equ 6 x1xx xxxx timed sleep
+TimOut:		equ 5 xx1x xxxx time slice has expired
+ImgChg:		equ 4 xxx1 xxxx SPU/MMU protection map has changed
+ChildDead:	equ 3 xxxx 1xxx dead child
+*				2 xxxx x1xx (unused)
+Condemn:	equ 1 xxxx xx1x process is condemned
+Dead:		equ 0 xxxx xxx1 process has terminated
+
+********************************
+* Process Queue ID codes
+Q_None:		equ ' ' not in any queue
+Q_Dead:		equ '-' no queue:		dead process
+Q_Active:	equ 'a' active process queue
+Q_Debug:	equ 'd' no queue:		inactively debugging
+Q_Event:	equ 'e' event queue
+Q_Sleep:	equ 's' sleep queue
+Q_Wait:		equ 'w' waiting queue
+Q_Sema:		equ 'p' semaphore queue
+Q_MBuf:		equ 'm' mbuf queue
+Q_Currnt:	equ '*' no queue:		currently running
+
+********************************
+* Signal queue format
+ org 0
+Sig_Nxt:	do.l 1 ptr to next entry in queue
+Sig_Prv:	do.l 1 ptr to previous entry in queue
+Sig_Res1:	do.w 1 reserved
+Sig_Code:	do.w 1 signal code
+Sig_Res2:	do.l 1 reserved
+Sig_Size:	equ .
+
+* Signal flag bits (in P$SigFlg)
+B_SIGMASK:	equ 0 signals are masked when set
+B_WAKEUP:	equ 7 wakeup is pending when set
+
+********************************
+* User Register Stack Image names
+		org 0
+R$d0:	do.l 1 data registers
+R$d1:	do.l 1
+R$d2:	do.l 1
+R$d3:	do.l 1
+R$d4:	do.l 1
+R$d5:	do.l 1
+R$d6:	do.l 1
+R$d7:	do.l 1
+R$a0:	do.l 1 address registers
+R$a1:	do.l 1
+R$a2:	do.l 1
+R$a3:	do.l 1
+R$a4:	do.l 1
+R$a5:	do.l 1
+R$a6:	do.l 1
+R$a7:	do.l 1 (user stack pointer)
+R$sr:	do.w 1 status register
+R$cc:	equ R$sr+1 condition codes portion
+R$pc:	do.l 1 program counter register
+R$fmt:	do.w 1 68010 exception format & vector
+R$Size:	equ . total register package size
+
+** Status Register Fields
+TraceBit:	equ 7 trace (every instruction) bit in system byte
+TraceCBit:	equ 6 trace (on flow change) bit in system byte
+SupvrBit:	equ 5 supervisor bit in system byte
+MSPBit:		equ 4 master stack pointer bit in system byte
+
+Trace:		equ %10000000<<8 trace mode
+TraceC:		equ %01000000<<8 trace (on flow change) mode
+Supervis:	equ %00100000<<8 supervisor state
+MasterSP:	equ %00010000<<8 master (supervisor) stack
+InterruptSP:	equ ^MasterSP interrupt (supervisor) stack (default @ RESET)
+IntMask:	equ %00000111<<8 interrupt mask
+IntEnab:	equ ^IntMask
+Extend:		equ %00010000 Extend bit
+Negative:	equ %00001000 Negative flag
+Zero:		equ %00000100 Zero flag
+TwosOvfl:	equ %00000010 Two's Comp Overflow flag
+Carry:		equ %00000001 Carry bit
+NoCarry:	equ ^Carry
+
+Sign:		equ $80 sign bit of a byte
+SignBit:	equ 7 bit number of sign bit
+
+ pag
+********************************
+* F$CCtl cache control definitions
+
+* F$CCtl parameter defs:
+* d0.l = 0 --> flush caches (user-state, non-super user)
+
+* control bit numbers (supervisor-state, user-state super-user)
+b_endata:	equ 0 enable data cache
+b_disdata:	equ 1 disable data cache
+b_fldata:	equ 2 flush data cache
+b_eninst:	equ 4 enable instruction cache
+b_disinst:	equ 5 disable instruction cache
+b_flinst:	equ 6 flush instruction cache
+
+endata:		equ 1<<b_endata
+disdata:	equ 1<<b_disdata
+fldata:		equ 1<<b_fldata
+eninst:		equ 1<<b_eninst
+disinst:	equ 1<<b_disinst
+flinst:		equ 1<<b_flinst
+
+
+********************************
+* Emulation state flags (P$EmuState)
+
+b_fpinit040:	equ 0 68040 fpu emulation initialized
+b_fpundata040:	equ 1 user extension (unsupported data types) initialized
+b_fpucalm040:	equ 2 68040 fpu exception calmed
+
+fpinit040:		equ (1<<b_fpinit040) 68040 fpu emulation initialized
+fpundata040:	equ (1<<b_fpundata040) (unsupported data type) initialized
+fpucalm040:		equ (1<<b_fpucalm040) 68040 fpu exception calmed
+
+
+********************************
+* 68881/68882/68040/68060 FPU context save area definitions
+ org 0
+FPU$MemS:	do.l 1 memory block size
+FPU$Busy:	do.l 1 fpu save area is busy (used during signal handling)
+* WARNING:  "fpumacs.d" assumes FPU$Regs and FPU$Cntrl are contiguous.
+FPU$Regs:	do.l 8*3 FPU register save
+FPU$Cntrl:	do.l 3 FPU control reg save
+* end of order dependant defs
+FPU$Contxt:	equ . start of FPU context area
+
+* 68060 context saves
+ org FPU$Contxt
+				do.l 3 FPU save area
+FPU$Siz060:		equ . size of 68060 (hardware) context area
+FPU$Tot060:		equ . total size of (std) 68060 FPU data
+FPU$Usr060:		equ . start of user-defined FPU data
+
+* 68040 context saves
+ org FPU$Contxt
+				do.b $60+4 68040 FPU max context area
+FPU$Siz040: 	equ . size of 68040 (hardware) context area
+FPU$Excpt040:	do.l 1 exception generation flag
+FPU$PC040:		do.l 1 F-Line instruction PC value
+FPU$SP040:		do.l 1 initial stack address
+				do.l 3 reserved
+FPU$Tot040:		equ . total size of (std) 68040 FPU data
+FPU$Usr040: 	equ . start of user-defined FPU data
+
+* 68882 context saves
+ org FPU$Contxt
+				do.b $d4+4 68882 FPU max context area
+FPU$Siz882:		equ . size of 68882 FPU context area
+
+* 68881 context saves
+ org FPU$Contxt
+				do.b $b4+4 68881 FPU max context area
+FPU$Siz881:		equ . 68881 FPU conext area
+
+* largest possible FPU save area
+*	
+FPU$Size:		equ FPU$Siz882 max size of FPU context area
+
+
+********************************
+* Thread Execution Block
+*
+ org 0
+T_ID:		do.w 1 reserved
+T_Proc:		do.w 1 owner process ID (zero if none)
+T_MSiz:		do.l 1 thread block memory size
+T_User:		do.l 1 owner's user number
+T_Next:		do.l 1 next thread in doubly linked list
+T_Prev:		do.l 1 previous thread in doubly linked list
+T_Link:		do.l 2 doubly linked list of associated threads (owner link)
+T_Sys:		do.l 4 reserved for activation conditions
+T_Regs:		do.b R$Size register image
+T_Size:		equ . total size of entry
+
+			org T_Sys alarm condition definitions
+T_Cycle:	do.l 1 wakeup cycle period
+T_WkTime:	do.l 1 wakeup time
+T_WkDate:	do.l 1 wakeup date
+T_State:	do.b 1 thread state
+			do.b 3 reserved
+
+* Thread state
+*
+b_Thr_Delete:	equ 0 thread is deleted
+b_Thr_Active:	equ 1 thread is active
+b_Thr_DelIP:	equ 2 thread delete in progress
+
+Thr_Delete:		equ (1<<b_Thr_Delete)
+Thr_Active:		equ (1<<b_Thr_Active)
+Thr_DelIP:		equ (1<<b_Thr_DelIP)
+
+ ends
+ opt l

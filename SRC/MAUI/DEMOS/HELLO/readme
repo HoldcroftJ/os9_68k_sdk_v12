@@ -1,0 +1,42 @@
+**********************************************************************
+MAUI hello demo code
+**********************************************************************
+What this demo does:
+  - "Hello MAUI demo..." is displayed. The message is displayed for 10
+    seconds and then the demo terminates.
+ 
+**********************************************************************
+System requirements:
+  - A working MAUI environment is assumed.
+  - The demo requires that gfx is in memory.
+  - The demo requires that mfm is in memory.
+ 
+*********************************************************************
+Directories: 
+  - Source code 
+      $MWOS/SRC/MAUI/DEMOS/HELLO
+
+  - Assets
+      $MWOS/<operating system>/<hardware platform>/ASSETS/FONTS
+        
+*********************************************************************
+To make this demo:
+  - From the source file directory type:
+      % os9make
+ 
+*********************************************************************
+Operation:
+
+  - If no command line options are used, the font 'default.fnt' must
+    be in memory. The font can be found in the assets directory noted
+    above.
+
+      $ hello
+
+  - Alternatively, the -f option can be used to specify an alternative
+    font.
+
+      $ hello -f=myfont.ucm
+
+*********************************************************************
+

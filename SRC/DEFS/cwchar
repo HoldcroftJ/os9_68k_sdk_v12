@@ -1,0 +1,10 @@
+#ifndef __CWCHAR
+#	define __CWCHAR
+
+namespace std {
+
+#include <wchar.h> 	// don't have this header yet
+
+} /* namespace std */
+
+#endif /* __CWCHAR */

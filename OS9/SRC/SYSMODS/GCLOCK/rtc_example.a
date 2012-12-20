@@ -1,0 +1,196 @@
+ nam rtc_example.a
+ ttl Real Time Clock subroutine module example
+ 
+********************************
+* Real Time Clock subroutine module example
+
+* Copyright 1987, 1995 by Microware Systems 
+* Corporation
+* Reproduced Under License
+
+* This source code is the proprietary confidential property of
+* Microware Systems Corporation, and is provided to licensee
+* solely for documentation and educational purposes. Reproduction,
+* publication, or distribution in any form to any party other than
+* the licensee is strictly prohibited.
+
+********************************
+* Edition History
+
+*  #    Date      Comments                                      By
+* -- -------- ------------------------------------------------ ---
+* 01 87/10/27 Real Time Clock Module Example                   jal
+*             ---- OS-9/68K V2.3 released ----
+*             ---- OS-9/68K V2.4 released ----
+*             ---- OS-9/68K V3.0 released ----
+* 02 95/01/23 Correction of Attr_Rev field construction.       ats
+* 03 95/04/03 Added BinToBCD and BCDToBin subroutines, plus	   rws
+*			  additional clarifying comments
+*             ---- OS-9/68K V3.0.2 Release ----
+*             ---- OS-9/68K V3.1 Release ----
+*
+Edition equ 3 current edition number
+Revision set 0
+
+Typ_Lang set (Sbrtn<<8)+Objct Subroutine Object module
+Attr_Rev set ((ReEnt+SupStat)<<8)+Revision
+
+ psect RTClock,Typ_Lang,Attr_Rev,Edition,0,RTCTab
+
+ use defsfile
+
+
+********************
+* put hardware definitions for
+* the real time clock device here
+*
+
+ page
+ 
+********************
+* RTCTab: Branch table for the two
+*         main subroutines
+*
+* General Description: This branch to "GetTime" with the "SetTime"
+*                      subroutine immediately following are accessed as
+*                      an offset table by the tickgeneric code in order
+*                      to effectively start execution at the appropriate
+*                      subroutine after a F$Link call to this module.
+*                      Tickgeneric uses the format: jsr GetTime(a1)
+*                                                   jsr SetTime(a1)
+*                      
+*                      Where GetTime = 0, SetTime = 4, and (a1) = the
+*                      execution address of this module.  (i.e. RTCTab)
+*
+RTCTab bra GetTime
+
+* NOP Note: if the assembler's -b option is used (Optimize branch sizing)
+*	  and if the SetTime routine is less than 128 bytes, the assembler
+*	  will create a "bra.b GetTime" instruction (2 bytes) and this NOP
+*	  instruction will be needed for proper construction of the jump 
+*	  table (otherwise SetTime will be called 2 bytes into it's routine)
+
+********************
+* SetTime: Set the time in the
+*          Real Time Clock
+*
+* Passed: (a3) = base address of the ticker chip (will need to load
+*				 RTC address explicitely in this routine if RTC address
+*				 is not the same as the ticker address)
+*         (d0) = current time data (00hhmmss) (hh, mm, and ss are 
+*				 binary formatted, not BCD formatted)
+*         (d1) = current date data (yyyymmdd) (yyyy, mm, and dd are 
+*				 binary formatted, not BCD formatted)
+*
+* Returns: (cc) = carry cleared if no error
+*                 carry set if error occurred
+*          (d1) = zero if no error
+*                 Error code if error occurred (usually "E$HardWare"
+*				  or "E$Param")
+*
+SetTime:
+*
+* Set the Time in the RTC chip
+*
+*
+* Set the Date in the RTC chip
+*
+ andi #NoCarry,ccr    clear the carry for no error indication
+
+ ori #Carry,ccr       set the carry bit to indicate error
+ move.w #E$Param,d1   return applicable error code
+
+ rts
+
+
+ page
+
+********************
+* GetTime: Get the time from
+*          the real time clock chip
+*
+* Passed: (a3) = base address of the ticker chip (will need to load
+*				 RTC address explicitely in this routine if RTC address
+*				 is not the same as the ticker address)
+* 		  (a4) = current process descriptor
+*	      (a5) = caller's registers pointer
+*         (a6) = system global pointer
+*
+* Returns: (d0) = current time (00hhmmss) (hh, mm, and ss are 
+*				  binary formatted, not BCD formatted)
+*          (d1) = Date (yyyymmdd) if no error (yyyy, mm, and dd are
+*				  binary formatted, not BCD formatted)
+*                 Error code if error occurred (usually "E$HardWare")
+*          (cc) = carry cleared if no error
+*                 carry set if error occurred
+*
+GetTime:
+*
+* Get the time from the RTC chip
+* 
+ andi #NoCarry,ccr     clear the carry for no error indication
+
+ ori #Carry,ccr        set the carry bit to indicate error
+ move.w #E$HardWare,d1 return applicable error code
+
+ rts 
+
+
+
+*********************
+* The following two functions are common to Real-Time clocks that handle
+* time and date parameters in Binary Coded Decimal (BCD) format.  Remove
+* these functions from your source code if they are not needed.  Note:
+* these functions do not destroy any registers and follow Ultra-C's
+* C calling convention, consequently, they can be used by C functions if 
+* so required.
+*
+
+********************
+* char BCDToBin (char): 
+*
+*	Convert a packed BCD number (less than one hundred) to binary.
+*
+* Passed:  (d0.b) = packed BCD < 100
+*
+* Returns: (d0.b) = equivalent binary
+*
+BCDToBin:
+ movem.l d0/d2,-(a7) store registers used here as local variables
+ move.b   d0,d2      copy BCD number for digit isolation
+ andi.b #$0F,d2      isolate 1's digit in d2
+ andi.l #$F0,d0      isolate 10's digit in d0
+ lsr.l    #4,d0      put 10's digit in 1's place to ready for scaling
+ mulu.w  #10,d0      scale 10's digit for binary reprentation
+ add.b    d0,d2      add in 1's digit for result, 
+*						d2 = XXXX XXHH (HH = binary number)
+ movem.l (a7)+,d0    restore d0
+ move.b   d2,d0      return binary number (char), d0 = XXXX XXHH
+ movem.l (a7)+,d2    restore d2
+ rts
+
+
+********************
+* char BinToBCD (char): 
+*
+*	Convert a binary number (less than one hundred) to BCD.
+*
+* Passed:  (d0.b) = binary value < 100
+*
+* Returns: (d0.b) = packed BCD
+*
+BinToBCD:
+ movem.l d0/d2,-(a7) store registers used here as local variables
+ andi.l #$FF,d0      isolate binary number in d0
+ divu.w  #10,d0      1's digit in d0 MSW, 10's digit in d0 LSW
+ move.b   d0,d2      copy 10's digit to d2.b
+ lsl.l    #4,d2      shift 10's digit into correct position for BCD format
+ swap     d0         put 1's digit into correct position for BCD format
+ or.b     d0,d2      combine digits, d2.l = XXXX XXBB (BB = BCD number)
+ movem.l  (a7)+,d0   restore d0
+ move.b   d2,d0      return BCD number (char), d0 = XXXX XXBB
+ movem.l  (a7)+,d2   restore d2
+ rts
+
+
+ ends

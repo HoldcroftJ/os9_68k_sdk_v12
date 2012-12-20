@@ -1,0 +1,1192 @@
+ nam System Initialize
+ ttl Hardware dependent routines for the MVME167
+
+* Copyright 1991, 1992 by Microware Systems Corporation
+* All Rights Reserved
+* Reproduced Under License
+*
+* This source code is the proprietary confidential property of
+* Microware Systems Corporation, and is provided to the licensee
+* for documentation and educational purposes only.  Reproduction,
+* publication, or any form of distribution to any party other than
+* the licensee is strictly prohibited.
+
+
+********************
+* SysInit and related hardware dependent routines
+*
+* Edition History
+*
+*  #   date   Comments                                                   by
+* -- -------- ---------------------------------------------------------- ---
+* 00 91/04/29 exodus from VME165                                         Rwb
+* 01 91/08/07 removed reliance on 68040.m (new assembler available).     wwb
+* 02 91/08/07 added KLUDGE conditional for cobbled startup.              wwb
+*             added setup of reset pc/ssp into all versions.             wwb
+*             fixed stack-crash in SysInit2.                             wwb
+* 03 91/08/20 moved Iniz050 macro into SysInit (the correct place).      wwb
+* 04 91/09/30 changed KLUDGE conditional to SIKL in preparation for      wwb
+*             utilizing all sysinit code (keeps systype.d KLUDGE
+*             conditionals separate).
+* 05 91/10/01 start of fully functional version mods.                    wwb
+* 06 91/10/08 ready for testing.                                         wwb
+* 07 91/10/15 fixed problems with end-address mask, FAIL flash code,     wwb
+*             LOCAL RESET generation.
+* 08 91/10/21 Added Checksum of Motorola Config to determine validity    Rwb
+*             of NVRAM clock speed,  added code to determine BCLK in case
+*             NVRAM not valid.  Removed CPUSpeed patch in favor of code
+*             to determine speed.
+* 09 91/10/23 Made sure FAIL led off on power-up reset.                  wwb
+* 10 91/10/24 fixed problems with VMEChip2 vector base setup.            wwb
+* 11 91/10/25 moved some setups from SInitTwo to SysInit.                wwb
+*             removed reliance on Iniz050 macro, added VME050 detection  wwb
+*             into SInitTwo (custom version)
+* 12 91/10/30 added "init mem" from array start to Mem.Beg (just to get  wwb
+*             that section parity iniz'd.)
+* 13 91/11/01 removed parity enabling of ram array: suspicion about      wwb
+*             Rev01 MEMC040. Controlled by FORCE_NOPARITY flag defined
+*             in this file only.
+* 14 91/11/05 cleanup pass for release.                                  wwb
+*             <<<---- OS-9/68K V2.4.4 Release ---->>>
+* 15 92/09/03 removed ERRATA040 conditional - must keep the code for     wwb
+*             support of old masks.
+* 16 93/04/27 Fixed translation select bits.                             ats
+*             Added MBUGTRC conditional for Mot 167Bug trace support.
+* 17 93/06/23 Adapt new NVRAM structure.                                 ats
+* 18 93/07/28 Adapted new MWOS directory structure.                      ats
+*             Add support for NVRAM version 2.
+*             Allow running from DRAM w/o MBUGTRC.
+*             Correct group/board ID defaults.
+*             Dynamically test for VMEChip2 version 1.
+*             Correct slave 1 defaults.
+* 19 93/08/27 Enable SBE correction for MCECC boards.                    ats
+*			  Adopt use of NVRAM access macros.
+*
+*    97/05/13 ********** version 3.0.3 release ************************* gdw
+* 20 99/07/30 nop after restoring jump table handler                     srm
+* 21 01/01/11 Removed debounce code from Abort handler.  Bit was never   mgh
+*               getting cleared when trying to interrupt a f-line
+*               exception in progress.  Verified against 167-34a & 167c
+*				CF 3289 & MHQco01225
+*
+Edition equ 21 current edition number
+
+ psect sysinit,0,0,Edition,0,0
+
+*  get the necessary definitions
+
+ use defsfile
+ use <iniz050.a>
+ use <nvram.m>
+ use <rompak.m>
+
+
+********************
+**  Patch Locations
+**
+
+AccessTimeA dc.w RomAAccess ROM access time (in ns) Bank A
+AccessTimeB dc.w RomBAccess ROM access time (in ns) Bank A
+SRAMAcTime dc.w SRAMAccess SRAM access time (in ns)
+
+LROMSize dc.b RomSizeCode ROM size (see systype.d)
+
+ align
+
+********************
+* Special definition
+*
+
+* this next flag causes the ram-array parity-enable to be skipped,
+* due to a suspicion (unconfirmed) about Rev01 MEMC040's.
+* the makefile still defines PARITY, so that all patternizing gets
+* done (and thus parity ram is set correctly), it's just that the
+* checker function is disabled.
+* To enable parity checking, uncomment this next label.
+*
+FORCE_NOPARITY set 1
+
+
+********************
+* General Defs
+*
+ ifdef DEBUGGER
+USING_DEBUGGER set 1 define (primitive) debugger in use
+ endc
+
+ ifdef ROMBUG
+USING_DEBUGGER set 1 define (smart) debugger in use
+ endc
+
+ ifdef MBUGTRC
+CORES set 1
+ endc
+
+ ifdef RAMLOAD
+CORES set 1
+ endc
+
+BEjmpentry equ (2-2)+6 bus error handler <ea> in jump table
+Auto7vector equ 31*4 auto-level 7 vector offset
+Abortvector equ ABORTVect*4 abort vector from the processor 
+
+FAIL_DELAY equ 10 delay factor when flashing FAIL led.
+
+RTCSec equ $1FF9  offset to seconds register of the TOD Clock (48t08)
+
+Debounce equ $8000 debounce time on abort switch.
+
+
+********************
+* 68040 Control Register defaults
+*
+CacheMode equ 0 Disable data and instruction caches
+
+* log addr base = $e0
+* log addr mask = $1f (thus range = $e0000000 - $ffffffff
+* enable = on
+* s field = supervisor only
+* u field = 0
+* cache mode = non-cachable, serialized
+* write-protect = off
+*
+*               base  +   mask  +  enab + s field +u field +  cm    +  wp
+DTT0_dft equ ($e0<<24)+($1f<<16)+(1<<15)+(%01<<13)+(%00<<8)+(%10<<5)+(0<<2)
+
+* MCECC zero fill scrubbing times
+
+TIMEOFF	equ	(c_MCSTR_min<<b_MCSTR_stoff)
+TIMEON	equ	(c_MCSTR_max<<b_MCSTR_ston)
+
+********************
+* SysInit:  perform system specific initialization (part 1)
+*
+SysInit:
+
+* this code can be entered via 1 or 2 general means:
+*
+*  1.  power-up reset and local reset
+*  2.  software reset (debugger 'rst' or kernel crash/restart)
+*
+* In case 1, all hardware regs are at their default reset state(s),
+* In case 2, we generate a hardware local-reset to force the defaults.
+*
+
+* init register constants
+*
+ moveq.l #0,d0 always zero
+ movea.l #NVRAMBase,a1 NVRAM base address
+ movea.l #VMEchBase,a3 VMEChip2 address
+ movea.l #PCCchBase,a4 PCCChip2 address
+ movea.l VBRPatch(pc),sp get patchable VBR address
+ lea.l VTblSize(sp),sp and setup temp stack
+
+* setup MMU:  transparent instruction off, make addresses for MVME167
+*             I/O devices serialized and non-cacheable.
+*
+* Theory:  The system-specific regions (i.e. I/O Ports) are defined
+*          by the nTT0 set. The generic regions (typically memory
+*          that is cachable) are defined by the "ssm" code using
+*          the nTT1 set.  As the nTT0 set has priority over the nTT1
+*          set when there is an overlap, the system-specific setup
+*          performed here allows over-ride of the generic "ssm"
+*          region definitions.
+*
+ movec d0,tc disable all MMU translations
+ movec d0,itt0 ITT0: disable
+ move.l #DTT0_dft,d1 get DTT0 default value
+ movec d1,dtt0 set CI, Serialized I/O section
+ movec d0,itt1 ITT1 disabled
+ movec d0,dtt1 DTT1 disabled
+
+* disable and purge caches
+*
+ movec d0,cacr disable caches
+ nop required for coincident table walk (old mask issues)
+ cinva bc invalidate all cache lines
+ nop wait for things to settle
+
+* Check for power up reset
+
+ move.l BDCTL(a3),d1 get the reset status register from the board
+ btst.l #b_BDCTL_purs,d1 is the power-up reset present?
+ bne HardReset ..yes; go do full start
+
+chkabt
+ move.l IOCTLR(a3),d2 get IO control status
+ btst.l #b_IOCTLR_abrtl,d2 check abort switch status
+ beq.s noabt if not pressed, go on
+ NVRGetB NVR_SPCRST,a1,d2 get special reset field
+ bset.l #NVR_RSTABT,d2 flag abort switch...
+ NVRPutB NVR_SPCRST,a1,d2 and put back in NVRAM
+ bra.s chkabt
+
+noabt
+
+ ifdef CORES
+* CORES set:  skip warm-start/reset issues, we will have to assume
+*             that the "other debugger" did not do any setups that
+*             require explicit clearing (as done by the Local Reset
+*             Self code).
+  NVRGetB NVR_SPCRST,a1,d2 get special reset field
+  bclr.l #NVR_RSTSoft,d2 clear software reset status
+  NVRPutB NVR_SPCRST,a1,d2 and put back in NVRAM
+ else
+* Find out how we arrived here.  If it is determined that it is a
+* software "rst" then we will issue a board reset to ourselfs and
+* continue on.  If we arrive as a result of external or power-up 
+* reset, we can skip this operation.
+*
+
+* not a power-up reset, assume software reset
+*
+ NVRGetB NVR_SPCRST,a1,d2
+ btst.l #NVR_RSTSoft,d2 was this a soft-reset ?
+ bne.s wassoftrst ..yes, don't do it again
+
+* no software reset in progress, was probably an "rst" command 
+*
+* if we are the system controller, then asserting SYSRESET will
+* cause a global/local reset to occur.
+* if we are not the system controller, then we need to explicitly
+* assert local reset via the GCSR of the VMEChip2.
+*
+ bset.l #NVR_RSTSoft,d2 flag to self -- setting RESET!
+ NVRPutB NVR_SPCRST,a1,d2
+ moveq.l #0,d2 clear all flags
+ btst.l #b_BDCTL_scon,d1 are we the system controller ?
+ beq.s notscon ..no; skip global SYSRESET assertion
+ bset.l #b_WDTCR_srst,d2 issue Local/Global reset
+notscon bset.l #b_BDCTL_brflo,d2 keep FAIL active
+ bset.l #b_BDCTL_rswe,d2 keep RESET SWITCH enabled
+
+* issue BDCTL status update
+* if we are the system-controller, we will be reset by this,
+* else we will "fall through", thus implying that we are not
+* the system controller and thus need to issue the explicit
+* local-reset via the GCSR of the VMEChip2
+*
+ move.l d2,BDCTL(a3) update BDCTL (reset self if SCON)
+ movea.l #GCSRBase,a0 get GCSR base address
+ moveq.l #0,d2 sweep register
+ bset.l #b_GCSRCTRL_rst,d2 asserting local reset
+ move.l d2,GCSRCTRL(a0) initiate local reset
+
+* deadloop for pipeline prefetches, etc
+*
+deadloop bra.s deadloop let the hardware (local-)reset break us out
+
+* This is a full reset to the board.  The CPU does not fall into the
+* next code, but rather goes through the full reset sequence and 
+* reenters SysInit
+*
+
+*  We have set the RESET bit,  clear status that says so and proceed.
+*
+wassoftrst:
+ bclr.l #NVR_RSTSoft,d2 clear software reset status
+ NVRPutB NVR_SPCRST,a1,d2
+
+ endc CORES
+
+HardReset:
+
+* board up and running:  turn off FAIL led and ensure reset
+* switch enabled.
+*
+* Note that d1 has BDCTL setting.
+*
+ bset.l #b_BDCTL_cpur,d1 set "clear pur status" flag
+ bclr.l #b_BDCTL_brflo,d1 turn off FAIL led
+ bset.l #b_BDCTL_rswe,d1 keep RESET SWITCH enabled
+ move.l d1,BDCTL(a3) tell hardware
+
+* determine the CPU clock speed
+
+* first; look at Motorola config area to see if it is valid
+*   do so by using the Motorola supplied checksum algorithm to validate
+*   the VMEBug BBRAM configuration area. (ref: VME167 Programmer's Reference)
+*
+ lea.l MotConfig(a1),a0 point at configuration area
+ move.w #MotConfSize-2,d1 get byte count (-1 for dbra, -1 as last is checksum)
+ moveq.l #0,d2 init checksum
+ChkConfig:
+ add.b (a0)+,d2
+ bcc.s ChkConfig_a
+ addq.b #1,d2
+ChkConfig_a dbra d1,ChkConfig loop through config area
+ cmp.b (a0),d2 Mot Checksum OK?
+ beq ReadMot yes, use Motorola value
+
+* Motorola configuration area not valid, have to calculate
+* cpu speed by hand.
+*
+ moveq.l #0,d2 initial values for counter count and compare registers
+ move.l #$7fffffff,VMETT_tt1cmp(a3) head off any overflows in cmp register
+ move.l d2,VMETT_tt1cnt(a3) set count register
+ moveq.l #(1<<b_TT1CTL_covf)+(1<<b_TT1CTL_en),d2 enable and overflow clear
+ or.l BDCTL(a3),d2 current counter control registers
+ move.l d2,BDCTL(a3) enable counter
+
+* wait for seconds to change over at the RTC chip or for an overflow
+* in the counter register.  If the counter register overflows, the
+* NVRAM chip is catastrophically dead and we will flash the LED
+* indicating the problem
+*
+ move.b RTCSec(a1),d1 save current second and .....
+delta1 cmp.b RTCSec(a1),d1 .... loop here until change occurs
+ bne.s delta1seen
+ move.l BDCTL(a3),d2
+ andi.l #m_TT1CTL_ovfct,d2
+ bne flash_led
+ bra.s delta1 check for tick change again
+
+* change has occured, start the counter
+*
+delta1seen
+ move.l BDCTL(a3),d2 current counter control registers
+ bclr #b_TT1CTL_en,d2 turn off counter enable
+ move.l d2,BDCTL(a3) disable counter
+ move.l #0,VMETT_tt1cnt(a3) set count register
+ bset #b_TT1CTL_en,d2 turn on the counter enable
+ move.l d2,BDCTL(a3) enable counter
+ move.b RTCSec(a1),d1 new time to check for is ......
+
+* now hang out until second ticks over again
+*
+delta2 cmp.b RTCSec(a1),d1
+ beq.s delta2
+ 
+ move.l VMETT_tt1cnt(a3),d1 grab counter value
+ move.l BDCTL(a3),d2 get control register
+ bclr #b_TT1CTL_en,d2 remove counter enable
+ move.l d2,BDCTL(a3) and disable the counter
+
+* The timer is derived from the system BCLK and modified by a divisor on the
+* VMEChip.  The VMEChip default is 33 MHz.
+* d1 now contains the number of counter ticks that occured durring 1 seconds
+* time.  If the number is very close to 1 Million, then the timer is correct.
+* and BCLK is at 33 MHz,  otherwise must assume BCLK of 25 MHz.
+*
+ cmp.l #$F4000,d1 is it indeed indicating 1 second has elapsed?
+ blt.s bc25 probably 25 MHz....
+ move.l #$33333030,d6 assume 33 MHz correct and proceed
+ bra.s HaveSpeed
+bc25 move.l #$32353030,d6 assume 25 MHz
+ bra.s HaveSpeed
+
+* read Motorola configuration area for system cpu speed
+*
+ReadMot: lea.l MotConfig(a1),a0 point at configuration area
+ move.l MotCPUSpeed(a0),d6 get Motorola value from BBRAM
+
+* setup speed values for system
+*
+* d6.l = cpu speed (Motorola BBRAM format)
+*
+HaveSpeed: subi.l #$30303030,d6 take off ASCII bias
+
+* set BCLK timers for PCC2 and VMEChip2
+*
+ lsr.l #8,d6 move MHz to low word...
+ lsr.l #8,d6 ..and clear msw
+HaveSpeed_a move.b d6,d5 save units digit
+ lsr.l #8,d6 move tens into low nibble
+ mulu.w #10,d6 form actual number
+ add.b d5,d6 add digit value back in (BCLK)
+
+ move.l #256,d5 need to calc:  VAL = 256 - BCLK (MHz)
+ sub.w d6,d5 get pre-scaler value
+
+* setup VMEChip2 pre-scaler adjust and arbitor defaults
+*
+SetVMEChip2: move.l #VMEARB_default,d4 get VMEChip2 arbitration defaults
+ or.l d5,d4 add in pre-scaler value
+ move.l d4,VMEARB(a3) set VMEChip2
+
+* Set up VBR's for the VMEChip
+*
+ ifne VmeChVBR0_default&$f
+ fail VMEChVBR0 must be a multiple of 16
+ endc
+ ifne VmeChVBR1_default&$f
+ fail VMEChVBR1 must be a multiple of 16
+ endc
+
+ moveq.l #0,d4 sweep register
+ move.b #(VmeChVBR1_default>>4)+(VmeChVBR0_default),d4
+ ror.l #8,d4 put into high byte
+ move.l IRQVBR(a3),d2 read current settings
+ andi.l #^(m_IRQVBR_vbr0+m_IRQVBR_vbr1),d2 clear current VBR settings
+ or.l d4,d2 add in vbr register information
+ move.l d2,IRQVBR(a3) and send to the VME chip
+
+* now set the interrupt levels for the various VMEChip IRQ's
+*
+ move.l #ILVLR1_default,d2
+ ifdef USING_DEBUGGER
+ ori.l #(ABORTLevel<<b_ILVLR1_ab),d2 add in abort switch level
+ endc USING_DEBUGGER
+ move.l d2,ILVLR1(a3)
+ move.l #ILVLR2_default,ILVLR2(a3)
+ move.l #ILVLR3_default,ILVLR3(a3)
+ move.l #ILVLR4_default,ILVLR4(a3) This is the VMEBus IRQ level
+
+ moveq.l #0,d2 sweep register
+ ifdef USING_DEBUGGER
+ bset.l #b_IRQ_ab,d2 add abort switch enable
+ endc USING_DEBUGGER
+ bsr GoodNVR check if NVRAM is good
+ bne.s SetVMEInt if not, disable VME interrupts
+ NVRGetW NVR_VERSION,a1,d1,d7 get NVRAM version
+ cmpi.w #NVV_VINT_MASK,d1 chk for VME int mask chg version
+ blt.s VmeFlag if less than mask version, go process flag
+ roxl.b #1,d2 align register image with mask
+ NVRGetB NVR_VMEINT,a1,d2 add mask into image
+ roxr.b #1,d2 realign for register
+ bra.s SetVMEInt
+
+VmeFlag
+ NVRGetB NVR_VMEINT,a1,d1 get NVRAM VME interrupt flag
+ tst.b d1 otherwise check NVRAM for VME interrupts
+ beq.s SetVMEInt skip around if interrupts OK
+ move.b #LBIER_default,d2 Interrupt enable default
+SetVMEInt
+ move.l d2,LBIER(a3) Interrupt enable default
+
+* setup PCC2 pre-scaler & inform running on 040 bus.
+*
+SetPCC2: move.b d5,PCCTkAdj(a4) set PCC pre-scaler adjust
+
+ move.b #PCCVectBase,PCCVBR(a4) set Vector Base for all PCC2 interrupts
+ bset.b #b_PCCGCR_C040,PCCGCR(a4) inform PCC that it is on a 68040 bus.
+* NOTE: could set BFAST here also ******
+ 
+* setup ROM access speed and sizes, map ROM to appear at high
+* memory only (so that we can access RAM).
+* Also setup SRAM access speed
+*
+* Note:  access speeds and sizes can be altered via Patch locations
+*
+* These are:  AccessTimeA ROM access time (in ns) Bank A
+*             AccessTimeB ROM access time (in ns) Bank B
+*             LROMSize   ROM size (see systype.d)
+*             SRAMAcTime SRAM access time (in ns)
+*
+* Note: d6.w = BCLK
+*
+SetSpeeds: moveq.l #0,d1 sweep d1
+ move.w AccessTimeA(pc),d1 get bank A access time
+ move.l #(Max_ROMbusclks<<16)+(Min_ROMbusclks),d4 set limits for ROMs
+ lea.l GotSpeedA(pc),a0 return point
+ bra.s CalcSpeed calculate access speed for bank A
+
+GotSpeedA move.l d1,d5 set ROM A access speed
+ moveq.l #0,d1 sweep reg
+ move.w AccessTimeB(pc),d1 get bank B access time
+ move.l #(Max_ROMbusclks<<16)+(Min_ROMbusclks),d4 set limits for ROMs
+ lea.l GotSpeedB(pc),a0 continuation point
+ bra.s CalcSpeed calculate access speed for bank B
+ 
+* got speed for bank B
+* 
+GotSpeedB lsl.l #b_LBCTL_bspd,d1 shift value into correct place
+ or.l d1,d5 add to bank B value
+
+* now add in rom size value
+*
+ moveq.l #0,d1 sweep reg
+ move.b LROMSize(pc),d1 get the ROM size from the patch location
+ lsl.l #b_LBCTL_romsz,d1 put size in place
+ or.l d1,d5 add size to speeds
+
+* get speed for SRAM
+*
+ moveq.l #0,d1 sweep reg
+ move.w SRAMAcTime(pc),d1 get SRAM access time
+ move.l #(Max_RAMbusclks<<16)+(Min_RAMbusclks),d4 set limits for SRAM
+ lea.l GotSpeedSRAM(pc),a0 continuation point
+
+* fall into access speed calculations
+*
+*    bus clocks = ((access speed + 35) / BCLK period) + 1
+*
+* entry:  d6.w = BCLK
+*         d4.l = modulo range:  lsw = low range limit
+*                               msw = high level limit
+*         d1.l = part access speed in nSec
+*
+* return:  d1.l = bus clocks delay for part
+*
+CalcSpeed: move.l #1000,d2 form BCLK period...
+ divu.l d6,d2 ...into d2
+ add.l #35,d1 (access speed) + 35
+ divul.l d2,d3:d1 32/32 divide; remainder in d3
+ tst.l d3 any remainder ?
+ beq.s CalcSpeed_a ..no; continue
+ addq.l #1,d1 round up
+CalcSpeed_a addq.l #1,d1 (+1)
+
+* apply integrity checks (e.g. bad patch value)
+*
+ move.l d4,d2 copy limits
+ swap d2 set high (slow) limit
+ cmp.w d4,d1 value too low ?
+ blo.s SpeedBad ..yes; set slow default
+ cmp.w d2,d1 value too high ?
+ bls.s SpeedOK ..no; good value
+
+SpeedBad moveq.l #0,d1 sweep register
+ move.w d2,d1 set slowest speed
+
+* now, turn "bus clocks" value into controller required value
+*
+SpeedOK move.l d1,d2 copy bus clocks value
+ lsr.l #8,d4 clear high word...
+ lsr.l #8,d4 ..and get divisor (Max limit)
+ divul.l d2,d1:d4 get modulo high-limit value into d1 (remainder!)
+ jmp (a0) return/continue
+
+* now have SRAM access speed
+*
+GotSpeedSRAM equ *
+ move.w #b_DMACgc_sramsp,d4 get shift factor
+ lsl.l d4,d1 move to correct place
+
+* now program the ROM control register
+*
+* NOTE: here we will also setup the GCSR defaults, and note that
+* we are not preserving the address map enables/decodes, as these
+* will be set later
+*
+ ori.l #GCSR_default,d5 add GCSR info
+ move.l d5,LBCTL(a3) set rom info, GCSR, disable decoders
+ nop
+ nop allow timing settling
+
+* strictly speaking, we should seize the bus here, but seeing
+* as tho' we haven't used the chip yet...
+*
+* now setup VME access methods, disable ROM appearing at 0,
+* set SRAM access speed, etc.
+*
+ ori.l #DMACgc_default,d1 set default modes
+* set LVFAIR and DFAIR bits. DFAIR not needed for the backplane driver -
+* being done for consistency.
+ ori.l #DMACgc_Fair,d1
+ ori.l #DMACgc_dfair,d1
+ move.l d1,DMACgc(a3) init the hardware
+
+* determine installed RAM array(s).  Here we will probe to test
+* for the MEMC040 controller(s), and setup all on-board RAM
+* such that it appears as one contiguous block.
+*
+* This code utilizes the reserved "scratch" area of the SRAM
+* memory so that bus-traps can be handled.
+*
+
+* Setup vector table for Mot Bug trace/bkpt
+ ifdef MBUGTRC
+Setvects:
+  movea.l VBRPatch(pc),a5 get (patchable) VBR base address
+  movec vbr,a0 get vbr
+  move.l #$100,d1
+  subq.l #1,d1
+CopyVects:
+  move.l (a0)+,(a5)+ copy entire vector table
+  dbra d1,CopyVects
+ endc MBUGTRC
+
+SetMEMC:
+ movea.l VBRPatch(pc),a5 get (patchable) VBR base address
+ movec a5,vbr init VBR for probing
+ lea.l VTblSize(a5),sp set stack pointer
+ lea.l MEMC_fail1(pc),a0 set continuation point for not-present
+ move.l a0,8(a5) install in vector table
+
+* check for MEMC040 #1
+*
+ movea.l #MEMC40_1Base,a0 base address of MEMC040 #1
+ moveq.l #0,d1 sweep register
+ move.b MCCFG(a0),d1 read size or bus-trap
+ andi.b #m_MCCFG_msiz,d1 mask off all but size bits
+ bra.s MEMC_probe2 proceed with the second probe....
+
+* arrive here if MEMC040 #1 not present
+*
+MEMC_fail1: lea.l VTblSize(a5),sp reset stack
+ moveq.l #-1,d1 flag 1st memory controller not present
+
+* check for MEMC040 #2
+*
+MEMC_probe2:
+ lea.l MEMC_fail2(pc),a2 set continuation point for not-present
+ move.l a2,8(a5) install in vector table
+ movea.l #MEMC40_2Base,a2 base address of MEMC040 #2
+ moveq.l #0,d2 sweep register
+ move.b MCCFG(a2),d2 read size or bus-trap
+ andi.b #m_MCCFG_msiz,d2 mask off all but size bits
+ bra.s MEMC_prog done probing, go to programming section
+
+* arrive here if MEMC040 #2 not present
+*
+MEMC_fail2: lea.l VTblSize(a5),sp reset stack
+ moveq.l #-1,d2 flag 2nd memory controller not present
+
+* program MEMC040 controllers:
+*
+*  a0 = MEMC040 #1 address
+*  d1 =    "     " size code
+*  a2 =    "    #2 address
+*  d2 =    "     " size code
+*
+* To make the (possibly) 2 different sized arrays form a contiguous
+* memory array to the system, we set the largest array at low memory
+* and make the (optional) 2nd array follow the first
+*
+MEMC_prog:
+ move.l MemList(pc),d3 get address of local memory
+ moveq.l #-1,d5 init base address mask (used on first pass thru MEMC040_init)
+ 
+ tst.l d2 is MEMC040 #2 present ?
+ bmi.s MEMC_init ..nope, proceed with programming #1
+
+* second card present, see if first card is present as well
+*
+ tst.l d1 is MEMC040 #1 present ?
+ bmi.s MEMC_swap #1 not present, set #2 active
+
+* both are present, but which is largest?
+*
+ cmp.l d2,d1 is #1 largest ?
+ bhs.s MEMC_init ..yes; order is correct for contiguous memory
+
+* if here from above, both boards are present with board 2 larger so
+* program it first
+* if here from below, largest board first, position info for second board
+*  
+MEMC_swap:
+ exg d1,d2 set active controller
+ exg a0,a2
+
+* now program the active controller:
+*
+*   (a0) = controller base address
+*   d1.l = size code of memory array
+*   d3.l = start address of local memory (NOT at Ram Array size)
+*   d6.w = BCLK
+*
+MEMC_init:
+
+* check to see if no arrays responding: this implies there is no
+* RAM to enable, thus we need to do some kind of error handling
+* here.  Ultimately we could (say) switch the system to the SRAM
+* array and issue a warning, but for now we will simply flash
+* the FAIL led and deadloop
+*
+ tst.l d1 any active arrays ?
+ bpl.s MEMC040_initgo ..yes; go program it
+
+* no arrays to program: deadloop flashing FAIL
+*
+flash_led
+ move.l BDCTL(a3),d1 get control status
+ bset.l #b_BDCTL_brflo,d1 set FAIL ON
+MEMC040_fail move.w #FAIL_DELAY,d3 get outer delay factor
+ move.l d1,BDCTL(a3) signal FAIL state
+ move.w #-1,d2 maximium inner loop
+MEMC040_delay dbra d2,MEMC040_delay loop
+ dbra d3,MEMC040_delay loop
+ bchg.l #b_BDCTL_brflo,d1 flip the state of the LED
+ bra.s MEMC040_fail and reloop
+
+* set BCLK rate (for that refreshing taste!)
+*
+MEMC040_initgo: move.b d6,MCBCR(a0) set BCLK speed for array
+ move.l d3,d4 copy address of this board in local memory map 
+ rol.l #8,d4 get A31-A24 into low byte
+ move.b d4,MCBADR(a0) set A31-A24 for controller
+ rol.l #8,d4 get A23-A22 into correct place
+ andi.b #m_MCRCR_ad22,d4 mask for bits A23-22 ...
+ ifdef RAMLOAD
+  bset.l #b_MCRCR_ramen,d4 keep array enabled when running out of DRAM
+ endc  RAMLOAD
+ move.b d4,MCRCR(a0) setup A23-22 and disable memory
+
+* enable single bit error correction for ECC boards
+
+ ifndef RAMLOAD
+  cmpi.b #c_MEMC040,MCID(a0) look for MEMC040 vs MCECC
+  beq.s MEMC_doparity if this is an MEMC040, go on to parity setting
+
+  move.b #0,MCSCR(a0) disable scrubbing
+wtnscrb btst.b #b_MCSCR_scrb,MCSCR(a0) is scrubbing still going on?
+  bne.s wtnscrb yes, wait for it to be done
+  bset.b #b_MCDCR_zfill,MCDCR(a0) set for zero fill on scrubs
+  move.b #(m_MCSTR_srdis+TIMEOFF+TIMEON),MCSTR(a0) set scrub times
+  move.b #0,MCSPRH(a0) set minimum repeat period
+  move.b #0,MCSPRL(a0)
+tryscrb
+  move.b #m_MCSCR_scrben,MCSCR(a0) enable zero filling scrub
+  btst.b #b_MCSCR_scrben,MCSCR(a0) see if it took
+  beq.s tryscrb try scrubbing again
+wtzfon btst.b #b_MCSCR_scrb,MCSCR(a0) has scrubbing started yet
+  beq.s wtzfon nope, wait for it to start
+  move.b #0,MCSCR(a0) now run it for only 1 pass
+wtzfoff btst.b #b_MCSCR_scrb,MCSCR(a0) has scrubbing finished yet
+  bne.s wtzfoff nope, wait for it to finish
+  bclr.b #b_MCDCR_zfill,MCDCR(a0) clear zero fill
+  bclr.b #b_MCDCR_derc,MCDCR(a0) enable SBE correction
+ endc	RAMLOAD
+
+MEMC_doparity
+ ifdef PARITY
+* enable parity checking (report via bus-error)
+*
+ ifndef FORCE_NOPARITY
+  bset.b #b_MCRCR_paren,MCRCR(a0) enable parity
+ else
+* suspicion about Rev01 MEMC040: don't enable the parity checker
+*                                (except for the MCECC)
+  cmpi.b #c_MEMC040,MCID(a0) look for MEMC040 vs MCECC
+  beq.s MEMC_pardone if a MEMC040, skip around
+  bset.b #b_MCRCR_nceben,MCRCR(a0) enable non-correctable error detection
+*                          (actually double-bit errors for ECC)
+MEMC_pardone
+ endc FORCE_NOPARITY
+ 
+ endc PARITY
+
+* program around MEMC040 chip problem:
+*
+* Motorola Errata Sheet (dated 5-22-91) states that the SWAIT bit should
+* always be set for "1st pass silicon".  This rev of the silicon
+* appears to be a value of 0 (seeing as tho' they state that the
+* "2nd pass" will have a value of 1!).
+*
+
+* note: snoop control is dealt with by the "snoop" module
+*       during booting, it is disabled as caching will be off
+
+ cmpi.b #$80,MCID(a0) look for MEMC040 vs MCECC
+ bne.s MEMC_not1st .. this is not an MEMC040
+ tst.b MCRV(a0) is this initial silicon ?
+ bne.s MEMC_not1st ..no; don't set SWAIT (snooper comments above apply)
+ bset.b #b_MCRCR_swait,MCRCR(a0) set "wait for MI" mode
+
+MEMC_not1st
+ bset.b #b_MCRCR_ramen,MCRCR(a0) enable array
+
+* determine the end address of this array
+*
+ move.l #$400000,d4 base size of the board is 4Mb
+ lsl.l d1,d4 shift the size by the loading constant from the board
+ add.l d4,d3 add size to get end of board (and thus end of on-board RAM)
+
+* determine local start address of 1st array
+*
+ tst.l d5 initialized base address mask ?
+ bpl.s MEMC040_initend ..yes; keep initial base mask
+
+* ASSEMBLER WARNING ON THIS: "trust me, it'll be great!"
+*
+ bfffo d4{0:32},d4 scan size for starting bit of address
+
+MEMC040_mask lsr.l #1,d5 form base address mask by...
+ dbra d4,MEMC040_mask ...shifting in 0's until inverted mask mask formed
+ not.l d5 make correct mask for "and"
+
+* form true end address of 1st array
+* 
+ and.l d5,d3 form true end address of array (MemList NEVER starts @ 0)
+
+* program 2nd array if present
+*
+MEMC040_initend
+ moveq.l #-1,d1 clear out this boards presence
+ tst.l d2 both arrays need programming ?
+ bpl MEMC_swap ..yes; repeat for second controller if present
+ movea.l VectTbl(pc),sp setup real stack in DRAM
+
+* setup VME access windows (local-to-VME and VME-local) for the system
+*
+* Entry:  d3.l = end address of on-board memory arrays
+*
+* define the local bus to VMEbus mapping.
+* The decoders for the VMEBus access can be programmed to 64K byte
+* boundries.
+*
+* Decoder Usage is:
+*   Master 1 Map:  Ram Array End to F-Page (A32/D32)
+*   Master 2 Map:  0 to Ram Array start (if Ram array not at 0) (A32/D32)
+*   Master 3 Map:  0xFF000000 - 0xFF7FFFFF (VMEChip2 bug issue) (A32/D16)
+*
+* In general, the VME windows will have the following attributes:
+*   - write-posting off
+*   - supervisor-state data address modifier (this is NOT an error)
+*
+SetVMEWins:
+ move.l d0,d2 clear window attributes
+ move.l GCSRADDR(a3),d4 get current GCSR and ROM info
+ andi.l #m_LBCTL_romctl,d4 save only ROM info
+ ori.l #SIO_default+FPG_default,d4 set ShortIO & (true) F-Page defaults
+ ori.l #GCSR_default,d4 add in group/board defaults
+ bsr GoodNVR check if NVRAM is good
+ bne.s NoIds if not leave board/group as default
+ moveq.l #0,d1 get a clear register
+ NVRGetB NVR_GRPID,a1,d1 get the group id
+ lsl.l #4,d1 shift group id
+ NVRGetB NVR_BRDID,a1,d5
+ or.b d5,d1 add board id to group id
+ lsl.l #4,d1 get into correct word position
+ lsl.l #8,d1
+ lsl.l #8,d1 get into correct longword position
+ andi.l #^(m_GCSRADDR_board+m_GCSRADDR_group),d4 clear board & group values
+ or.l d1,d4 and add in the group/board ids
+
+NoIds
+ move.l MemList(pc),d1 get local start address
+ andi.l #$FFFF0000,d1 are we at 0 ? (starting page now in d1)
+ beq.s PgmW1 only need window 1 if so
+
+* our local RAM does not exist at zero, program 0 to array
+* start address into decoder 2 as VMEBus RAM
+*
+ subi.l #$10000,d1 end page is page before our start address
+ move.l d1,LBSEA2(a3) start and end for decoder 2 set here (start == 0)
+ bset.l #b_LBCTL_lbvm_en2,d4 set enable bit for the decoder 2
+ ori.l #(AM_SupDatExt<<b_LBVAT2),d2 set decoder 2 attributes
+
+* enable decoder for array-end to F-Page
+*
+PgmW1 move.l d3,d1 get array-end page (in high word)
+ move.w #$EFFF,d1 set end-page (in low word)
+ swap d1 put start/end pages into correct positions
+ move.l d1,LBSEA1(a3) set decoder 1 page definitions
+ bset.l #b_LBCTL_lbvm_en1,d4 set decoder 1 enable
+ ori.l #(AM_SupDatExt<<b_LBVAT1),d2 set decoder 1 attributes
+
+* initial silicon has a problem with the F-Page decoder, in that
+* addresses 0xFF000000 - 0xFF7FFFFF are not decoded correctly
+* (see Motorola errata 5-22-91).  This code uses decoder 3
+* to provide an A32/D16 space in the area affected.
+*
+ movea.l #GCSRBase,a0 get base of GCSR
+ tst.b (a0) check VMEchip2 revision
+ bne.s NoFBug chip fixed at revision 1 - don't workaround
+ move.l #$FF7FFF00,LBSEA3(a3) set decoder 3 page definitions
+ bset.l #b_LBCTL_lbvm_en3,d4 set decoder 3 enable
+ ori.l #(AM_SupDatExt<<b_LBVAT3)+(LBSAATTR_d16<<b_LBVAT3),d2 set decoder 3 attributes
+NoFBug 
+
+ movem.l d2/d4,-(sp) save attributes/enables
+
+* determine and program the VMEBus access to Local RAM.
+*
+* There are really 2 cases that need to be dealt with
+* by this code.  Since we want access to local RAM to be
+* A24 whenever the RAM is mapped in an A24 address range we have:
+*
+* CASE A:  All memory (translation not-withstanding) falls within
+*          the A24 address space.  We need program only a single
+*          window (Window 1) and if there is translation, we program
+*          the translation as well.
+*
+* CASE B:  All memory is above the A24 space.  In this case
+*          a single window (window 1) is programmed for A32 access only.
+*
+* The memory is programmed for:
+*    D32 access
+*    A24 or A32 in the A24 address space  (translation dependent)
+*    Supervisor Data access
+*    No write-posting
+*
+SetSlvWins:
+ move.l SAATTR(a3),d7 get current slave attributes
+ andi.l #^$ff,d7 mask off slave 1 attributes
+ bsr GoodNVR check if NVRAM is good
+ bne.s SetWinAttr if not, bypass slave setup
+ NVRGetB NVR_SLVEN,a1,d5 get slave enable flag
+ tst.b d5 check if slaves are to be enabled
+ beq.s SetWinAttr if not, bypass setup
+ ori.l #SAWin1A,d7 VME->Local Window 1 attributes
+ move.l d3,d2 get local end of memory
+ sub.l #$10000,d2 convert to ending page of local memory
+ move.l MemList(pc),d1 get the local start of memory
+ move.w #0,d1 clear lsw of starting address to extend start to page boundary
+* NVRAM had to be good to get this far.
+ NVRGetL  NVR_SLVADDR,a1,d3,d5 get SlvAddr per NVRam
+ sub.l d1,d3 compute translation factor
+
+* Translation is detected...
+*
+ move.l d1,d4 copy start page
+ add.l d3,d4 get the translated start of memory page
+ move.l d2,d5 copy end page
+ add.l d3,d5 get the translated end of memory page
+
+ swap d4 translated start page in LSW
+ move.w d4,d5 MSW = End Page; LSW = Start Page
+ swap d4 restore translated start page
+ move.l d5,SEA1(a3) program the start and end of VME Bus address of local RAM
+ and.w #$FF00,d5 will this be in A32 space?
+ beq.s isa24 ..no; keep A24 attribute
+ bclr.l #b_ATTR_a24,d7 is in A32 space, remove A24 access response
+
+isa24:
+ sub.l d1,d2 compute memory size (adjusted)
+ move.l d2,d4 save a working copy
+ add.l #$10000,d4 and readjust it to actual size
+ bfffo d4{0:32},d3 find first bit
+ neg.l d3 
+ add.l #31,d3 compute most sig bit number
+ bclr.l d3,d4 and clear it ...
+ tst.l d4 to see if any are left
+ beq.s doselect if not, we're done
+ moveq.l #2,d2 otherwise...
+ lsl.l d3,d2 compute rounded memory size
+ sub.l #$10000,d2 and adjust it
+doselect
+ not.l d2 derive translation select bits
+ swap d2
+ move.w d2,d1 register d1:= MSW translated address LSW address select
+ move.l d1,SAT1(a3) program the translation register
+
+* Set the window attributes for the VMEBus to Local Bus memory
+*
+SetWinAttr:
+
+*
+* Setup VMEchip2
+*
+*  - enable local to VME bus mapping
+*  - enable VME to local bus mapping
+*  - enable GCSR access
+*
+* seize the bus:  this is because...
+*  1.  the request level is not latched into the chip until it
+*      actually requests and releases the bus.
+*  2.  the bus must be siezed when setting up the slave mode
+*
+ move.l DMACgc(a3),d1 get current settings
+ bset.l #b_DMACgc_DWB,d1 ask to sieze bus
+ move.l d1,DMACgc(a3) do so
+waitb1 move.l DMACgc(a3),d1 read status
+ btst.l #b_DMACgc_DHB,d1 have we control of the bus?
+ beq.s waitb1 not as yet
+
+* Control of VMEBus obtained.
+*
+ move.l d7,SAATTR(a3) Set the VME->Local bus map attributes
+ movem.l (sp)+,d2/d4 restore attributes/enables
+ move.l d2,LBSAATTR(a3) enable local->VMEbus map by setting attributes
+ move.l d4,GCSRADDR(a3) set local->VME bus access (with existing info)
+
+* free the VMEBus and continue on
+*
+ bclr.l #b_DMACgc_DWB,d1 release bus request
+ move.l d1,DMACgc(a3) remove request for VMEBus
+
+* initialize any "spare ram" from array start to Mem.Beg
+* (so that it gets a parity iniz)
+*
+ move.l MemList(pc),d1 get local start address
+ move.w d1,d2 get offset in array to Mem.Beg
+ beq.s SkipIniz ..if at array start, normal parity iniz will suffice
+ asr.w #2,d2 number of long words
+ subq.w #1,d2 less 1 for dbra
+ move.w #0,d1 form array start boundary
+ movea.l d1,a0 copy array start
+Initit move.l d0,(a0)+ clear/iniz memory
+ dbra d2,Initit
+ movea.l d1,a0 get back start address
+ lea.l PortMan(pc),a5 blood and sweat
+ move.w #PortManSz,d2 count
+Meninit move.b (a5)+,(a0)+ fame and glory (sic)
+ dbra d2,Meninit
+
+SkipIniz equ * 
+
+* initialize VBR and set RESET vectors
+*
+ movea.l VBRPatch(pc),a0 get (patchable) VBR base address
+ movec a0,vbr set vbr
+ move.l VectTbl(pc),0(a0) set RESET SSP
+ move.l VectTbl+4(pc),4(a0) set RESET PC
+
+* reset SCSI bus
+* (Currently we always issue a SCSI hard-reset at boot time, so that
+*  the system can guarantee a good bus when booting from ROM.  If we always
+*  booted from SCSI, the reset code could be in the booter itself).
+*
+ResetSCSI:
+ bsr GoodNVR check if NVRAM is good
+ bne.s Extens if not, don't reset SCSI bus
+ NVRGetW NVR_VERSION,a1,d2,d7 get NVRAM version
+ cmpi.w #NVV_SRST_FLAG,d2 chk for scsi reset flag chg version
+ blt.s ScsiRst if not flag, go ahead & reset (as before)
+ NVRGetB NVR_SCSIRST,a1,d2 get SCSI reset flag
+ tst.b d2 and check it
+ beq.s Extens if flag not set, skip scsi reset
+ScsiRst
+ movea.l #SCSIBase,a2 get address of scsi controller
+ move.b #0x20,$38(a2) (DCNTL) enable ACK, setup as slave device
+ move.b 2(a2),d1 read SCNTL1
+ ori.b #0x08,d1 set "issue scsi reset"
+ move.b d1,2(a2) do so
+ move.w #1000,d2 delay 250uS minimum
+SCSIwait dbra d2,SCSIwait
+ andi.b #^0x08,d1 deassert "issue scsi reset"
+ move.b d1,2(a2) tell chip
+ move.l $c(a2),d1 clear pending irqs
+
+* if the extension module is present, execute extension to sysinit.
+*
+Extens
+
+ ROMPAK1
+ 
+ bra SysRetrn return to boot.a
+ 
+
+********************
+* SInitTwo:  perform system specific initialization (part 2)
+*
+SInitTwo:
+ movem.l d0-d2/d7/a0-a2,-(sp) save used regs
+
+* test for presence of optional VME050 module
+* if present, initialize the BIM chip for subsequent
+* serial and parallel port usage.
+
+ movea.l #MemList-*-8,a1 get 32-bit pc relative offset to MemList
+ move.l (pc,a1),a1 get the base address of the exception jump table
+ lea.l BTrap_050(pc),a2 get address of our trap handler
+ move.l BEjmpentry(a1),d2 save existing BUS-ERROR jump entry
+ move.l a2,BEjmpentry(a1) set our handler into jump table
+ nop ensure that write completed
+ move.l sp,d7 save current stack ptr
+ lea.l Post050(pc),a2 get continuation point in case bus trap
+*
+* disable VME050 BIM vector generation to
+* prevent conflicts with serial devices
+*
+ move.b #ExtVect+Lev_Port1,BIM.Port1 externally provided irq vectors port1
+ move.b #ExtVect+Lev_Port2,BIM.Port2 ..... etc serial port2
+*
+* now, move the MPUChip onto the front panel
+*
+ move.l #MPUChip,d0 get the processor in use
+ subi.l #68000,d0 toss root processor bias
+ divu #10,d0 get the tens/digits breakdown
+ move.l d0,d1 copy result
+ swap d1 put remainder in lsw
+ lsl.b #4,d0 move quotient into high nibble
+ or.b d1,d0 add in the remainder
+ move.b d0,Display50 tell the world the cpu type
+Post050 move.l d2,BEjmpentry(a1) restore original jump table handler
+ nop ensure that write completed
+
+ ifdef USING_DEBUGGER
+ movec vbr,a0 get vector base register
+
+* set up a handler for the Abort Switch
+* the abort interrupt comes in on Vector LRCIVBase+$A
+*
+ lea.l AbortHdlr(pc),a1 get address of handler
+ move.l a1,Abortvector(a0) abort switch calls our handler
+ endc USING_DEBUGGER
+
+* enable master interrupts for system from PCC2
+*      
+ movea.l #PCCchBase,a1 address of the PCC chip
+ bset.b #b_PCCGCR_MIEN,PCCGCR(a1) set master interrupt enable for the PCC
+
+* clear any BUS ERROR status (from memory searching)
+*
+ movea.l #VMEchBase,a1 address of the VMEChip
+ move.l VMEICR(a1),d1
+ bset.l #b_VMEICR_mclr,d1 clear out MPU status information
+ move.l d1,VMEICR(a1)
+
+* set master interrupt enable from VMEChip2
+*
+ move.l IRQVBR(a1),d1 get current settings
+ bset.l #b_IOCTLR_mien,d1 set the Master Interrupt Enable for the chip
+ move.l d1,IRQVBR(a1) and send it to the chip
+
+* see if second init extension is present, if so, execute it.
+*
+ ROMPAK2
+
+ movem.l (sp)+,d0-d2/d7/a0-a2 restore used regs
+ rts return to boot.a
+
+
+********************
+* UseDebug: Returns( Z-flag = TRUE/FALSE )
+* If you return Z = TRUE, BOOT ROM's general code
+* does not initialize the DEBUGGER nor call it.
+*
+UseDebug: movem.l d7/a0-a3,-(sp)
+ bsr ReadSwitch50
+ not.b d0 negate as switch we want to look for is closed
+ btst.l #DebugBit,d0 is Debug switch closed ? (returns NE if so)
+ movem.l (a7)+,d7/a0-a3
+ rts return
+
+
+ ifdef USING_DEBUGGER
+********************
+* Abort Switch Handler
+* This is an interrupt handler for the ABORT switch on the CPU
+* front panel.  Notice that it must debounce the switch.
+*
+AbortHdlr:
+ lea.l -6(sp),sp space for SR and continue point
+ move.w sr,0(sp) save SR
+ movem.l d0-d1/a0,-(sp) save those registers needed
+ movea.l #VMEchBase,a0 get base address of interrupt status
+
+ ifne 0
+* wait for the key to be released
+*
+WaitLoop nop sync the pipeline
+ move.l IOCTLR(a0),d1 get the current status
+ btst.l #b_IOCTLR_abrtl,d1 is the key still pressed ?
+ bne.s WaitLoop ..yes; wait till it is released
+
+* debounce the key
+*
+ move.w #Debounce,d0 debounce counter
+WaitRel nop sync the pipeline
+ move.l IOCTLR(a0),d1 get the current status
+ btst.l #b_IOCTLR_abrtl,d1 is the key still pressed ?
+ bne.s WaitLoop ..no; restart again
+ subq.l #1,d0 decrement debounce counter
+ bne.s WaitRel make sure key fully debounced
+
+* continue at Auto7 handler
+*
+ endc
+
+ move.l #m_IRQ_ab,d1
+ move.l d1,INTCLR(a0) clear down the status bit
+ movem.l (sp)+,d0-d1 restore some registers
+ movec vbr,a0 get vector base
+ move.l Auto7vector(a0),6(sp) continue at auto7 handler
+ movea.l (sp)+,a0 restore final reg
+ rtr enter debugger
+
+ endc USING_DEBUGGER
+
+
+********************
+* portman:
+*
+PortMan: dc.b "PortMen - Ryan W. Babic, Warren W. Brown, rev 3.0 Alex Stagg",0
+PortManSz equ *-PortMan
+
+ align
+
+ ends

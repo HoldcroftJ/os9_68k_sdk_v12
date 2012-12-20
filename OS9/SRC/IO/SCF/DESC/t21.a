@@ -1,0 +1,9 @@
+ nam T21
+ ttl 68000 T21 device descriptor module
+ use defsfile
+
+ use "scfdesc.a"
+
+ T21
+ ends
+

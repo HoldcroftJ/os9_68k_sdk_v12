@@ -1,0 +1,34 @@
+**********************************************************************
+MAUI Mailbox Information demo code
+**********************************************************************
+What this demo does:
+  - The demo prints information about mailboxes in memory. It has command 
+    line options to either "dump" the content of the mailbox on the sceen 
+    or decode messages, stored in the mailbox.
+
+**********************************************************************
+System requirements:
+  - A working MAUI environment is assumed.
+ 
+**********************************************************************
+Directories: 
+  - Source code 
+      $MWOS/SRC/MAUI/DEMOS/MSGINFO
+        
+**********************************************************************
+To make this demo:
+  - From the source file directory type:
+      % os9make
+ 
+**********************************************************************
+Operation:
+ 
+  - This demo has several command line options. Run it with -h or -? 
+    option to find out what options are supported. "-d" option dumps 
+    the mailbox content on the sceen, "-dd" attempts to decode 
+    messages in the mailbox. For example:
+
+      $ msginfo -d <mbox1> <mbox2> ...
+
+**********************************************************************
+ 

@@ -1,0 +1,8 @@
+ nam mc68340defs
+ ttl Include file to gather all defs for mc68340 processor
+
+ use <sim340.d>
+ use <timm340.d>
+ use <dmam340.d>
+ use <serm340.d>
+

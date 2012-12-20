@@ -1,0 +1,64 @@
+**********************************************************************
+MAUI auplay demo code
+**********************************************************************
+What this demo does:
+  - Plays audio files that are in the .wav or the Sun
+	Microsystems .au formats.
+  - There is an extensive set of command line options.  Type -? or -h
+	on the command line to display the options.
+
+*********************************************************************
+System requirements:
+  - A working MAUI environment is assumed.
+  - The demo requires that a sound descriptor and a sound driver are
+	in memory.
+  - The demo requires that mfm is in memory.
+  - .wav or .au sound files must be available as assets.
+
+*********************************************************************
+Directories: 
+  - Source code 
+       $MWOS/SRC/MAUI/DEMOS/SND
+        
+*********************************************************************
+To make this demo:
+  - From the source file directory type:
+      % os9make
+*********************************************************************
+NOTE: The Sound Driver Interface only supports WAV type 0x39 files,
+	  it does not support WAV type 0x11 files.
+
+
+
+
+
+**********************************************************************
+MAUI aurecord demo code
+**********************************************************************
+What this demo does:
+  - Records audio files to the .wav or the Sun Microsystems .au
+	formats.
+  - There is an extensive set of command line options.  Type -? or -h
+	on the command line to display the options.
+
+*********************************************************************
+System requirements:
+  - A working MAUI environment is assumed.
+  - The demo requires that a sound descriptor and a sound driver are
+	in memory.
+  - The demo requires that mfm is in memory.
+
+*********************************************************************
+Directories: 
+  - Source code 
+       $MWOS/SRC/MAUI/DEMOS 
+        
+*********************************************************************
+To make this demo:
+  - From the source file directory type:
+      % os9make
+*********************************************************************
+NOTE: The Sound Driver Interface only supports WAV type 0x39 files,
+	  it does not support WAV type 0x11 files.
+
+

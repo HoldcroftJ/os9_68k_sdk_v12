@@ -1,0 +1,500 @@
+ nam System Initialize
+ ttl Hardware dependent routines for the MVME147
+
+********************
+*
+* SysInit and related hardware dependent routines
+*
+* Copyright 1988, 1989, 1990, 1993 by Microware Systems Corporation
+* All Rights Reserved
+* Reproduced Under License
+
+*   This source code is the proprietary confidential property of
+* Microware Systems Corporation, and is provided to the licensee
+* for documentation and educational purposes only.  Reproduction,
+* publication, or any form of distribution to any party other than
+* the licensee is strictly prohibited.
+
+
+********************
+* Edition History
+*
+*  #   date   Comments                                           by
+* -- -------- ------------------------------------------------- ----
+* 00 88/05/23 genesis                                            wwb
+* 01 88/06/21 moved 050 detection/init from SysInit to SInitTwo. wwb
+* 02 88/06/23 made ed.01 restore BE vector (needed if code is    wwb
+*             executed in SInitTwo).
+* 03 88/06/29 added portman.                                     wwb
+* 04 88/07/15 cleanup pass.                                      wwb
+* 05 88/07/26 fixed abort switch cleardown.                      wwb
+*             ---- OS-9/68K V2.2 Release ----
+* 06 88/09/19 made bus error handlers use jump table instead of  wwb
+*             actual vector entry (only problem if vectors are
+*             write-protected).
+* 07 88/11/16 added SCSI Bus RESET (this may not be desirable    wwb
+*             in multi-initiator systems, but for now...)
+*             ---- OS-9/68K V2.2 Delta Release ----
+* 08 89/01/12 removed assumption of 4K debugger global size.     wwb
+* 09 89/02/10 removed "included" conditionals (now "ifdef").     wwb
+*             modified abort switch handling for ROMBUG.
+*             made VBR value patchable.
+* 10 89/04/18 undid ed.9 abort switch changes (ROMBUG does not   wwb
+*             work as advertised).
+* 11 89/07/12 redone to support generic 050 code.                wwb
+* 12 89/07/29 added code to increment nv_ram reset counter       jal
+*             ---- OS-9/68K V2.3 Release ----
+* 13 89/09/18 Added conditionals for ROMPAK                      Rwb
+* 14 89/10/09 Added explicit disable of LANCE device.            wwb
+* 15 89/11/06 Added bus-error trap handling to control setup     wwb
+*             of PARITY mode and LANCE disable for -RF/-SRF.
+*             Moved Iniz050 code back to SysInit (its proper     wwb
+*             place).
+*             Made enable of abort switch only occur when        wwb
+*             debugger code included.
+*             ---- OS-9/68K V2.3 Update Release ----
+* 16 89/11/29 Removed conditionals for ROMPAK - romboot code     wwb
+*             always enabled now.
+* 17 90/04/16 removed VBRPatch constant (now in boot.a).         wwb
+*             ---- OS-9/68K V2.4 released ----
+* 18 90/10/02 Moved Iniz050 code back to SInitTwo: this is an    wwb
+*             issue for S-series 147's, to which Motorola have
+*             not responded (there is a timing/power-on issue
+*             in the VMEChip), thus we will fix it in s/w!.
+*             NOTE that the code is a "cut" of the Iniz050 macro,
+*             as Init050 is designed for SysInit operation only.
+*             ---- OS-9/68K V2.4 Devpak Release ----
+* 19 93/06/25 Adapt new NVRAM structure.                         ats
+*             Integrated backplane driver support code.
+* 20 93/07/27 Adapted MWOS structure. Turn on FAIL if hung 		 ats
+*			  waiting for VMEBus. Don't self-reset if not system
+*             controller.
+* 21 93/07/29 Set default board id in short I/O.                 ats
+*             Correct enabling of slave memory.
+*             Correct VMEChip ID access.
+*             Add support for NVRAM version 2.
+* 22 93/08/05 Add Fail light to deadloop for tracing.            ats
+*             Only save BE vect for MBUGTRC during LANC test.
+*             ---- OS-9/68K V3.0 Release ----
+* 23 93/11/11 Adopt RAMLOAD flag instead of BPLOAD.				 ats
+*             ---- OS-9/68K V3.0.2 Released ----
+*
+Edition equ 23 current edition number
+
+ psect sysinit,0,0,Edition,0,0
+
+ use defsfile
+ use <iniz050.a>
+ use <rompak.m>
+
+
+********************
+* Vector Table definitions
+*
+BEvector equ 2*4 bus error vector offset (from VBR)
+BEjmpentry equ (2-2)+6 bus error handler <ea> in jump table
+Auto7vector equ 31*4 auto-level 7 vector offset
+Abortvector equ ABORTVect*4 pcc's abort switch vector
+
+
+********************
+* Debugger usage
+*
+ ifdef DEBUGGER
+USING_DEBUGGER set 1 define primitive debugger in use
+ endc
+
+ ifdef ROMBUG
+USING_DEBUGGER set 1 define smart debugger in use
+ endc
+ 
+ ifdef MBUGTRC
+CORES set 1
+ endc
+
+ ifdef RAMLOAD
+CORES set 1
+ endc
+
+********************
+* 68030 CACR Definitions
+*
+CachMode equ %0000100000001000 clear & disable caches
+
+
+********************
+* SCSI Bus definitions
+*
+scsi_to equ 50 scsi reset timeout loop
+
+********************
+*
+* SysInit:  perform system specific initialization (part 1)
+*
+SysInit:
+*
+* init register constants
+*
+ moveq.l #0,d0 always zero
+ movea.l #NVRAMBase,a1 NVRAM base address
+
+*
+* set the pmmu tc register to the default value
+*
+ lea.l TCDefault(pc),a0 get pointer to initial value
+ pmove (a0),tc set the default value
+
+* ensure that caches are disabled
+
+ move.l #CachMode,d0 clear/disable on-chip caches
+ movec d0,cacr disable caches
+
+* check for power-up reset
+
+ btst.b #b_gpsr_res,GPSRCtl check power-up status
+ bne.s HardReset yes it was...
+chkabt
+ btst.b #b_abt_abt,ABORTCtl is abort switch pressed?
+ beq.s noabt if not pressed, go on
+ bset.b #NVR_RSTABT,NVR_SPCRST(a1) flag abort switch in NVRAM
+ bra.s chkabt
+
+noabt
+ ifdef CORES
+  bclr.b #NVR_RSTSoft,NVR_SPCRST(a1) clear software reset status
+ else  CORES
+  btst.b #NVR_RSTSoft,NVR_SPCRST(a1) was this a soft-reset ?
+  bne.s wassoftrst yes, go on..
+
+* If not, we need to initiate a hard reset..
+* If we are the system controller, then we want to assert
+* a global reset through the VMEChip. Otherwise just do a 
+* local reset via the watchdog timer.
+
+  bset.b #NVR_RSTSoft,NVR_SPCRST(a1) flag a soft reset for next time
+  move.b #0,GPCRCtl keep reset switch enabled
+  move.b SCCRCtl,d1 get system controller configuration
+  andi.b #sccr_scon,d1 look at status
+  beq.s notscon if not, go do watchdog..
+  move.b #(sccr_sreset+sccr_brdfail),SCCRCtl else, go reset the universe
+deadloop
+  move.b #sccr_brdfail,SCCRCtl turn on FAIL LED 
+  bra.s deadloop and wait here until it all happens
+
+* we cannot reset ourself unless we're system controller
+notscon
+
+wassoftrst
+  bclr.b #NVR_RSTSoft,NVR_SPCRST(a1) clear software reset status
+
+ endc CORES
+
+HardReset
+
+ ifdef MBUGTRC
+  movea.l VBRPatch(pc),a5 get (patchable) VBR base address
+  movec vbr,a0 get vbr
+  move.l #$100,d1
+  subq.l #1,d1
+copyvects
+  move.l (a0)+,(a5)+ copy entire vector table
+  dbra d1,copyvects
+ endc MBUGTRC
+
+* ensure vbr initialized
+
+ movea.l VBRPatch(pc),a0 get (patchable) VBR base address
+ movec a0,vbr set vbr
+ lea.l VTblSize(a0),sp setup temp stack pointer
+
+* initialize PCC and VMEchip registers
+*
+* Note: this initialization is always performed because:
+*  1. this code can be called without a reset exception
+*     (e.g. 'rst' command in debugger)
+*  2. the "preliminary" documentation does not explicitly
+*     define the state of many of the PCC registers when
+*     a reset exception does occur.
+
+ move.b #gpcr_cold,GPCRCtl init GPCR: cold start mode
+ move.b #wdt_wdto+wdt_wdclr,WDTCtl clear/disable wdt
+ move.b #0,SCCRCtl turn off FAIL LED, arbitrate "priority mode"
+ move.b #0,MasCCtl default master configuration control
+ move.b #(rqc_rqlev3+rqc_rwd),d0 requester mode is BR level = 3, rel when done
+ move.b GCSRBase+1,d2
+ andi.b #gr0_idmask,d2 get vmechip id
+ beq.s SetReq if zero, don't set RONR (manual sez not to)
+* RONR needed for backplane driver support
+ ori.b #rqc_ronr,d0 requester waits for 150ns after no BR* before requesting
+SetReq
+ move.b d0,RQCCtl tell the hardware
+
+ ori.b #rqc_dwb,d0 now, request bus mastership
+ move.b d0,RQCCtl tell the hardware
+ move.b #sccr_brdfail,SCCRCtl turn on FAIL LED as clue to hang
+WaitBus btst.b #b_rqc_dhb,RQCCtl have we got the bus ?
+ beq.s WaitBus ..no; then wait for it
+ move.b #0,SCCRCtl turn off FAIL LED
+
+* now setup the slave response
+
+ move.b #0,SlvCCtl default to no slave enable
+ move.b #0,SlvAMCtl and to no address modifiers
+ move.b #slv_mode,SlvAddCtl and no relocation
+ move.b #gsel_addr,GlbSelCtl set global address for 147 short i/o
+ move.b #gsel_addr,GCSRBase+BrdID and board id in short i/o
+
+ bsr GoodNVR check if NVRAM is good
+ bne.s RelBus if not, release the bus
+ tst.b NVR_SLVEN(a1) check if slaves are to be enabled
+ beq.s SetBrd if not, set the board id
+ move.l NVR_SLVADDR(a1),d1 get slave address from NVRAM
+ divu.l NVR_MEMSIZE(a1),d1 div by mem size for reloc factor
+ tst.b d2 which vmechip do we have
+ bne.s setreloc if not zero, we have an S model
+ move.b d1,d2 otherwise copy relocation
+ lsl.b #2,d2 shift into A32 position
+ or.b d2,d1 add it in with A24
+
+setreloc
+ move.b d1,SlvAddCtl and set up the relocation
+ move.b #slvam_default,SlvAMCtl set slave am response codes
+ move.b #slv_en,SlvCCtl enable slave configuration
+
+SetBrd
+ move.b NVR_BRDID(a1),GlbSelCtl set board id for short i/o space
+ move.b NVR_BRDID(a1),GCSRBase+BrdID and in sio space
+RelBus
+ andi.b #^rqc_dwb,d0 clear "request bus flag"
+ move.b d0,RQCCtl release vme bus
+ move.b #(tim_arbto+8),TimCCtl VME = 51ms, enable arbitration timer
+ move.b #gpsr_res+gpsr_par,GPSRCtl clear reset/parity status
+ move.b #0,MasAMCtl disable master am register
+ move.b #0,UIRQCtl disable all utility irqs
+ move.b #VMEVect,UVectCtl init "utility irq vector" reg
+ move.b #0,VMEIRQCtl disable all VME bus interrupts
+ move.b #0,IRQRqCtl clear irq request reg
+ move.b #$0f,IDCtl vme status/id register = "uninitialized" vector
+
+* copy reset vectors from the rom into vector table
+
+ movec vbr,a0 get vbr
+ move.l VectTbl(pc),0(a0) initialize reset SSP...
+ move.l VectTbl+4(pc),4(a0) ...and PC
+
+* ensure PCC devices are disabled/cleared
+
+ movea.l #PCCBase,a0 get base address of PCC devices
+ move.b #tirq_irq,tim1_irq(a0) clear/disable timer 1 irqs
+ move.b #tct_clrovf,tim1_ctl(a0) clear/disable timer 1
+ move.b #tirq_irq,tim2_irq(a0) clear/disable timer 2 irqs
+ move.b #tct_clrovf,tim2_ctl(a0) clear/disable timer 2
+ move.b #acf_irq,ACFAILCtl init ac fail reg
+ movea.l #PBase,a2 get printer "base"
+ move.b #pirq_irq,p_irq(a2) init printer irq control
+ move.b #dirq_irq,dma_irq(a0) disable dma irqs
+ move.b #0,dma_ctst(a0) disable dma itself
+ move.b #berr_irq,BERRCtl disable bus error irqs
+ move.b #abt_irq,ABORTCtl clear abort status
+ move.b #0,SerIRQCtl clear serial irqs, use external vector
+ move.b #0,LANCECtl disable LANCE irqs
+
+* explicitly disable LANCE controller itself
+* NOTE: for -RF and -SRF versions, this will cause a BUS ERROR
+
+ lea.l RF_SRF(pc),a2 get continuation point for RF/SRF
+ movec vbr,a0 get base address of vectors
+ ifdef MBUGTRC
+  move.l BEvector(a0),a3 save current bus error vector
+ endc MBUGTRC
+ move.l a2,BEvector(a0) setup bus error vector
+ move.l sp,d7 mark current stack point
+ move.w #0,LANCEBase+2 select LANCE CSR
+ move.w #4,LANCEBase disable LANCE operation
+ bra.s NotRF_SRF continue on
+
+RF_SRF move.l d7,sp reset stack pointer
+ andi.b #^gpcr_parmask,GPCRCtl disable parity if -RF/-SRF
+
+NotRF_SRF equ *
+ ifdef MBUGTRC
+  move.l a3,BEvector(a0) restore bus error vector
+ endc MBUGTRC
+
+* reset the scsi bus devices
+
+ bsr GoodNVR check if NVRAM is good
+ bne.s FinishPCC if not, don't reset SCSI bus
+ cmpi.w #NVV_SRST_FLAG,NVR_VERSION(a1) check for scsi reset flag change version
+ blt.s ScsiRst if no flag, go ahead & reset (as before)
+ tst.b NVR_SCSIRST(a1) else check flag
+ beq.s FinishPCC if flag not set, skip scsi reset
+ScsiRst
+ move.b #scsi_rst,SCSICtl assert reset on scsi bus, clr/disable irqs
+ move.w #scsi_to,d0 get time-out value
+ScsiWait nop sync the pipelines/etc.
+ dbra d0,ScsiWait delay for bus reset assertion time
+ move.b #0,SCSICtl negate scsi reset
+FinishPCC
+ move.b #swi_irq,SWI1Ctl clear/disable swi 1
+ move.b #swi_irq,SWI2Ctl same with swi 2
+ move.b #PCCVect,PCCVctCtl init PCC base vector
+
+ ROMPAK1 call user init part 1 (if installed)
+
+ bra SysRetrn return to boot.a
+
+
+*******************
+*
+* SInitTwo:  perform system specific initialization (part 2)
+*
+
+SInitTwo:
+
+* test for presence of optional VME050 module
+* if present, initialize the BIM chip for subsequent
+* serial and parallel port usage.
+
+ movem.l d0-d2/d7/a1-a2,-(sp) save used regs
+ movea.l #MemList-*-8,a1 get 32-bit pc relative offset to MemList
+ move.l (pc,a1),a1 get the base address of the exception jump table
+ lea.l BTrap_050(pc),a2 get address of our trap handler
+ move.l BEjmpentry(a1),d2 save existing BUS-ERROR jump entry
+ move.l a2,BEjmpentry(a1) set our handler into jump table
+ move.l sp,d7 save current stack ptr
+ lea.l Post050(pc),a2 get continuation point in case bus trap
+*
+* disable VME050 BIM vector generation to
+* prevent conflicts with serial devices
+*
+ move.b #ExtVect+Lev_Port1,BIM.Port1 externally provided irq vectors port1
+ move.b #ExtVect+Lev_Port2,BIM.Port2 ..... etc serial port2
+*
+* now, move the MPUChip onto the front panel
+*
+ move.l #MPUChip,d0 get the processor in use
+ subi.l #68000,d0 toss root processor bias
+ divu #10,d0 get the tens/digits breakdown
+ move.l d0,d1 copy result
+ swap d1 put remainder in lsw
+ lsl.b #4,d0 move quotient into high nibble
+ or.b d1,d0 add in the remainder
+ move.b d0,Display50 tell the world the cpu type
+Post050 move.l d2,BEjmpentry(a1) restore original jump table handler
+ movem.l (sp)+,d0-d2/d7/a1-a2 restore regs
+
+* finalize setup of VMEChip
+
+ move.b #gpsr_res+gpsr_par,GPSRCtl clear reset/parity status
+ tst.b VBERRCtl clear bus error status reg
+
+ ifdef USING_DEBUGGER
+* remap PCC abort switch vector to our "front-end" handler
+
+ movem.l a0-a1,-(sp) save regs
+ movec vbr,a0 get vbr
+
+* setup handler for abort switch
+
+ lea.l AbortHdlr(pc),a1 get address of handler
+ move.l a1,Abortvector(a0) abort switch calls our handler
+ movem.l (sp)+,a0-a1 restore regs
+ move.b #abt_enab,ABORTCtl enable the abort switch
+ endc USING_DEBUGGER
+
+ bsr GoodNVR check if NVRAM is good
+ bne.s EnabSIO if not enable serial I/O
+ movea.l #NVRAMBase,a1 get NVRAM base address
+ cmpi.w #NVV_VINT_MASK,NVR_VERSION(a1) check for VME int mask change version
+ blt.s VmeFlag if less than mask version, process flag
+ move.b NVR_VMEINT(a1),VMEIRQCtl enable selected interrupts
+ bra.s EnabSIO
+
+VmeFlag
+ tst.b NVR_VMEINT(a1) check if vme interrupts enabled
+ beq.s EnabSIO if not, don't do it
+ move.b #virq_enall,VMEIRQCtl enable all vme bus interrupt levels
+
+EnabSIO
+* enable serial port interrupts
+*
+* NOTE:  this is the UGLY way to do it - /term becomes 'wired'
+*        to a fixed irq level
+
+ move.b #sirq_enab+TermLev,SerIRQCtl enable port 1(??) irq
+ 
+ ROMPAK2 call user init, part 2 (if installed)
+
+* enable interrupts to the cpu chip
+ ori.b #gpcr_mintenab,GPCRCtl set master irq enable in GPCR
+ rts
+
+
+******************
+*
+* UseDebug:  return status of system debugger (enabled/not enabled)
+*
+* This code will test for presence of the VME050 module.
+* If installed, the front panel switch will be read to decide
+* if the debugger should be called.  If not, then the CallDBug byte
+* (generated by boot.a) is tested, and if bit 0 is zero the Zero bit
+* is cleared in the CCR to enable the system debugger.
+*
+UseDebug:
+ bsr ReadSwitch50 read (optional) VME050 front panel switches
+ not.b d0 negate as switch we want to look for is closed
+ btst.l #DebugBit,d0 is Debug switch closed ? (returns NE if so)
+ rts return
+
+
+********************
+* Abort Switch Handler
+*
+ ifdef USING_DEBUGGER
+* This routine clears down the abort switch interrupt.
+* If the primitive debugger is in use, then it is entered as
+* if an autolevel 7 irq had occurred.
+* If the smart debugger is in use, then execution resumes at
+* the jump table entry for ABORTVECT
+*
+AbortHdlr lea.l -10(sp),sp carve some stack space
+ move.w sr,4(sp) save CCR status
+ move.l a0,0(sp) save a0
+AbortHdlr.a btst.b #b_abt_abt,ABORTCtl is the switch still depressed ?
+ bne.s AbortHdlr.a ..yes; wait for release
+ move.b #abt_irq+abt_enab,ABORTCtl clear down irq and keep it enabled
+* start ed.10 changes
+* ifdef DEBUGGER
+* end ed.10
+* primitive debugger expects abort from auto-level 7
+*
+ movec vbr,a0 get vectors ptr
+ move.l Auto7vector(a0),6(sp) continue at auto7 handler
+* start ed.10 changes
+* else
+* smart debugger uses jump table entry for ABORTVECT
+*
+* movea.l MemList(pc),a0 get address of jump table
+* lea.l ((ABORTVECT-2)*JmpEntSize)(a0),a0 get continuation point
+* move.l a0,6(sp) set it
+* endc DEBUGGER
+* end ed.10
+ movea.l (sp)+,a0 restore a0
+ rtr enter debugger
+ endc USING_DEBUGGER
+
+********************
+* Default Constants
+*
+
+* PMMU TC register initial value
+*
+TCDefault: dc.l $02c08444 default for tc reg
+
+* portman:
+*
+PortMan: dc.b "Portmen: Warren W. Brown, rev 3.0 Alex Stagg",0
+
+ ends
+

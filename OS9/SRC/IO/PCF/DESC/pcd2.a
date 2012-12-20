@@ -1,0 +1,8 @@
+ nam PCD2 Device Descriptor
+ use defsfile
+
+ use "pcfdesc.a"
+
+DrvNum set 2
+ DiskPCD2
+ ends

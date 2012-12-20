@@ -1,0 +1,14 @@
+
+* call dmairq (local_stat, port_addr)
+* where: local_stat (in a2) = low-level driver's local static ptr
+*        port_addr (in a3) = hardware ptr
+
+dmasvc: move.l a2,d0
+ move.l a3,d1
+ bsr dmairq
+ move.l d0,d1
+ beq.s dma_done
+ ori.b #01,ccr
+dma_done rts
+
+

@@ -1,0 +1,112 @@
+ ttl Device Descriptor for Tape controller
+
+* Copyright 1986, 1988, 1989, 1993, 1994 by Microware Systems Corporation.
+* Reproduced Under License.
+
+* This source code is the proprietary confidential property of
+* Microware Systems Corporation, and is provided to licensee
+* solely for documentation and educational purposes. Reproduction,
+* publication, or distribution in any form to any party other
+* than the licensee is prohibited.
+
+********************************
+* Edition History
+*  #   date    comments                                         by
+* -- -------- ------------------------------------------------- ---
+*  1 86/03/05 Created.                                          lac
+*  2 86/06/03 added "SBFFlags", "DrivFlag", and "DMAMode"       lac
+*              ---- OS-9/68K V2.1 Release ---- 
+*              ---- OS-9/68K V2.2 Release ---- 
+*  3 88/09/21 added "ScsiID", "ScsiLUN".                        wwb
+*  4 88/11/30 removed default DevCon (was always 0 before,      wwb
+*             you always have to specify it now).
+*  5 89/02/27 added scsi option flags.                          wwb
+*              ---- OS-9/68K V2.3 Release ---- 
+*              ---- OS-9/68K V2.4 Release ---- 
+*  6 93/07/02 reworked into "sbfdesc.a" format. SBF descriptors wwb
+*             are now made the same way as rbf/scf/etc.
+*             [this file was previously sbfdesc.d (located in
+*             the DEFS directory)].
+*              ---- OS-9/68K V3.0 Release ---- 
+*  7 94/07/15 added scsi_wide to ScsiOpts.						wwb
+*              ---- OS-9/68K V3.0.2 Release ----
+*              ---- OS-9/68K V3.1 Release ----
+*
+Edition equ 7 current edition number
+
+
+TypeLang set (Devic<<8)+0
+Attr_Rev set (ReEnt<<8)+0
+
+ psect SBFDesc,TypeLang,Attr_Rev,Edition,0,0
+
+ dc.l Port port address
+ dc.b Vector vector trap assignment
+ dc.b IRQLevel IRQ hardware interrupt level
+ dc.b Priority irq polling priority
+ dc.b Mode device mode capabilities
+ dc.w FileMgr file manager name offset
+ dc.w DevDrv device driver name offset
+ dc.w DevCon device constants offset
+ dc.w 0,0,0,0 reserved
+ dc.w OptLen
+
+* Default Parameters
+OptTbl equ *
+ dc.b DT_SBF device type
+ dc.b DrvNum drive number
+ dc.b 0 reserved
+ dc.b NumBlks maximum number of block buffers
+ dc.l BlkSize block size
+ dc.w DrvPrior driver process priority
+ dc.b SBFFlags file manager flags
+ dc.b DrivFlag driver flags
+ dc.w DMAMode DMA type/usage
+ dc.b ScsiID controller ID on SCSI bus
+ dc.b ScsiLUN tape drive LUN on controller
+ dc.l ScsiOpts scsi option flags
+OptLen equ *-OptTbl
+
+FileMgr dc.b "SBF",0 Sequential Block File manager
+
+* SBFDesc Macro definitions
+*
+SBFDesc macro
+
+Port     equ \1 Port address
+Vector   equ \2 autovector number
+IRQLevel equ \3 hardware interrupt level 
+Priority equ \4 polling priority
+DevDrv   dc.b "\5",0 driver module name
+
+ ifgt \#-5 standard device setup requested?
+* reserved for future "std" options
+
+ endc
+ endm
+
+****************
+* Descriptor Defaults
+Mode     set Share_+ISize_+Exec_+Updat_
+Speed    set 0 driver defined
+NumBlks  set 2 (0=unbuffered mode, else number of buffers)
+BlkSize  set 0x2000
+DrvPrior set 1000 "sbf process" priority
+SBFFlags set 0
+DrivFlag set 0
+DMAMode  set 0 driver defined
+ScsiID   set 0
+ScsiLUN  set 0
+
+* scsi options flag definitions
+
+scsi_atn    set 1<<0 assert ATN supported
+scsi_target set 1<<1 target mode supported
+scsi_synchr set 1<<2 synchronous transfers supported
+scsi_parity set 1<<3 enable SCSI parity checking
+scsi_wide	set	1<<4 enable SCSI wide operation
+ScsiOpts    set 0 scsi options flags
+
+* end of file
+
+

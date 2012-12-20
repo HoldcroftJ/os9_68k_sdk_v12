@@ -1,0 +1,17 @@
+#ifndef __CSTDLIB
+#	define __CSTDLIB
+
+#include <stdlib.h>
+
+
+// Additional overloaded functions defined by ANSI C++
+
+inline long abs(long x)
+{	return x < 0 ? -x : x; }
+
+inline ldiv_t div(long x, long y)
+{	return ldiv(x, y); }
+
+
+#endif /* __CSTDLIB */
+

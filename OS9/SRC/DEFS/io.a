@@ -1,0 +1,406 @@
+ opt -l
+ nam Path Descriptor format
+
+*****************************************************************************
+*                                                                           *
+*              Copyright 1998 by Microware Systems Corporation              *
+*                            All Rights Reserved                            *
+*                          Reproduced Under License                         *
+*                                                                           *
+*  This software is confidential property of Microware Systems Corporation, *
+*  and is provided under license for internal development purposes only.    *
+*  Reproduction, publication, modification, distribution, or creation of    *
+*  derivative works in any form to any party other than the Licensee is     *
+*  strictly prohibited, unless expressly provided for under the terms of a  *
+*  mutually executed written license agreement for this software between    *
+*  the end-user and Microware Systems Corporation, or otherwise expressly   *
+*  authorized in writing by Microware Systems Corporation.  Licensee shall  *
+*  reproduce this copyright notice exactly as provided herein on any copies *
+*  of the software that Licensee is authorized to distribute.               *
+*                                                                           *
+*****************************************************************************
+* Edition History
+*  #   Date    Changes Made												by
+* -- -------- --------------------------------------------------------  ---
+* 00 04-11-83 Converted to 68000 from OS-9 Level II Edition 7.			rfd
+* 00 05-24-83 Removed DAT routines with conditional assembly.			rfd
+* 00 06-21-83 Changed from "ds" to "do" (define offset).				rfd
+* 01 02-09-84 Converted for linkage use.								lac
+* 02 05-10-84 Removed mask & flip bytes from polling table.				rfd
+* 03 08-24-84 Added DD_NBT for non-contiguous boots.					wgp
+* 04 10-05-84 Made minor changes to update RBF to 6809 ed #23.			rfd
+* 04 10-24-84 Removed DD_NBT, added PD_USER.							rfd
+* 05 11-09-84 Rearranged file distribution.								rfd
+* 06 01-23-85 Added Pipe definitions.									rfd
+* 07 06-24-85 Added new entrys in RBF options section.					res
+*				---- OS-9/68k V1.2 released ----
+* 08 09-15-86 Added new entries in RBF options section.					djl
+*				---- OS-9/68k V2.0 released ----
+*				---- OS-9/68k V2.1 released ----
+*				---- OS-9/68k V2.2 released ----
+* 09 09-07-88 Added CDI definitions.									rfd
+*				---- CD-RTOS V0.97 released ----
+*				---- CD-RTOS V0.99 released ----
+* 10 01-18-89 Added GFM audio definitions.								tje
+*				---- OS-9/68k V2.2 edition #50 released ----
+* 11 04-07-89 Added PD_ScsiOpt.											wwb
+*				---- OS-9/68k V2.3 released ----
+* 12 10-10-89 Replaced reserved field with PD_CPInt per GFM request		jej
+* 13 02-16-90 Added PD_MaxCnt, DD_MapLSN, DD_LSNSize.					wwb
+* 14 04-04-90 Added DD_VersID											jej
+* 15 05-08-90 Added PD_SctSiz (from sysio.a).							wwb
+*				---- CD-RTOS V1.1 released ----
+* 16 07-11-90 Added PD_Rate												wwb
+*				---- OS-9/68k V2.4 released ----
+* 17 01-17-91 Fixed description of FC_AUD (for ebm).					wwb
+* 18 02-25-91 Updated SCF/GFM/UCM path options definitions to allow		wwb
+*             SCF drivers to operate under GFM/UCM.  Note that this
+*             does NOT affect SCF drivers, only GFM/UCM.
+* 19 03-19-91 Removed all references to UCM:  CD-RTOS V1.1 must use		wwb
+*             edition 16 definitions.
+*				---- OS-9/68k V2.4 68040 released ----
+*				---- OS-9/68k V2.4.3 released ----
+*				---- OS-9/68k V2.5 (Discovery Pak) released ----
+* 20 03-05-93 Added (mgh's) write-protect def for RBF control word.		wwb
+*				---- OS-9/68k V3.0 released ----
+*				---- OS-9/68K V3.0.2 Beta_2 Release ----
+*				---- OS-9/68K V3.0.2 Release ----
+* 21 02-16-96 Added PD_PAR and PD_BAU definitions.						wwb
+*				---- OS-9/68K V3.0.3 PwrMan Beta Release ----
+*				---- OS-9/68K V3.0.3 Release ----
+* 22 07-07-98 Added DelBlk_B to rbf control word.						wwb
+* 23 07-15-98 Added new copyright info.									wwb
+* 24 08-13-98 Added RBF partitioning defs.								wwb
+*				---- OS-9/68K V3.1 Release ----								*
+*             $$                    <RELEASE_INFO>                     $$   *
+*
+edition set 24 current edition number
+
+ psect io,0,0,edition,0,0
+
+ ttl Random Block file manager definitions
+****************************************
+* Random Block Path Descriptor Format
+
+ org 0
+			do.b 128 File manager variables   (all file managers)
+PD_OPT:		equ . getsts(0) changable options
+PD_DTP:		do.b 1 device type         (all file managers)
+PD_DRV:		do.b 1 drive number
+PD_STP:		do.b 1 step rate
+PD_TYP:		do.b 1 disk device type (5" 8" other)
+PD_DNS:		do.b 1 density capability
+			do.b 1 reserved
+PD_CYL:		do.w 1 number of cylinders
+PD_SID:		do.b 1 number of surfaces
+PD_VFY:		do.b 1 0=verify disk writes
+PD_SCT:		do.w 1 default sectors/track
+PD_T0S:		do.w 1 default sectors/track tr00,s0
+PD_SAS:		do.w 1 segment allocation size
+PD_ILV:		do.b 1 sector interleave offset
+PD_TFM:		do.b 1 DMA transfer mode
+PD_TOffs:	do.b 1 track base offset
+PD_SOffs:	do.b 1 sector base offset
+PD_SSize:	do.w 1 size of sector in bytes
+PD_Cntl:	do.w 1 Control word
+PD_Trys:	do.b 1 # of trys. 1 = no error correction.
+PD_LUN:		do.b 1 scsi unit number of drive
+PD_WPC:		do.w 1 first cylinder using write precomp
+PD_RWR:		do.w 1 first cylinder using reduced write current
+PD_Park:	do.w 1 park cylinder for hard disks
+PD_LSNOffs:	do.l 1 logical sector number offset for partition
+PD_TotCyls:	do.w 1 total number of cylinders on device
+PD_CtrlrID:	do.b 1 scsi controller id
+PD_Rate:	do.b 1 data-transfer & rotational rates
+PD_ScsiOpt:	do.l 1 SCSI driver option flags
+PD_MaxCnt:	do.l 1 Maximum byte count passable to driver.
+PD_PartSiz:	do.l 1 Partition size
+			do.b 1 reserved
+PD_ATT:		do.b 1 file attributes
+PD_FD:		do.l 1 File Descriptor psn
+PD_DFD:		do.l 1 directory File Descriptor psn
+PD_DCP:		do.l 1 directory entry ptr
+PD_DVT:		do.l 1 device table ptr (copy)
+			do.b 2 reserved
+PD_SctSiz:	do.l 1 sector size
+			do.b 20 reserved
+PD_NAME:	do.b 32 filename
+PDSIZE:		equ . size of entire path descriptor
+
+***************
+* Bit Definitions for PD_Cntl
+
+FmtDis_B:	equ 0 format Disable bit. 1 = Disable format
+MltSct_B:	equ 1 multiple sector I/O capability if set
+StabID_B:	equ 2 stable disk ID; non-removable or auto-updated at media change
+AutoSz_B:	equ 3 device tells its own capacity via SS_DSize
+FmtTrk_B:	equ 4 device is capable of formatting individual tracks
+WrtDis_B:	equ 5 media is write-protected if set
+DelBlk_B:	equ 6 call driver with SS_FTL(FTL_DelBlk) when space deallocated
+PhysDsk_B:	equ 7 device is physical-format only
+PartDsk_B:	equ 8 device is a partition
+
+*  Pathlist Special Symbols
+PDelim:		equ '/' Pathlist name separator
+PDir:		equ '.' Directory
+PEntir:		equ '@' Entire device
+
+ pag
+********************************
+* Sector Zero format (Compatable with 6809 OS-9)
+
+ org 0
+DD_TOT:		do.b 3 Total number of sectors
+DD_TKS:		do.b 1 Track size in sectors
+DD_MAP:		do.w 1 Number of bytes in allocation bit map
+DD_BIT:		do.w 1 Number of sectors/bit
+DD_DIR:		do.b 3 Address of root directory fd
+DD_OWN:		do.b 2 Owner ID
+DD_ATT:		do.b 1 Attributes
+DD_DSK:		do.w 1 Disk id
+DD_FMT:		do.b 1 Disk format; density/sides
+DD_SPT:		do.b 2 Sectors/track
+DD_RES:		do.b 2 Reserved for future use
+DD_SIZ:		equ . Device descriptor minimum size
+DD_BT:		do.b 3 System bootstrap sector
+DD_BSZ:		do.w 1 Size of system bootstrap
+DD_DAT:		do.b 5 Creation date
+DD_NAM:		do.b 32 Volume name
+DD_OPT:		do.b 32 option area
+			do.b 1 reserved, must be zero
+DD_Sync:	do.l 1 media integrity code (ie: cruz code)
+DD_MapLSN:	do.l 1 starting sector of bitmap (if non-zero)
+DD_LSNSize:	do.w 1 media logical sector size
+DD_VersID:  do.w 1 sector 0 version ID
+
+********************************
+* File Descriptor format (Compatable with 6809 OS-9)
+
+ org 0
+FD_ATT:		do.b 1 Attributes
+FD_OWN:		do.b 2 Owner
+FD_DAT:		do.b 5 Date last modified
+FD_LNK:		do.b 1 Link count
+FD_SIZ:		do.b 4 file size
+FD_Creat:	do.b 3 date created yymmdd
+FD_SEG:		equ . Beginning of segment list
+
+* Segment List Entry Format
+ org 0
+FDSL_A:		do.b 3 Segment beginning physical sector number
+FDSL_B:		do.b 2 Segment size
+FDSL_S:		equ . Segment list entry size
+
+* Directory Entry Format (Compatable with 6809 OS-9)
+ org 0
+DIR_NM:		do.b 28 File name
+DIR_FD:		do.b 4 File descriptor physical sector number
+DIR_SZ:		equ . Directory record size
+
+ ttl Sequential Character file manager definitions
+ pag
+****************************************
+* SCF Path Descriptor Option Offsets
+
+* note that these definitions do not overlap GFM definitions
+ org PD_OPT
+			do.b 1 device type
+PD_UPC:		do.b 1 case (0=both, 1=upper only)
+PD_BSO:		do.b 1 backsp (0=bse, 1=bse,sp,bse)
+PD_DLO:		do.b 1 delete (0=bse over line, 1=crlf)
+PD_EKO:		do.b 1 echo (0=no echo)
+PD_ALF:		do.b 1 autolf (0=no auto lf)
+PD_NUL:		do.b 1 end of line null count
+PD_PAU:		do.b 1 pause (0=no end of page pause)
+PD_PAG:		do.b 1 lines per page
+PD_BSP:		do.b 1 backspace character
+PD_DEL:		do.b 1 delete line character
+PD_EOR:		do.b 1 end of record char (read only)
+PD_EOF:		do.b 1 end of file char
+PD_RPR:		do.b 1 reprint line char
+PD_DUP:		do.b 1 dup last line char
+PD_PSC:		do.b 1 pause char
+PD_INT:		do.b 1 kbd intr char (ctl c)
+PD_QUT:		do.b 1 kbd quit char (ctl q)
+PD_CTLCH:	equ PD_QUT-PD_BSP number of control character bytes
+PD_BSE:		do.b 1 backspace echo character
+PD_OVF:		do.b 1 line overflow char (bell)
+PD_PAR:		do.b 1 parity code
+PD_BAU:		do.b 1 acia baud rate (color computer)
+PD_D2P:		do.w 1 dev2 output name offset
+PD_XON:		do.b 1 x-on char
+PD_XOFF:	do.b 1 x-off char
+PD_Tab:		do.b 1 Tab character (0=none)
+PD_Tabs:	do.b 1 Tab field size
+OPTCNT:		equ .-PD_OPT Total user settable options
+PD_TBL:		do.l 1 Device table addr (copy)
+PD_Col:		do.w 1 current column number
+PD_ERR:		do.b 1 most recent I/O error status
+			do.b 256-32-. reserved for SCF
+PD_SCFEnd:	do.b 32 reserved for GFM usage
+
+****************************************
+* Default character and SCF mode definition values
+
+OFF:		equ 0
+ON:			equ 1
+upclock:	equ OFF upper case lock disabled
+bsb:		equ ON  backspace, space, backspace enabled
+linedel:	equ OFF backspace over line, instead of line del char
+autoecho:	equ ON  full duplex mode
+autolf:		equ ON  auto line feed after CR
+eolnulls:	equ 0   no nulls required at eol
+pagpause:	equ ON  end of page pause enabled
+pagsize:	equ 24  number of lines per page
+tabsize:	equ 4   tab stop field size
+C$Null:		equ $00 null char
+C$Rpet:		equ $01 (ctl a - soh) repeat last input line
+C$Intr:		equ $03 (ctl c - etx) keyboard interrupt
+C$Rprt:		equ $04 (ctl d - eot) reprint current input line
+C$Quit:		equ $05 (ctl e - enq) keyboard abort
+C$Bell:		equ $07 (ctl g - bel) line overflow warning
+C$Bsp:		equ $08 (ctl h - bs ) back space
+C$Tab:		equ $09 (ctl i - ht) horizontal tab
+C$LF:		equ $0A Line feed
+C$CR:		equ $0D Carriage return
+C$Form:		equ $0C (ctl l - ff ) form feed
+C$XOn:		equ $11 (ctl q - dc1) transmit enable
+C$XOff:		equ $13 (ctl s - dc3) transmit disable
+C$Paus:		equ $17 (ctl w - etb) pause character
+C$Del:		equ $18 (ctl x - can) delete line
+C$EOF:		equ $1B (ctl [ - esc) end of file
+C$Spac:		equ $20 Space
+C$Perd:		equ '.'
+C$Coma:		equ ','
+
+
+****************************************
+* SCF Baud Rate values (PD_BAU)
+*
+	org		0
+Baud50:		do.b 1  0 baud rate = 50
+Baud75:		do.b 1  1 baud rate = 75
+Baud110:	do.b 1  2 baud rate = 110
+Baud134_5:	do.b 1  3 baud rate = 134.5
+Baud150:	do.b 1  4 baud rate = 150
+Baud300:	do.b 1  5 baud rate = 300
+Baud600:	do.b 1  6 baud rate = 600
+Baud1200:	do.b 1  7 baud rate = 1200
+Baud1800:	do.b 1  8 baud rate = 1800
+Baud2000:	do.b 1  9 baud rate = 2000
+Baud2400:	do.b 1  a baud rate = 2400
+Baud3600:	do.b 1  b baud rate = 3600
+Baud4800:	do.b 1  c baud rate = 4800
+Baud7200:	do.b 1  d baud rate = 7200
+Baud9600:	do.b 1  e baud rate = 9600
+Baud19200:	do.b 1  f baud rate = 19200
+Baud38400:	do.b 1 10 baud rate = 38400
+Baud56000:	do.b 1 11 baud rate = 56000
+Baud64000:	do.b 1 12 baud rate = 64000
+Baud31250:	do.b 1 13 baud rate = 31250 (MIDI)
+BaudMidi:	equ  Baud31250
+            do.b 1 14 Old Baud Midi value
+Baud57600:	do.b 1 15 baud rate = 57600
+*
+*Keep baud rates below matched with OS9000 Rates
+*
+Baud115200:	do.b 1 16 baud rate = 115200
+Baud230400:	do.b 1 17 baud rate = 230400
+Baud460800: do.b 1 18 baud rate = 460800
+Baud921600: do.b 1 19 baud rate = 921600
+Baud76800:	do.b 1 1a baud rate = 76800
+Baud153600:	do.b 1 1b baud rate = 153600
+Baud307200:	do.b 1 1c baud rate = 307200
+Baud614400:	do.b 1 1d baud rate = 614400
+Baud1228800: do.b 1 1e baud rate = 1228800
+			do.b $80-. reserved
+BaudUser:	do.b $ff-. user definable
+BaudExt:	do.b 1 ff external baud rate
+
+
+****************************************
+* SCF Communications Mode values (PD_PAR)
+*
+
+* device parity codes (bits 1,0)
+*
+NoParity:	equ	(%00<<0) no parity
+OddParity:	equ	(%01<<0) odd parity
+* reserved	equ	(%10<<0)
+EvenParity:	equ	(%11<<0) even parity
+
+* word length codes (bits 3,2)
+*
+WordSize8:	equ	(%00<<2) 8 bit char
+WordSize7:	equ	(%01<<2) 7 bit char
+WordSize6:	equ	(%10<<2) 6 bit char
+WordSize5:	equ	(%11<<2) 5 bit char
+
+* stop bit codes (bits 5,4)
+*
+OneStop:	equ	(%00<<4) one stop bit
+One_5Stop:	equ	(%01<<4) 1.5 stop bits
+TwoStop:	equ	(%10<<4) two stop bits
+* reserved	equ	(%11<<4)
+
+* bits 7,6 of PD_PAR are reserved.
+
+
+****************************************
+* Pipe Path Descriptor Option Offsets
+
+MAXNAME equ 32 maximum size of named pipe name
+
+ org PD_OPT
+			do.b 1 device type
+			do.b 1 reserved
+PD_BufSz:	do.l 1 default pipe buffer size
+PD_IOBuf:	do.b PDSIZE-MAXNAME-. reserve tiny default I/O buffer
+PipeBfSz:	equ .-PD_IOBuf size of default buffer
+PD_Name:	do.b 32 pipe file name (if any)
+
+ ttl CDFM/GFM file manager definitions
+ pag
+****************************************
+* CDFM Path Descriptor Option Offsets
+
+ org PD_OPT
+			do.b 1 device type
+PD_CDFC:	do.b 1 function class for device (0=cd/1=audio)
+PD_ErrSz:	do.b 1 Number of bytes per error bit (cdi device only)
+PD_NDscs:	do.b 1 Number of discs in player (cdi device only)
+PD_DNum:	do.b 1 device number (drive number for cd/ap number for audio)
+PD_BFctr:	do.b 1 blocking factor
+PD_Did:		do.l 1 Disc ID
+PD_Track:	do.w 1 Track type
+PD_XAR:		do.w 1 Extended attribute record size
+PD_CNUM:	do.l 1 channel number
+PD_TOK:		do.b 32 token buffer
+PD_PTNUM:	do.w 1 path table entry number
+PD_PTOFF:	do.w 1 path table entry offset
+			do.b 256-. reserved
+
+
+****************************************
+* GFM Path Descriptor Option Offsets
+
+* note that these definitions do not overlap SCF definitions
+ org PD_SCFEnd
+PD_D2N:		do.w 1 Offset to second device name
+PD_D3N:		do.w 1 Offset to third device name
+PD_D4N:		do.w 1 Offset to fourth device name
+PD_CPInt:	do.b 1 cursor process interval
+PD_FC:		do.b 1 Device functional capabilities
+			do.b 256-. reserved for future use
+
+PD_CNum:	equ PD_Col obsolete name (use PD_Col)
+PD_Errs:	equ PD_ERR obsolete name (use PD_ERR)
+
+FC_KEYB:	equ 1 Functional capability of keyboard
+FC_PNTR:	equ 2 Functional capability of pointer
+FC_VID:		equ 4 Functional capability of video
+FC_AUD:		equ 8 Functional capability of audio
+
+ ends
+ opt l
+

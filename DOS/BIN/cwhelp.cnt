@@ -1,0 +1,119 @@
+:Base cwhelp.hlp
+1 Getting Started
+2 Basic Concepts=Concepts
+2 Hawk User Interface=IDH_User_Interface
+2 Key Commands=IDH_Key_Commands
+2 Command Line Parameters=Command_Line_Parameters
+1 Customizing Hawk
+2 Toolbar Customization dialog=Toolbar_Customization_dialog
+2 Customizing Buttons and Icons=Adding_New_Icons_Buttons_to_Tools_Customize_Toolbars_Select_Buttons
+2 Reassigning Keystrokes=Reassigning_Keystrokes
+2 Assign Keys dialog=IDH_Keyboard_Dialog
+2 Environment dialog-Menu tab=IDH_Menu_Editor_Tab
+2 Popup Menus Defined=Popup_Menus_Defined
+1 Window Attributes
+2 View Setups dialog-General tab=General_tab_View_Setups_Dialog
+2 View Setups dialog-Visibles tab=Visibles_tab_View_Setups_Dialog
+2 View Setups dialog-Colors tab=IDH_Colors_Tab
+2 View Setups dialog-Font tab=IDH_Document_Font_Tab
+1 Configuring Help
+2 Using Help and Info/HTML Viewer Files=Using_Help_and_Info_HTML_Viewer_Files
+2 Configure Help Index dialog=IDH_Help_Editor_Dialog
+2 Configuring .HLP Help Files=Configuring_HLP_Help_Files
+2 Configuring HTML Help Files=Configuring_HTML_Help_Files
+2 Configuring Default .MVB Help File=Configuring_Default_MVB_Help_File
+2 Configuring Multiple .MVB Help Files=Configuring_Multiple_MVB_Help_Files
+1 Shortcuts
+2 Key Commands=IDH_Key_Commands
+2 International or Special Keymap Issues=International_Keymap_Issues
+2 Status Bar-Progress Indicator and Settings button=Status_Bar_CodeSense_Popup_Menu
+2 Status Bar-Shortcuts to Customization Features=Status_Bar_Customization_Popup_Menu
+2 Status Bar-Word Wrap Options button=Status_Bar_Wrap_Popup_Menu
+2 Status Line Actions=Status_Line_Actions
+1 Projects and Project Spaces
+2 Project Space=Project_Space
+2 Creating a Project Space from a Visual Studio Workspace=Creating_a_Project_Space_from_a_Visual_Studio_Workspace_DSW_DSP_
+2 Select One or More Projects to Add to Project Space dialog=Add_Project_to_Project_Space_Dialog
+2 Project Properties dialog=Project_Properties_dialog
+2 Project Properties-Tools tab=IDH_Project_Tools_Tab
+2 Setting up Project Tools=Setting_up_Project_Tools
+2 Workspaces=Workspaces
+2 External Workspace=IDH_Proj_External_Makefiles
+2 Select One or More Files to Add to Project dialog=Select_One_or_More_Files_to_Add_to_Project_Dialog
+2 Scan existing files into project button=IDH_Proj_Add_Button
+2 Associating Version Control Projects with Hawk Projects=Associating_Version_Control_Projects_with_Hawk_Projects
+1 Version Control
+2 Using Version Control in Hawk=Using_Version_Control_in_Hawk
+2 Version Control Setup dialog=IDH_Version_Control_Setup
+2 Which VCS Interface To Use=Which_VCS_Interface_To_Use
+2 Using Multiple VCS Configuration/Project Files (Command Line Only)=Using_Multiple_VCS_Configuration_Files_Command_Line_Only_
+2 Customizing Version Control Commands=Customizing_Version_Control_Commands
+2 Associating Version Control Projects with Hawk Projects=Associating_Version_Control_Projects_with_Hawk_Projects
+2 Adding and Removing Files to and from Version Control=Adding_and_Removing_Files_to_and_from_Version_Control
+2 Version Control Project Reader=Version_Control_Project_Reader
+2 Source Code Revision Control - Maintenance dialog=IDH_Version_Control_Maintenance_Dialog
+2 Version Control and the Popup Menu=Version_Control_and_the_Popup_Menu
+2 Version Control Submenu=Version_Control_Submenu
+2 Persistent Configuration Settings for Version Control Integration=Persistent_Configuration_Settings_Version_Control_Integration
+2 Trouble shooting Version Control SCC API Registry Settings=Trouble_shooting_Version_Control_SCC_API_Registry_Settings
+1 Language Support
+2 Language Support=Language_Support
+2 Language dialog=Language_dialog
+2 ChromaCoding Lexers=ChromaCoding_Lexers
+2 ChromaCoding Lexer Settings dialog=ChromaCoding_Lexer_Settings_Dialog
+1 Difference and Merge
+2 Merge Files dialog=IDH_File_Merge_Dialog
+2 Removing Changes with the Merge Files dialog=Removing_Changes_with_Merge
+2 Directory Difference Analysis dialog=IDH_Differencing
+1 Search and Replace
+2 Search dialog=IDH_Search_Dialog
+2 Replace dialog=IDH_Replace_Dialog
+2 Search and Replace Multiple Sources dialog=Multiple_Sources_Search_Dialog
+2 Default Search and Replace Settings dialog=IDH_Search_Default_Options
+2 Breaking a Search=Breaking_a_Search
+2 Searching for control characters (binary/hex data)=Searching_for_control_characters_binary_hex_data_
+2 Edit Files/Folders - All Files dialog=IDH_Edit_Search_List_dialog
+2 Regular Expressions=Regular_Expressions
+1 Editing
+2 Selective Mode=Selective_Mode
+2 Clipboard/Scrap Viewer module=Clipboard_Scrap_Viewer_module
+2 Word Wrap and Decorated Formatting=IDH_Word_Wrap_and_decorated_formatting
+2 Language Construct Templates=Language_Construct_Templates
+2 Brace Matching=Brace_Matching
+2 CodeSense=IDH_CodeSense
+1 CodeSense
+2 CodeSense=IDH_CodeSense
+2 Using CodeSense=Using_CodeSense
+2 CodeSense tab=IDH_CodeSense_tab
+2 CodeSense Libraries=CodeSense_Libraries
+2 CodeSense Images=CodeSense_Images
+2 CodeSense Databases=CodeSense_Databases
+2 CodeSense Global Configuration dialog=CodeSense_Global_Configuration_dialog
+2 CodeSense Word Completion=CodeSense_Word_Completion
+2 CodeSense Word Completion-Special Types=CodeSense_Word_Completion_Special_Types
+1 CodeFolio
+2 Creating a New Code Snippet=Code_Snippets_Creating_a_New_Snippet
+2 Create Snippet from selection/Clipboard=CodeFolio_Creating_a_Snippet_from_Selection_or_Clipboard
+2 Template Macros List=IDH_Template_Macros_List
+2 Add Directory=Code_Snippets_Add_Directory
+2 Edit Template=Code_Snippets_Edit_Template
+2 Remove Directory=Code_Snippets_Remove_Directory
+1 Code Navigation
+2 Browser Window=Browser_Window
+2 Selective Mode=Selective_Mode
+2 Tags Support=Tags_Support
+2 Outline Symbols=Outline_Symbols
+2 Outline Parsers dialog=Outline_Parsers_Dialog
+1 Format Source
+2 Format Source=Format_Source
+2 Language dialog-Format tab=IDH_Format_Tab
+1 Extending Hawk
+2 Extending Hawk=IDH_Extending_Hawk
+2 Getting Started with API Macros=IDH_Getting_Started_with_API_Macros
+2 API Macros Defined=dlgs_API_Macros_Defined
+2 Output Window-Appbasic tab=IDH_Getting_Started_with_AppBasic
+2 AppBasic Toolbar=AppBasic_Toolbar
+2 Load AppBasic Macros=IDH_Load_AppBasic_Macros
+2 Getting Started with Perl for Hawk=IDH_Getting_Started_with_Perl_for_Hawk
+2 Load Perl Extension Macros dialog=IDH_Load_Perl_Extensions_Dialog
+2 Loading and Running Perl Scripts=Loading_and_Running_Perl_Scripts

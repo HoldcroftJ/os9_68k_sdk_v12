@@ -1,0 +1,399 @@
+ nam PIA
+ ttl Parallel Interface driver
+********************************
+* Edition History:
+*  #   Date    Comments                                         by
+* -- -------- ------------------------------------------------- ---
+* 00 83/05/06 Converted from 6809 OS-9 to 68000                 RES
+* 00 84/05/30 Conversion finished and set for new IRQ poll      DAB
+* 01 84/10/11 Check and tested									res
+* 02 84/10/19 used M$IRQLvl to get hardware irq level			res
+* 03 84/11/07 Fixed minor init bug (wrong register used).       rfd
+* 04 84/11/26 Fixed memory declaration bug (added "BuffSize").	rfd
+* 05 84/12/10 Fixed byte reference to M$Opt to be a word.		rfd
+* 06 86/10/28 Added exception handler offset entry              wwb
+* 07 93/03/22 Reworked to maintain stack alignment and proper 
+*			  handling of the interrupt mask.					afh
+* 08 96/07/30 Changed to use V2.4 definition of deadly signals  rak
+*
+Edition equ 8 current edition number
+
+********************************
+* Pia Device Driver
+
+Typ_Lang set (Drivr<<8)+Objct
+Attr_Rev set (ReEnt<<8)+0
+
+ psect Pia,Typ_Lang,Attr_Rev,Edition,0,PiaEnt
+
+ use defsfile
+PiaInput equ included
+BuffSize equ 128 I/O buffer size
+
+ vsect
+V_Ready ds.b 1 Pia ready flag
+V_Drctn ds.b 1 current i/o direction
+V_Auto ds.b 1 auto latching flag
+V_Data ds.b 1 Data in buffer flag
+V_BufPtr ds.l 1 I/o buffer ptr
+V_BufEnd ds.l 1 end of buffer ptr
+V_NxtIn ds.l 1 next in ptr
+V_NxtOut ds.l 1 next out ptr
+V_IRQMsk ds.w 1 Interrupt mask word
+V_Buffer ds.b BuffSize beginning of buffer
+ ends
+
+Control equ 1+IOType control register
+
+ALatch1 equ %00100000 C2 auto-latch mode 1
+ALatch2 equ %00101000 C2 auto-latch mode 2
+MLatch equ %00110000 C2 manual latch mode
+MLatFlag equ %00001000 C2 manual latch flag
+DataReg equ %00000100 Pia Data register select
+C1IntPos equ %00000010 C1 interrupt on positive transition
+C1IntEnb equ %00000001 C1 interrupt enable
+
+***************
+* Entry Offset Table
+
+PiaEnt dc.w PIAInit initialization routine
+ dc.w PIARead read routine
+ dc.w PIAWrite write routine
+ dc.w PIARts get status routine
+ dc.w PIARts set status routine
+ dc.w PIATerm terminate routine
+ dc.w 0 reserved for exception handler entry
+
+ pag
+***************
+* Subroutine PIAInit
+
+* Passed: (a2)=Static storage
+*         (a1)=Initial Device Descriptor
+
+PIAInit lea V_Buffer(a2),a0 get buffer ptr
+ move.l a0,V_BufPtr(a2) set buffer ptr
+ move.l a0,V_NxtIn(a2) set next in ptr
+ move.l a0,V_NxtOut(a2) set next out ptr
+ lea BuffSize(a0),a0 get end of buffer ptr
+ move.l a0,V_BufEnd(a2) set end ptr
+ movea.l V_PORT(a2),a3 get Pia port addr
+ cmpi.w #PD_PAR-PD_OPT,M$Opt(a1) Pia side given?
+ blo.s PPIN15 ..no; default b-side
+ move.b PD_PAR-PD_OPT+M$DTyp(a1),d2
+ bra.s PPIN20
+PPIN15 moveq #MLatch+C1IntPos,d2 get default type
+PPIN20 andi.b #^C1IntEnb,d2 insure interrupts disabled
+ ori.b #DataReg,d2 insure Data regs selected
+ move.b d2,V_TYPE(a2) save Pia type
+ clr.b Control(a3) reset pia
+* form interrupt mask value.
+* NOTE: the IRQMasking is always performed "outside" of the Interrupt
+* Service context, thus move.w V_IRQMsk(a2),sr is ok, as there will not
+* be an accidental stack switch.
+*
+ move.b M$IRQLvl(a1),d2 get irq level
+ asl.w #8,d2 shift into priority
+ move.w sr,d0 get sr (for stack/trace flags)
+ andi.w #IntEnab,d0 clear irq masks
+ or.w d0,d2 form "current stack, irqs masked to this level" value
+ move.w d2,V_IRQMsk(a2) save for future use
+
+ moveq #0,d0 clr reg
+ move.b M$Vector(a1),d0 get vector number
+ move.b M$Prior(a1),d1 get priority
+ lea PIAIRQ(pc),a0 addr of service routine
+ OS9 F$IRQ Add to irq polling table
+ bcs.s PPIN90 ..error; return it
+ moveq #$FF,d0
+ move.b d0,V_Drctn(a2) set direction flag
+ move.b d0,(a3) set in device
+ move.b V_TYPE(a2),d2 get control byte
+ move.b d2,Control(a3) Initialize pia
+PPCLRQ tst.b (a3) Clear irqs
+ clr.b V_Ready(a2) set Pia ready
+ andi.b #MLatch,d2 get c2 mode
+ cmpi.b #MLatch,d2 is it manual latch?
+ bne.s PIARts branch if not
+ move.b #MLatFlag,V_Auto(a2)
+PIARts moveq #0,d1 clear Carry
+PPIN90 rts
+
+InitErr move.w #E$Unit,d1 set error if bad vector
+ ori #Carry,ccr set error
+ rts
+
+ ifeq PiaInput-included
+ pag
+***************
+* Subroutine PIARead
+
+* Passed: (a2)=Static Storage
+*         (a1)=Path Descriptor
+*         (a4) = current process descriptor
+*         (a6) = system global ptr
+* Returns: (d0.b) = input char
+*          Carry,d1 set if Error
+
+PIAR_A bsr PSleep Sleep until PIA ready
+ bcs PIAR_Z abort if signal error
+PIARead movea.l V_PORT(a2),a3 get Pia ptr
+ move sr,d6 save interrupt masks
+ move V_IRQMsk(a2),sr mask irqs
+ tst.b V_Drctn(a2) Pia set for input?
+ beq.s PIAR_D branch if so
+ tst.b V_Data(a2) is buffer empty?
+ bne.s PIAR_A branch if so
+ tst.b V_Ready(a2) is Pia ready?
+ beq.s PIAR_C branch if so
+ tst.b Control(a3) is Pia ready?
+ bpl.s PIAR_A branch if not
+ tst.b (a3) clear ready
+* Here if the pia was set for output
+PIAR_C move.b V_TYPE(a2),d1 get control code
+ andi.b #^DataReg,d1 set direction register select
+ move.b d1,Control(a3) select direction register
+ clr.b (a3) set direction register to input
+ clr.b V_Drctn(a2) set direction flag
+ move.b V_TYPE(a2),d1 get control code
+ ori.b #C1IntEnb,d1 set interrupt enable
+ bra.s PIAR_D1
+* Here if the pia is set up for input
+PIAR_D move.b V_Ready(a2),d1 is buffer full?
+ bne.s PIAR_F branch if not
+ move.b V_Auto(a2),d1 is Pia auto latching?
+ beq.s PIAR_E branch if so
+ move.b V_TYPE(a2),d0 get control code
+ eor.b d0,d1 flipping flag
+ move.b d1,Control(a3) change flag
+ eori.b #MLatFlag+C1IntEnb,d1 flip flag & set interrupt enable
+PIAR_D1 move.b d1,Control(a3) reset flag & enable interrupts
+PIAR_E move.b #1,V_Ready(a2) mark Pia ready
+PIAR_F bsr BuffOut get byte out of buffer
+ bcc.s PIAR_G branch if successful
+ tst.b Control(a3) is Pia ready?
+ bpl.s PIAR_A branch if not
+ move.b (a3),d0 get byte & clear flag
+ move.b V_Auto(a2),d1 is it auto latching?
+ beq.s PIAR_G branch if so
+ move.b V_TYPE(a2),d2 get control, flipping flag
+ eor.b d2,d1 flip flag
+ move.b d1,Control(a3) change flag
+ eori.b #MLatFlag+C1IntEnb,d1 reset flag and set pia irq enable
+ move.b d1,Control(a3) put in pia
+PIAR_G move d6,sr retrieve interrupt masks
+ else
+PIARead equ *
+ endc
+ moveq #0,d1 clear Carry
+PIAR_Z rts
+
+ pag
+***************
+* Subroutine PSleep
+*   Sleep until PIA is ready
+
+* Passed: d6 = status registers
+* Returns: Carry = Set if signal error
+* Destroys: 
+
+PSleep move.w V_BUSY(a2),d1 get process id
+PSleep_A move.w d1,V_WAKE(a2) set wake-up call
+ movea.l (a7)+,a0 return addr
+ move d6,sr retrieve interrupt masks
+ movem.l d0/a0,-(a7) save (d0), PC
+ moveq #0,d0 wait for signal
+ OS9 F$Sleep
+ move.w P$Signal(a4),d0 signal waiting?
+ beq.s PSleep_B ..No; check status 
+ cmpi.w #S$Deadly,P$Signal(a4) deadly signal?
+ bls.s PSleep_C ..Yes; return error
+PSleep_B btst #Condemn,P$State(a4) has process died?
+ bne.s PSleep_C ..yes; exit
+ move.l (a7)+,d0 return
+ rts
+
+PSleep_C move.l (a7)+,d0
+ ori #Carry,ccr
+ rts
+
+ pag
+***************
+* Subroutine PIAWrite
+*   Write one byte to PIA
+
+* Passed: (a2)=Static Storage
+*         (a1)=Path Descriptor
+*         (d0.b)=char to write to Pia
+* Returns: Carry,d1 set if Error
+* Destroys a3
+
+PIAW_A bsr.s PSleep wait for PIA
+ bcs PIAW_Z abort if error
+PIAWrite movea.l V_PORT(a2),a3 get Pia ptr
+ move sr,d6 save interrupt masks
+ move V_IRQMsk(a2),sr mask irqs
+ tst.b V_Drctn(a2) Pia set for output?
+ bne.s PIAW_D branch if so
+ tst.b V_Data(a2) is buffer empty?
+ bne.s PIAW_Err ..No; abort
+ clr.b V_Ready(a2) set Pia ready
+ move.b V_TYPE(a2),d1 get control code
+ andi.b #^DataReg,d1 set direction register select
+ move.b d1,Control(a3) select direction register
+ moveq #$FF,d1 select outputs
+ move.b d1,(a3) set direction register
+ move.b d1,V_Drctn(a2) set direction flag
+ move.b V_TYPE(a2),Control(a3) select Data register
+PIAW_D tst.b V_Ready(a2) is Pia ready?
+ beq.s PIAW_G branch if so
+ tst.b V_Data(a2) is Data in buffer?
+ bne.s PIAW_E branch if so
+ tst.b Control(a3) is Pia ready?
+ bmi.s PIAW_F branch if so
+ move.b V_TYPE(a2),d1 get control code
+ ori.b #C1IntEnb,d1 set interrupt enable
+ move.b d1,Control(a3) enable interrupts
+PIAW_E bsr BuffIn put byte in buffer
+ bcs.s PIAW_A branch if not successful
+ move d6,sr retrieve interrupt masks
+ moveq #0,d1 clear Carry
+ rts
+
+PIAW_F tst.b (a3) clear flag
+PIAW_G move.b #1,V_Ready(a2) set Pia not ready
+ move d6,sr retrieve interrupt masks
+ move.b d0,(a3) write byte
+ move.b V_Auto(a2),d1 is it auto latching?
+ beq.s PIAW_Z branch if so
+ move.b V_TYPE(a2),d0 get control
+ eor.b d1,d0 flip strobe bit 
+ move.b d0,Control(a3) change flag
+ eor.b d1,d0 flip back
+ move.b d0,Control(a3) put control byte back
+PIAW_Z rts
+
+PIAW_Err move d6,sr retrieve interrupt masks
+ move.w #E$Write,d1 err: write error
+ ori #Carry,ccr set Carry
+ rts
+
+ pag
+***************
+* Process Pia Interrupt
+
+* Passed: (a2) = static storage
+*         (a3) = port address
+
+PIAIRQ tst.b Control(a3) did we cause irq?
+ bmi.s PIADir yes, was us
+ ori #Carry,ccr no, was not
+ rts back for next one
+
+PIADir tst.b V_Drctn(a2) get Pia direction
+ bne.s PIAOut branch if output
+
+ ifeq PiaInput-included
+PIAInp move.b (a3),d0 clear interrupt
+ bsr.s BuffIn put byte in buffer
+ cmpa.l V_NxtOut(a2),a0 buffer full?
+ beq.s PIAIRQ_A branch if so
+ bsr.s PIAIRQ_B latch
+ bmi.s PIAInp repeat if more bytes available
+ rts
+ endc
+
+PIAOut tst.b (a3) clear interrupt
+ bsr.s BuffOut get byte from buffer
+ bcs.s PIAIRQ_A branch if empty
+ move.b d0,(a3) write it
+ bsr.s PIAIRQ_B latch
+ bmi.s PIAOut repeat if already gone
+ rts
+
+PIAIRQ_A move.b V_TYPE(a2),Control(a3) disable interrupts
+ clr.b V_Ready(a2) set Pia ready
+ bra.s PIAIRQ_C
+
+PIAIRQ_B move.b V_Auto(a2),d1 is Pia auto latching?
+ beq.s PIAIRQ_C ..Yes
+ move.b V_TYPE(a2),d0 get control code, flipping flag
+ eor.b d1,d0 
+ move.b d0,Control(a3) change Pia flag
+ addq.b #1,d1 turn on pia irq enable
+ eor.b d1,d0 flip flag back & enable irqs
+ move.b d0,Control(a3) set into pia
+PIAIRQ_C move.w V_WAKE(a2),d0 is there waiting process?
+ beq.s PIAIRQ_D ..no; return
+ moveq #S$Wake,d1 (wake up)
+ OS9 F$Send
+ clr.w V_WAKE(a2)
+PIAIRQ_D tst.b Control(a3) return Pia ready status
+ rts
+
+ pag
+***************
+* Subroutines Buffin & Buffout
+* Data buffering routines
+
+BuffIn movea.l V_NxtIn(a2),a0 get next in ptr
+ tst.b V_Data(a2) already Data in buffer?
+ beq.s BufI_A branch if not
+ cmpa.l V_NxtOut(a2),a0 is buffer full?
+ bne.s BufI_B branch if not
+ ori #Carry,ccr set Carry
+ rts
+
+BufI_A move.b #1,V_Data(a2) set Data in buffer flag
+BufI_B move.b d0,(a0)+ put byte in buffer
+ cmpa.l V_BufEnd(a2),a0 end of buffer?
+ bcs.s BufI_C branch if not
+ movea.l V_BufPtr(a2),a0 get buffer ptr
+BufI_C move.l a0,V_NxtIn(a2) update next in ptr
+ rts
+
+BuffOut tst.b V_Data(a2) is there Data in buffer?
+ bne.s BufO_A branch if so
+ ori #Carry,ccr set Carry
+ rts
+
+BufO_A movea.l V_NxtOut(a2),a0 get next out ptr
+ move.b (a0)+,d0 get byte from buffer
+ cmpa.l V_BufEnd(a2),a0 end of buffer?
+ bcs.s BufO_B branch if not
+ movea.l V_BufPtr(a2),a0 reset next out ptr
+BufO_B move.l a0,V_NxtOut(a2) update next out ptr
+ cmpa.l V_NxtIn(a2),a0 is buffer empty?
+ bne.s BufO_C branch if not
+ clr.b V_Data(a2) clear Data in buffer flag
+BufO_C moveq #0,d1 clear Carry
+ rts
+
+ pag
+***************
+* Subroutine Piaterm
+*   Terminate PIA processing.  Remove from polling table.
+
+* Passed: (a1) = device descriptor ptr
+*         (a2) = static storage
+*         (a4) = current process descriptor ptr
+* Returns: none
+
+PIAT_A move.w P$ID(a4),d1 get process id
+ bsr PSleep_A wait for PIA ready
+PIATerm movea.l V_PORT(a2),a3 get Pia port address
+ move.b V_Drctn(a2),d1 get Pia direction
+ beq.s PIAT_C branch if input
+ move sr,d6 save interrupt masks
+ move V_IRQMsk(a2),sr mask irqs
+ move.b V_Data(a2),d1 is buffer empty?
+ bne.s PIAT_A ..No; Wait
+ move d6,sr retrieve interrupt masks
+PIAT_C clr.b Control(a3) reset pia
+ move.b M$Vector(a1),d0 get vector number
+ suba.l a0,a0 set zero address
+ OS9 F$IRQ remove Pia from polling tbl
+ rts
+
+ ends
+ 

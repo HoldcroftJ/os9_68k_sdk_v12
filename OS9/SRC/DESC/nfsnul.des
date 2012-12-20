@@ -1,0 +1,8 @@
+#ifndef _NFSNUL_DES
+#define _NFSNUL_DES
+
+
+#include <nfs.des>
+
+
+#endif /* _NFSNUL_DES */

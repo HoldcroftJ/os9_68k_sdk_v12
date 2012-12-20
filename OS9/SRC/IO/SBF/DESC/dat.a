@@ -1,0 +1,8 @@
+ nam DAT Device Descriptor
+ use defsfile
+ 
+ use "sbfdesc.a"
+ 
+DrvNum set 0
+ TapeDAT
+ ends

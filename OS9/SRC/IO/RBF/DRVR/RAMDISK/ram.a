@@ -1,0 +1,744 @@
+ nam Ram disk device driver
+
+* Copyright 1984, 1985, 1986, 1987, 1988, 1989, 1990, 1993, 1996 by
+* Microware Systems Corporation
+* Reproduced Under License
+
+* This source code is the proprietary confidential property of
+* Microware Systems Corporation, and is provided to licensee
+* solely for documentation and educational purposes.  Reproduction,
+* publication, or distribution in any form to any party other than
+* the licensee is prohibited.
+
+********************************
+* Edition History
+*  #   date   Comments                                                  by
+* -- -------- --------------------------------------------------------- ---
+* 00 11-08-83 Converted from OS-9 6809 edition one.                     rfd
+* 01 02-15-84 Converted for linkage use.                                rfd
+* 02 10-12-84 Made root dir sharable; cleared memory at init.           rfd
+* 03 10-18-84 Optimized init slightly.                                  rfd
+* 04 05-22-85 Removed 512k limit on size of ramdisk.                    rfd
+*				---- OS-9/68k V1.2 released ----
+* 05 01-16-86 Fixed bug if last bitmap sector is exactly full.          rfd
+* 06 03-04-86 Added ability to use non-volatile ram.                    rg
+* 07 10-17-86 Changed formatting technique for NVRAM case.              djl
+* 08 10-30-86 Changed device capabilities to use ValidModes.            rfd
+*				---- OS-9/68k V2.1 released ----
+* 09 11-09-87 Added MAXDRIVE, and changed SYNC_CODE.                    rfd
+*				---- OS-9/68k V2.2 released ----
+* 10 04-28-88 Fixed sector 0 problem.                                   rfd
+* 11 05-03-88 Made compatible with ed8 NVRAM disks.                     wwb
+* 12 05-04-88 Made Move use OS9svc macro.                               wwb
+*				---- OS-9/68k V2.3 released ----
+* 13 03-19-90 Removed reliance upon ../DEFS/macros.d.  Now uses only    wwb
+*             macros required from MACROS dir (no code changes)
+* 14 03-20-90 Updated to support multi-sector read/writes.              wwb
+*             Updated sector 0 initialization for new DD_ fields.       wwb
+*             Fixed problem: if F$Time fails, then DD_Sync wasn't       wwb
+*             initialized.
+*             Made test of format-protect use label.                    wwb
+* 15 04-08-90 Added DD_VersID setup (to line up with format ed.25).     wwb
+*              ---- CD-RTOS V1.1 released ----
+*              ---- OS-9/68K V2.4 released ----
+* 16 07-02-93 Reworked use pathlists for MWOS structure.				wwb
+*              ---- OS-9/68K V3.0 released ----
+* 17 05-01-96 Reworked to support variable sector sizes (max = 32k).	wwb
+* 18 30-01-96 Added check to InitVers to detect sector size mismatch	wwb
+*             when nv ramdisk.  Also sets sector 0 size correctly now.
+* 19 03-02-96 Added "format-enabled" checks.							wwb
+* 20 15-02-96 Added DevCon flag for sizing method (concatenate or add	wwb
+*             sector/track values).
+* 21 22-02-96 Repaired size overflow problems from ed.20.				wwb
+* 22 03-05-96 Init does not set disk id now - provides compatibility	wwb
+*             with old versions (issue was for Installer when image
+*             made with new driver, but shipping old version).
+* 23 08-05-96 reworked 68040/68060 init routines.						wwb
+* 24 14-08-96 date created based on epoch 1900 (ala RBF ed.100).		wwb
+*             root FD dates now initialized.							wwb
+*             reworked media name setup (NVStyle).						wwb
+*              ---- OS-9/68K V3.0.3 released ----
+*              ---- OS-9/68K V3.1 released ----
+*
+Edition equ 24 current Edition number
+
+Typ_Lang set (Drivr<<8)+Objct
+Att_Revs set ((ReEnt+SupStat)<<8)+0
+
+ psect Ram,Typ_Lang,Att_Revs,Edition,0,DrvrEnt
+
+ use defsfile
+
+		dc.l -1329745731
+Author:	dc.b ">>>>>>>>>>>>>>>>"
+		dc.b "from the disk of"
+		dc.b " Robert Doggett "
+		dc.b "<<<<<<<<<<<<<<<<"
+
+
+*******************
+* Definitions
+*
+ValidModes equ Updat_+Exec_+PRead_+PWrit_+PExec_+Dir_
+_sysperm equ ValidModes
+
+MAXDRIVE equ $0400	any port address >= MAXDRIVE indicates NVRAM disk
+SYNC_CODE equ 'Cruz' NVRAM disk must have this sync to avoid being formatted
+OLD_SYNC equ $AA55AA55 the old version sync code
+
+LOG_SIZE equ 256 DEFAULT logical media size is 256
+MAP_START equ 1 bitmap starting LSN
+*MAXBLOCKS equ 1<<24 maximum blocks on RBF media
+MAXBITMAP equ (1<<16) maximum size of bitmap (bytes + 1)
+
+* the format version id should be tied to the "format" utility's
+* "version id".
+*
+VERS_ID equ 1 "format" version id (ed 25 format; V2.4 release)
+
+DISKATT equ $ff disk media attributes (all flags on)
+
+
+* DevCon definitions
+*
+ org 0
+RD_Flag do.b 1 flags for ramdisk options
+
+* RD_Flag definitions
+*
+b_RDF_Concat equ 0 set if sect/trk values are concatenated
+
+
+********************************
+* Static Storage definitions
+
+ vsect
+MemSiz ds.l 1 size of memory block
+MemPtr ds.l 1 memory block ptr
+SectSiz ds.l 1 sector size
+SectSizBt ds.l 1 sector size expressed as a binary power
+SectMask ds.l 1 sector size mask
+RDFlag ds.b 1 ramdisk flags (from DevCon)
+NVReInit ds.b 1 re-initializing a valid NV ramdisk if non-zero
+NVStyle ds.b 1 disk is non-volatile (i.e. not free pool) if non-zero
+ ends
+
+
+********************************
+* Entry branch table
+
+DrvrEnt dc.w Init initialize
+ dc.w ReadSect read sector
+ dc.w WritSect write sector
+ dc.w GetStat get status
+ dc.w PutStat put status
+ dc.w Termnt terminate
+ dc.w TrapErr Address/Buss trap exception entry
+
+
+******************
+* Default sector zero information
+*
+ZeroSect dc.b 0,0,0 boot sector
+ dc.b 0,0 boot size
+ dc.b 54,09,06,07,50 creation date
+ dc.b "Ram Disk (Caution: Volatile",')'+$80
+ZeroSize equ *-ZeroSect
+
+NVZeroSect dc.b 0,0,0 boot sector
+ dc.b 0,0 boot size
+ dc.b 53,1,11,0,1 creation date
+ dc.b "Ram Disk (Non-Volatile",')'+$80
+NVZeroSize equ *-NVZeroSect
+
+ align
+
+
+********************************
+* Initialize
+*   Allocates memory for RAM Psuedo disk, and initializes
+* it to look like a normal freshly formatted drive.
+*
+* Passed: (a1)=device descriptor ptr
+*         (a2)=static storage
+*         (a4)=current process descriptor ptr
+*         (a6)=system global data ptr
+* Returns: cc=carry set, d1.w=error code if error
+*
+Init: move.b #1,V_NDRV(a2) number of drives
+
+* set sector size
+*
+ moveq.l #0,d2 sweep register
+ move.w PD_SSize-PD_OPT+M$DTyp(a1),d2 make long sector size
+ bne.s InitSSz ..check value if not 0
+ move.w #LOG_SIZE,d2 default to 256-byte sectors
+ moveq.l #8,d3 which is a 8-bit conversion shift
+ bra.s InitSSz_90 continue
+
+InitSSz move.l d2,d1 check size is power of 2
+ subq.l #1,d1
+ and.l d2,d1
+ bne InitSSz_Err ..exit if sector size is not a power of 2
+ moveq.l #15,d3 get sector size max power of 2
+InitSSz10 btst.l d3,d2 sector size this power?
+ dbne d3,InitSSz10
+InitSSz_90 move.l d2,SectSiz(a2) set sector size byte count
+ move.l d3,SectSizBt(a2) set sector size conversion shift
+ move.l d2,d1 copy sector size
+ subq.l #1,d1 form sector size mask
+ move.l d1,SectMask(a2) set it
+
+* determine media size.
+*
+* There are two methods used to set the ramdisk size:
+*
+* - additive method (original).  This method uses the addition
+*   of PD_SCT and PD_T0S to set the maximum block count (0x1ffff).
+*   This is the method that the ramdisk driver has always used.
+*
+* - concatenated method.  This method uses the sct/trk fields to
+*   form a 32-bit block count (i.e. PD_T0S << 16 + PD_SCT).  Note
+*   though that RBF media is still limited to 1^^24 blocks.
+*
+*   For backwards compatibility, the concatenate method is invoked
+*   when the appropriate flag (b_RDF_Concat) is set in the RD_Flag
+*   field of the device descriptor's DevCon section.
+*
+ move.w M$DevCon(a1),d2 is there a DevCon section active?
+ beq.s SizeAdd ..no; sizing is additive
+ move.b RD_Flag(a1,d2.w),d2 get DevCon flags
+ move.b d2,RDFlag(a2) save them
+ btst.l #b_RDF_Concat,d2 using concatenate method?
+ beq.s SizeAdd ..no; use additive version
+
+* get (concatenated) media size [ ((PD_T0S << 16) + PD_SCT ) * PD_Size ]
+*
+* d3 = sector shift factor
+*
+ move.w PD_T0S-PD_OPT+M$DTyp(a1),d2 get sect/trak0 value
+ swap d2 move to high word
+ move.w PD_SCT-PD_OPT+M$DTyp(a1),d2 get sect/track value
+ move.l d2,d1 copy value
+ rol.l d3,d1 convert to byte count
+ move.l SectMask(a2),d4 get sector size mask
+ and.l d4,d1 was there an overflow?
+ beq.s SetSize ..no; continue
+ bra InitNoRam abort if too large
+
+* get (additive) size of media  [ (PD_SCT + PD_T0S) * PD_SSize ]
+*
+* d3 = sector size shift factor
+*
+SizeAdd moveq.l #0,d2 sweep register
+ move.w PD_SCT-PD_OPT+M$DTyp(a1),d2 get number of sectors
+ moveq.l #0,d1 sweep register
+ move.w PD_T0S-PD_OPT+M$DTyp(a1),d1 get (additional) number of sectors
+ add.l d1,d2 combine totals
+
+* Note that the max sector count is 0x1fffe (0xffff * 2).  Thus there
+* is no need to check for overflow of the maximum block count (1^24),
+* and no need to check for byte-count size overflow (at 32K sectors,
+* max byte size is 0xffff0000).
+*
+SetSize move.l d2,d1
+ lsl.l #8,d1 shift to align with DD_TOT field
+
+ move.l d1,DRVBEG+DD_TOT(a2) set media block count (ok to clear DD_TKS)
+
+* compute bitmap size (and minimum cluster size)
+*
+* d2.l = media block count
+*
+ addq.l #7,d2 ensure last (partial) sector counted
+ lsr.l #(3-1),d2 (d2)=number of bytes in bitmap (*2)
+ moveq.l #0,d4 init cluster size
+InitClust addq.l #1,d4 set cluster size
+ lsr.l #1,d2 set bitmap size
+ cmpi.l #MAXBITMAP,d2 too large for this cluster factor?
+ bhi.s InitClust ..yes; keep looping
+
+* d2 = bitmap size (bytes)
+* d3 = sector size shift factor
+* d4 = cluster size
+*
+ move.w d2,DRVBEG+DD_MAP(a2) set bitmap size
+ move.w d4,DRVBEG+DD_BIT(a2) set sector/bit
+ move.b #DISKATT,DRVBEG+DD_ATT(a2) set device attributes
+
+* compute root directory location
+*
+ move.l d2,d4 number of bytes in bitmap
+ add.l SectSiz(a2),d4 add sector 0 size
+ add.l SectMask(a2),d4 round up
+ lsr.l d3,d4 convert to number of sectors
+ lsl.l #8,d4 DD_DIR is a 3 byte field (DD_OWN will remain 0)
+ move.l d4,DRVBEG+DD_DIR(a2) set root directory FD posn
+ move.l DRVBEG+DD_TOT(a2),d0 get total sectors
+ lsr.l #8,d0 it's a 3-byte field
+ lsl.l d3,d0 convert to byte count
+ movea.l a2,a3 save static storage ptr
+ move.l V_PORT(a2),d4 get port address 
+ cmpi.l #MAXDRIVE,d4 is there non-volatile ram?
+ blo.s Init02 no.. go allocate ram if not
+
+* ram disk is at a specified address (not from free mem pool)
+*
+* d0.l = size of ram disk
+* d4.l = start address
+* (a3) = static storage ptr
+*
+ move.l d4,d5 copy start address
+ add.l d0,d5 incorrect setup?
+ bcs InitNoRam ..yes; return error 
+ move.l d4,a2 pointer to NVRAM
+ move.l d4,MemPtr(a3) save memory ptr
+ move.l d0,MemSiz(a3) save memory size
+ move.b #1,NVStyle(a3) flag disk not from free pool
+ btst.b #FmtDis_B,PD_Cntl+1-PD_OPT+M$DTyp(a1) format protected ?
+ beq.s Init03 format disk if bit not set
+ cmpi.l #SYNC_CODE,DD_Sync(a2) does this disk need formatting ?
+ beq.s Init01 ..no; check version id info
+
+* check for ed8 style sync-code
+*
+ cmpi.l #OLD_SYNC,DD_OPT+1(a2) is it possibly nvram made under old driver ?
+ bne.s Init03 ..no; format disk
+ move.l #0,DD_OPT+1(a2) blast old style/position sync
+Init01 movea.l a2,a0 copy sector 0 ptr
+ movea.l a3,a2 set static storage ptr back into a2
+ move.b #1,NVReInit(a3) flag restart of valid NV disk
+ bra InitVers perform version id tests and exit
+
+* allocate ram from system free memory (volatile ram disk)
+* 
+Init02 OS9 F$SRqMem allocate "disk" memory
+ bcs Init99 abort if error
+ move.l d0,MemSiz(a3) save memory size
+ move.l a2,MemPtr(a3) save memory ptr
+
+* clear ram disk memory
+*
+Init03 moveq.l #0,d1 clear out ram allocated
+ lsr.l #4,d0 divide by 16 bytes/line
+ move.l D_MPUTyp(a6),d5 get system MPU type
+ cmpi.l #68060,d5 is mpu a 68060?
+ beq.s Init06 ..yes; use move16's
+ cmpi.l #68040,d5 is mpu a 68040?
+ beq.s Init06 ..yes; use move16's
+ subq.l #1,d0 minus one for dbra
+Init05 move.l d1,(a2)+
+ move.l d1,(a2)+
+ move.l d1,(a2)+
+ move.l d1,(a2)+
+ ldbra d0,Init05 loop through entire block
+ bra.s Init07
+
+Init06 movea.l a2,a0 save starting line
+ move.l d1,(a2)+ clear 64 bytes (4 lines)
+ move.l d1,(a2)+
+ move.l d1,(a2)+
+ move.l d1,(a2)+
+ nop synchronize read/write queues
+ move16 (a0)+,(a2)+
+ move16 (a0)+,(a2)+
+ move16 (a0)+,(a2)+
+ lsr.l #2,d0 4 lines in 64 bytes
+ subq.l #2,d0 minus one for dbra, one for initial setup
+Init06a move16 (a0)+,(a2)+
+ move16 (a0)+,(a2)+
+ move16 (a0)+,(a2)+
+ move16 (a0)+,(a2)+
+ ldbra d0,Init06a loop thru entire block
+
+Init07 movea.l MemPtr(a3),a2 restore memory ptr
+ 
+* write sector zero
+*
+* (a2) = ram disk ptr
+* (a3) = static storage ptr
+*
+
+* first, copy drive table (DD_SIZ) information into sector
+*
+ lea.l DRVBEG(a3),a0 get drive table ptr
+ moveq.l #DD_SIZ,d2 get drive table size
+ bsr Move copy drive table component
+
+* build remaining sector 0 information
+*
+ lea.l ZeroSect(pc),a0 get rest of sector zero
+ adda.w d2,a2 update destination ptr
+ moveq.l #ZeroSize,d2 get size
+ tst.b NVStyle(a3) is the disk from the free pool?
+ beq.s Init08 ..yes; have correct info
+ lea.l NVZeroSect(pc),a0 use "nv" information
+ moveq.l #NVZeroSize,d2
+Init08 bsr Move write remainder
+ movea.l a3,a2 restore static storage ptr
+ movea.l MemPtr(a2),a0 get disk memory ptr
+ moveq.l #0,d0
+ OS9 F$Time try to get current time
+ bcs.s Init10 ignore any error
+ lsr.l #8,d0 get time 0000hhmm
+ move.b d0,DD_DAT+4(a0) set minute
+ lsr.w #8,d0 get 000000hh
+ move.b d0,DD_DAT+3(a0) set hour
+ move.b d1,DD_DAT+2(a0) set day
+ lsr.l #8,d1 get date 00yyyymm
+ move.b d1,DD_DAT+1(a0) set month
+ lsr.l #8,d1 get date 0000yyyy
+ subi.w #1900,d1 epoch is 1900
+ move.b d1,DD_DAT(a0) set year
+Init10 bsr InitVers perform version id init/check
+ bcs Init99 ..exit if error
+
+* initialize bit map sector
+*
+*  
+* (a0) = ram disk ptr
+* (a2) = static storage ptr
+*
+ adda.l SectSiz(a2),a0 form bitmap ptr
+ move.l DRVBEG+DD_DIR(a2),d3 get root FD offset (misaligned)
+ lsr.l #8,d3 align it
+ moveq.l #0,d0 start with first bit
+ move.l d3,d1 number of bits for sect zero & bitmap
+ addq.l #2,d1 plus number of bits for root FD & dir
+ OS9 F$AllBit allocate system sectors
+ move.l DRVBEG+DD_TOT(a2),d0 get disk size
+ lsr.l #8,d0 convert to sectors (bits)
+ move.l d0,d1 copy it
+ move.l SectSiz(a2),d2 get sector size
+ asl.l #3,d2 convert to bit count
+ subq.l #1,d2 make mask
+ and.l d2,d1 strip off number of bits in last sector
+ beq.s Init20 branch if bitmap fills sector exactly
+ neg.l d1
+ addq.l #1,d2 number of bits in a sector
+ add.l d2,d1 find excess bit NOT in bitmap
+
+* d0.l = bit offset of bitmap (end)
+* d1.l = number of bits to set
+* (a0) = bitmap pointer
+*
+ OS9 F$AllBit mark them as allocated
+
+* F$AllBit can only set a maximum of 64K-1 bits, which is
+* an issue when sector size is larger than 8K.  Check for
+* large sectors, and if so complete the AllBit by hand.
+*
+ cmpi.l #8192,SectSiz(a2) is sector size too large for AllBit?
+ bls.s Init20 ..no; continue
+
+* mark unused remainder of bitmap sector as allocated
+*
+ move.l a0,-(a7) save bitmap start
+ move.l SectSiz(a2),d1 get the sector size
+ subi.l #8192,d1 count the part already processed
+ lea.l 8192(a0),a0 move to part requiring processing
+ lsr.l #4,d1 number of lines requiring filling
+ subq.l #1,d1 less one for dbra
+ moveq.l #-1,d0
+Init18 move.l d0,(a0)+ mark bitmap allocated
+ move.l d0,(a0)+
+ move.l d0,(a0)+
+ move.l d0,(a0)+
+ dbra d1,Init18
+ movea.l (a7)+,a0 restore bitmap start
+
+Init20 move.l d3,d0 get root FD sector number
+ subq.l #1,d0
+ move.l SectSizBt(a2),d5 get sector size shift factor
+ asl.l d5,d0 convert to bitmap size
+ adda.l d0,a0 move to root FD
+
+* write root directory FD
+*
+ move.b DRVBEG+DD_ATT(a2),FD_ATT(a0) set root attributes
+ bclr.b #ShareBit,FD_ATT(a0) clear non-sharable bit on root
+ moveq.l #0,d0
+ OS9 F$Time try to get current time
+ bcs.s Init25 ignore any error
+ lsr.l #8,d0 get time 0000hhmm
+ move.w d0,FD_DAT+3(a0) set date modified hour, minute
+ move.b d1,FD_DAT+2(a0) set day
+ lsr.l #8,d1 get date 00yyyymm
+ move.b d1,FD_DAT+1(a0) set month
+ lsr.l #8,d1 get date 0000yyyy
+ subi.w #1900,d1 epoch is 1900
+ move.b d1,FD_DAT(a0) set year
+ move.b FD_DAT(a0),FD_Creat(a0) set date created fields
+ move.w FD_DAT+1(a0),FD_Creat+1(a0)
+Init25 move.b #1,FD_LNK(a0) set link count
+ move.b #DIR_SZ+DIR_SZ,FD_SIZ+3(a0) set file size
+ move.w d3,d0 copy root FD sector number
+ addq.w #1,d0 form sector number of root dir data
+ move.b d0,FD_SEG+2(a0) set segment beginning
+ move.b #1,FD_SEG+4(a0) set segment size
+
+* initialize root directory sector
+*
+ adda.l SectSiz(a2),a0 move to root dir sector
+ move.w #'..'+$80,(a0) set parent dir name
+ move.b #'.'+$80,DIR_SZ(a0) set current dir name
+ move.l d3,DIR_FD(a0) set parent dir FD ptr
+ move.l d3,DIR_SZ+DIR_FD(a0) set current dir FD ptr
+Init99 rts
+
+
+* exit point if sector size is not a power of 2
+*
+InitSSz_Err move.w #E$SectSize,d1 invalid sector size
+ ori.b #Carry,ccr flag error
+ rts
+
+* exit point if bad setup (eg start + size overflow)
+*
+InitNoRam move.w #E$NoRAM,d1 say "no ram"
+ ori.b #Carry,ccr flag error
+ rts
+ 
+ pag
+********************************
+* Subroutine InitVers
+*   Initializes Sector 0 compatibility flags (DD_Sync and beyond).
+*
+* Passed: (a0)=sector 0 pointer
+*         (a2)=static storage ptr
+*
+* Returns:  nothing
+*
+* Destroys:  d1
+*
+InitVers: cmpi.l #SYNC_CODE,DD_Sync(a0) is the sync-code there ?
+ beq.s InitV_10 ..yes; don't touch it then
+ move.l #SYNC_CODE,DD_Sync(a0) set initialized flag
+InitV_10 tst.l DD_MapLSN(a0) bitmap LSN set ?
+ bne.s InitV_20 yes; don't touch it
+ move.l #MAP_START,DD_MapLSN(a0) LSN of bitmap start
+
+* check sector size
+*
+InitV_20 tst.b NVReInit(a2) is this a reinit of an intact NV ramdisk?
+ beq.s InitV_25 ..no; continue
+ move.l SectSiz(a2),d1 get the sector size in use
+ cmp.w DD_LSNSize(a0),d1 is the nv media using this size?
+ bne.s InitSSz_Err ..if not, return "sector size" error
+ bra.s InitV_30 continue
+
+InitV_25 tst.w DD_LSNSize(a0) is media LSN size set?
+ bne.s InitV_30 yes; don't touch it
+ move.w SectSiz+2(a2),DD_LSNSize(a0) set logical media size
+
+* NOTE: this test for version id simply tests for presence/absence
+*       of a value.  This test should be made tighter when future
+*       "versions" are implemented.
+*
+InitV_30 tst.w DD_VersID(a0) format version id set ?
+ bne.s InitV_40 yes; don't touch it
+ move.w #VERS_ID,DD_VersID(a0) set "format" version id
+
+* future tests here
+*
+InitV_40 equ *
+
+InitV_99 rts return
+
+
+********************************
+* Subroutine Move (quick F$Move interface)
+*
+* Passed: d2.l=Byte Count
+*         (a0)=Source ptr
+*         (a2)=Destination ptr
+* Returns: cc=carry clear
+*
+Move: movem.l d0-d2/a0-a2,-(a7) save regs
+ OS9svc F$Move execute FMove routine
+ movem.l (a7)+,d0-d2/a0-a2 restore regs
+ rts
+
+
+ pag
+********************************
+* Subroutine Read sector
+*   Copies disk sector to caller's buffer
+*
+* Passed: d0.l=Sector count
+*         d2.l=Logical sector requested
+*         (a1)=path descriptor ptr
+*         (a2)=static storage ptr
+*         (a4)=current process descriptor ptr
+*         (a6)=system global data ptr
+* Returns: cc=carry set, d1.w=error code if error
+*
+ReadSect: tst.l d2 sector 0 read?
+ bne.s ReadSect_10 ..no; go read and return
+ bsr.s ReadSect_10 ..yes; do the read
+
+* update drive table
+*
+* (a3) = static storage ptr
+*
+ movea.l MemPtr(a3),a0 get memory ptr (sector 0 data)
+ lea.l DRVBEG(a3),a3 point at drive table
+ moveq.l #DD_SIZ-1,d1 size of table (less 1 for dbra)
+ReadSect_20 move.b (a0)+,(a3)+ copy drive table information
+ dbra d1,ReadSect_20
+ moveq.l #0,d1 no error
+ rts
+
+ReadSect_10 bsr.s Seek set (a2)=disk sector ptr
+ bcs.s Seek99 abort if error
+ movea.l a2,a0 copy source ptr
+ movea.l PD_BUF(a1),a2 get destination ptr
+ bra.s WritSe10 transfer data
+
+
+********************************
+* Write sector to disk
+*
+* Passed: d0.l=Sector count
+*         d2.l=Logical sector requested
+*         (a1)=path descriptor ptr
+*         (a2)=static storage ptr
+*         (a4)=current process descriptor ptr
+*         (a6)=system global data ptr
+* Returns: cc=carry set, d1.w=error code if error
+*
+WritSect: tst.l d2 writing sector 0?
+ bne.s WritSect01 ..no; continue
+
+* writing sector 0
+*
+ btst.b #FmtDis_B,PD_Cntl+1(a1) format protected ?
+ bne NoFormat ..yes; return error
+WritSect01 bsr.s Seek get (a2)=disk sector ptr
+ bcs.s Seek99 abort if error
+ movea.l PD_BUF(a1),a0 get source ptr
+
+WritSe10 move.l SectSizBt(a3),d2 get sector size bit count
+ asl.l d2,d0 convert sector count to byte count
+ move.l d0,d2 get byte count
+ bra.s Move
+
+
+********************************
+* Subroutine Seek
+*   Position psuedo-disk to given sector
+*
+* Passed: d0.l=Sector count
+*         d2.l=Logical sector requested
+*         (a1)=path descriptor ptr
+*         (a2)=static storage ptr
+*         (a4)=current process descriptor ptr
+*         (a6)=system global data ptr
+*
+* Returns: (a2)=disk sector ptr
+*          (a3)=static storage ptr
+*          cc=carry set, d1.w=error code if error
+* Destroys: d2
+*
+Seek: movem.l d0/d1,-(a7) save sector count and regs
+ move.l DRVBEG+DD_TOT(a2),d1 get media size (<<8)
+ lsr.l #8,d1 strip out DD_TRKS information
+ cmp.l d1,d2 starting sector in range?
+ bhs.s SeekErr branch if not
+ add.l d2,d0 form ending sector address
+ cmp.l d1,d0 sending sector number in range?
+ bhi.s SeekErr branch if not
+ movea.l a2,a3 copy static storage ptr (for return)
+ movea.l MemPtr(a2),a2 get beginning address of ram disk
+ move.l SectSizBt(a3),d1 get sector size bit count
+ lsl.l d1,d2 from byte offset of starting sector
+ adda.l d2,a2 set start address of transfer
+ moveq.l #0,d0 clear carry
+ movem.l (sp)+,d0/d1 restore regs
+Seek99 rts
+
+SeekErr move.w #E$Sect,R$d1+2(a7) error: sector out of range
+ movem.l (sp)+,d0/d1 restore registers (error code in d1.w)
+TrapErr ori.b #Carry,ccr flag error
+ rts
+
+
+********************************
+* Subroutines GetStat & PutStat
+*
+* Passed: d0.w=GetStat/PutStat code
+*         (a1)=path descriptor ptr
+*         (a2)=static storage ptr
+*         (a4)=current process descriptor ptr
+*         (a6)=system global data ptr
+* Returns: cc=carry set, d1.w=error code if error
+*
+* GetStat calls
+*
+GetStat: cmpi.w #SS_VarSect,d0 check for variable sector size support?
+ bne.s GetStat_10 ..no; continue
+
+* SS_VarSect request:  if descriptor sector size (i.e. path options field)
+* is 0, then default to ramdisk sector size to 256.  Otherwise, believe
+* the descriptor (RBF will validate the size).
+*
+ tst.w PD_SSize(a1) is the descriptor's sector size set?
+ bne.s Stat_Exit ..yes; exit Carry clear
+ move.w #LOG_SIZE,PD_SSize(a1) init default sector size
+Stat_Exit rts exit (Carry clear)
+
+GetStat_10 cmpi.w #SS_DSize,d0 requesting media size (Format utility)
+ bne.s Stat_Err ..no; return error on unknown service request
+
+* SS_DSize:  return media size
+*
+ move.l DRVBEG+DD_TOT(a2),d0 get media size (misaligned)
+ lsr.l #8,d0 align it
+ move.l d0,R$d2(a5) return sector count to caller
+ rts return, Carry clear
+
+* SetStat calls
+*
+PutStat: cmpi.w #SS_Reset,d0 restore drive head?
+ beq.s Stat_Exit ..yes; nothing to do so simply return with no error
+ cmpi.w #SS_WTrk,d0 write-track call (formatting media)
+ bne.s PutStat_10 ..no; check next code
+
+* request for "write-track"
+*
+ btst.b #FmtDis_B,PD_Cntl+1(a1) format protected ?
+ beq.s Stat_Exit ..no; nothing to do (MAYBE re-clear ram???)
+
+* return error for format-protected media
+*
+NoFormat move.w #E$Format,d1 return "format protected"
+ ori.b #Carry,ccr flag error
+ rts return
+
+* return error for unknown requests
+*
+Stat_Err move.w #E$UnkSvc,d1 error: unknown service request
+ ori.b #Carry,ccr flag error
+ rts
+
+PutStat_10 equ Stat_Err
+
+
+********************************
+* Subroutine Termnt
+*   Terminate RamDisk; give memory back to system.
+*
+* Passed: (a2)=static storage ptr
+* Returns: cc=carry set, d1.w=error code if error
+*
+Termnt: cmpi.l #MAXDRIVE,V_PORT(a2) is this non-volatile ram?
+ bhs.s Termnt99 just quit if so
+ move.l MemSiz(a2),d0 bytecount returning
+ beq.s Termnt99 exit if none
+ clr.l MemSiz(a2)
+ movea.l MemPtr(a2),a2 ptr to memory block
+ OS9 F$SRtMem return memory
+Termnt99 moveq.l #0,d1 return carry clear
+ rts
+
+ ends

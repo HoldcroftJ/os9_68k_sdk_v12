@@ -1,0 +1,22 @@
+
+nvrw:
+ link a5,#0
+ movem.l d1/a0-a1,-(a7) save a few registers
+ move.l d0,a0 set pointer to the shadow ram
+ move.l d1,a1 set pointer to the NVRAM itself
+ move.l 12(a5),d1 get the number of bytes to transfer
+ clr.l d0 sweep for transfer
+ tst.l 8(a5) check the direction requested
+  bne.s tonvr direction is RAM to NVRAM
+ exg a0,a1 set the direction to NVRAM to RAM
+
+* transfer data
+tonvr bra.s tonvrs
+tonvrl move.b (a0)+,(a1)+
+tonvrs dbra d1,tonvrl until done
+ 
+nvrwexit movem.l (sp)+,d1/a0-a1 save a few registers
+ unlk a5
+  rts
+ 
+

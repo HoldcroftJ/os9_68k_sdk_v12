@@ -1,0 +1,339 @@
+ opt -l
+ nam System Module I/O definitions
+
+*****************************************************************************
+*                                                                           *
+*              Copyright 1998 by Microware Systems Corporation              *
+*                            All Rights Reserved                            *
+*                          Reproduced Under License                         *
+*                                                                           *
+*  This software is confidential property of Microware Systems Corporation, *
+*  and is provided under license for internal development purposes only.    *
+*  Reproduction, publication, modification, distribution, or creation of    *
+*  derivative works in any form to any party other than the Licensee is     *
+*  strictly prohibited, unless expressly provided for under the terms of a  *
+*  mutually executed written license agreement for this software between    *
+*  the end-user and Microware Systems Corporation, or otherwise expressly   *
+*  authorized in writing by Microware Systems Corporation.  Licensee shall  *
+*  reproduce this copyright notice exactly as provided herein on any copies *
+*  of the software that Licensee is authorized to distribute.               *
+*                                                                           *
+*****************************************************************************
+* Edition History
+*  #   Date    Changes Made												by
+* -- -------- -------------------------------------------------------------
+* 00 04-11-83 Converted to 68000 from OS-9 Level II Edition 7.			rfd
+* 00 05-24-83 Removed DAT routines with conditional assembly.			rfd
+* 00 06-21-83 Changed from "ds" to "do" (define offset).				rfd
+* 01 02-09-84 Converted for linkage use.								lac
+* 02 05-10-84 Removed mask & flip bytes from polling table.				rfd
+* 03 08-24-84 Added DD_NBT for non-contiguous boots.					wgp
+* 04 10-05-84 Made minor changes to update RBF to 6809 ed#23.			rfd
+* 04 10-24-84 Removed DD_NBT, added PD_USER.							rfd
+* 05 11-09-84 Rearranged file distribution.								rfd
+* 06 12-14-84 Changed Pipe definitions slightly.						rfd
+* 07 01-25-85 Changed Pipe definitions significantly.					rfd
+* 08 05-28-85 Added PD_Paths for linked list of open paths.				rfd
+* 08 05-28-85 Added space for linked path list & reserved area
+*			 above "V_USER".  All drivers must be re-linked.			rfd
+* 09 06-05-85 Made PIPE static storage compatable with SCF.				rfd
+*				---- OS-9/68k V1.2 released ----
+* 10 01-23-85 Chaged Pipe RW-Switch from constant to variable.			rfd
+* 11 06-03-86 Added PD_COUNT field; word version of PD_CNT.				rfd
+* 12 08-15-86 Added RBF PD_FDBuf field.									rfd
+* 13 09-05-86 Added RBF PD_Accs and PD_OpnOk fields.					rfd
+* 14 10-09-86 Added PD_LProc.											rfd
+*				---- OS-9/68k V2.0 released ----
+* 15 05-13-87 Added append mode to RBF, removed SMF defs.				rfd
+*				---- OS-9/68k V2.1 released ----
+* 16 09-17-87 Added PD_Lost to scf										rfd
+*				---- OS-9/68k V2.2 released ----
+* 17 09-07-88 Added CDI definitions.									rfd
+*				---- CD-RTOS V0.97 released ----
+* 18 10-11-88 Minor changes to CDFM defs over the next few days.		rfd
+*				---- CD-RTOS V0.99 released ----
+* 19 09-17-87 Added PD_Broke to pipeman.								rfd
+* 20 01-18-89 Added GFM audio definitions.								tje
+*				---- OS-9/68k V2.2 edition #50 released ----
+*				---- OS-9/68k V2.3 released ----
+* 21 89/04/12 Added RBF definitions for variable sector sizes.			lac
+* 22 90/02/20 Documented PD_ErrNo and PD_SysGlob.						wwb
+* 23 90/05/08 Moved PD_SctSiz from rbf global to rbf options.			wwb
+*				---- CD-RTOS V1.1 released ----
+*				---- OS-9/68k V2.4 released ----
+* 24 91/02/25 Changed psect name to sysio.								wwb
+*             Changes made to GFM/UCM file mgr PD Layout to support		wwb
+*             usage of SCF drivers under GFM/UCM.  Note that these
+*             changes do NOT affect SCF devices.
+* 25 91/03/19 Removed all UCM references: CD-RTOS V1.1 must use ed.23.  wwb
+*				---- OS-9/68k V2.4 68040 released ----
+*				---- OS-9/68k V2.4.3 released ----
+* 26 92/10/21 Reorganized Pipe defs, added PP_RegImg.					wwb
+*				---- OS-9/68k V2.5 (Discovery Pak) released ----
+* 27 93/01/29 Added V_MapOffs (to rbfdev.a).							wwb
+* 28 93/03/04 Removed (obsolete) PD_CNT definition.						wwb
+* 29 93/04/01 Increased the size of pipeman`s "PP_QCNT" field to a
+*			  word value and rearanged its ordering.					afh
+* 30 93/06/21 Added reserved space to Device Table and IRQ Poll Table.	wwb
+*				---- OS-9/68k V3.0 released ----
+*				---- OS-9/68K V3.0.2 Beta_2 Release ----
+*				---- OS-9/68K V3.0.2 Release ----
+*				---- OS-9/68K V3.0.3 PwrMan Beta Release ----
+*				---- OS-9/68K V3.0.3 Release ----
+* 31 98/07/15 Added new copyright info.									wwb
+*				---- OS-9/68K V3.1 Release ----							   
+* 32 99/0917  Fixing PP_Type comment for msb setting.                   rkw
+*             $$                    <RELEASE_INFO>                     $$   *
+*
+edition equ 31 current edition number
+
+ psect sysio,0,0,edition,0,0
+ pag
+
+********************************
+* Device Table Format
+
+ org 0
+V$DRIV: do.l 1 device driver module ptr
+V$STAT: do.l 1 device driver static storage base
+V$DESC: do.l 1 device descriptor module ptr
+V$FMGR: do.l 1 file manager module ptr
+V$USRS: do.w 1 use count
+		do.w 1 reserved
+		do.l 3 reserved
+DEVSIZ: equ . *** must be even ***
+
+
+********************************
+* Interrupt Polling Table format
+*   Used for both vectored and autovector interrupts.
+*  Warning: these variables must be declared in the following
+*  order due to optimized code in the exception handler.
+
+ org 0
+Q$LINK: do.l 1 ptr to next entry in polling tbl
+Q$SERV: do.l 1 Absolute service routine address
+Q$STAT: do.l 1 Static storage address
+Q$POLL: do.l 1 Absolute polling address
+Q$PRTY: do.b 1 Priority (lower numbers are polled first)
+ do.b 7 reserved
+POLSIZ: equ .
+
+
+********************************
+* Device Driver Entry offsets
+
+ org 0
+D$INIT: do.w 1 device initialization
+D$READ: do.w 1 read from device
+D$WRIT: do.w 1 write to device
+D$GSTA: do.w 1 get device status
+D$PSTA: do.w 1 put device status
+D$TERM: do.w 1 device termination
+D$TRAP: do.w 1 bus or address trap
+D$PLAY: do.w 1 play entry point (CDFM)
+
+
+********************************
+* Default Directory information format
+*   The OS-9 kernel only uses the first entry (DevTbl).
+* The remaining 12 bytes may be used by file managers for
+* any appropriate information.  RBF and NET managers use:
+
+ org 0
+I_DevTbl: do.l 1 device table entry ptr
+ do.w 1 reserved
+I_FDPosn: do.l 1 RBF file descriptor sector number
+I_RmotID: do.w 1 network manager remote node ID
+I_RmotTbl: do.l 1 network manager remote DevTBL ptr
+
+
+********************************
+* Path Descriptor Offsets (all file managers)
+
+ org 0
+PD_PD: do.w 1 Path number
+PD_MOD: do.b 1 Mode (read/write/update)
+ do.b 1 reserved (Obsolete - PD_CNT number of open images)
+PD_DEV: do.l 1 device table entry address
+PD_CPR: do.w 1 current process ID
+PD_RGS: do.l 1 caller's register stack ptr
+PD_BUF: do.l 1 buffer address
+PD_USER: do.l 1 User ID of path's creator
+PD_Paths: do.l 1 linked list of open paths on device
+PD_COUNT: do.w 1 actual number of open images
+PD_LProc: do.w 1 last active process ID
+PD_ErrNo: do.l 1 global errno for C file managers
+PD_SysGlob: do.l 1 system globals for C file managers
+ do.w 2 reserved
+PD_FST: do.b 128-. reserve file manager's storage
+
+ ttl Path Descriptor formats
+ pag
+********************************
+* Random Block Path Descriptor offsets
+
+ org PD_FST
+PD_SMF: do.b 1 state flags
+PD_Lock: do.b 1 path lockout status
+PD_Req: do.b 1 requested lockout status
+PD_ClsBt: do.b 1 disk cluster size (bit number)
+PD_FDBuf: do.l 1 FD buffer ptr
+PD_CP: do.l 1 current logical byte position
+PD_SIZ: do.l 1 file size
+PD_SBL: do.l 1 segment beginning lsn
+PD_SBP: do.l 1 segment beginning psn
+PD_SSZ: do.l 1 segment size
+PD_DSK: do.w 1 disk ID
+PD_DTB: do.l 1 drive table ptr
+PD_NxFil: do.l 1 drive open-file list ptr
+PD_Confl: do.l 1 circular file conflict list
+PD_Owner: do.w 1 process ID of owner of desired segment
+PD_LoLck: do.l 1 low locked logical addr
+PD_HiLck: do.l 1 high locked logical addr
+PD_Wait: do.l 1 PD ptr to (next) locked-out PD
+PD_TmOut: do.l 1 max ticks to wait for locked segment
+PD_Prior: do.l 1 temp for process priority while in driver
+PD_Accs: do.b 1 allowable file access permissions
+PD_OpnOk: do.b 1 reserved
+PD_Append: do.b 1 writing with append mode
+ do.b 2 reserved
+PD_SctBt: do.b 1 byte address to/from sector number shift count
+PD_SctMsk: do.l 1 sector size - 1
+
+
+********************************
+* Sequential Character file manager definitions
+
+ org PD_FST
+PD_DV2: do.l 1 device table ptr
+PD_MAX: do.w 1 readline high byte count
+PD_RAW: do.b 1 read/write or Rdlin/wrlin mode
+PD_MIN: do.b 1 devices are owned if clear
+PD_Lost: do.b 1 non-zero if path has become dead (ie: dcd lost)
+ do.b $40-. reserved for future SCF usage
+PD_SCF: equ . end of SCF storage
+
+
+********************************
+* Pipe file manager definitions
+
+* Read/Write queue definitions
+ org 0
+PP_BufPt: do.l 1 next-out or next-in buffer ptr
+PP_Bytes: do.l 1 amount of data/space avilable for r/w
+PP_RegImg:	do.l 1 ptr to partial register image
+PP_PrcID: do.w 1 controlling or first waiting process ID
+PP_Signl: do.w 1 signal to wake up 1st waiting (or zero)
+PP_QCnt:  do.w 1 number in queue
+PP_Type:  do.b 1 queue type; msb clear=write; set=read
+          do.b 1 reserved
+          do.l 1 reserved
+QueueSiz equ .
+
+ org PD_FST
+
+          do.w 1 make next align to LONG
+PD_FRead: do.b QueueSiz readers waiting queue
+PD_FWrit: do.b QueueSiz writers waiting queue
+PD_RWChg: do.l 1 EOR mask to switch between PD_FRead and PD_FWrit
+PD_BEnd:  do.l 1 buffer end
+PD_DirPt: do.l 1 current "directory" ptr, if open for Dir
+PD_NextP: do.l 1 next pipe in named pipe list
+PD_PrevP: do.l 1 previous pipe in named pipe list
+PD_Open:  do.b 1 non-zero when named pipe is forced open
+
+* Fake RBF FD information (note odd alignment)
+PD_Attr:  do.b 1 file attributes (for named pipes)
+PD_Own:   do.w 1 file owner (ala RBF FD)
+PD_CDate: do.b 6 date/time created
+PD_Link:  equ .-1
+PD_FSize: do.l 1 file size (data in buffer count)
+PD_Broke:  do.b 1 non-zero if path has become dead (ie: SS_Break)
+           do.b 1 reserved
+ pag
+********************************
+* CDFM Path Descriptor offsets
+
+ org PD_FST
+PD_BIn:		do.w 1 Number chars in FM buffer
+PD_Cp:		do.l 1 current file position
+PD_FP:		do.l 1 actual file start sector position
+PD_INTLV:	do.w 1 interleave factor
+PD_Siz:		do.l 1 file size
+PD_FDAddr:	do.l 1 byte address of file descriptor
+PD_NxtPD:	do.l 1 next path descriptor in PLAY chain
+PD_LstPD:	do.l 1 last path descriptor in PLAY chain
+PD_PSRT:	do.l 1 start sector of play
+PD_PROCID:	do.w 1 process id
+PD_PCBptr:	do.l 1 PLAY control block ptr
+PD_DIRCT:	do.w 1 direction of head movement
+PD_PCB:		do.l 1 play control block ptr for reads
+PD_PCL:		do.l 1 control list ptr for reads 
+PD_PCLArr:	do.l 1 play control list array pointer for system use
+PD_DTPtr:	do.l 1 pointer to device table
+PD_Prot:	do.b 6 protection mechanism
+PD_FNum:	do.b 1 file number 
+PD_CDFlags:	do.b 1 CDFM flag bits
+
+* PD_CDFlags bit offsets
+B_UpCP:		equ 0	xxxxxxx1 driver should update CP during async I/O
+B_CChan:	equ 1	xxxxxx1x Charlie Chan bit
+
+********************************
+* GFM Path Descriptor offsets
+
+* note that GFM file manager variables do not overlap SCF definitions
+ org PD_SCF
+PD_DFLGS:	do.b 1 Device detach flags
+			do.b 3 reserved (alignment)
+PD_KDEV:	do.l 1 Keyboard device table entry
+PD_KSTAT:	do.l 1 Keyboard static storage
+PD_PDEV:	do.l 1 Pointer device table entry
+PD_PSTAT:	do.l 1 Pointer static storage
+PD_VDEV:	do.l 1 Video device table entry
+PD_VSTAT:	do.l 1 Video static storage
+PD_FEXEC:	do.l 1 Driver routine to execute
+PD_EXTMOD:	do.l 1 External subroutine module
+PD_ChOtData: do.l 1 character output data pointer
+PD_EModData: do.l 1 External subroutine module data area
+PD_ADEV:	do.l 1 Audio device table entry
+PD_ASTAT:	do.l 1 Audio static storage
+PD_PtrOpts: do.l 1 Pointer to secondary options for device
+
+* This data structure is pointed to by PD_ChOtData, and is only used by
+* the driver, with the exception of PD_Flags. 
+ org 0 
+PD_LastRow:	do.w 1 Highest row number for character output
+PD_LastCol:	do.w 1 Highest column number for character output
+PD_CurX:	do.w 1 Horizontal cursor location
+PD_CurY:	do.w 1 Vertical cursor location
+PD_Flags:	do.w 1 Character output flags
+PD_COMD:	do.l 1 Character output drawmap descriptor
+PD_Beg0:	do.w 1 Low glyph number for font 0
+PD_End0:	do.w 1 High glyph number for font 0
+PD_AFData0:	do.l 1 Data for active font 0
+PD_Beg1:	do.w 1 Low glyph number for font 1
+PD_End1:	do.w 1 High glyph number for font 1
+PD_AFData1:	do.l 1 Data for active font 1
+PD_Beg2:	do.w 1 Low glyph number for font 2
+PD_End2:	do.w 1 High glyph number for font 2
+PD_AFData2:	do.l 1 Data for active font 2
+PD_Beg3:	do.w 1 Low glyph number for font 3
+PD_End3:	do.w 1 High glyph number for font 3
+PD_AFData3:	do.l 1 Data for active font 3
+PD_Byte:	do.b 1 Save byte for write
+ChrOutSize:	equ .
+
+
+ ttl Static Storage offsets
+ pag
+ use iodev.a IOMan device driver static storage offsets
+ use rbfdev.a RBF device driver static storage requirements
+ use scfdev.a SCF device driver static storage requirements
+ pag
+ use cdfmdev.a CDFM device driver static storage requirements
+ use ucmdev.a GFM (sic) device driver static storage requirements
+ ends
+ opt l
+

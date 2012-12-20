@@ -1,0 +1,208 @@
+****************************************************
+* Iniz050 - Initialize the VME050 card and related
+*           hardware dependent routines
+*
+* Copyright 1986, 1989, 1990, 1991 by Microware Systems Corporation
+* All Rights Reserved
+* Reproduced Under License
+
+*   This source code is the proprietary confidential property of
+* Microware Systems Corporation, and is provided to the licensee
+* for documentation and educational purposes only.  Reproduction,
+* publication, or any form of distribution to any party other than
+* the licensee is strictly prohibited.
+
+
+********************************
+*     Edition History
+*
+*  #   date   Comments                                           by
+* -- -------- ------------------------------------------------- ----
+* 01 89-05-03 made stand alone code                              jal
+* 02 89-06-02 altered trap handler initialization code to also   jal
+*             save, clear and restore the debugger's trapflag
+* 03 89-07-05 made changes for vme141 support, commented out     Rwb
+*             DebugBit and BootBit definitions
+* 04 90-06-06 no longer plays with the msp                       Rwb
+* 05 90-09-04 made "trapflag" be defined when not using a        wwb
+*             debugger, made Iniz050 use move.b instead of clr
+*             for clearing trapflag.
+* 06 90-09-05 made bus-error handler restore pre-exception SR    wwb
+*             (mainly for keeping Trace flags).
+* 07 90-09-20 Removed conditional for VME141 because of 
+*               convertion to reconfig.                          Rwb
+*             ---- OS-9/68K V2.4 released ----
+* 08 91-07-03 Fixed SR restoration for 68000/008.                wwb
+*             ---- OS-9/68K V2.4.3 released ----
+* 09 91-10-28 Fixed problems with ed.8.                          wwb
+*             ---- OS-9/68K V3.0 released ----
+*             ---- OS-9/68K V3.1 released ----
+*
+
+ ifdef ROMBUG
+USING_DEBUGGER set 1 define smart debugger in use
+ endc
+
+ ifdef DEBUGGER
+USING_DEBUGGER set 1 define old debugger in use
+ endc
+
+ExtVect equ $30 iniz BIM module for external vectors
+
+ ifndef ShortIOBase
+ShortIOBase equ $FFFF0000
+ endc
+VME50Base equ ShortIOBase+$1000 VME050 base address
+BIM.Port1 equ VME50Base+$C1  VME050 BIM control, port 1
+BIM.Port2 equ VME50Base+$C3  VME050 BIM control, port 2
+ ifndef BIM.TODC
+BIM.TODC equ VME50Base+$c5 VME050 BIM control, MC146818 TODC
+ endc
+ ifndef BIM.TVect
+BIM.TVect equ VME50Base+$cd VME050 TODC vector register
+ endc
+Display50 equ VME50Base+$A1  Display module, VME050
+Switch50  equ Display50      Front panel switch, VME050
+RTC050Base equ VME50Base+$100 MC146818 base address
+
+Port1Level equ 1 user terminal
+Port2Level equ Port1Level user terminal
+Lev_Port1 equ Port1Level irq level for serial port #1
+Lev_Port2 equ Port2Level irq level for serial port #2
+*
+* jump table and vector definitions
+*
+JmpEntSize set 10 jump table entry size
+BTrap_Vector set $2
+BTrap_JmpEntry set ((BTrap_Vector-2)*JmpEntSize)+6 bus trap entry in jump table
+
+
+Iniz050 macro
+**********************************************************
+* Iniz_050: System specific code for the VME050 Card
+*
+* NOTE: This code assumes the generic bus trap handler is
+*       installed on systems where the VME050 is optional
+* 
+* Passed: (a0) = Base address of vector table
+*
+* Returns: Nothing
+*
+* Alters: a1, a2, a3, d0, d1, d7
+*
+Iniz_050:
+ movea.l #MemList-*-8,a3 get 32-bit pc relative offset to MemList
+ move.l (pc,a3),a3 get the base address of the exception jump table
+ move.l a3,8(a0) set address of bus trap jump table entry in vector table
+ ifdef USING_DEBUGGER
+* NOTE:  must NOT do a "clr", as if this is being executed from the
+*        "SysInit" routine, then at this point parity initialization
+*        has not taken place, and on a 68000/68008 a clr does a
+*        read before write, thus you could get a parity (bus-) error.
+ move.b #0,trapflag(a3) clear the debugger's trap flag
+ endc
+*
+* build bus trap handler entry in the exception jump table
+*
+ lea.l BTrap_050(pc),a1 get address of trap handler
+ move.l #$48780008,(a3)+ build "pea.l (0x8).w" instruction
+ move.w #$4EF9,(a3)+ build "jmp (xxxx).l" instruction
+ move.l a1,(a3) install local handler address
+ move.l sp,d7 save current stack ptr
+ lea.l Post050(pc),a2 get continuation point in case bus trap
+*
+* disable VME050 BIM vector generation to
+* prevent conflicts with serial devices
+*
+ move.b #ExtVect+Lev_Port1,BIM.Port1 externally provided irq vectors port1
+ move.b #ExtVect+Lev_Port2,BIM.Port2 ..... etc serial port2
+*
+* now, move the MPUChip onto the front panel
+*
+ move.l #MPUChip,d0 get the processor in use
+ subi.l #68000,d0 toss root processor bias
+ divu #10,d0 get the tens/digits breakdown
+ move.l d0,d1 copy result
+ swap d1 put remainder in lsw
+ lsl.b #4,d0 move quotient into high nibble
+ or.b d1,d0 add in the remainder
+ move.b d0,Display50 tell the world the cpu type
+Post050  equ *
+ endm
+
+*************************************
+* BTrap_050: VME050 Bus Trap Handler
+*
+* Passed:  (a2) = continuation address
+*          (d7.l) = stack pointer (before interrupt)
+*
+BTrap_050: sub.l a7,d7 calculate number of bytes on stack
+ cmpi.b #18,d7 68000/68008 in use?
+ beq.s btrap_000 ..yes; bra on
+ move.w 4(a7),sr restore sr (mainly for Trace bits)
+ bra.s btrap_exit enter main
+
+btrap_000 move.w 12(a7),sr restore 68000 sr (mainly for Trace bits)
+
+btrap_exit: adda.l d7,sp restore stack ptr
+ jmp (a2) resume operation
+
+
+*******************************************************
+* ReadSwitch50: Read the VME050 front panel switches
+*               or the on-board CPU switches if VME050
+*               is not installed.
+*
+* Passed: Nothing
+*
+* Returns: (d0) = Microware "Standard" System Switches Byte
+*
+* Alters: All registers except d0 are preserved
+*
+ReadSwitch50: movem.l d1/d6-d7/a0-a3,-(a7)
+*
+* insert bus trap handler in the exception jump table
+*
+ movea.l #MemList-*-8,a3 get 32-bit pc relative offset to MemList
+ move.l (pc,a3),a3 get the base address of the exception jump table
+* NOTE: a3 is also the base of the debugger's globals
+ ifdef USING_DEBUGGER
+ move.b trapflag(a3),d6 preserve the debugger's trap flag
+ clr.b trapflag(a3) clear the debugger's trap flag
+ endc
+ lea.l BTrap_050(pc),a1 get address of trap handler
+ movea.l BTrap_JmpEntry(a3),a0 save current handler address
+ move.l a1,BTrap_JmpEntry(a3) setup local handler
+*
+* set continuation point for bus trap
+*
+ move.l sp,d7 save current stack ptr
+ lea.l RS10(pc),a2 get continuation point
+*
+* Attempt to read VME050 front panel switches
+*
+ move.b Switch50,d0 get VME050's sense
+ bra.s RS20
+*
+* If no VME050 card is installed, the bus trap handler
+* will drop us here to read the on-board CPU switches
+*
+*  this is the general case for reading the switches.  
+RS10 movea.l #CPU_SWITCHES,a1 get address of CPU switches
+ cmpa.l #0,a1 is it a null pointer?
+ bne.s RS15 if no, go read the switches
+ moveq.l #0,d0 else set switch bits to dummy defaults
+ bra.s RS20
+RS15 move.b (a1),d0 read CPU's software readable switch
+*
+* Reset the Bus Trap Handler
+*
+RS20 
+ move.l a0,BTrap_JmpEntry(a3) restore previous handler address
+ ifdef USING_DEBUGGER
+ move.b d6,trapflag(a3) retore the debugger's trap flag
+ endc
+ movem.l (a7)+,d1/d6-d7/a0-a3
+ rts
+
+* end of file

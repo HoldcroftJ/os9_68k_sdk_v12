@@ -1,0 +1,8 @@
+ nam H5 Device Descriptor
+ use defsfile
+
+ use "rbfdesc.a"
+
+DrvNum set 5
+ DiskH5
+ ends

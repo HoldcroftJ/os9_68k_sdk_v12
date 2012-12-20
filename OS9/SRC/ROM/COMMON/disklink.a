@@ -1,0 +1,81 @@
+ nam Fake Disk Psect
+ ttl None
+
+* Copyright 1987, 1990, 1993 by Microware Systems Corporation
+* Reproduced Under License
+
+* This source code is the proprietary confidential property of
+* Microware Systems Corporation, and is provided to licensee
+* solely for documentation and educational purposes. Reproduction,
+* publication, or distribution in any form to any party other than
+* the licensee is strictly prohibited.
+
+
+********************
+* Edition History
+*
+* Ed.   Date.    Reason												Who
+* --  --------  ---------------------------------------------------	---
+* 01  87/05/19  history starts...									wwb
+*				---- OS-9/68K V2.1 Release ---- 
+*				---- OS-9/68K V2.2 Release ---- 
+*				---- OS-9/68K V2.3 Release ---- 
+*				---- CD-RTOS V1.1 V2.3 Release ---- 
+* 02  90/08/31  added boot.a constants, so that booters using		wwb
+*               global values in boot.a can be linked as stand-
+*               alone code.
+*				---- OS-9/68K V2.4 Release ---- 
+* 03  93/07/09  moved constants declarations into "bootglob.d"		wwb
+*				- this allows boot.a/disklink.a others(?) to share
+*				the constants in a consistant manner.
+*                ---- OS-9/68K V3.0 Release ----
+*                ---- OS-9/68K V3.1 Release ----
+*
+Edition set 3
+
+
+* This is a stripped down psect
+* for linking plain disk boots
+
+Type set $101 program and object
+Revs set $8001 reentrant, revision 1
+
+ psect Boot,Type,Revs,Edition,0,0
+
+ use defsfile
+
+
+********************
+* default definitions
+*
+ ifndef VBRBase
+VBRBase equ 0 vectors at 0
+ endc
+
+ ifndef TRANSLATE
+TRANSLATE equ 0 no address translation
+ endc
+ 
+
+********************
+* psuedo entry point:  this branch makes the entry point of the
+* booter be the actual load address of the code, thus you don't
+* have to be concerned about how large the MemList is, etc.
+
+ bra Entry skip over constants
+ 
+
+******************* 
+* Global constants
+*
+* Get global constants, so that stand-alone versions of the boot code
+* can reference globals "normally resident in boot.a"
+*
+ use "bootglob.d"
+
+ align
+
+Entry equ * the actual booting code will begin here.
+
+ ends
+ 

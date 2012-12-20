@@ -1,0 +1,199 @@
+********************************
+**  Bootlist for the MVME172
+**
+**	Pathlists are relative to the MWOS/OS9/68060/PORTS/MVME172 directory.
+*
+*  OS-9 Kernel - select one variant:
+*
+*  Development kernel - Standard memory allocator
+../../../68060/CMDS/BOOTOBJS/dker060s
+*../../../68060/CMDS/BOOTOBJS/STB/dker060s.stb
+*  Development kernel - Buddy memory allocator
+*../../../68060/CMDS/BOOTOBJS/dker060b
+*../../../68060/CMDS/BOOTOBJS/STB/dker060b.stb
+*  Atomic kernel - Standard memory allocator
+*../../../68060/CMDS/BOOTOBJS/aker060s
+*../../../68060/CMDS/BOOTOBJS/STB/aker060s.stb
+*  Atomic kernel - Buddy memory allocator
+*../../../68060/CMDS/BOOTOBJS/aker060b
+*../../../68060/CMDS/BOOTOBJS/STB/aker060b.stb
+*
+* Ioman - select one to match selected kernel above:
+*
+../../../68000/CMDS/BOOTOBJS/ioman_DEV
+*../../../68000/CMDS/BOOTOBJS/STB/ioman_DEV.stb
+*../../../68000/CMDS/BOOTOBJS/ioman_ATOM
+*../../../68000/CMDS/BOOTOBJS/STB/ioman_ATOM.stb
+*
+* Init module:
+*
+*CMDS/BOOTOBJS/INITS/init_d0
+CMDS/BOOTOBJS/INITS/init_h0
+*CMDS/BOOTOBJS/INITS/init_tape
+*CMDS/BOOTOBJS/INITS/init_rom
+*
+* Customization modules:
+*
+*   Snooper Circuit Enable Module
+*   (if not present, the snooper is not enabled!)
+*
+CMDS/BOOTOBJS/snoop172
+*CMDS/BOOTOBJS/STB/snoop172.stb
+*
+*    Cache Control module
+*    (If not present, cache is disabled!)
+*
+../../../68060/CMDS/BOOTOBJS/cache060
+*../../../68060/CMDS/BOOTOBJS/STB/cache060.stb
+*
+*    MMU Control module
+*
+*    ssm060 provides write-thru caching in supervisor state,
+*     CopyBack and writethru mode now controlled by Init Module
+*    User state cache mode default (both versions) is write-thru,
+*	  and this can be over-ridden via the CacheList entries in systype.d
+*
+../../../68060/CMDS/BOOTOBJS/ssm060
+*../../../68060/CMDS/BOOTOBJS/STB/ssm060.stb
+*
+*    FPSP/FPU Math emulation modules
+*
+*    FPSP provides 68681/68682 compatibility for the 68060 CPU.
+*	 FPSP is specifically for the 68060 and should not be used with
+*    68060Ec and 680060LC processors.
+*    FPU is a general purpose math emulation module.  It provides basic
+*    float and double support as required by the C libraries.
+* 
+*../../../68060/CMDS/BOOTOBJS/fpsp060
+*../../../68060/CMDS/BOOTOBJS/STB/fpsp060.stb
+../../../68000/CMDS/BOOTOBJS/fpu
+*../../../68000/CMDS/BOOTOBJS/STB/fpu.stb
+*
+*    Unimplemented Integer Instruction compatibility for the 68060.
+*
+../../../68060/CMDS/BOOTOBJS/intsp060
+*../../../68060/CMDS/BOOTOBJS/STB/intsp060.stb
+*
+* System clock module:
+*
+CMDS/BOOTOBJS/tk172
+*CMDS/BOOTOBJS/STB/tk172.stb
+*
+* Real Time Clock module:
+*
+CMDS/BOOTOBJS/rtc172
+*CMDS/BOOTOBJS/STB/rtc172.stb
+*
+* SCF Drivers and Descriptors:
+*
+../../../68000/CMDS/BOOTOBJS/scf
+*../../../68000/CMDS/BOOTOBJS/STB/scf.stb
+../../../68000/CMDS/BOOTOBJS/null
+../../../68000/CMDS/BOOTOBJS/nil
+../../../68000/CMDS/BOOTOBJS/pipeman
+*../../../68000/CMDS/BOOTOBJS/STB/pipeman.stb
+../../../68000/CMDS/BOOTOBJS/pipe
+*
+*   serial ports
+*
+CMDS/BOOTOBJS/sc172
+*CMDS/BOOTOBJS/STB/sc172.stb
+CMDS/BOOTOBJS/term
+CMDS/BOOTOBJS/t1
+CMDS/BOOTOBJS/p1
+*
+* RBF Drivers and Descriptors:
+*
+../../../68000/CMDS/BOOTOBJS/rbf
+*../../../68000/CMDS/BOOTOBJS/STB/rbf.stb
+../../../68000/CMDS/BOOTOBJS/ram
+*CMDS/BOOTOBJS/r0
+CMDS/BOOTOBJS/dd_r0
+*CMDS/BOOTOBJS/r0_3m
+*CMDS/BOOTOBJS/dd_r0_3m
+*
+* SCSI Controller:
+*
+CMDS/BOOTOBJS/scsi172
+*CMDS/BOOTOBJS/STB/scsi172.stb
+*
+*    RBVCS driver and descriptors
+*
+../../../68000/CMDS/BOOTOBJS/rbvccs
+*../../../68000/CMDS/BOOTOBJS/STB/rbvccs.stb
+CMDS/BOOTOBJS/VCCS/h0
+*
+*    RBSCCS driver and descriptors
+*
+*../../../68000/CMDS/BOOTOBJS/rbsccs
+*../../../68000/CMDS/BOOTOBJS/STB/rbsccs.stb
+*CMDS/BOOTOBJS/SCCS/h0
+*
+*    RBTEAC driver and descriptors
+*
+*../../../68000/CMDS/BOOTOBJS/rbteac
+*../../../68000/CMDS/BOOTOBJS/STB/rbteac.stb
+*CMDS/BOOTOBJS/TEACFC1/d0
+*
+* Tape Manager:
+*
+*../../../68000/CMDS/BOOTOBJS/sbf
+*../../../68000/CMDS/BOOTOBJS/STB/sbf.stb
+*
+*    Tape Drivers and Descriptors
+*
+*    Archive Viper 2060
+*
+*../../../68000/CMDS/BOOTOBJS/sbviper
+*../../../68000/CMDS/BOOTOBJS/STB/sbviper.stb
+*CMDS/BOOTOBJS/VIPER/mt0
+*CMDS/BOOTOBJS/VIPER/mt1
+*CMDS/BOOTOBJS/VIPER/dat
+*
+*   TEAC Cassette
+*
+*../../../68000/CMDS/BOOTOBJS/sbteac
+*../../../68000/CMDS/BOOTOBJS/STB/sbteac.stb
+*CMDS/BOOTOBJS/TEACMT2/mt0
+*
+*	Exabyte drive
+*
+*../../../68000/CMDS/BOOTOBJS/sbgiga
+*../../../68000/CMDS/BOOTOBJS/STB/sbgiga.stb
+*CMDS/BOOTOBJS/EXABYTE/mt2
+*
+* Initial system process:
+*
+../../../68000/CMDS/BOOTOBJS/sysgo
+*../../../68000/CMDS/BOOTOBJS/sysgo_nodisk
+*../../../68000/CMDS/tapestart
+*../../../68000/CMDS/shell
+../../../68000/CMDS/mshell
+*
+*   Hawk Debugging
+*
+*   User State
+*    SPF Networking is required in addition to these modules
+*   spfndpd:    Network Debugger Protocol (NDP) Daemon
+*   spfndpdc:   NDP Server Daemon Child
+*   ndpio:      NDP I/O Server
+*   spfnppd:    Hawk Profiler Daemon
+*   spfnppdc:   Hawk Profiler Daemon Child
+*
+*../../../68000/CMDS/spfndpd   
+*../../../68000/CMDS/spfndpdc
+*../../../68000/CMDS/ndpio
+*../../../68000/CMDS/spfnppd
+*../../../68000/CMDS/spfnppdc
+*
+*  In-house file managers/drivers/descriptors.
+*
+*../../../68000/CMDS/BOOTOBJS/nfm
+*../../../68000/CMDS/BOOTOBJS/n9026
+*../../../68000/PORTS/MB2470/CMDS/BOOTOBJS/n0
+*
+*  Additional modules can be added here.
+*
+*../../../68020/CMDS/csl
+*../../../68020/CMDS/cio
+*../../../68020/CMDS/math881

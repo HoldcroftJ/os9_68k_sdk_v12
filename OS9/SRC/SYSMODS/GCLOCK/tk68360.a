@@ -1,0 +1,124 @@
+ nam tk68360.a
+ ttl 68360 tick driver for use with tickgeneric.a
+
+********************
+* 68360 tick driver for use with tickgeneric.a
+
+* Copyright 1989, 1990, 1993 by Microware Systems Corporation
+* Reproduced Under License
+
+* This source code is the proprietary confidential property of
+* Microware Systems Corporation, and is provided to licensee
+* solely for documentation and educational purposes. Reproduction,
+* publication, or distribution in any form to any party other than
+* the licensee is strictly prohibited.
+
+
+********************
+* Edition History
+*  #    Date      Comments										By
+* -- -------- ------------------------------------------------	---
+* 01 93/11/05  Created											arb
+* 02 94/06/06  Removed extraneous rts fro IRQ service routine.	wwb
+* 03 95/02/07  Corrected ticks per second added 2nd value       mgh
+*				---- OS-9/68K V3.0.1 Release ----
+*
+Edition equ 3
+
+ psect Ticker,0,0,0,0,0
+
+ use defsfile
+
+********************************
+*  This is a tick driver for the mc683xx family processors.  It
+*  used the SIM periodic interrupt register.  Refer to sim.d
+********************************
+
+********************************
+* Expected variables and constants:
+* 
+* The following constants are used in the generic
+* code and must be defined GLOBALLY by this file:
+*
+TiksPerSec: equ TicksSec (Ticks Per Second) - Pretty self-explanatory.
+ClockVect: equ ClkVect clock vector
+ClockPort: equ ClkPort tick device base address
+ClockPrior: equ ClkPrior clock priority
+ClkVal equ 244	Count for 25mhz clk to get 200 Ticks per Second
+*ClkVal equ 217	Count for 25mhz clk to get 225 Ticks per Second most accurate
+ page
+
+********************************
+* StartTick: (Subroutine) Initialize
+*            the "ticker" device hardware
+*            and enable it to produce "tick" IRQs
+*
+* General Description: This subroutine is called by the "tickgeneric"
+*                      initialization code.  The purpose of this
+*                      subroutine is to program the hardware registers
+*                      of the "ticker" device so that it will produce
+*                      "tick" interrupts at the rate specified by the
+*                      variable "TicksSec" - ticks per second.  This
+*                      variable is generally defined in "systype.d"
+*                      and is often set to a value of 100 ticks per
+*                      second.
+*
+* Registers Passed: (a3) = The base address of the "ticker" hardware
+*                   (a5) = Caller's register stack pointer
+*                   (a6) = Global storage pointer
+*
+* Registers Returned: (d1) = Error code if error occurred
+*                            Zero if no error
+*                     (cc) = carry set if error occurred
+*                            carry clear if no error
+*
+* NOTE: This subroutine may alter registers d0, d1, a0, a1 and a2 without
+*       consequence.  All others MUST be preserved!
+*
+* ANOTHER NOTE: The tickgeneric code that calls this subroutine DOES NOT
+*               MASK the interrupts!  If the initialization code for the
+*               tick device needs the interrupts masked, it must be done
+*               in THIS subroutine!
+*
+StartTick:
+ move.l #ClkVect,d0 get tick vector value
+ move.l #ClockPrior,d1
+ lsl.l #8,d1 ship level up to proper place
+ or.w d1,d0 put them together
+ move.w d0,PICR(a3) send down the interrupt level and vector
+
+* now set up the counter and scaler mode
+ move.w #ClkVal,PITR(a3) send down the count value and scaler mode
+ClkExt99 moveq.l #0,d1 flag no errors
+ rts
+ page
+ 
+********************************
+* TickIRQ: (Interrupt Service Routine)
+*
+* General Description: Check the "ticker" device hardware
+*                      to determine if it caused the interrupt.
+*                      If it did, clear the interrupt in the 
+*                      "ticker" device hardware.
+*                      If it did not cause the interrupt, return
+*                      with the carry bit set in the Condition
+*                      Code Register to flag that an error occurred.
+*
+* Registers Passed: (a3) = ticker chip base address
+*                   (a6) = system global storage pointer
+*
+* Registers Returned: (cc) = Carry set if an error occurred
+*                            If no error occurred, this routine
+*                            does not return, but jumps to the
+*                            Kernel's clock handling routine.
+*
+*
+* NOTE: clock device may not share it's vector, no way exits to test
+*         if the clock was the interrupter.
+*
+TickIRQ:
+ movea.l D_Clock(a6),a0 get address of kernel's clock routine
+ jmp (a0) execute it
+
+ ends
+

@@ -1,0 +1,146 @@
+/****************************************************************************
+ * $Workfile:   systype.des  $
+ * $Revision:   1.2  $
+ * $Modtime:   28 Feb 1995 23:36:00  $
+ * $Date:   28 Feb 1995 23:37:12  $
+ ****************************************************************************
+ * System EditMod descriptions
+ ****************************************************************************/
+
+
+#if defined(socket)						/* SOCKMAN socket descriptor */
+
+	#include <sockman.des>
+
+	/* SOCKMAN fields */
+	string hostname = "LocalHost";
+	string devnames = "/lo0 /ie0 /lbp0";
+	init socketdd {
+		sock_recvlimit = 16384;
+		sock_sendlimit = 16384;
+	};
+	init protocols[0] {
+		addrfam = PF_INET;
+		socktype = 0;
+		protype = 0;
+		sockmodtype = SMTYPE_SHARED;
+		protname = inet_name;
+	};
+	string inet_name = "inet";
+	init protocols[1] {
+		addrfam = PF_INET;
+		socktype = SOCK_RAW;
+		protype = 0;
+		sockmodtype = SMTYPE_PROTOCOL;
+		protname = ip_name;
+	};
+	string ip_name = "ip";
+	init protocols[2] {
+		addrfam = PF_INET;
+		socktype = SOCK_DGRAM;
+		protype = IPPROTO_UDP;
+		sockmodtype = SMTYPE_PROTOCOL;
+		protname = udp_name;
+	};
+	string udp_name = "udp";
+	init protocols[3] {
+		addrfam = PF_INET;
+		socktype = SOCK_STREAM;
+		protype = IPPROTO_TCP;
+		sockmodtype = SMTYPE_PROTOCOL;
+		protname = tcp_name;
+	};
+	string tcp_name = "tcp";
+	init protocols[4] {
+		addrfam = PF_ETHER;
+		socktype = SOCK_RAW;
+		protype = 0;
+		sockmodtype = SMTYPE_PROTOCOL;
+		protname = ether_name;
+	};
+	string ether_name = "af_ether";
+	init protocols[5] {
+		addrfam = PF_UNIX;
+		socktype = SOCK_STREAM;
+		protype = 0;
+		sockmodtype = SMTYPE_PROTOCOL;
+		protname = unix_name;
+	};
+	string unix_name = "af_unix";
+	init protocols[6] {
+		addrfam = 0;
+	};
+
+#endif
+
+#if defined(ipconfig)					/* IFMAN IPCONFIG data module */
+
+	#include <ipconfig.des>
+
+	/* IPCONFIG fields */
+	init ipconfig_info {
+
+		flags = 0;						/* this is not a gateway */
+/*		flags = INET_GATEWAY;			/* uncomment if this is a gateway */
+
+		default = 0.0.0.0;				/* default internet route */
+
+	};
+
+	/* list of host routes */
+	init hosts[0] {
+		host = 0.0.0.0;
+		gw = 0.0.0.0;
+	};
+
+	/* list of network routes */
+	init nets[0] {
+		net = 0.0.0.0;
+		gw = 0.0.0.0;
+	};
+
+#endif
+
+#if defined(ie0_167)					/* IFMAN IF167 descriptor #0 */
+
+	#include <if167.des>
+
+	/* OS fields */
+	string mod_name = "ie0";
+
+	/* IFMAN fields */
+	init ifdevdd {
+		dd_subnet = 0xFFFFFF00;
+	};
+	init interface_addr {
+		sin_addr = 10.0.1.1;
+	};
+	init broadcast_addr {
+		sin_addr = 10.0.1.255;
+	};
+
+	/* IF167 fields */
+
+#endif
+
+#if defined(lbp0_167)					/* IFMAN IF167BP descriptor #0 */
+
+	#include <if167bp.des>
+
+	/* OS fields */
+	string mod_name = "lbp0";
+
+	/* IFMAN fields */
+	init ifdevdd {
+		dd_subnet = 0xFFFFFF00;
+	};
+	init interface_addr {
+		sin_addr = 10.0.3.1;
+	};
+	init broadcast_addr {
+		sin_addr = 10.0.3.255;
+	};
+
+	/* IF167BP fields */
+
+#endif

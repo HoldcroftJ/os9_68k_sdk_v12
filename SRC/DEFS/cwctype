@@ -1,0 +1,11 @@
+#ifndef __CWCTYPE
+#	define __CWCTYPE
+
+namespace std {
+
+#include <wctype.h>  // don't have <wctype.h> yet
+
+} /* namespace std */
+
+
+#endif /* __CWCTYPE */

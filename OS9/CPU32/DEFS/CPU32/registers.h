@@ -1,0 +1,322 @@
+/*********************************************************************** 
+* NOTICE
+* All files contained on this disk are subject to the licensing conditions
+* issued by MOTOROLA Inc.
+*
+* All files are copyright 1993 by MOTOROLA Inc. 
+************************************************************************/
+
+/*
+ * registers.h
+ * Definitions of the QUICC registers
+ */
+
+
+/*****************************************************************
+	Base Address Register (address 0x2ff00)
+*****************************************************************/
+
+#define	WRITE_BAR(x)	(*((long *)0x2ff00) = x)
+
+
+/*****************************************************************
+	Command Register
+*****************************************************************/
+
+/* bit fields within command register */
+#define	SOFTWARE_RESET	0x8000
+#define	CMD_OPCODE	0x0f00
+#define	CMD_CHANNEL	0x00f0
+#define	CMD_FLAG	0x0001
+
+/* general command opcodes */
+#define	INIT_RXTX_PARAMS	0x0000
+#define	INIT_RX_PARAMS		0x0100
+#define	INIT_TX_PARAMS		0x0200
+#define	ENTER_HUNT_MODE		0x0300
+#define	STOP_TX			0x0400
+#define	GR_STOP_TX		0x0500
+#define	RESTART_TX		0x0600
+#define	CLOSE_RX_BD		0x0700
+#define	SET_ENET_GROUP		0x0800
+#define	RESET_ENET_GROUP	0x0900
+
+/* SMC (GCI) commands */
+#define	GCI_ABORT		0x0400
+#define	GCI_TIMEOUT		0x0500
+
+/* Timer commands */
+#define	SET_TIMER		0x0800
+
+/* IDMA commands */
+#define INIT_IDMA		0x0500
+
+/* Channel numbers */
+#define SCC1			0x0000
+#define SCC2			0x0040
+#define SPI				0x0050
+#define RISC_TIMERS		0x0050
+#define SCC3			0x0080
+#define SMC1			0x0090
+#define IDMA1			0x0090
+#define SCC4			0x00c0
+#define SMC2			0x00d0
+#define IDMA2			0x00d0
+
+
+/*****************************************************************
+	IDMA Registers
+*****************************************************************/
+/* ICCR - IDMA Channel Configuration Register */
+#define STP				(1<<15)
+#define FRZ				(3<<13)
+#define		FRZ_IGNORE	(0<<13)
+#define		FRZ_DO		(2<<13)
+#define ARBP			(3<<11)
+#define		ARBP_CHAN1	(0<<11)
+#define		ARBP_CHAN2	(1<<11)
+#define		ARBP_ROTATE	(2<<11)
+#define ISM				(7<<8)
+#define		ISM_0		(0<<8)
+#define		ISM_1		(1<<8)
+#define		ISM_2		(2<<8)
+#define		ISM_3		(3<<8)
+#define		ISM_4		(4<<8)
+#define		ISM_5		(5<<8)
+#define		ISM_6		(6<<8)
+#define		ISM_7		(7<<8)
+#define IAID			(7<<4)
+#define		IAID_0		(0<<4)
+#define		IAID_1		(1<<4)
+#define		IAID_2		(2<<4)
+#define		IAID_3		(3<<4)
+#define		IAID_4		(4<<4)
+#define		IAID_5		(5<<4)
+#define		IAID_6		(6<<4)
+#define		IAID_7		(7<<4)
+
+/* CMR - Channel Mode Register */
+#define ECO				(1<<15)
+#define SRM				(1<<14)
+#define SD				(1<<13)
+#define RCI				(1<<12)
+#define REQG			(3<<10)
+#define		REQG_INTLIM	(0<<10)
+#define		REQG_INTMAX	(1<<10)
+#define		REQG_EXTBT	(2<<10)
+#define		REQG_EXTSTL (3<<10)
+#define SAPI			(1<<9)
+#define DAPI			(1<<8)
+#define SSIZE			(3<<6)
+#define		SSIZE_LONG	(0<<6)
+#define		SSIZE_BYTE	(1<<6)
+#define		SSIZE_WORD	(2<<6)
+#define DSIZE			(3<<4)
+#define		DSIZE_LONG	(0<<4)
+#define		DSIZE_BYTE	(1<<4)
+#define		DSIZE_WORD	(2<<4)
+#define BT				(3<<2)
+#define		BT_75		(0<<2)
+#define		BT_50		(1<<2)
+#define		BT_25		(2<<2)
+#define		BT_12		(3<<2)
+#define	RST				(1<<1)
+#define STR				(1<<0)
+
+/* CSR/CMAR - Channel Status Register/Channel Mask Register */
+#define AD				(1<<5)
+#define BRKP			(1<<4)
+#define OB				(1<<3)
+#define BES				(1<<2)
+#define BED				(1<<1)
+#define DONE			(1<<0)
+
+/*****************************************************************
+	General SCC mode register (GSMR)
+*****************************************************************/
+/* GSMRA */
+/* SCC modes */
+#define	HDLC_PORT		0x0
+#define	HDLC_BUS		0x1
+#define	APPLE_TALK		0x2
+#define	SS_NO7			0x3
+#define	UART			0x4
+#define	PROFI_BUS		0x5
+#define	ASYNC_HDLC		0x6
+#define	V14			0x7
+#define	BISYNC_PORT		0x8
+#define	DDCMP_PORT		0x9
+#define	ETHERNET_PORT		0xc
+
+/*
+ * diagnostics bits
+ */
+#define	NORMAL		(0<<6)	/* normal operation with CTS and CD */
+				/* automatically controlled by SCC */
+#define	LOOPBACK	(1<<6)	/* connect tx to rx */
+#define	SERIAL_ECHO	(2<<6)	/* connect rx to tx */
+#define	LOOPBACK_ECHO	(3<<6)	/* loopback and echo */
+
+/* common mode register bits */
+#define	MODE		0x0000000f
+
+/* GSMRB */
+#define	TCRC		0x00008000
+#define	TRX		0x00001000
+#define	TTX		0x00000800
+
+/* hdlc mode register */
+#define	CRC32		0x0800
+
+
+/* uart mode register */
+
+/* ethernet mode register */
+#define	IAM		0x1000	/* individual address mode */
+#define	PRO		0x0200	/* promiscuous */
+#define	BRO		0x0100	/* broadcast address */
+
+/*
+ * tx parity (SCC asynchronous)
+ */
+#define	ODD_PARITY	(0<<14)
+#define	EVEN_PARITY	(1<<14)
+#define	LOW_PARITY	(2<<14)
+#define	HIGH_PARITY	(3<<14)
+
+/*
+ * UART options
+ */
+#define	UOPT		0x0c00
+#define	OPT_NORMAL	(0<<10)
+#define	OPT_MULTD	(1<<10)	/* multi-drop, no auto */
+#define	OPT_DDCMP	(2<<10)	/* ddcmp */
+#define	OPT_AUTO	(3<<10)	/* mutli-drop with automatic */
+				/* address recognition */
+#define	UART_FRZ	0x0200
+
+
+/* bisync mode register */
+#define	BI_CRC		0x0800	/* BI_CRC set than LRC is used */
+#define	BI_BCS		0x0200
+#define	BI_TRANSP	0x0100
+
+
+/*****************************************************************
+	TODR (Transmit on demand) Register
+*****************************************************************/
+#define	TODR_TOD	0x8000	/* Transmit on demand */
+
+/*****************************************************************
+	SMC mode register
+*****************************************************************/
+
+/*
+ * defines for SMC modes
+ */
+#define	SMC_MODE	0x0030	/* SMC MODE */
+#define	SMC_GCI_MODE	0x0000	/* SMC MODE: GCI or SCIT support */
+#define	SMC_UART	0x0020	/* SMC MODE: UART */
+#define	SMC_TRANSPARENT	0x0030	/* SMC MODE: Transparent */
+/*****************************************************************
+	SPI registers
+*****************************************************************/
+
+#define MULTI_MASTER_ERR        ABORT /* Multi master error event */
+
+
+/*****************************************************************
+	interrupt registers
+*****************************************************************/
+
+#define	INTR_PIO_PC0	0x80000000	/* parallel i/o C bit 0 */
+#define	INTR_SCC1	0x40000000	/* SCC port 1 */
+#define	INTR_SCC2	0x20000000	/* SCC port 2 */
+#define	INTR_SCC3	0x10000000	/* SCC port 3 */
+#define	INTR_SCC4	0x08000000	/* SCC port 4 */
+#define	INTR_PIO_PC1	0x04000000	/* parallel i/o C bit 1 */
+#define	INTR_TIMER1	0x02000000	/* timer 1 */
+#define	INTR_PIO_PC2	0x01000000	/* parallel i/o C bit 2 */
+#define	INTR_PIO_PC3	0x00800000	/* parallel i/o C bit 3 */
+#define	INTR_SDMA_BERR	0x00400000	/* SDMA channel bus error */
+#define	INTR_DMA1	0x00200000	/* idma 1 */
+#define	INTR_DMA2	0x00100000	/* idma 2 */
+#define	INTR_TIMER2	0x00040000	/* timer 2 */
+#define	INTR_CP_TIMER	0x00020000	/* CP timer */
+#define	INTR_PIP_STATUS	0x00010000	/* PIP status */
+#define	INTR_PIO_PC4	0x00008000	/* parallel i/o C bit 4 */
+#define	INTR_PIO_PC5	0x00004000	/* parallel i/o C bit 5 */
+#define	INTR_TIMER3	0x00001000	/* timer 3 */
+#define	INTR_PIO_PC6	0x00000800	/* parallel i/o C bit 6 */
+#define	INTR_PIO_PC7	0x00000400	/* parallel i/o C bit 7 */
+#define	INTR_PIO_PC8	0x00000200	/* parallel i/o C bit 8 */
+#define	INTR_TIMER4	0x00000080	/* timer 4 */
+#define	INTR_PIO_PC9	0x00000040	/* parallel i/o C bit 9 */
+#define	INTR_SPI	0x00000020	/* SPI */
+#define	INTR_SMC1	0x00000010	/* SMC 1 */
+#define	INTR_SMC2	0x00000008	/* SMC 2 */
+#define	INTR_PIO_PC10	0x00000004	/* parallel i/o C bit 10 */
+#define	INTR_PIO_PC11	0x00000002	/* parallel i/o C bit 11 */
+#define	INTR_ERR	0x00000001	/* error */
+
+
+
+/*****************************************************************
+        Spi register setting    
+*****************************************************************/
+
+#define NORMAL_MODE     0x18
+#define SPI_START       0x80 /* STR bit in SPCOM, start transmit */
+#define CLEAR_SPIE      0xff
+#define SPI_MODE	0x50 /* Cp spi mode for init Rx Tx */
+ 
+/* event bits in SPIE */
+#define MME             0x20
+#define TXE             0x10
+#define BSY             0x04
+#define TXB             0x02
+#define RXB             0x01
+ 
+/*
+ * transmit BD's status (For Spi)
+ */
+#define T_L             0x0800 /* Last bit of frame */
+ 
+/*****************************************************************
+	chip select option register
+*****************************************************************/
+#define	DTACK		0xe000
+#define	ADR_MASK	0x1ffc
+#define	RW_MASK		0x0002
+#define	FC_MASK		0x0001
+
+/*****************************************************************
+	tbase and rbase registers
+*****************************************************************/
+
+#define	TBD_ADDR(w)	((struct quicc_bd *) \
+			(w->quicc->udata_bd_ucode +\
+					w->pram->pscc.h.tbase))
+#define	RBD_ADDR(w)	((struct quicc_bd *) \
+			(w->quicc->udata_bd_ucode +\
+					w->pram->pscc.h.rbase))
+/*****************************************************************
+	SMC tbase and rbase registers
+*****************************************************************/
+
+#define	SMC_TBD_ADDR(w)	((struct quicc_bd *) \
+			(w->quicc->udata_bd_ucode +\
+			w->pram->pothers.idma_smc.psmc.u.tbase))
+#define	SMC_RBD_ADDR(w)	((struct quicc_bd *) \
+			(w->quicc->udata_bd_ucode +\
+			w->pram->pothers.idma_smc.psmc.u.rbase))
+
+/*****************************************************************
+         Port B Pin Assignment 
+*****************************************************************/
+#define PB10TO17        0x0003FC00
+#define PB1TO3          0x0000000E
+#define PB0             0x00000001
+ 
+/*****************************************************************/
+ 

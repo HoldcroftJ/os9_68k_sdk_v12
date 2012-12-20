@@ -1,0 +1,59 @@
+
+*
+* int mask_irq(mask) - mask interrupts to level of scsi device
+*
+
+*
+* WARNING - THIS IS 68xxx SPECIFIC CODE
+* Note also that stack is kept long-aligned.
+*
+mask_irq:
+ link a5,#0
+ clr.l -(sp) keep stack long-aligned
+ move.w sr,2(sp) save current status word
+ move.w d0,sr mask interrupts
+ move.l (sp)+,d0 return original mask
+ unlk a5
+ rts
+
+
+*  
+*  Local copy of T$UMul
+*
+*   Some forms of access reguarding taking the address of a structure
+*      require that a multiply be performed.  In our case, both 
+*      values are 16 bits and hence the 32 bit result is ok.  This
+*      is not a true 
+*
+_T$UMul:
+ link a5,#0
+ mulu d1,d0    d1.w * d0.w 
+ unlk a5
+ rts
+
+
+* 
+* qcopy -  quick copy for under 256 bytes 
+*
+*  Syntax: qcopy( d, s, size )
+*        where d = destination
+*              s = source
+*              size is size in bytes
+*
+*
+qcopy:
+ link a5,#0
+ movem.l a0-a2,-(sp) save a few registers
+ move.l d0,a1
+ move.l d1,a0
+ move.l 8(a5),d1
+ bra.s qcopyent
+qcopyloop
+ move.b (a0)+,(a1)+
+qcopyent
+ dbra d1,qcopyloop
+ movem.l (sp)+,a0-a2
+ unlk a5
+ rts
+
+

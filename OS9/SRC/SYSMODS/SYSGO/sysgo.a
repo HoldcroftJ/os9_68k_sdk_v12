@@ -1,0 +1,155 @@
+ nam Sysgo
+ ttl OS-9/68000 Initial (startup) module
+
+* Copyright 1983, 1984, 1985, 1986 by Microware Systems Corporation
+* Reproduced Under License
+
+* This source code is the proprietary confidential property of
+* Microware Systems Corporation, and is provided to licensee
+* solely for documentation and educational purposes. Reproduction,
+* publication, or distribution in any form to any party other than
+* the licensee is strictly prohibited.
+
+********************************
+* Editon History
+*  #    Date      Comments                                      by
+* -- --------- ------------------------------------------------ ---
+* 00 12-01-83 Initial test version developed.                   rfd
+* 00 01-20-84 Added code to process startup file.               rfd
+* 01 10-24-84 Removed chd to root device. (done by cold.a)      rfd 
+*             Made non-reentrant.                               rfd
+* 02 11-13-85 Changed startup file to be redirected shell input.rfd
+* 03 05-20-86 Fixed bug in above change (wrong reg for open).	rfd
+* 04 10-15-86 Modified slightly for 2.0 release.				rfd
+*              ---- OS-9/68K V2.0 Release ---- 
+*              ---- OS-9/68K V2.1 Release ---- 
+*              ---- OS-9/68K V2.2 Release ---- 
+*              ---- OS-9/68K V2.3 Release ---- 
+*              ---- CD-RTOS V1.1 Release ---- 
+*              ---- OS-9/68K V2.4 Release ---- 
+*              ---- OS-9/68K V3.0 Release ---- 
+*              ---- OS-9/68K V3.1 Release ----
+* 05 07-02-99 Changed standard sysgo to use mshell,moved        mgh
+*				made sysgo_shell.a available as old style
+*               compatible version; moved startup file to SYS
+*                (Edition 5 never shipped to allow edition space)
+* 10 07-20-99 Added enviroment SHELL=mshell magic so exec forks mgh
+*               will use correct shell. (bumped to edition 10)
+*
+Edition equ 10 current edition number
+
+Typ_Lang set (Prgrm<<8)+Objct
+Attr_Rev set 0 (non-reentrant)
+ psect sysgo,Typ_Lang,Attr_Rev,Edition,0,Entry
+
+ use defsfile
+
+ vsect
+ ds.b 255 stack space
+ ends
+
+Intercpt OS9 F$RTE return from intercept
+
+Entry lea Intercpt(pc),a0
+ OS9 F$Icpt
+ lea CmdStr(pc),a0 default execution directory ptr
+ moveq #Exec_,d0 execution mode
+ OS9 I$ChgDir change execution directory (ignore errors)
+ bcc.s Entry10 continue if no error
+ moveq #1,d0 std output path
+ moveq #ChdErrSz,d1 size
+ lea ChdErrMs(pc),a0 "Help, I can't find CMDS"
+ OS9 I$WritLn output error message
+
+* Process startup file shell script
+Entry10 moveq #0,d0 std input path
+ OS9 I$Dup clone it
+ move.w d0,d7 save cloned path number
+ moveq #0,d0 std input path
+ OS9 I$Close
+ move.w #Read_,d0
+ lea Startup(pcr),a0 "startup" pathlist
+ OS9 I$Open open startup file
+ bcc.s Entry15 continue if no error
+ moveq #1,d0 std output path
+ moveq #StarErSz,d1 size of startup error msg
+ lea StarErMs(pc),a0 "Help, I can't find 'startup'"
+ OS9 I$WritLn output error message
+ bra.s Entry25
+
+Entry15 moveq #0,d0 any type module
+ moveq #0,d1 no additional default memory size
+ moveq #StartPSz,d2 size of startup shell params
+ moveq #3,d3 copy three std I/O paths
+ moveq #0,d4 same priority
+ lea ShellStr(pcr),a0 shell name
+ lea StartPrm(pcr),a1 initial parameters
+ OS9 F$Fork fork shell
+ bcc.s Entry20 continue if no error
+ moveq #1,d0 std output path
+ moveq #FrkErrSz,d1 size
+ lea FrkErrMs(pc),a0 "oh dear, can't fork mshell"
+ OS9 I$WritLn output error message
+ OS9 F$SysDbg crash system
+
+Entry20 OS9 F$Wait wait for it to die, ignore any error
+ moveq #0,d0 std input path
+ OS9 I$Close close redirected "startup"
+Entry25 move.w d7,d0
+ OS9 I$Dup restore original std input
+ move.w d7,d0
+ OS9 I$Close remove cloned path
+
+Loop moveq #0,d0 any type module
+ moveq #0,d1 default memory size
+ moveq #StartMSPSz,d2 one parameter byte (CR)
+ moveq #3,d3 copy std I/O paths
+ moveq #0,d4 same priority
+ lea ShellStr(pcr),a0 shell name
+ lea CRChar(pcr),a1 null paramter string
+ OS9 F$Fork fork shell
+ bcs.s ForkErr abort if error
+ OS9 F$Wait wait for it to die
+ bcs.s ForkErr
+ tst.w d1 zero status?
+ beq.s Loop loop if so
+ForkErr OS9 F$PErr print error message
+ bra.s Loop
+
+ShellStr dc.b "mshell",0
+FrkErrMs dc.b "Sysgo can't fork 'mshell'",C$CR
+FrkErrSz equ *-FrkErrMs
+
+CmdStr dc.b "CMDS",0
+ChdErrMs dc.b "Sysgo can't chx to 'CMDS'",C$CR
+ChdErrSz equ *-ChdErrMs
+
+Startup dc.b "SYS/startup",0
+StarErMs dc.b "Sysgo can't open 'SYS/startup' file",C$CR
+StarErSz equ *-StarErMs
+
+*
+* Parameter, Environment and argv/argc magic values for mshell(startup)
+* DO NOT CHANGE
+*
+ align 4
+StartPrm dc.b "-npxt",0
+ dc.b C$CR
+ dc.b "SHELL=mshell",0
+ dc.b 252,1,0,0,0,26,"mshell",0,0,0,C$CR
+ dc.l 0,0,0,7,0
+StartPSz equ *-StartPrm
+
+*
+* Parameter, Environment and argv/argc magic values for mshell
+* DO NOT CHANGE
+*
+ align 4
+CRChar dc.b C$CR
+ dc.b "SHELL=mshell",0
+ dc.b 252,1,0,0,0,20,"mshell",0,0,0,C$CR
+ dc.b 0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0
+StartMSPSz equ *-CRChar
+
+ ends
+

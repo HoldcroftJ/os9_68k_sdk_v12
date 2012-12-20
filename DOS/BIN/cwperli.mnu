@@ -1,0 +1,14 @@
+;$Header:   K:/source/cwright/addons/cwperli/cwperli.mnv   1.3   02 Apr 1999 08:47:06   donk  $
+; Menu for Perl interpreter output tab
+[CWPerl_Tab]
+&Clear Window                    ; _PerlClearWindow
+&Horiz. Scrollbar                ; _PerlHScroll -2    ;! _PerlHScroll -1
+-							     
+&Debug Mode                      ; PerlFlags 2 -2     ;! PerlFlags 2 -1    
+&Warning Mode                    ; PerlFlags 1 -2     ;! PerlFlags 1 -1    
+&Terminate                       ; _PerlCtrl 0        ;~ !_PerlCtrl -1     
+-							     
+&Properties...                   ; DlgPerlOpts
+&Interpreters...                 ; DlgPerlInterp
+-							     
+Edit this menu...                ; DlgEditPopupMenu $

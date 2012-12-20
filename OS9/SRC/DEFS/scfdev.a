@@ -1,0 +1,62 @@
+
+*****************************************************************************
+*                                                                           *
+*              Copyright 1998 by Microware Systems Corporation              *
+*                            All Rights Reserved                            *
+*                          Reproduced Under License                         *
+*                                                                           *
+*  This software is confidential property of Microware Systems Corporation, *
+*  and is provided under license for internal development purposes only.    *
+*  Reproduction, publication, modification, distribution, or creation of    *
+*  derivative works in any form to any party other than the Licensee is     *
+*  strictly prohibited, unless expressly provided for under the terms of a  *
+*  mutually executed written license agreement for this software between    *
+*  the end-user and Microware Systems Corporation, or otherwise expressly   *
+*  authorized in writing by Microware Systems Corporation.  Licensee shall  *
+*  reproduce this copyright notice exactly as provided herein on any copies *
+*  of the software that Licensee is authorized to distribute.               *
+*                                                                           *
+*****************************************************************************
+*                                                                           *
+* Edition History:                                                          *
+* #   Date     Comments                                                By   *
+* --- -------- ------------------------------------------------------- ---- *
+*  01 98/07/15 Added edition history.                                  wwb  *
+*				---- OS-9/68K V3.1 Release ----								*
+*             $$                    <RELEASE_INFO>                     $$   *
+*****************************************************************************
+
+********************************
+* SCF Static storage requirements
+*   Required in static storage of all SCF device drivers
+* Also used for the pipe manager "nil" device.
+
+ org V_USER
+V_DEV2: do.l 1 attached device's static
+V_TYPE: do.b 1 device type or parity
+V_LINE: do.b 1 lines left until end of page
+V_PAUS: do.b 1 immediate pause request
+V_INTR: do.b 1 keyboard interrupt char
+V_QUIT: do.b 1 keyboard quit char
+V_PCHR: do.b 1 pause char
+V_ERR: do.b 1 accumulated errors
+V_XON: do.b 1 x-on char
+V_XOFF: do.b 1 x-off char
+ do.w 5 reserved (old V_PResvd area)
+V_Hangup: do.b 1 set to non-zero when data carrier is lost
+ do.b 1 reserved
+ do.w 6 reserved
+V_SCF: equ . total SCF manager static overhead
+
+********************************
+* Pipe Manager definitions
+*   NOTE: these definitions overlay the SCF definitions which
+*		  is OK since Pipeman uses the Null driver and the Null
+*         does not use the static storage at all, but the Pipeman
+*		  statics must not grow larger than the SCF statics
+*
+ org V_USER
+V_NPipes: do.w 1 number of named pipes in queue
+V_PathHd: do.l 2 named Pipe circular queue head (next, prev)
+V_PathLk: do.w 2 named Pipe queue lock (process ID of owner)
+

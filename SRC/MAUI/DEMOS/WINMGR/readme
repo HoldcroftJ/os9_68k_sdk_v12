@@ -1,0 +1,54 @@
+**********************************************************************
+MAUI winmgr/winmgrdemo demo code
+**********************************************************************
+What this demo does:
+  - This is an example of a manager for windowing programs.
+  - Run this in the background before running winink or windraw.
+  - Note: To resolve a module name conflict the module has been
+    renamed to winmgrdemo, but the filename is still winmgr so the
+    bootlists would still work.
+
+**********************************************************************
+System requirements:
+  - A working MAUI environment is assumed.
+  - The demo requires that maui_win is in memory or is in the execution
+	directory.
+  - The demo requires that gfx is in memory.
+  - The demo requires that mfm is in memory.
+ 
+*********************************************************************
+Directories: 
+  - Source code 
+       $MWOS/SRC/MAUI/DEMOS/WINMGR
+        
+*********************************************************************
+To make this demo:
+  - From the source file directory type:
+      % os9make
+
+*********************************************************************
+Operation:
+  - To list the options available for this demo type the demo name
+    followed by -? or -h.
+
+  - The process 'maui_inp' must be running in the background. To
+    verify that it is running use the os9000 command 'procs'. If it 
+	is not present run it before starting the demo. e.g.
+
+      $ maui_inp <>>>/nil &
+
+  - This demo has no command line options. Run the demo in the 
+	background.
+
+      $ winmgrdemo <>>>/nil &
+
+  - Note: on some platforms the priorities of 'maui_inp' and
+    'winmgrdemo' need to be higher than the default (128). Set 
+    the priority using the '^' character. e.g.
+
+      $ maui_inp ^255 <>>>/nil &
+      $ winmgrdemo ^201 <>>>/nil &
+
+**********************************************************************
+
+

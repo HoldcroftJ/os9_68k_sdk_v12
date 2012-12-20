@@ -1,0 +1,429 @@
+
+ nam rtc1216e.a
+ ttl Dallas Semiconductor DS1216E Real Time Clock
+ 
+********************************
+* Dallas Semiconductor DS1216E Real Time Clock
+
+* Copyright 1987, 1988, 1989, 1993, 1996 by Microware Systems Corporation
+* Reproduced Under License
+
+* This source code is the proprietary confidential property of
+* Microware Systems Corporation, and is provided to licensee
+* solely for documentation and educational purposes. Reproduction,
+* publication, or distribution in any form to any party other than
+* the licensee is strictly prohibited.
+
+********************************
+* Edition History
+
+*  #    Date      Comments                                      By
+* -- -------- ------------------------------------------------ ---
+* 00 83/11/30 Converted from 6809 to 68000                      RES
+* 01 84/07/23 Fixed bug in conditionals for MotVME/Mot110       rfd
+* 02 84/09/24 Added M58167 clock conditionals                   WGP
+* 03 84/10/16 Removed references to and code for F$Time.
+*              This code moved to kernel                        WGP
+* 03 84/10/16 Fixed bug allowing clock to install itself on
+*              polling list each time setime is called          WGP
+* 04 84/10/18 Moved all the software timekeeping to  kernel.    rfd
+* 04 84/10/18 Split from generic clock source.                  rfd
+* 05 85/01/13 adapted to UniQuad(use timer3,remove movep,100ms) dab
+*             --- DS1216E DEVICE ONLY ---
+* 06 87/09/17 made into a subroutine module for use with the    jal
+*             "tickgeneric.a" tick driver
+* 07 88/08/19 made supervisor state module.                     wwb
+* 08 89/04/13 masked interrupts during "SeTime" and "GetTime"   jal
+*             ---- OS-9/68K V2.3 Release ----
+*             ---- OS-9/68K V2.4 released ----
+* 09 93/03/11 reworked IRQ masking for MSP support.				wwb
+*             ---- OS-9/68K V3.0 released ----
+* 10 96/07/16 Millenium support added                           jam
+*             ---- OS-9/68K V3.0.3 Released ----
+*             ---- OS-9/68K V3.1 Released ----
+*
+
+Edition equ 10 current edition number
+Revision equ 0
+
+Typ_Lang set (Sbrtn<<8)+Objct Subroutine Object module
+Attr_Rev set ((ReEnt+SupStat)<<8)+Revision
+
+ psect RTClock,Typ_Lang,Attr_Rev,Edition,0,RTCTab
+
+ use defsfile
+
+
+********************
+* definitions for ds1216E
+*
+ ifdef Rom8
+* Consecutive address offsets
+Wr0 equ 2
+Wr1 equ 3
+Rd  equ 4
+ endc
+ ifdef Rom16_0
+* Even address offsets
+Wr0 equ 4
+Wr1 equ 6
+Rd  equ 8
+ endc
+ ifdef Rom16_1
+* odd address offsets
+Wr0 equ 5
+Wr1 equ 7
+Rd  equ 9
+ endc
+ ifdef Rom32_0
+* 4 byte offsets socket 0
+Wr0 equ 8
+Wr1 equ 12
+Rd  equ 16
+ endc
+ ifdef Rom32_1
+* 4 byte offsets socket 1
+Wr0 equ 9
+Wr1 equ 13
+Rd  equ 17
+ endc
+ ifdef Rom32_2
+* 4 byte offsets socket 2
+Wr0 equ 10
+Wr1 equ 14
+Rd  equ 18
+ endc
+ ifdef Rom32_3
+* 4 byte offsets socket 3
+Wr0 equ 11
+Wr1 equ 15
+Rd  equ 19
+ endc
+
+ClkOn equ %00010001 turn clk on, with bogus day of monday
+IRQMask equ $2700 mask all interrupts to level 7
+
+ page
+ 
+*-------------------------------------------------*
+* Bus Size | Write | Read | Data In | Chip Enable *
+*-------------------------------------------------*
+* 32 Bits  |  A4   |  A3  |   A2    | CE, A1, A0  *
+*-------------------------------------------------*
+* 16 Bits  |  A3   |  A2  |   A1    | CE, A0      *
+*-------------------------------------------------*
+*  8 Bits  |  A2   |  A1  |   A0    | CE          *
+*-------------------------------------------------*
+
+*----------------------------------*
+*  Socket  |  Wr0  |  Wr1  | Read  *
+*----------------------------------*
+*   Rom8   | 010   | 011   | 100   *
+*----------------------------------*
+* Rom16_0  | 0100  | 0110  | 1000  *
+*----------------------------------*
+* Rom16_1  | 0101  | 0111  | 1001  *
+*----------------------------------*
+* Rom32_0  | 01000 | 01100 | 10000 *
+*----------------------------------*
+* Rom32_1  | 01001 | 01101 | 10001 *
+*----------------------------------*
+* Rom32_2  | 01010 | 01110 | 10010 *
+*----------------------------------*
+* Rom32_3  | 01011 | 01111 | 10011 *
+*----------------------------------*
+
+ page
+
+********************
+* Century Definitions
+*
+* Support for Millenium works as follows:
+*
+* "NO_MILLENIUM" symbol defined:
+*   GetTime returns two-digit year added to base Century symbol value
+*
+* "NO_MILLENIUM" symbol undefined:
+*    GetTime returns two-digit year added to either CentPreEpoch or
+*    CentPostEpoch symbol value, depending on the two-digit year
+*    value compared to the Epoch symbol value
+*
+* In the event that this code functions near the year 2070,
+* the Century symbol may be updated to the year 2000 and the
+* NO_MILLENIUM symbol defined. Then, in the event that this
+* code functions near the year 2100, the CentPreEpoch symbol
+* may be updated to the year 2100, the CentPostEpoch symbol
+* may be updated to the year 2000, and the NO_MILLENIUM symbol
+* undefined to carry the driver near the year 2170, after
+* which nobody will remember how to do all this. :-)
+*
+
+ ifdef NO_MILLENIUM
+
+Century equ 1900 years are relative to base century
+
+ else
+
+Epoch equ 70 year in century choses as epoch
+CentPreEpoch equ 2000 century if year is a pre-epoch year
+CentPostEpoch equ 1900 century if year is a post-epoch year
+
+ endc NO_MILLENIUM
+ 
+********************
+* RTCTab: Branch table for the two
+*         main subroutines
+*
+RTCTab: bra GetTime
+
+********************
+* SetTime: Set the time in the
+*          Real Time Clock
+*
+* Passed: (a3) = base address of the ticker chip
+*         (d0) = time data
+*         (d1) = date data
+*
+* Returns: (cc) = cleared
+*
+SetTime:
+ movem.l d2-d3/a0,-(a7) save the registers
+ move.l #RTCBase,a3 get address of ds1216E
+ move sr,-(a7) save status register
+ ori.w #IRQMask,sr mask interrupts to level seven
+ bsr Unlock send entry code to unlock the clock
+*
+* Set the Time in the RTC chip
+*
+ moveq.l #0,d2 set .1 and .01 reg to zeros
+ bsr PassBin set hundredths in the RTC chip
+ move.b d0,d2 get binary seconds value
+ bsr PassBin set seconds in the RTC chip
+ lsr.l #8,d0 shift minutes into LSB of d0
+ move.b d0,d2 get binary minutes value
+ bsr PassBin set minutes in the RTC chip
+ lsr.l #8,d0 shift hours into LSB of d0
+ move.b d0,d2 get binary hours value
+ bsr PassBin set hours in the RTC chip
+*
+* Set the Date in the RTC chip
+*
+ moveq.l #ClkOn,d2 set day register to zero and turn on oscillator
+* bsr PassBin set bogus day in the RTC chip and enable oscillator
+ bsr PassBCD set bogus day in the RTC chip and enable oscillator
+ move.b d1,d2 get binary date value
+ bsr PassBin set date in the RTC chip
+ lsr.l #8,d1 shift month into LSB of d1
+ move.b d1,d2 get binary month value
+ bsr PassBin set month in the RTC chip
+ lsr.l #8,d1 shift year into LSW of d1
+ sub.w #1900,d1 subtract the century offset
+ move.b d1,d2 get binary year value
+ bsr PassBin set year in the RTC chip
+ move (a7)+,sr retrieve status register
+ movem.l (a7)+,d2-d3/a0 retrieve the registers
+ andi #NoCarry,ccr clear the carry
+ rts
+
+ page
+
+********************
+* GetTime: Get the time from
+*          the real time clock chip
+*
+* passed (a3) = address of ds1216E self powered clock chip
+* 		 (a4)=current process descriptor
+*	     (a5)=caller's registers ptr
+*        (a6)=system global ptr
+*
+* Uses   (d0.l) to pass time to main routine
+*        (d1.l) to pass date to main routine
+*
+* returns 
+*			d0.l = Time (00hhmmss)
+*			d1.l = Date (yyyymmdd)
+*
+GetTime:
+ movem.l d2-d3/a0,-(a7) save the registers
+ move.l #RTCBase,a3 get address of ds1216E
+ move sr,-(a7) save status register
+ ori.w #IRQMask,sr mask interrupts to level seven
+ bsr Unlock send entry code to unlock the clock
+ bsr.s GetBCD throw away 1/100ths seconds
+*
+* Get the time from the RTC chip
+* 
+ moveq.l #2,d1 read seconds,minutes and hours from RTC chip
+GT01 bsr.s GetBCD get BCD time/dat data from RTC chip 
+ tst.b d1 is this the hours register?
+ bne.s GT03 if no, don't mess with it
+ andi.b #%00111111,d2 else, strip off 12/24 mode stuff
+GT03 bsr.s BCDToBin convert bcd to binary
+ move.b d2,d0 copy binary value to d0 LSB
+ ror.l #8,d0 shift it to MSB
+ dbra d1,GT01 loop until all of time is out
+ lsr.l #08,d0 adjust so that d0 looks like (00.HH.MM.SS)
+*
+* Get the time from the RTC chip
+* 
+ bsr.s GetBCD throw away day of the week
+ bsr.s GetBCD get BCD date of month value
+ bsr.s BCDToBin convert date to binary
+ move.b d2,d1 move binary date into LSB d1
+ ror.l #8,d1 shift it into MSB
+ bsr.s GetBCD get BCD month value
+ bsr.s BCDToBin convert month to binary
+ move.b d2,d1 move binary month into LSB d1
+ ror.l #8,d1 shift it into MSB
+ bsr.s GetBCD get BCD year value
+ bsr.s  BCDToBin convert year to binary
+
+ ifdef NO_MILLENIUM
+
+ move.w #Century,d3 years are based on turn of century
+
+ else
+
+ cmpi.b #Epoch,d2 check for relation to epoch year
+ blt.s PreEpoch
+ move.w #CentPostEpoch,d3 years are based on post-epoch century
+ bra.s Century_set
+
+PreEpoch move.w #CentPreEpoch,d3 years are based on pre-epoch century
+
+Century_set equ *
+
+ endc NO_MILLENIUM
+ 
+ add.w d2,d3
+ move.w d3,d1 move binary year to LSW of d1
+ swap d1 d1 now looks like (Yh.Yl.MM.DD)
+ move (a7)+,sr retrieve status register
+ movem.l (a7)+,d2-d3/a0 retrieve the registers
+ andi #NoCarry,ccr
+ rts 
+
+ page
+ 
+********************
+* GetBCD: Get BCD time/date data
+*         from the RTC chip
+* 
+* Passed: (a3) = base address of RTC chip
+*
+* Returns: (d2.b) = contents of one RTC register
+*
+GetBCD:
+ movem.l d0-d1,-(a7)
+ moveq.l #0,d2 sweep d2
+ moveq.l #7,d1 loop 8 times
+GB01 move.b Rd(a3),d0 get data from rom address space 
+ lsr.b #1,d2 make room for next bit
+ btst.l #0,d0 is bit set?
+ beq.s GB03
+ bset.l #7,d2 
+GB03 
+ nop
+ dbra d1,GB01 
+ movem.l (a7)+,d0-d1
+ rts
+
+
+********************
+* BCDToBin: Convert a packed BCD number
+* (less than one hundred) to binary.
+*
+* Passed: (d2.b) = packed BCD
+*
+* Returns: (d2.b) = equivalent binary
+*
+* Trashes: (d3)
+*
+BCDToBin:
+ move.b d2,d3 copy ones digit to d3
+ lsr.b #4,d2 shift tens digit to low nybble of LSB of d2
+ andi.l #$000F,d2 mask out all other bits
+ mulu #10,d2 multiply by 10
+ andi.b #$0F,d3 mask out all but ones
+ add.b d3,d2 add in ones to get result
+ rts
+
+
+********************
+* PassBin: Convert the value in d2 to BCD
+*          and pass it to the RTC chip
+* 
+* Passed (a3) = pointer to chip
+*      (d2.b) = data to pass to chip
+*
+* Returns: nothing
+*
+* Trashes: (d3)
+*
+PassBin:
+ andi.l #$00FF,d2 mask off unused bits
+ divu #10,d2 d2 LSW = tens; d2 MSW = units
+ move.b d2,d3 copy tens to d3
+ lsl.b #4,d3 shift tens digit into high nybble of LSB
+ swap d2 get units in low nybble of LSB of d2
+ or.b d3,d2 OR in the tens digit
+* fall through to store data in the RTC chip
+
+
+********************
+* PassBCD: Pass the 8 bits of a packed BCD
+*          time/date data byte to the RTC chip
+*
+* Passed: (a3) = base address of RTC
+*       (d2.b) = byte to pass
+*        
+* Returns: nothing
+*
+PassBCD: movem.l d0-d1,-(a7)
+ moveq.l #7,d1 get bit count
+PB01 lsr.b #1,d2 test a bit
+ bcs.s PB02 if bit set go write a "1"
+ move.b Wr0(a3),d0 dummy read this address to clear a bit
+ bra.s PB03 go to loop
+PB02 move.b Wr1(a3),d0 dummy read this address to set a bit
+PB03 
+ nop wait just a tad bit here, now
+ dbra d1,PB01 loop until all 8 bits sent
+ movem.l (a7)+,d0-d1
+ rts
+
+ page
+ 
+********************
+* Unlock unlocks clock so to accept or pass data
+*
+* Passed: (a3) = pointer to rtc chip base
+*
+* Returns: nothing
+*
+* Trashes: (d2),(a0)
+*
+Unlock:
+ move.l d0,-(a7)
+ move.b Rd(a3),d2 dummy read to reset rtc internal pointer
+ moveq.l #0,d2 sweep d2
+ lea KeyTab(pc),a0 point to first byte of key pattern
+ moveq.l #7,d0 d0 = counter = table size - 1
+UL10 move.b (a0)+,d2 get byte pattern
+ bsr.s PassBCD send bits to rtc chip
+ dbra d0,UL10 loop until all 8 byte patterns sent
+ move.l (a7)+,d0
+ rts
+
+
+********************
+* KeyTab: 64 bit entry key table
+*
+* this pattern is used to address either Wr0, or Wr1
+* if bit set next address Wr1, if not then address Wr0
+*
+KeyTab:
+ dc.b $C5,$3A,$A3,$5C
+ dc.b $C5,$3A,$A3,$5C
+ 
+ ends

@@ -1,0 +1,90 @@
+#############################################################################
+#                                                                           #
+#             Copyright 1996-2001 by Microware Systems Corporation          #
+#                            All Rights Reserved                            #
+#                          Reproduced Under License                         #
+#                                                                           #
+#  This software is confidential property of Microware Systems Corporation, #
+#  and is provided under license for internal development purposes only.    #
+#  Reproduction, publication, distribution, or creation of derivative works #
+#  in any form to any party other than the licensee is strictly prohibited, #
+#  unless expressly authorized in writing by Microware Systems Corporation. #
+#                                                                           #
+#############################################################################
+#                                                                           #
+# Edition History:                                                          #
+# #   Date    Comments                                                By    #
+# -- -------- ------------------------------------------------------- ---   #
+# 01 96/08/03 Added edition history.                                  rak   #
+#             ---- OS-9000/x86 V2.1 Released ----                           #
+# 02 97/09/08 Updated host and target list; deleted excess tabs.      lmcb  #
+#             ---- MBX_BSP Released ----                                    #
+#             ---- OS-9000/SH3 V2.2.6 Released ----                         #
+#             ---- Makefile Support Sub-component v1.1 Released ----        #
+#             ---- OS-9000/SPARC V2.2.7 Released ----                       #
+#             ---- Makefile Support Sub-component v1.1.1 Released ----      #
+#             ---- Makefile Support Sub-component v1.2 Released ----        #
+#             ---- Makefile Support Sub-component v1.2.1 Released ----      #
+#             ---- Makefile Support Sub-component v1.2.2 Released ----      #
+# 03 01/11/28 Added PowerPC 405 and 555 targets                       mdu   #
+#             $$                    <RELEASE_INFO>                     $$   #
+#############################################################################
+#                                                                           # 
+#############################################################################
+#                                                                           #
+# The following is a table of all defined host or target codes.             #
+#                                                                           #
+#                                                                           #
+# HOSTS:                                                                    #
+# ------------------------------------------------------------------------- #
+#  Code   Description                                                       #
+# ------+------------------------------------------------------------------ #
+#  k68k   OS-9/68000 and compatible (68010/68020/68030/68040/CPU32) hosts   #
+#  p386   OS-9000/80386 and compatibles (80486/Pentium)                     #
+#  p020   OS-9000/68020 and compatibles (68030/68040)                       #
+#  pppc   OS-9000/PPC and commpatible hosts                                 #
+#  mdos   MS-DOS and compatible hosts                                       #
+#  sun3   Sun-OS/Sun-3 and compatible hosts                                 #
+#  sun4   Sun-OS/Sun-4 and compatible hosts                                 #
+#  sol4   Solaris/Sun-4 and compatible hosts                                #
+#  hp93   HP-UX/HP-9000/300 and compatible hosts                            #
+#  hp97   HP-UX/HP-9000/700 and compatible hosts                            #
+#  rs6k   AIX/IBM RS6000 and compatible hosts                               #
+#  sgir   IRIX/Silicon Graphics IRIS and compatible hosts                   #
+# ------------------------------------------------------------------------- #
+#                                                                           #
+# TARGETS:                                                                  #
+# ------------------------------------------------------------------------- #
+#  Code   Description                                                       #
+# ------+------------------------------------------------------------------ #
+#  arm    OS-9000/ARM and compatibles (ARMV3/ARMV4)                         #
+#  arm3   OS-9000/ARMV3 and compatibles                                     #
+#  arm4   OS-9000/ARMV4 and compatibles                                     #
+#  k020   OS-9/68020 and compatibles (68030/68040)                          #
+#  k040   OS-9/68040 and compatibles                                        #
+#  k060   OS-9/68060 and compatibles                                        #
+#  k68k   OS-9/68000 and compatibles (68010)                                #
+#  kc32   OS-9/CPU32 and compatibles                                        #
+#  mip3   OS-9000/MIPS3000 and compatibles                                  #
+#  mip4   OS-9000/MIPS4000 and compatibles                                  #
+#  mips   OS-9000/MIPS and compatibles (MIPS3000/MIPS4000)                  #
+#  o386   OS-9000/80386 and compatibles pre-V2.x (80486/Pentium)            #
+#  p020   OS-9000/68020 and compatibles (68030/68040)                       #
+#  p386   OS-9000/80386 and compatibles (80486/Pentium)                     #
+#  p403   OS-9000/403GA and compatibles (403GA/403GB/403GC)                 #
+#  p405   OS-9000/405 and compatibles                                       #
+#  p505   OS-9000/505 and compatibles                                       #
+#  p555   OS-9000/555 and compatibles                                       #
+#  p601   OS-9000/601 and compatibles                                       #
+#  p602   OS-9000/602 and compatibles                                       #
+#  p603   OS-9000/603 and compatibles                                       #
+#  p604   OS-9000/604 and compatibles                                       #
+#  p821   OS-9000/821 and compatibles (821/860)                             #
+#  pcmx   OS-9000/CMx and compatibles                                       #
+#  pppc   OS-9000/PowerPC and compatibles (403/505/601/602/603/604/821/860) #
+#  sh     OS-9000/SuperH and compatibles                                    #
+#  sprc   OS-9000/SPARC and compatibles                                     #
+# ------------------------------------------------------------------------- #
+#                                                                           #
+#                                                                           #
+#############################################################################

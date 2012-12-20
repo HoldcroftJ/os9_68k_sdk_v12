@@ -1,0 +1,35 @@
+*****************************************************************************
+** ID:     @(#) mppmstrt.a 1.1@(#)
+** Date:   1/19/96
+******************************************************************************
+** Copyright 1996 by Microware Systems Corporation                          **
+** Reproduced Under License                                                 **
+**                                                                          **
+** This source code is the proprietary confidential property of             **
+** Microware Systems Corporation, and is provided to licensee               **
+** solely for documentation and educational purposes. Reproduction,         **
+** publication, or distribution in any form to any party other than         **
+** the licensee is strictly prohibited.                                     **
+******************************************************************************
+** Edition History:                                                         **
+** #   Date     Comments                                          By        **
+** --- -------- ------------------------------------------------- --------- **
+**	 1 01/18/96 creation--copied from Wirlwind directory          rws       **
+*****************************************************************************
+
+
+  use <oskdefs.d>
+  psect csub,(Sbrtn<<8)+Objct,0x8001,1,0,entry
+
+  org 0
+
+entry:
+  dc.l mppm_initsize		* in init.c
+  dc.l mppm_init			* in init.c
+  dc.l mppm_attach			* in init.c
+  dc.l mppm_process_msg		* in procmsg.c
+  dc.l mppm_process_data	* in procdata.c
+  dc.l mppm_detach			* in term.c
+  dc.l mppm_term			* in term.c
+
+  ends

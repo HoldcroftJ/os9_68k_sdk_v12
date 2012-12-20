@@ -1,0 +1,129 @@
+/* Edison Design Group, 1994. */
+/*
+exception.h -- Include file for exception handling (see 18.6)
+*/
+
+#ifndef _EXCEPTION_H
+#define _EXCEPTION_H
+
+#define __INLINED_EXCEPTIONS 1	// for OS9 (tag)
+#define __NO_STRING_CTOR	 1  // for OS9 (tag)
+
+#ifdef __NO_EXCEPTIONS
+#  define __THROWSPECEMPTY()
+#else
+#  define __THROWSPECEMPTY() throw()
+#endif
+ 
+
+namespace std {
+
+// begin modification for OS9 (tag)
+
+#if !defined(__INLINED_EXCEPTIONS)
+
+  class exception {
+  public:
+    exception() __THROWSPECEMPTY();
+	exception(const exception&) __THROWSPECEMPTY();
+    exception& operator=(const exception&) __THROWSPECEMPTY();
+	virtual ~exception() __THROWSPECEMPTY(); 
+    virtual const char* what() const __THROWSPECEMPTY();
+  };
+
+#else 
+	
+	class exception {
+	public:
+		exception() __THROWSPECEMPTY()	
+		{ ; }
+		exception(const exception&) __THROWSPECEMPTY()
+		{ ; }
+		exception& operator=(const exception&) __THROWSPECEMPTY()
+		{ return *this; }
+		virtual ~exception()
+		{ ; }
+		virtual const char* what() const __THROWSPECEMPTY()	
+		{ return "exception"; }
+	};
+
+#endif /* __INLINED_EXCEPTIONS */
+
+// end modification for OS9 (tag)
+
+#if !defined(__INLINED_EXCEPTIONS)
+
+  class bad_exception : public exception {
+  public:
+    bad_exception() __THROWSPECEMPTY();
+    bad_exception(const bad_exception&) __THROWSPECEMPTY();
+    bad_exception& operator=(const bad_exception&) __THROWSPECEMPTY();
+    virtual ~bad_exception() __THROWSPECEMPTY();
+    virtual const char* what() const __THROWSPECEMPTY();
+  };
+
+#else // linker bug fix for OS9 (tag)
+
+	class bad_exception : public exception {
+	public:
+		bad_exception() __THROWSPECEMPTY()
+		{ ; }
+		bad_exception(const bad_exception&) __THROWSPECEMPTY()
+		{ ; }
+		bad_exception& operator=(const bad_exception&) __THROWSPECEMPTY()
+		{ return *this; }
+		virtual ~bad_exception() __THROWSPECEMPTY()
+		{ ; }
+		virtual const char* what() const __THROWSPECEMPTY()
+		{ return "bad_exception"; }
+	};
+
+#endif /* __INLINED_EXCEPTIONS */
+
+  typedef void (*terminate_handler)();
+  extern terminate_handler set_terminate(terminate_handler);
+
+  typedef void (*unexpected_handler)();
+  extern unexpected_handler set_unexpected(unexpected_handler);
+
+  /* unexpected and terminate are in the WP definition of exception.h.
+     It is not clear why. */
+  void terminate();
+  void unexpected();
+
+  extern bool uncaught_exception();
+
+}  /* namespace std */
+
+#ifdef __NO_EXCEPTIONS
+
+namespace __mw {
+
+  // A special structure for describing 
+  // the exception thrown. Simply contains
+  // the line number, file name and a reference
+  // to the exception object which gets thrown (but
+  // really doesn't since exceptions are turned off).
+
+  struct xinfo {
+    const int line; // const to prevent modification
+    const char* const file; // ditto
+    const ::std::exception& excep; // ditto
+
+    // ctor
+    xinfo(const char *s, int l, const ::std::exception& ex)
+      : file(s), line(l), excep(ex)
+      { ; }
+  };
+
+    
+  typedef void (*xhandler)(const xinfo& xi);
+  extern xhandler set_exception(xhandler);
+}
+
+#endif /* __NO_EXCEPTIONS */
+
+#undef __THROWSPECEMPTY
+
+#endif /* _EXCEPTION_H */
+

@@ -1,0 +1,8 @@
+ nam mc68332defs
+ ttl Include file to gather all defs for mc68332 processor
+
+ use <sim.d>
+ use <sbram.d>
+ use <qsm.d>
+ use <tpu.d>
+

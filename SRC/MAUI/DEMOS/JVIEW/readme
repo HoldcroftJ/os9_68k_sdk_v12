@@ -1,0 +1,70 @@
+**********************************************************************
+jview - MAUI based JPEG viewer
+**********************************************************************
+
+This application (along with its JPEG library) has several problems,
+(possible memory leak, obtuse command line interface, etc. This
+application and the JPEG libraries was user contributed but has not
+subjected to a Microware code review. It is being distributed with the
+standard product due to the high demand for a JPEG viewer. We hope you
+find this code useful in spite of any flaws. 
+
+**********************************************************************
+What this example does:
+  - This program uses the MAUI JPEG API to display either single or
+    sequential JPEG images.
+   
+  - If the program is used in a single-image mode, its format is as follows:
+   
+     % jview <file_name> <options>
+   
+    where <file_name> is the JPEG image file in the current directory or
+    in the module directory.
+   
+  - If a slide-show mode is used, the format is:
+   
+     % jview <list_file> S <options>
+   
+    where <list_file> is the file in the current directory, that holds
+                      the list of JPEG image files, one name per line.
+   
+        For example:
+   
+        earth.jpg
+        edo.jpg
+        ......
+   
+  - JPEG files must be in the current directory or in the module directory.
+   
+   
+  - Options:
+   
+     q<value> - quality level, 1 through 3 (default is 3 - the highest);
+     s<nd>    - scale, n - numerator, d - denominator (1:1, 1:2, 1:4, 1:8
+                are supported); for example, s12 means scale 1:2.
+     m - monochrome;
+     c<value> - number of colors (default is 256);
+     C<value> - color method number in dev_cap (default is 0);
+     r - resolution number in dev_cap (default is 0);
+     S - slide mode; this assumes that list file is used;
+     T<value> - time to display each slide in sec (default is 3);
+     F - use fade-in and fade-out effect(default - no fade);
+         Note that fade effect is only available in CLUT-based coding methods.
+     V - verbose mode (debug);
+
+**********************************************************************
+System requirements:
+  - A working MAUI graphic environment is assumed.
+ 
+*********************************************************************
+Directories: 
+  - Source code 
+       $MWOS/SRC/MAUI/DEMOS/LIBSRC/JPG
+       $MWOS/SRC/MAUI/DEMOS/JVIEW
+        
+*********************************************************************
+To make this example:
+  - From each source file directory type:
+% os9make
+ 
+*********************************************************************

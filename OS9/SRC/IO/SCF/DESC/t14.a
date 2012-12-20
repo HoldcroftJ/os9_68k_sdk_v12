@@ -1,0 +1,9 @@
+ nam T14
+ ttl 68000 T14 device descriptor module
+ use defsfile
+
+ use "scfdesc.a"
+
+ T14
+ ends
+

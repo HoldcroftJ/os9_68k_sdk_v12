@@ -1,0 +1,9 @@
+ nam T11
+ ttl 68000 T11 device descriptor module
+ use defsfile
+
+ use "scfdesc.a"
+
+ T11
+ ends
+

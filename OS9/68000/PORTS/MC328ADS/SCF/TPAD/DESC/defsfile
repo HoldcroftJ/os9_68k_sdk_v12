@@ -1,0 +1,24 @@
+*****************************************************************************
+* ID:     %A%
+* Date:   %G%
+*****************************************************************************
+* Copyright 1995, 1996 by Microware Systems Corporation                    **
+* Reproduced Under License                                                 **
+*                                                                          **
+* This source code is the proprietary confidential property of             **
+* Microware Systems Corporation, and is provided to licensee               **
+* solely for documentation and educational purposes. Reproduction,         **
+* publication, or distribution in any form to any party other than         **
+* the licensee is strictly prohibited.                                     **
+*****************************************************************************
+* Edition History:                                                         **
+* #   Date     Comments                                          By        **
+* --- -------- ------------------------------------------------- --------- **
+*   1 09/06/95 creation                                          rws       **
+*              ---- OS-9/68K 68328 Support Beta Release ----               **
+*****************************************************************************
+
+
+ use <oskdefs.d>
+ use <systype.d>
+

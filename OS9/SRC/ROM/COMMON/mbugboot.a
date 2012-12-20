@@ -1,0 +1,69 @@
+ nam OS-9/68000 MBugBoot
+ ttl Bootstrap to ROMBUG from MBug
+
+* Copyright 1993 by Microware Systems Corporation
+* Reproduced Under License
+
+* This source code is the proprietary confidential property of
+* Microware Systems Corporation, and is provided to licensee
+* solely for documentation and educational purposes. Reproduction,
+* publication, or distribution in any form to any party other than
+* the licensee is strictly prohibited.
+
+********************
+* Edition History
+*
+* Ed.   Date.    Reason                                           Who
+* --  --------  ------------------------------------------------- ---
+* 01  93/01/08  Initial version.                                  ats
+* 02  93/09/02  Added padding at end so patch locations in        ats
+*               next module remain at constant address.
+*               ---- OS-9/68K V3.0 Release ----
+*
+Edition set 02
+
+ psect MBugBoot,0,0,Edition,0,0
+
+ use ./defsfile
+
+ align
+
+MBBStart:
+ dc.b "BOOT"
+ dc.l MBugBoot-MBBStart
+ dc.l MBBEnd-MBBStart
+ dc.b "MBugBoot"
+ dc.w 0
+
+MBugBoot: 
+ bra.s MBBEnd put in here so boot checksum can be fixed
+ ifdef VME147
+ dc.w $87d4 MVME147 boot checksum
+ else
+ dc.w $6663 this is the boot checksum
+ endc
+
+MBBEnd:
+ movea.l VectTbl(PC),a7 get starting SP from vector table
+ lea Reset(PC),a0 get PC-relative ROMBUG entry point
+ jmp (a0) jump into ROMBUG
+
+*
+* Pad out vsect length so that next module starts on a nice boundary.
+* No MBugBoot code should follow this point!
+*
+MBBPad
+MBBLenB equ MBBPad-MBBStart
+MBBLenL equ MBBLenB/4
+
+MBBBoundary	equ $80
+
+ ifne MBBLenB-(MBBLenL*4)
+ dc.w $fada pad to long word if necessary
+ endc
+
+ REPT (MBBBoundary-MBBLenB)/4
+ dc.l $abbafada fill out to boundary
+ ENDR
+
+ ends

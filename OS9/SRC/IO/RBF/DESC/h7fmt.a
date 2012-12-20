@@ -1,0 +1,10 @@
+ nam H7 Device Descriptor
+ use defsfile
+
+ use "rbfdesc.a"
+
+DrvNum set 7
+ DiskH7
+Control set Control&(^FmtDsabl) disk is formattable
+Trys set 1
+ ends

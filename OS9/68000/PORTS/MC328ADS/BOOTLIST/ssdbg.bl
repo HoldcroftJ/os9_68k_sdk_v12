@@ -1,0 +1,434 @@
+********************************
+**  System State Debugging bootlist for the MC68328 Eval Board
+**
+**  Pathlists are relative to the MWOS/OS9/68000/PORTS/MC328ADS
+**  directory.
+*
+*  OS-9 Kernel - select one variant:
+*
+*  Development kernel - Standard memory allocator
+../../../68000/CMDS/BOOTOBJS/dker000s
+*../../../68000/CMDS/BOOTOBJS/STB/dker000s.stb
+*  Development kernel - Buddy memory allocator
+*../../../68000/CMDS/BOOTOBJS/dker000b
+*../../../68000/CMDS/BOOTOBJS/STB/dker000b.stb
+*  Atomic kernel - Standard memory allocator
+*../../../68000/CMDS/BOOTOBJS/aker000s
+*../../../68000/CMDS/BOOTOBJS/STB/aker000s.stb
+*  Atomic kernel - Buddy memory allocator
+*../../../68000/CMDS/BOOTOBJS/aker000b
+*../../../68000/CMDS/BOOTOBJS/STB/aker000b.stb
+*
+* Ioman - select one to match selected kernel above:
+*
+../../../68000/CMDS/BOOTOBJS/ioman_DEV
+*../../../68000/CMDS/BOOTOBJS/STB/ioman_DEV.stb
+*../../../68000/CMDS/BOOTOBJS/ioman_ATOM
+*../../../68000/CMDS/BOOTOBJS/STB/ioman_ATOM.stb
+*
+* Init module:
+*
+CMDS/BOOTOBJS/INITS/dd_disk
+*
+* Customization modules:
+*
+* FPU emulation module
+*
+../../../68000/CMDS/BOOTOBJS/fpu
+*../../../68000/CMDS/BOOTOBJS/STB/fpu.stb
+*
+* System clock module:
+*
+CMDS/BOOTOBJS/tk68328
+*CMDS/BOOTOBJS/STB/tk68328.stb
+CMDS/BOOTOBJS/rtc68328
+*CMDS/BOOTOBJS/STB/rtc68328.stb
+*
+* SCF Drivers and Descriptors:
+*
+../../../68000/CMDS/BOOTOBJS/scf
+*../../../68000/CMDS/BOOTOBJS/STB/scf.stb
+../../../68000/CMDS/BOOTOBJS/null
+../../../68000/CMDS/BOOTOBJS/nil
+../../../68000/CMDS/BOOTOBJS/pipeman
+*../../../68000/CMDS/BOOTOBJS/STB/pipeman.stb
+../../../68000/CMDS/BOOTOBJS/pipe
+*../../../68000/CMDS/BOOTOBJS/pipe2
+*
+* serial ports
+*
+CMDS/BOOTOBJS/sc68681
+*CMDS/BOOTOBJS/STB/sc68681.stb
+CMDS/BOOTOBJS/DESC/SC68681/term
+CMDS/BOOTOBJS/DESC/SC68681/t1
+*
+* RBF Drivers and Descriptors:
+*
+../../../68000/CMDS/BOOTOBJS/rbf
+*../../../68000/CMDS/BOOTOBJS/STB/rbf.stb
+../../../68000/CMDS/BOOTOBJS/ram
+CMDS/BOOTOBJS/DESC/RAMDISK/r0
+CMDS/BOOTOBJS/DESC/RAMDISK/dd
+*
+* SPF/Lancom Networking
+*
+* System MBuf Service
+*
+../../../68000/CMDS/BOOTOBJS/SPF/sysmbuf
+*../../../68000/CMDS/BOOTOBJS/SPF/STB/sysmbuf.stb
+*
+* SPF/Lancom FM/Drivers/Descriptors
+* 
+* 	SPF/Lancom Protocol Drivers/Descriptors
+* 	spf: SoftStax File Manager
+* 	spip: SPF IP driver module
+* 	ip0: spip descriptor module
+* 	sptcp: SPF TCP driver module
+* 	tcp0:: sptcp descriptor module
+* 	spudp: SPF UDP driver module
+* 	udp0: spudp descriptor module
+* 	spraw: SPF RAW driver module
+* 	raw0: spraw descriptor module
+* 	sproute: SPF Routing driver module
+* 	route0: sproute descriptor module
+* 	spslip: Serial Line Internet Protocol (SLIP) driver module
+* 	spsl0:	spslip descriptor module
+*
+../../../68000/CMDS/BOOTOBJS/SPF/spf
+*../../../68000/CMDS/BOOTOBJS/SPF/STB/spf.stb
+../../../68000/CMDS/BOOTOBJS/SPF/spip
+../../../68000/CMDS/BOOTOBJS/SPF/ip0
+../../../68000/CMDS/BOOTOBJS/SPF/sptcp
+../../../68000/CMDS/BOOTOBJS/SPF/tcp0
+../../../68000/CMDS/BOOTOBJS/SPF/spudp
+../../../68000/CMDS/BOOTOBJS/SPF/udp0
+../../../68000/CMDS/BOOTOBJS/SPF/spraw
+../../../68000/CMDS/BOOTOBJS/SPF/raw0
+*../../../68000/CMDS/BOOTOBJS/SPF/sproute
+*../../../68000/CMDS/BOOTOBJS/SPF/STB/sproute.stb
+*../../../68000/CMDS/BOOTOBJS/SPF/route0
+../../../68000/CMDS/BOOTOBJS/SPF/spslip
+../../../68000/PORTS/PROTOCOLS/CMDS/BOOTOBJS/SPF/spsl0
+*
+*
+* Network specific modules
+* 	netdb_local: resolve network info from inetdb modules
+* 	netdb_dns: resolve from inetdbs then use DNS
+* 	inetdb: local network info module
+* 	inetdb2: Machine lancom configuration Module
+* 	NOTE: often inetdb is made with just network info so
+* 	it can be used in all machines.  inetdb2 etc. modules
+* 	are created for machine specific info.
+*
+*../../../68000/CMDS/BOOTOBJS/SPF/netdb_local
+../../../68000/CMDS/BOOTOBJS/SPF/netdb_dns
+../../../68000/CMDS/BOOTOBJS/SPF/inetdb
+../../../68000/CMDS/BOOTOBJS/SPF/inetdb2
+*
+* System specific modules
+*
+*
+* SPF/Lancom Utilities
+*
+* SPF Startup/Configuration Utilitities
+* 	mbinstall: install sysmbuf p2 module
+* 	ipstart: start spf system
+* 	ifconfig: configure spf/lancom devices
+* 	route: control/display routing entries
+* 	ndbmod: build/modify Inetdb module
+* 	netstat: display lancom information
+* 	idbdump: display inetdb modules
+* 	hostname: set/display system hostname
+*
+*../../../68000/CMDS/mbinstall
+../../../68000/CMDS/ipstart
+*../../../68000/CMDS/ifconfig
+*../../../68000/CMDS/route
+*../../../68000/CMDS/ndbmod
+*../../../68000/CMDS/netstat
+*../../../68000/CMDS/idbdump
+*../../../68000/CMDS/hostname
+*
+* SPF Applications
+* 	arp: Displays/modifies IP-to-Physical address translation tables 
+*		used by address resolution protocol (ARP).
+* 	bootpd: Bootp server
+* 	ftp: Ftp user program
+* 	ftpd: FTP daemon (or use inetd)
+* 	ftpdc: FTP daemon child (use w/ftpd or inetd)
+* 	inetd: Master Daemon
+* 	ping: User "system up?" utility
+* 	routed: routing Daemon
+* 	telnet: Telnet user program
+* 	telnetd: Telnet daemon (or use inetd)
+* 	telnetdc: Telnet daemon child (use w/telnetd or inetd)
+* 	tftpd: TFTP server daemon
+* 	tftpdc: TFTP server daemon child (required w/tftpd)
+*../../../68000/CMDS/arp
+*../../../68000/CMDS/bootpd
+*../../../68000/CMDS/ftp
+*../../../68000/CMDS/ftpd
+*../../../68000/CMDS/ftpdc
+*../../../68000/CMDS/inetd
+../../../68000/CMDS/ping
+*../../../68000/CMDS/routed
+*../../../68000/CMDS/telnet
+*../../../68000/CMDS/telnetd
+*../../../68000/CMDS/telnetdc
+*../../../68000/CMDS/tftpd
+*../../../68000/CMDS/tftpdc
+*
+*	Hawk Debugging
+*
+*	System State via Low-Level Network Connectinos
+*     Modular ROM Low-Level Networking required 
+*	sndp:		NDP Server
+*	dbgserv:	Debugger Server
+*   rombug:     Target based serial console Rom Debugger
+*	
+../../../68000/CMDS/BOOTOBJS/ROM/sndp
+../../../68000/CMDS/BOOTOBJS/ROM/dbgentry
+../../../68000/CMDS/BOOTOBJS/ROM/dbgserv
+*../../../68000/CMDS/BOOTOBJS/ROM/rombug
+*
+*	User State (with system state) via Low-Level Network Connections
+*     Both modules below required
+*	undpd:		NDP Daemon
+*	undpdc:		NDP Daemon Child
+*   hlproto		User State Protocol manager for connecting to Low-Level
+*                 Networking Modules
+*
+../../../68000/CMDS/undpd
+../../../68000/CMDS/undpdc
+../../CMDS/BOOTOBJS/ROM/hlproto
+*../../CMDS/BOOTOBJS/ROM/STB/hlproto.stb
+*
+* MODULAR ROM MODULES including Low-Level Networking
+*
+* Modular ROM Extension modules
+*
+../../CMDS/BOOTOBJS/ROM/rominfo
+../../CMDS/BOOTOBJS/ROM/findcnfg
+../../CMDS/BOOTOBJS/ROM/flush68k
+../../CMDS/BOOTOBJS/ROM/notify
+CMDS/BOOTOBJS/ROM/cnfgdata
+CMDS/BOOTOBJS/ROM/cnfgfunc
+*
+* Modular ROM Console Port Communications Modules
+*
+../../CMDS/BOOTOBJS/ROM/console
+CMDS/BOOTOBJS/ROM/io68681
+*CMDS/BOOTOBJS/ROM/STB/io68681.stb
+CMDS/BOOTOBJS/ROM/conscnfg
+*CMDS/BOOTOBJS/ROM/STB/conscnfg.stb
+*CMDS/BOOTOBJS/ROM/llnetrom
+*CMDS/BOOTOBJS/ROM/STB/llnetrom.stb
+*
+* Modular ROM Debug Port Communication Modules
+*
+CMDS/BOOTOBJS/ROM/commcnfg
+*CMDS/BOOTOBJS/ROM/STB/commcnfg.stb
+*
+* Modular Rom Timer Modules
+*
+*CMDS/BOOTOBJS/ROM/m328tmr1
+*CMDS/BOOTOBJS/ROM/STB/m328tmr1.stb
+CMDS/BOOTOBJS/ROM/m328tmr2
+*CMDS/BOOTOBJS/ROM/STB/m328tmr2.stb
+*
+* Modular ROM Low-Level Network I/O Modules
+* 	llslip: Serial Line Internet Protocol (SLIP) driver module
+* 	llip:	IP driver module
+* 	lltcp:	TCP driver module
+* 	protoman:	protocol manager for Low-Level Network Connections
+*
+../../CMDS/BOOTOBJS/ROM/llslip
+*../../CMDS/BOOTOBJS/ROM/STB/llslip.stb
+../../CMDS/BOOTOBJS/ROM/llip
+*../../CMDS/BOOTOBJS/ROM/STB/llip.stb
+../../CMDS/BOOTOBJS/ROM/lltcp
+*../../CMDS/BOOTOBJS/ROM/STB/lltcp.stb
+../../CMDS/BOOTOBJS/ROM/protoman
+*../../CMDS/BOOTOBJS/ROM/STB/protoman.stb
+*
+* Abort switch handler module
+*
+CMDS/BOOTOBJS/ROM/abort328
+*CMDS/BOOTOBJS/ROM/STB/abort328.stb
+*
+* Initial system process:
+*
+../../../68000/CMDS/BOOTOBJS/sysgo
+*../../../68000/CMDS/BOOTOBJS/sysgo_nodisk
+*../../../68000/CMDS/shell
+../../../68000/CMDS/mshell
+*
+*  Additional modules can be added here.
+*
+../../../68000/CMDS/csl
+*../../../68000/CMDS/cio
+*../../../68000/CMDS/math
+*
+* Embedded Commands
+*
+../../../68000/CMDS/break
+*../../../68000/CMDS/date
+../../../68000/CMDS/deiniz
+../../../68000/CMDS/devs
+../../../68000/CMDS/dump
+*../../../68000/CMDS/echo
+*../../../68000/CMDS/events
+*../../../68000/CMDS/exbin
+*../../../68000/CMDS/help
+../../../68000/CMDS/ident
+../../../68000/CMDS/iniz
+*../../../68000/CMDS/irqs
+../../../68000/CMDS/kermit
+*../../../68000/CMDS/link
+../../../68000/CMDS/lmm
+*../../../68000/CMDS/maps
+../../../68000/CMDS/mdir
+../../../68000/CMDS/mfree
+../../../68000/CMDS/p2init
+*../../../68000/CMDS/printenv
+../../../68000/CMDS/procs
+../../../68000/CMDS/setime
+*../../../68000/CMDS/shell  * INCLUDED ABOVE *
+*../../../68000/CMDS/sleep
+../../../68000/CMDS/tmode
+../../../68000/CMDS/unlink
+*../../../68000/CMDS/xmode
+*
+* Local IO Commands
+*
+*../../../68000/CMDS/attr
+*../../../68000/CMDS/backup
+*../../../68000/CMDS/binex
+*../../../68000/CMDS/build
+*../../../68000/CMDS/cfp
+*../../../68000/CMDS/cmp
+*../../../68000/CMDS/code
+*../../../68000/CMDS/com
+*../../../68000/CMDS/compress
+*../../../68000/CMDS/copy
+*../../../68000/CMDS/count
+*../../../68000/CMDS/dcheck
+*../../../68000/CMDS/debug
+../../../68000/CMDS/del
+*../../../68000/CMDS/deldir
+../../../68000/CMDS/dir
+*../../../68000/CMDS/diskcache
+*../../../68000/CMDS/dsave
+*../../../68000/CMDS/edt
+*../../../68000/CMDS/expand
+../../../68000/CMDS/fixmod
+*../../../68000/CMDS/format
+*../../../68000/CMDS/free
+*../../../68000/CMDS/frestore
+*../../../68000/CMDS/fsave
+*../../../68000/CMDS/grep
+*../../../68000/CMDS/list
+../../../68000/CMDS/load
+*../../../68000/CMDS/login
+*../../../68000/CMDS/makdir
+*../../../68000/CMDS/make
+*../../../68000/CMDS/merge
+*../../../68000/CMDS/moded
+*../../../68000/CMDS/os9gen
+*../../../68000/CMDS/partdgen
+*../../../68000/CMDS/pcformat
+../../../68000/CMDS/pd
+*../../../68000/CMDS/pr
+../../../68000/CMDS/qsort
+*../../../68000/CMDS/rdump
+*../../../68000/CMDS/rsave
+*../../../68000/CMDS/rename
+*../../../68000/CMDS/romsplit
+../../../68000/CMDS/save
+*../../../68000/CMDS/tape
+*../../../68000/CMDS/tapegen
+*../../../68000/CMDS/tee
+*../../../68000/CMDS/touch
+*../../../68000/CMDS/tr
+*../../../68000/CMDS/tsmon
+*../../../68000/CMDS/umacs
+*
+*
+*  NFS Generic/Client Utils
+*
+*../../../68000/CMDS/mount
+*../../../68000/CMDS/STB/mount.stb
+*../../../68000/CMDS/nfsc
+*../../../68000/CMDS/STB/nfsc.stb
+*../../../68000/CMDS/rpcdbgen
+*../../../68000/CMDS/STB/rpcdbgen.stb
+*../../../68000/CMDS/rpcdump
+*../../../68000/CMDS/STB/rpcdump.stb
+*../../../68000/CMDS/rpchost
+*../../../68000/CMDS/STB/rpchost.stb
+*../../../68000/CMDS/rpcinfo
+*../../../68000/CMDS/STB/rpcinfo.stb
+*
+* PwrMan modules
+*
+../../../68000/CMDS/BOOTOBJS/pwrman
+*../../../68000/CMDS/BOOTOBJS/STB/pwrman.stb
+../../../68000/CMDS/pwrstat
+*../../../68000/CMDS/STB/pwrstat.stb
+CMDS/BOOTOBJS/pwrplcy
+*CMDS/BOOTOBJS/STB/pwrplcy.stb
+*CMDS/BOOTOBJS/pwrext
+*CMDS/BOOTOBJS/STB/pwrext.stb
+CMDS/BOOTOBJS/sysif
+*CMDS/BOOTOBJS/STB/sysif.stb
+*
+* MAUI graphics and touchpad system modules
+*
+*../../../68000/CMDS/BOOTOBJS/mfm
+*../../../68000/CMDS/BOOTOBJS/STB/mfm.stb
+*../../../68000/CMDS/maui
+*../../../68000/CMDS/STB/maui.stb
+*CMDS/BOOTOBJS/MAUI/gx_328
+*CMDS/BOOTOBJS/MAUI/gfx
+*CMDS/BOOTOBJS/MAUI/mp_t328ads
+*CMDS/BOOTOBJS/MAUI/cdb
+*CMDS/BOOTOBJS/MAUI/cdb_touch
+*
+*
+*../../../68000/CMDS/BOOTOBJS/maui_inp
+*../../../68000/CMDS/BOOTOBJS/STB/maui_inp.stb
+*CMDS/BOOTOBJS/tpaddrvr
+*CMDS/BOOTOBJS/STB/tpaddrvr.stb
+*CMDS/BOOTOBJS/DESC/TPAD/tpad
+*CMDS/tpadtest
+*CMDS/STB/tpadtest.stb
+*
+* MAUI applications
+*
+*
+* MAUI assets (images & fonts)
+*
+*../../../68000/ASSETS/FONTS/default.fnt
+*
+*../../../68000/ASSETS/IMAGES/1BIT/328DEMO/pcss.ras
+*../../../68000/ASSETS/IMAGES/1BIT/328DEMO/mail.ras
+*../../../68000/ASSETS/IMAGES/2BIT/328DEMO/email.ras
+*../../../68000/ASSETS/IMAGES/2BIT/328DEMO/falarm.ras
+*../../../68000/ASSETS/IMAGES/2BIT/328DEMO/game.ras
+*../../../68000/ASSETS/IMAGES/2BIT/328DEMO/intro.ras
+*../../../68000/ASSETS/IMAGES/2BIT/328DEMO/mainmenu.ras
+*../../../68000/ASSETS/IMAGES/2BIT/328DEMO/message1.ras
+*../../../68000/ASSETS/IMAGES/2BIT/328DEMO/message2.ras
+*../../../68000/ASSETS/IMAGES/2BIT/328DEMO/secure1.ras
+*../../../68000/ASSETS/IMAGES/2BIT/328DEMO/secure2.ras
+*../../../68000/ASSETS/IMAGES/2BIT/328DEMO/secure3.ras
+*../../../68000/ASSETS/IMAGES/2BIT/328DEMO/secure4.ras
+*../../../68000/ASSETS/IMAGES/2BIT/328DEMO/secure5.ras
+*../../../68000/ASSETS/IMAGES/2BIT/328DEMO/warnalarm.ras
+*../../../68000/ASSETS/IMAGES/2BIT/328DEMO/slide.img
+*
+* Machine specific modules and commands:
+* If you start SPF, don't use the startdbg utility!!
+* 
+CMDS/startdbg
+*CMDS/STB/startdbg.stb

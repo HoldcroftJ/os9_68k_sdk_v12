@@ -1,0 +1,263 @@
+ opt -l
+ nam Module Header Formats
+
+*****************************************************************************
+*                                                                           *
+*              Copyright 1998 by Microware Systems Corporation              *
+*                            All Rights Reserved                            *
+*                          Reproduced Under License                         *
+*                                                                           *
+*  This software is confidential property of Microware Systems Corporation, *
+*  and is provided under license for internal development purposes only.    *
+*  Reproduction, publication, modification, distribution, or creation of    *
+*  derivative works in any form to any party other than the Licensee is     *
+*  strictly prohibited, unless expressly provided for under the terms of a  *
+*  mutually executed written license agreement for this software between    *
+*  the end-user and Microware Systems Corporation, or otherwise expressly   *
+*  authorized in writing by Microware Systems Corporation.  Licensee shall  *
+*  reproduce this copyright notice exactly as provided herein on any copies *
+*  of the software that Licensee is authorized to distribute.               *
+*                                                                           *
+*****************************************************************************
+* Edition History
+*  #   Date    Changes Made                                             by
+* -- -------- --------------------------------------------------------- ---
+* 00 04-11-83 Converted to 68000 from OS-9 Level II Edition 7.          rfd
+* 00 05-24-83 Removed DAT routines with conditional assembly.           rfd
+* 00 06-21-83 Changed from "ds" to "do" (define offset).                rfd
+* 01 02-09-84 Converted for linkage use.                                lac
+* 02 03-21-84 Revised Trap definitions, and device type codes.          rfd
+* 03 06-13-84 Changed module format.  Old modules incompatable.         rfd
+* 04 10-12-84 Modified device descriptor format slightly.               rfd
+* 05 11-01-84 Changed names of "init" offsets and expanded.             rfd
+* 06 11-01-84 Added type/language values (from oskdefs).                rfd
+* 07 01-11-85 Added M$Events to configuration module.                   rfd
+* 08 06-27-85 Added M$Mode byte in device descriptors.                  rfd
+*				---- OS-9/68k V1.2 released ----
+* 09 08-23-85 Added M$BlkSiz and M$MinBlk to "init" module.             rfd
+* 10 01-31-86 Removed same.                                             rfd
+* 11 07-02-86 Added M$SParam string in config module.                   rfd
+* 12 09-04-86 Added MD$MChk header checksum.                            rfd
+* 13 09-25-86 Added M$Compat for smoothing upgrade problems.            rfd
+*				---- OS-9/68k V2.0 released ----
+* 14 01-30-87 Defined module access permission bits.                    rfd
+*				---- OS-9/68k V2.1 released ----
+* 15 07-17-87 Added device type definitions for SBF, CDFM.              rfd
+*				---- OS-9/68k V2.2 released ----
+* 16 03-10-88 Added new device type definitions.                        rfd
+* 17 04-28-88 Added M$MemList to init module, and DT_NRF.               rfd
+* 18 06-15-88 Added DT_VFM.                                             rfd
+* 19 07-18-88 Added M$IPID.                                             rfd
+* 20 09-07-88 Changed DT_VFM to DT_GFM.                                 rfd
+*				---- CD-RTOS V0.97 released ----
+*				---- CD-RTOS V0.99 released ----
+* 21 11-02-88 Removed M$MaxMem (obsolete), added M$IRQStk.              rfd
+*				---- OS-9/68k V2.2 edition #50 released ----
+* 22 02-20-89 Added M$ColdTrys.                                         rfd
+*				---- OS-9/68k V2.3 released ----
+* 23 03-09-90 Added M$Compat2.                                          wwb
+*				---- CD-RTOS V1.1 released ----
+*				---- OS-9/68k V2.4 released ----
+* 24 01-29-91 Updated comments for M$CPUTyp.                            wwb
+*				---- OS-9/68k V2.4 68040 released ----
+*				---- OS-9/68k V2.4.3 released ----
+* 25 11-14-91 Added M$CacheList.                                        wwb
+* 26 01-03-92 Moved M$CacheList to final position.                      wwb
+*				>>>>>>>>>>  module.a  Rev 1.6
+* 27 09-01-92 Added M$HdExt, M$HdExtSz, DT_ISDN.						wwb
+* 28 09-04-92 Added M$Ident (finally).									wwb
+*				<<<<<<<<<<  module.a  Rev 1.4.1.1
+* 27 08-03-92 Started new modifications: added M$SysConf, M$NumSigs,	wwb
+*             M$IOMan, M$PreP2.
+* 28 10-03-92 Added M$PrsDescStack.										wwb
+*				==========
+* 29 11-24-92 edited for merge problems.								wwb
+* 30 11-24-92 M$PreP2 now called M$PreIO.								wwb
+*				---- OS-9/68k V2.5 (Discovery Pak) released ----
+* 31 01-05-92 Added DT_MPFM.											wwb
+* 32 01-26-93 Reworked M$MDirSz, added new reserved fields to Init		wwb
+*             module.
+* 33 03-12-93 Added unimplemented comment to M$NumSigs.					wwb
+* 34 04-09-93 Added M$DevFlags (for future).							wwb
+*				---- OS-9/68k V3.0 released ----
+* 35 12-17-93 Added DT_RTNFM and DT_SPF.								wwb
+*				---- OS-9/68k V3.0.1 released ----
+*				---- OS-9/68K V3.0.2 Beta_2 Release ----
+*				---- OS-9/68K V3.0.2 Release ----
+*				---- OS-9/68K V3.0.3 PwrMan Beta Release ----
+* 36 06-18-96 Added DT_MFM.												wwb
+* 37 06-19-96 Added DT_DVM.												wwb
+*				---- OS-9/68K V3.0.3 Release ----
+* 38 09-17-97 Added DT_DVDFM.											wwb
+* 39 02-27-98 Added DT_MODFM.											wwb
+* 40 07-15-98 Added new copyright info.									wwb
+*				---- OS-9/68K V3.1 Release ----								*
+* 41 10-31-00 Added DT_PCF and DT_NULL to match name space with 90000   mgh
+*             $$                    <RELEASE_INFO>                     $$   *
+*
+edition set 41
+
+ psect module,0,0,edition,0,0
+
+********************************
+* Module Definitions
+M$Rev:	equ 1 Module format revision (for D_Cigar)
+
+*     Universal Module Offsets
+ org 0
+M$ID:		do.w 1 ID code
+M$SysRev:	do.w 1 system revision check value
+M$Size:		do.l 1 module size
+M$Owner:	do.l 1 owner ID
+M$Name:		do.l 1 name offset
+M$Accs:		do.w 1 access permissions
+M$Type:		do.b 1 type
+M$Lang:		do.b 1 language
+M$Attr:		do.b 1 attributes
+M$Revs:		do.b 1 revision level
+M$Edit:		do.w 1 edition number
+M$Usage:	do.l 1 comment string offset
+M$Symbol:	do.l 1 symbol table offset
+M$Ident:	do.w 1 ident code
+			do.w 3 reserved
+M$HdExt:	do.l 1 module header extension offset
+M$HdExtSz:	do.w 1 module header extension size
+M$Parity:	do.w 1 header parity
+M$IDSize:	equ . module ID size
+
+**     Type-Dependent Module Offsets
+* System, Program, Trap Handler, File Manager, Device Driver
+M$Exec:		do.l 1 execution entry offset
+M$Excpt:	do.l 1 exception entry offset
+
+* Program, Trap Handler, Device Driver
+M$Mem:		do.l 1 data area requirement
+
+* Program, Trap Handler
+M$Stack:	do.l 1 stack area requirement
+M$IData:	do.l 1 initialized data ptr
+M$IRefs:	do.l 1 initialized reference lists ptr
+
+* User Trap Handler
+M$Init:		do.l 1 initialization execution offset
+M$Term:		do.l 1 termination execution offset
+
+*   Device Descriptor Module
+			org M$IDSize
+M$Port:		do.l 1 port address
+M$Vector:	do.b 1 hardware vector number
+M$IRQLvl:	do.b 1 Interrupt hardware priority level
+M$Prior:	do.b 1 interrupt (polling table) priority
+M$Mode:		do.b 1 device mode capabilities
+M$FMgr:		do.w 1 file manager name offset
+M$PDev:		do.w 1 device driver name offset
+M$DevCon:	do.w 1 offset of device dependent constants
+			do.w 1 reserved
+M$DevFlags:	do.l 1 reserved for future usage
+			do.w 1 reserved
+M$Opt:		do.w 1 device default option count
+M$DTyp:		do.b 1 device type
+
+*   Configuration Module Entry Offsets
+ org M$IDSize
+			do.l 1 reserved
+M$PollSz:	do.w 1 number of entries in interrupt polling table
+M$DevCnt:	do.w 1 number of entries in device table
+M$Procs:	do.w 1 initial process table count
+M$Paths:	do.w 1 initial path table count
+M$SParam:	do.w 1 initial startup module parameter string
+M$Sysgo:	do.w 1 initial startup module name offset
+M$SysDev:	do.w 1 system device name
+M$Consol:	do.w 1 standard I/O pathlist name offset
+M$Extens:	do.w 1 customization module name offset
+M$Clock:	do.w 1 clock module name offset
+M$Slice:	do.w 1 clock ticks per time slice
+M$IPID:		do.w 1 interprocessor ID
+M$Site:		do.l 1 installation site code
+M$Instal:	do.w 1 installation name offset
+M$CPUTyp:	do.l 1 expected cpu type: 68000/68010/68020/etc.
+M$OS9Lvl:	do.b 4 operating system level/version/edition
+M$OS9Rev:	do.w 1 OS-9 level/revision string offset
+M$SysPri:	do.w 1 initial system priority
+M$MinPty:	do.w 1 initial system minimum executable priority
+M$MaxAge:	do.w 1 initial system maximum natural age
+M$MDirSz:	do.w 1 initial module directory count
+			do.w 1 reserved
+M$Events:	do.w 1 initial system event table count
+M$Compat:	do.b 1 compatibility byte #1
+M$Compat2:	do.b 1 compatibility byte #2
+M$MemList:	do.w 1 offset to memory definitions (if any)
+M$IRQStk:	do.w 1 size of IRQ stack (in longwords)
+M$ColdTrys:	do.w 1 number of retries to attempt if initial chd fails
+			do.w 2 reserved
+M$CacheList:	do.w 1 offset to SSM(MMU) cache modes (if any)
+M$IOMan:	do.w 1 offset to IOMan module name
+M$PreIO:	do.w 1 offset to "pre-IO" module list (called prior to M$Extens
+*					and M$IOMan entries)
+M$SysConf:	do.w 1 system configuration control flags
+M$NumSigs:	do.w 1 max number of queued signals (currently unimplemented)
+M$PrcDescStack:	do.w 1 process descriptor stack size
+			do.w 32 reserved
+
+
+********************************
+* Module Field Definitions
+
+**  ID Field and Format values
+M$ID12:	equ $4AFC Module Header ID
+
+**  Device Type values
+*
+* KEEP IN SYNC with sg_codes.h and (AT LEAST NAMES) with OS9000: io.h !!!!
+*   
+*
+ org 0
+DT_SCF:		do.b 1 (0) sequential character file type
+DT_RBF:		do.b 1 (1) random block file type
+DT_Pipe:	do.b 1 (2) pipe file type
+DT_SBF:		do.b 1 (3) sequential block file type
+DT_NFM:		do.b 1 (4) network file type
+DT_CDFM:	do.b 1 (5) compact disc file type
+DT_UCM:		do.b 1 (6) user communications manager
+DT_SOCK:	do.b 1 (7) socket communication manager
+DT_PTTY:	do.b 1 (8) pseudo-keyboard manager
+DT_INET:	do.b 1 (9) internet interface manager
+DT_NRF:		do.b 1 (10) non-volatile ram file manager (CD-I variety)
+DT_GFM:		do.b 1 (11) graphics file manager
+DT_ISDN:	do.b 1 (12) ISDN file manager
+DT_MPFM:	do.b 1 (13) MPEG file manager
+DT_RTNFM:	do.b 1 (14) real time network file manager
+DT_SPF:		do.b 1 (15) serial protocol file manager
+DT_MFM:		do.b 1 (16) multimedia file manager (graphics & audio)
+DT_DVM:		do.b 1 (17) device manager
+DT_DVDFM:	do.b 1 (18) DVD file manager
+DT_MODFM:	do.b 1 (19) Module I/O file manager
+DT_NULL		do.b 1 (20)	DPIO Null File Manager
+DT_PCF		do.b 1 (21) (Reserved FUTURE: OS-9/68K PCF returns DT_RBF)
+
+*
+* DT-CODES up thru 127 RESERVED FOR MICROWARE USE ONLY 
+*
+
+** Access permission bits
+* xxxx xxxx xxxx ?ewr	owner permission (same as file system)
+* xxxx xxxx ?ewr xxxx	group permissions
+* xxxx ?ewr xxxx xxxx	world permissions
+
+**  CRC Result Constant
+CRCCon:	equ $00800FE3
+
+********************************
+* Module Directory Entry Definitions
+ModDir:	equ 1<<8 module directory format revision (for D_Cigar)
+
+ org 0
+MD$MPtr:	do.l 1 module ptr
+MD$Group:	do.l 1 module group ptr
+MD$Static:	do.l 1 module group memory size
+MD$Link:	do.w 1 module link count
+MD$MChk:	do.w 1 module header checksum
+MD$ESize:	equ . module directory entry size
+ ends
+ opt l
+

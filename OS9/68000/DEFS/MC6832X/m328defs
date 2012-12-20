@@ -1,0 +1,33 @@
+ nam mc68328defs
+ ttl Include file to gather all defs for mc68328 processor
+
+**********************************************************************
+* Copyright 1996 by Microware Systems Corporation                    *
+* Reproduced Under License                                           *
+*                                                                    *
+* This source code is the proprietary confidential property of       *
+* Microware Systems Corporation, and is provided to licensee         *
+* solely for documentation and educational purposes. Reproduction,   *
+* publication, or distribution in any form to any party other than   *
+* the licensee is strictly prohibited.                               *
+**********************************************************************
+* Definitions for the mc68328 SIM (Systems Integration Module)       *
+*
+* Edition History
+*
+* Ed.   Date.     Reason.                                        Who.
+* --  --------  -----------------------------------------------  ---
+* 01  96/08/01  History starts.                                  ats
+*               --- OS-9/68K MC68328 Support Beta2 Release ---
+**********************************************************************
+
+ use <sim328.d>
+ use <pllm328.d>
+ use <lcdcm328.d>
+ use <rtcm328.d>
+ use <timm328.d>
+ use <parp328.d>
+ use <uartm328.d>
+ use <spis328.d>
+ use <spim328.d>
+ use <pwmm328.d>

@@ -1,0 +1,216 @@
+**************************************************
+* Copyright 1993-2001 Microware Systems Corporation.
+* All Rights Reserved
+* Reproduced Under License
+*
+*   This source code is the proprietary confidential property of
+* Microware Systems Corporation, and is provided to the licensee
+* for documentation and educational purposes only.  Reproduction,
+* publication, or any form of distribution to any party other than
+* the licensee is strictly prohibited.
+
+********************************
+* Editon History
+*  #    Date      Comments                                      by
+* -- --------- ------------------------------------------------ ---
+* 01 93/02/15  Adapted from mVme167                             ats
+* 02 93/08/31  Added defaults for IP setup for V2.4.5 support	ats
+* 03 95/09/30  Added support for IP2.                           ats
+*              ---- V3.0.2 MVME162 BSP released ----
+* 04 01/02/26  Add bit set of FWEN for TrueFFS Support and wri- mdu
+*              te for Flash Chip (Example Code)
+* 05 01/10/08  Add check of V_IPIC_Rev value of $03 for Petra   mgh
+*                Also use check at IP_Reset register load
+*
+Edition equ 5 current edition number
+
+ use defsfile
+
+ nam initext.a
+ ttl initext.a - Sysinit extension module
+
+********************
+* Debugger usage
+*
+ ifdef DEBUGGER
+USING_DEBUGGER set 1 define primitive debugger in use
+ endc
+
+ ifdef ROMBUG
+USING_DEBUGGER set 1 define smart debugger in use
+ endc
+
+ use <ipic.d>
+
+IPICBase		equ		$fffbc000
+
+c_IP_a_MemLoc	equ		$c000		IP_a memory starts at $C0000000
+c_IP_b_MemLoc	equ		$c080		IP_b   "      "    at $C0800000
+c_IP_c_MemLoc	equ		$c100		IP_c   "      "    at $C1000000
+c_IP_d_MemLoc	equ		$c180		IP_d   "      "    at $C1800000
+
+c_IP_a_Lvl		equ		5
+c_IP_a_INT0		equ		(0<<b_IP_PLTY)+(0<<b_IP_EL)+(c_IP_a_Lvl)
+c_IP_a_INT1		equ		c_IP_a_INT0
+
+c_IP_b_Lvl		equ		4
+c_IP_b_INT0		equ		(0<<b_IP_PLTY)+(0<<b_IP_EL)+(c_IP_b_Lvl)
+c_IP_b_INT1		equ		c_IP_b_INT0
+
+c_IP_c_Lvl		equ		3
+c_IP_c_INT0		equ		(0<<b_IP_PLTY)+(0<<b_IP_EL)+(c_IP_c_Lvl)
+c_IP_c_INT1		equ		c_IP_c_INT0
+
+c_IP_d_Lvl		equ		2
+c_IP_d_INT0		equ		(0<<b_IP_PLTY)+(0<<b_IP_EL)+(c_IP_d_Lvl)
+c_IP_d_INT1		equ		c_IP_d_INT0
+
+c_IP_a_GCR		equ		(c_IP_0us<<b_IP_RT)+(c_IP_16<<b_IP_WIDTH)+(1<<b_IP_MEN)
+c_IP_b_GCR		equ		c_IP_a_GCR
+c_IP_c_GCR		equ		c_IP_a_GCR
+c_IP_d_GCR		equ		c_IP_a_GCR
+
+c_IP_8Mhz		equ		(0<<b_IP_32mhz)
+c_IP_32Mhz		equ		(1<<b_IP_32mhz)
+c_IP_Speed		equ		c_IP_8Mhz	*** MUST MATCH JUMPER ON 'FX ***
+c_IP_Reset		equ		(1<<b_IP_RES)
+
+c_IP_DMAARB		equ		(1<<b_IP_RROBIN)
+
+Typ_Lang set (Prgrm<<8)+Objct
+Attr_Rev set (ReEnt<<8)+0
+ psect initext,Typ_Lang,Attr_Rev,Edition,0,Entry
+
+Entry
+ dc.l 1801546857 sync code
+ bra RP_SInit extension to sysinit
+ bra RP_SInit2 extension to sysinit2
+
+
+***********************************************************************
+*  RP_SInit:  extention to SysInit.
+*
+*  This is the routine that is called from SysInit.  The CPU performs
+*  very little before it reaches this routine.  We will set up the 
+*  chip selects so that we have access to the modules, ROM and RAM.
+*
+RP_SInit:
+
+* We will setup defaults for the IPIC here.
+* (Except interrupts will be enabled in phase 2 -
+*  after vector & exception jump table are built)
+
+ move.l #IPICBase,a1 base address of IP controller
+ move.l #MCchBase,a2 base address of MCchip/MC2
+
+* Check for presence of an IP2 ('FX only)
+
+ cmpi.b #v_PetraIP2_Rev,IPIC_Rev(a1) check for PETRA/IP2 revision number
+ beq.s FoundIP2
+ cmpi.b #v_IP2_Rev,IPIC_Rev(a1) check for IP2 revision number
+ beq.s FoundIP2
+ cmpi.b #MC2Rev,MCREV(a2) else check for MC2 (errata workaround)
+ bne.s SetupIPs
+FoundIP2
+ move.b #0,MCT2CR(a2) disable timer 2 counter
+ move.b #0,MCT2ICR(a2) disable interrupts
+ move.b #m_COVF,MCT2CR(a2) clear overflows
+ move.b #m_ICLR,MCT2ICR(a2) clear any pending interrupt
+ move.l #200000,MCT2CMP(a2) set compare for 200ms
+ move.l #0,MCT2CNT(a2) clear counter
+ move.b #m_IEN,MCT2ICR(a2) enable interrupt (level=0)
+ cmpi.b #v_PetraIP2_Rev,IPIC_Rev(a1)
+ beq IP2_10
+ move.b #(c_IP_Speed+c_IP_Reset),IP_Reset(a1) assert IPRESET*
+ bra IP2_20
+IP2_10
+ move.b #(c_IP_Reset),IP_Reset(a1) assert IPRESET*
+IP2_20
+ move.b #m_CEN,MCT2CR(a2) start counter
+WaitLoop
+ btst.b #b_INT,MCT2ICR(a2) check for match
+ beq.s WaitLoop loop if delay not expired
+ move.b #c_IP_Speed,IP_Reset(a1) deassert IPRESET* 
+ move.b #0,MCT2CR(a2) disable timer 2 counter
+ move.b #0,MCT2ICR(a2) disable interrupts
+
+* Perform other IP2-specific setup (DMA, Pacer, etc)
+
+ move.b #IP2Vect,IP_VBR(a1) setup vector base
+ move.b #c_IP_DMAARB,IP_DMA_ARB(a1) set default arbitration
+
+* Complete normal IP setup
+SetupIPs
+ move.w #c_IP_a_MemLoc,IP_a_MemBase(a1) set memory address for IP_a
+ move.w #c_IP_b_MemLoc,IP_b_MemBase(a1) set memory address for IP_b
+ move.w #c_IP_c_MemLoc,IP_c_MemBase(a1) set memory address for IP_c
+ move.w #c_IP_d_MemLoc,IP_d_MemBase(a1) set memory address for IP_d
+ 
+ move.b #c_IP_8M,IP_a_MemSize(a1) set memory size for IP_a
+ move.b #c_IP_8M,IP_b_MemSize(a1) set memory size for IP_b
+ move.b #c_IP_8M,IP_c_MemSize(a1) set memory size for IP_c
+ move.b #c_IP_8M,IP_d_MemSize(a1) set memory size for IP_d
+
+ move.b #c_IP_a_INT0,IP_a_INT0_CTRL(a1) setup interrupts for IP_a
+ move.b #c_IP_a_INT1,IP_a_INT1_CTRL(a1) 
+
+ move.b #c_IP_b_INT0,IP_b_INT0_CTRL(a1) setup interrupts for IP_b
+ move.b #c_IP_b_INT1,IP_b_INT1_CTRL(a1) 
+
+ move.b #c_IP_c_INT0,IP_c_INT0_CTRL(a1) setup interrupts for IP_c
+ move.b #c_IP_c_INT1,IP_c_INT1_CTRL(a1) 
+
+ move.b #c_IP_d_INT0,IP_d_INT0_CTRL(a1) setup interrupts for IP_d
+ move.b #c_IP_d_INT1,IP_d_INT1_CTRL(a1) 
+
+ move.b #c_IP_a_GCR,IP_a_GCR(a1) Enable memory space, etc for IP_a
+ move.b #c_IP_b_GCR,IP_b_GCR(a1) Enable memory space, etc for IP_b
+ move.b #c_IP_c_GCR,IP_c_GCR(a1) Enable memory space, etc for IP_c
+ move.b #c_IP_d_GCR,IP_d_GCR(a1) Enable memory space, etc for IP_d
+
+ rts return to SysInit.
+
+*****************************************************************************
+*  RP_SInit2:  extention to SInitTwo.
+*
+*  This is the routine that is called from SInitTwo.  The CPU has constructed
+*  the RAM vectors ( if included ) and the exception jump tables.  This would
+*  be a place to install handlers for boards that generate unsolicited
+*  interrupts that would cause the system to fail it's boot proceedure.
+*
+RP_SInit2:
+
+* We will enable IP interrupts here
+
+ move.l #IPICBase,a1 base address of IP controller
+
+ bset.b #b_IP_IEN,IP_a_INT0_CTRL(a1) enable IP_a interrupts
+ bset.b #b_IP_IEN,IP_a_INT1_CTRL(a1)
+
+ bset.b #b_IP_IEN,IP_b_INT0_CTRL(a1) enable IP_b interrupts
+ bset.b #b_IP_IEN,IP_b_INT1_CTRL(a1)
+
+ bset.b #b_IP_IEN,IP_c_INT0_CTRL(a1) enable IP_c interrupts
+ bset.b #b_IP_IEN,IP_c_INT1_CTRL(a1)
+
+ bset.b #b_IP_IEN,IP_d_INT0_CTRL(a1) enable IP_d interrupts
+ bset.b #b_IP_IEN,IP_d_INT1_CTRL(a1)
+
+*
+* Set Flash Write Enable Bit (FWEN) used on 172 boards with MC2 chip to enable 
+* the use of flash as a TFFS Flash disk.
+* Write to MCch1FWEN for older boards using MC1 chip
+* Note: on some boards MCch1FWEN may decode to select NVRAM (we know not why)
+*   so we will write the NVRAM sync code just in case
+* Both methods can be enable for compatibility on both types of boards
+*
+MCch1FWEN equ $FFFCC000	; write to this address to enable  flash writes
+MCch1FWDA equ $FFFC8000 ; write to this address to disable flash writes
+
+ move.l #MCchBase,a1 		; base of MC2 Chip (Memory Controller chip 2)
+ bset.b #b_FWEN,MCFATCR(a1)	; set flash write enable bit
+ move.w #NVRNEWSYNC,MCch1FWEN	; write "special value" to FWEN address
+
+ rts return to SInitTwo.
+ 
+ ends

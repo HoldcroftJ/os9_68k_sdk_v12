@@ -1,0 +1,41 @@
+*
+* startnfs for NFS provided with LAN Communication Package
+*
+*
+* Shell Script to Start NFS Client System and mount file systems
+*
+* NOTE: NFS client modules may be loaded into memory using loadnfs
+*
+chd /h0				;* Set default directories for NFS mounts
+chx /h0/cmds			;* Programs are located in CMDS directory
+SYS/loadnfs
+* 
+* Start NFS client and mount remote file systems
+* 
+iniz nfs_devices 		;* attach NFS client devices
+*
+* Example mount commands to connect to server systems remote device
+*
+*mount -m peer:/     /peer     ;* mount remote file systems
+*mount alpha:/h0 /alpha <>>>/nil&
+*mount beta:/h0 /beta	<>>>/nil&
+*
+* Start NFS Server System
+*
+*
+*  Specify file systems to export (Necessary if acting as a NFS Server)
+*
+*exportfs -s /h0 	  		;* specify remote mountable devices
+*
+* start rpc services daemons 
+* Uncomment portmap, mountd and nfsd if acting as a NFS Server
+*
+*portmap<>>>/nil&          ;* start portmap server      (rpcinfo)
+*mountd<>>>/nil&           ;* mount server              (mount, showmount)
+*nfsd<>>>/nil&             ;* nfs server                (..)
+*rldd<>>>/nil&             ;* rld server                (rcopy,rload,rpr)
+*rexd<>>>/nil&             ;* remote execution server   (on)
+*rstatd<>>>/nil&           ;* remote system statisitcs  (rup)
+*rusersd<>>>/nil&          ;* network users info        (rusers)
+*sprayd<>>>/nil&           ;* spray server              (spray)
+

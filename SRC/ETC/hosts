@@ -1,0 +1,16 @@
+#
+# LOCAL HOST NAMES
+#
+# format:  <IP Address> <Name> [<Alias1> <Alias2> ...]
+# 
+#
+
+#
+# loopback host
+#
+127.0.0.1	localhost me
+
+#
+# other hosts defined here
+#
+

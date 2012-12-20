@@ -1,0 +1,91 @@
+ nam Snoop177
+ ttl MVME177 Snooper Enable Module
+
+* Copyright 1991, 1993, 1995 by Microware Systems Corporation
+* Reproduced Under License
+
+* This source code is the proprietary confidential property of
+* Microware Systems Corporation, and is provided to licensee
+* solely for documentation and educational purposes. Reproduction,
+* publication, or distribution in any form to any party other than
+* the licensee is strictly prohibited.
+
+********************************
+* Edition History
+*  #   date   Comments                                          by
+* -- -------- ------------------------------------------------- ---
+* 01 91/10/16 initial version                                   wwb
+* 02 93/11/08 Adapt for MCECC boards							ats
+* 03 95/02/10 Updated for MVME177/68060 support.				wwb
+* 04 95/02/11 Removed support for MEMC040 - Motorola indicate	wwb
+*             that MVME177 will only use ECC memory.
+*              ---- OS-9/68K V3.0.2 Beta release ----
+*              ---- OS-9/68K V3.0.2 Release ----
+*
+Edition equ 4 current edition number
+
+
+********************
+* Snoop177
+*
+*   This module provides the enable for the MVME177 cache snooping
+*   logic.  This is a "P2" module.
+*
+*   If this module is not present in the boot file the systems
+*   snooper circuit will not be enabled.
+*
+*   This module should precede the "syscache" module in the Init
+*   module's Extens list.
+
+
+
+********************
+* Module Header
+*
+Typ_Lang set (Systm<<8)+Objct system module, object code
+Attr_Rev set ((ReEnt+SupStat)<<8)+0 supervisor state, sharable
+
+ psect snoop177,Typ_Lang,Attr_Rev,Edition,0,Init
+
+ use defsfile
+
+ pag
+***************************
+* Entry Point for P2 Module
+*
+* Passed:  (a3) = vsect data ptr  (none used in this module)
+*          (a6) = system global data ptr
+*          (sp) = (system) stack ptr
+*
+* Returns:  nothing
+*
+* Error Return:  d1.w = error code
+*                (cc) = carry set
+*
+* Destroys:  only d1 and cc may be modified.
+*
+Init: movem.l d1/a1,-(a7) make sr save space & save reg
+ movea.l #VMEchBase+SAATTR,a1 get base address of VMEChip2 snoop control
+ move.w sr,(a7) save irq masks
+ ori.w #IntMask,sr mask interrupts
+ move.l (a1),d1 get current slave window attributes
+
+* sysinit will make all on-board ram contiguous, and accessible via
+* the Slave #1 control, thus we only need to set snooping for Slave #1's
+* attributes.
+*
+ bclr.l #9,d1 make snoop control be...
+ bset.l #10,d1 .. 1:0 (snoop invalidate - the ONLY way on the 68060)
+ move.l d1,(a1) set snoop control into slave #1 attributes
+
+* update system globals (force drivers to perform flushing)
+*
+ bclr.b #B_SOD,D_Compat2(a6) on-chip d-cache is not snoopy
+ bclr.b #B_SOI,D_Compat2(a6) on-chip i-cache is not snoopy
+ sf.b D_SnoopD(a6) advise bus-master drivers to perform flushing
+ move.w (a7),sr restore interrupts to previous level
+ movem.l (a7)+,d1/a1 clean stack/restore regs
+ moveq.l #0,d1 return no error (carry clear)
+ rts
+
+ ends

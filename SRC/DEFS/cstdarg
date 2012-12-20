@@ -1,0 +1,6 @@
+#ifndef __CSTDARG
+#	define __CSTDARG
+
+#include <stdarg.h>
+
+#endif /* __CSTDARG */

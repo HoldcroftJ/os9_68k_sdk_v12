@@ -1,0 +1,425 @@
+ nam rtc48t08.a
+ ttl Real Time Clock Subroutines for the mk48t08 RTC
+
+********************
+* Real Time Clock Subroutines for the mk48t08 RTC
+
+* Copyright 1991, 1993, 1994, 1996 by Microware Systems
+* Corporation Reproduced Under License
+
+* This source code is the proprietary confidential property of
+* Microware Systems Corporation, and is provided to licensee
+* solely for documentation and educational purposes. Reproduction,
+* publication, or distribution in any form to any party other than
+* the licensee is strictly prohibited.
+
+******************************************************
+* Edition History
+*
+*  #    Date      Comments                                  By
+* -- -------- --------------------------------------------- ---
+* 01 91/01/06 Taken from rtc48t02 code.                     Rwb
+* 02 93/07/01 reworked use pathlists for MWOS structure.	wwb
+*             ---- OS-9/68K V3.0 released ----
+* 03 94/06/09 added 68060 conditionals.						wwb
+*             also corrected some potential problems in     wwb
+*             cache control code.
+*             ---- OS-9/68K V3.0.2 Beta release ----
+*             ---- OS-9/68K V3.0.2 Beta_2 release ----
+*             ---- OS-9/68K V3.0.2 Release ----
+* 04 96/05/07 Millenium support.                            ats
+* 			  ---- OS-9/68k V3.0.3 Release ----
+* 			  ---- OS-9/68k V3.1 Release ----
+*
+Edition	equ	4
+Revision equ 0
+
+ use defsfile
+ use <longio.m>
+
+ ifndef VME165
+VME165 set 165
+ endc
+
+Type_Lang equ (Sbrtn<<8)!Objct
+Attr_Rev equ ((ReEnt+SupStat)<<8)!Revision
+
+ psect rtclock,Type_Lang,Attr_Rev,Edition,0,RTCTab
+
+ ifeq (CPUType-VME165)
+********************
+* MK48T08 Registers
+*    Registers are byte-wide non-cacheable data port accessed
+*    on long-word boundries.  Only the LSB is valid data.
+*
+Control equ 0 control bits
+Seconds equ 4 seconds
+Minutes equ 8 minutes
+Hours equ 12 hour
+Day equ 16 day of the week
+Date equ 20 date of the month
+Month equ 24 month
+Year equ 28 year
+ else
+********************
+* MK48t08 Registers
+*
+Control equ 0 control bits
+Seconds equ 1 seconds
+Minutes equ 2 minutes
+Hours equ 3 hour
+Day equ 4 day of the week
+Date equ 5 date of the month
+Month equ 6 month
+Year equ 7 year
+ endc
+
+********************
+* Control register bit designations
+*
+SignBit equ 5
+ReadBit equ 6
+WriteBit equ 7
+
+********************
+* Other control bit designations
+*
+StopBit equ 7 Stop Oscillator - Bit 7 in Seconds register
+FreqBit equ 5 Frequency Test - Bit 6 in Date register
+
+********************
+* Century Definitions
+*
+* Support for Millenium works as follows:
+*
+* "NO_MILLENIUM" symbol defined:
+*   GetTime returns two-digit year added to base Century symbol value
+*
+* "NO_MILLENIUM" symbol undefined:
+*    GetTime returns two-digit year added to either CentPreEpoch or
+*    CentPostEpoch symbol value, depending on the two-digit year 
+*    value compared to the Epoch symbol value
+*
+* In the event that this code functions near the year 2070,
+* the Century symbol may be updated to the year 2000 and the
+* NO_MILLENIUM symbol defined. Then, in the event that this
+* code functions near the year 2100, the CentPreEpoch symbol
+* may be updated to the year 2100, the CentPostEpoch symbol
+* may be updated to the year 2000, and the NO_MILLENIUM symbol
+* undefined to carry the driver near the year 2170, after
+* which nobody will remember how to do all this. :-)
+*
+
+ ifdef NO_MILLENIUM
+
+Century equ 1900 old-style: just 1900's
+
+ else
+
+Epoch equ 70 year of epoch within century
+CentPreEpoch equ 2000 century pre-epoch
+CentPostEpoch equ 1900 century post-epoch
+
+ endc NO_MILLENIUM
+
+
+********************
+* 68020/68030 CACR Definitions
+*
+CachEnab equ 1<<0 enable instruction cache
+DCachEnab equ 1<<8 enable data cache
+ 
+ page
+ 
+********************************
+* RTCTab: Branch table to subroutines
+*
+RTCTab:
+ bra GetTime
+
+ 
+********************************
+* SetTime: Set the time in the RTC chip
+*
+* Passed: (a3) = base address of the ticker chip
+*         (d0) = time data
+*         (d1) = date data
+*
+SetTime:
+ movem.l d2-d3,-(a7) save the registers
+ movea.l #RTCBase,a3 get mk48t08 base address
+ BITSET #WriteBit,Control(a3) enable write
+*
+* Set the time
+*  
+ move.b d0,d2 copy seconds to d2 for conversion
+ bsr BinToBCD convert to BCD
+ andi.b #%01111111,d2 clear unused bit in seconds value
+ REGMOVE 'to',d2,Seconds(a3) set seconds in RTC
+ lsr.l #8,d0 shift minutes into LSB of d0
+ move.b d0,d2 copy minutes to d2 for conversion
+ bsr BinToBCD convert to BCD
+ andi.b #%01111111,d2 clear unused bit in minutes value
+ REGMOVE 'to',d2,Minutes(a3) set minutes in RTC
+ lsr.w #8,d0 shift hours into LSB of d0
+ move.b d0,d2 copy hours to d2 for conversion
+ bsr BinToBCD convert to BCD
+ andi.b #%00111111,d2 clear unused bits in hours value
+ REGMOVE 'to',d2,Hours(a3) set hours in RTC
+ move.b d1,d2 copy date to d2 for conversion
+ bsr BinToBCD convert to BCD
+ andi.b #%00111111,d2 clear unused bits in date value
+ REGMOVE 'to',d2,Date(a3) set date of the month in RTC
+ lsr.l #8,d1 shift month into LSB of d1
+ move.b d1,d2 copy month to d2 for conversion
+ bsr BinToBCD convert to BCD
+ andi.b #%00011111,d2 clear unused bits in month value
+ REGMOVE 'to',d2,Month(a3) set month in RTC
+ lsr.l #8,d1 shift year into LSW of d1
+ divu #100,d1 get year (mod 100)
+ swap d1 move remainder to LSB of d1
+ move.b d1,d2 copy year to d2 for conversion
+ bsr BinToBCD convert to BCD
+ REGMOVE 'to',d2,Year(a3) set year in RTC
+*
+* Get day of the week
+*
+ move.l D_Julian(a6),d1 get the julian date
+ addq.l #2,d1 adjust julian date for 0=Sunday to 6=Saturday
+ divu #7*256,d1 find day of week
+ clr.w d1 clear the quotient
+ swap d1 get the remainder
+ divu #7,d1 do the modulo now
+ clr.w d1 clear the quotient
+ swap d1 d1 = day of the week
+ addq.l #1,d1 adjust day of the week for clock chip
+ andi.b #%00000111,d1 clear unused bits in day of week value
+ REGMOVE 'to',d1,Day(a3) set day of the week in RTC
+ BITCLR #WriteBit,Control(a3) re-enable time register update
+ movem.l (a7)+,d2-d3 retrieve the registers
+ andi #NoCarry,ccr clear the carry
+ rts
+
+ page
+ 
+********************************
+* GetTime: Get the time from the RTC chip
+*
+* Passed: (a3) = base address of the ticker chip
+*
+* Returns: (d0) = time data
+*          (d1) = date data
+*
+GetTime:
+ movem.l d2-d3,-(a7) save the registers
+ movea.l #RTCBase,a3 get mk48t08 base address
+ BITSET #ReadBit,Control(a3) enable read
+ moveq #0,d0 sweep reg
+
+ REGMOVE 'from',Year(a3),d2 get year from RTC
+ bsr BCDToBin convert to binary
+
+ ifdef NO_MILLENIUM
+
+ move.w #Century,d1 years are based on turn of century
+
+ else
+
+ cmpi.b #Epoch,d2 check for relation to epoch
+ blt.s PreEpoch
+ move.w #CentPostEpoch,d1 years are based on century post-epoch
+ bra.s EndMillChk
+
+PreEpoch move.w #CentPreEpoch,d1 years are based on century pre-epoch
+
+EndMillChk equ *
+
+ endc NO_MILLENIUM
+
+ add.w d2,d1 add year to century
+ lsl.l #8,d1 save it in higher byte
+
+ REGMOVE 'from',Month(a3),d2 get month from RTC
+ bsr BCDToBin convert to binary
+ move.b d2,d1 move binary month to d1
+ lsl.l #8,d1 save it in higher byte
+
+ REGMOVE 'from',Date(a3),d2 get date from RTC
+ bsr BCDToBin convert to binary
+ move.b d2,d1 move binary date to d1
+
+ REGMOVE 'from',Hours(a3),d2 get hours from RTC
+ bsr BCDToBin convert to binary
+ move.b d2,d0 move binary hours to d0
+ lsl.l #8,d0 save it in higher byte
+
+ REGMOVE 'from',Minutes(a3),d2 get minutes from RTC
+ bsr.s BCDToBin convert to binary
+ move.b d2,d0 move binary minutes to d0
+ lsl.l #8,d0 save it in higher byte
+
+ REGMOVE 'from',Seconds(a3),d2 get seconds from RTC
+ bsr.s BCDToBin convert to binary
+ move.b d2,d0 move binary seconds to d0
+ BITCLR #ReadBit,Control(a3) disable read; re-enable update
+ movem.l (a7)+,d2-d3 retrieve the registers
+ andi #NoCarry,ccr clear the carry
+ rts 
+
+ page
+ 
+********************
+* BinToBCD: Convert a binary number
+* (less than one hundred) to BCD.
+*
+* Passed: (d2.b) = binary value < 100
+*
+* Returns: (d2.b) = packed BCD
+*
+BinToBCD:
+ andi.l #$00FF,d2 mask off unused bits
+ divu #10,d2 d2 LSW = tens; d2 MSW = units
+ move.b d2,d3 copy tens to d3
+ lsl.b #4,d3 shift tens digit into high nybble of LSB
+ swap d2 get units in low nybble of LSB of d2
+ or.b d3,d2 OR in the tens digit
+ rts
+
+
+********************
+* BCDToBin: Convert a packed BCD number
+* (less than one hundred) to binary.
+*
+* Passed: (d2.b) = packed BCD
+*
+* Returns: (d2.b) = equivalent binary
+*
+BCDToBin:
+ move.b d2,d3 copy ones digit to d3
+ lsr.b #4,d2 shift tens digit to low nybble of LSB of d2
+ andi.l #$000F,d2 mask out all other bits
+ mulu #10,d2 multiply by 10
+ andi.b #$0F,d3 mask out all but ones
+ add.b d3,d2 add in ones to get result
+ rts
+
+ page
+ 
+********************************
+* SoftDelay: Software Delay loop Subroutine
+*
+* Passed: Nothing
+*
+* Returns: Nothing
+*
+* Requirements: None
+
+
+*********************
+* Constants
+*
+Secs equ 2 seconds to delay
+
+ ifeq MPUChip-68008
+CyDbraL equ 18 cycles per "dbra" loop (looping)
+CyDbraF equ 26 cycles per "dbra" loop (fall through)
+CyMovew equ 16 cycles per "move.w" instruction
+ else
+ ifeq MPUChip-68000
+CyDbraL equ 10 cycles per "dbra" loop (looping)
+CyDbraF equ 14 cycles per "dbra" loop (fall through)
+CyMovew equ 8 cycles per "move.w" instruction
+ else
+ ifeq (MPUChip-68010)*(MPUChip-68012)
+CyDbraL equ 10 cycles per "dbra" loop (looping)
+CyDbraF equ 16 cycles per "dbra" loop (fall through)
+CyMovew equ 8 cycles per "move.w" instruction
+ else
+ ifeq MPUChip-68020
+CyDbraL equ 9 cycles per "dbra" loop (looping)
+CyDbraF equ 10 cycles per "dbra" loop (fall through)
+CyMovew equ 3 cycles per "move.w" instruction
+ else
+ ifeq MPUChip-68030
+CyDbraL equ 8 cycles per "dbra" loop (looping)
+CyDbraF equ 13 cycles per "dbra" loop (fall through)
+CyMovew equ 4 cycles per "move.w" instruction
+ else
+ ifeq MPUChip-68040
+CyDbraL equ 3 cycles per "dbra" loop (looping)
+CyDbraF equ 13 cycles per "dbra" loop (fall through)
+CyMovew equ 3 cycles per "move.w" instruction
+ else
+ ifeq MPUChip-68060
+CyDbraL equ 3 cycles per "dbra" loop (looping)
+CyDbraF equ 13 cycles per "dbra" loop (fall through)
+CyMovew equ 3 cycles per "move.w" instruction
+ else
+ fail rtc48t08.a  - requires valid MPUChip value
+ endc MPUChip-68060
+ endc MPUChip-68040
+ endc MPUChip-68030
+ endc MPUChip-68020
+ endc MPUChip-68010/12
+ endc MPUChip-68000
+ endc MPUChip-68008
+CyLoop equ CyMovew+(65535*CyDbraL)+CyDbraF+CyDbraL
+
+ ifndef MPUClock
+MPUClock set 12000000 Default value is 12MHz
+ endc
+*
+* DelayValu = (MPU cycles per second * seconds of delay) / cycles per loop
+*
+DelayValu equ (MPUClock*Secs)/CyLoop
+
+
+********************
+* SoftDelay: Software Delay loop
+*
+SoftDelay:
+ movem.l d0-d1,-(a7) save the registers
+ move.l #fldata+disdata+flinst+disinst,d0 flush/disable all caches
+ OS9 F$CCtl do so
+ bcs.s SoftDel10 ..not new version, use old code
+ move.w #DelayValu,d1
+FOuter move.w #$FFFF,d0
+FInner dbra d0,FInner
+ dbra d1,FOuter
+ move.l #fldata+endata+flinst+eninst,d0 flush/re-enable caches
+ OS9 F$CCtl do so
+ moveq.l #0,d1 no errors
+ movem.l (sp)+,d0-d1 restore regs
+ rts
+
+SoftDel10 equ * 
+ ifeq (MPUChip-68020)*(MPUChip-68030)*(MPUChip-68040)*(MPUChip-68060)
+ movec cacr,d0 get current cache control register
+ move.l d0,-(a7) save it on the stack
+ ifeq MPUChip-68020
+ andi.l #^CachEnab,d0 mask out cache enable bit
+ else (68030/68040/68060)
+ ifeq (MPUChip-68040)*(MPUChip-68060)
+ nop required for old 68040 masks
+ cpusha bc flush all caches
+ nop wait for all writes to complete
+ endc (68040/68060)
+ andi.l #^(CachEnab+DCachEnab),d0 mask out cache enable bits
+ endc
+ movec d0,cacr disable the cache
+ endc MPUChip
+
+ move.w #DelayValu,d1
+Outer move.w #$FFFF,d0
+Inner dbra d0,Inner
+ dbra d1,Outer
+
+ ifeq (MPUChip-68020)*(MPUChip-68030)*(MPUChip-68040)*(MPUChip-68060)
+ move.l (a7)+,d0 retrieve original cache control register value
+ movec d0,cacr restore cache control register
+ endc MPUChip
+
+ movem.l (a7)+,d0-d1 retrieve the registers
+ rts
+ 
+ ends

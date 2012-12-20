@@ -1,0 +1,58 @@
+ nam Pipe2 Device Descriptor
+
+* Copyright 1984, 1985, 1996 by Microware Systems Corporation.
+* Reproduced Under License.
+
+* This source code is the proprietary confidential property of
+* Microware Systems Corporation, and is provided to licensee
+* solely for documentation and educational purposes. Reproduction,
+* publication, or distribution in any form to any party other
+* than the licensee is prohibited.
+
+
+********************************
+* Edition History
+*  #   date    comments                                         by
+* -- -------- ------------------------------------------------- ---
+* 00 01-16-84 Converted to 68000 from 6809 source.				rfd
+* 01 10-12-84 Added IRQ Level & resesrved bytes.                rfd
+* 02 06-28-85 Added Mode byte.									rfd
+*				---- OS-9/68k V2.1 released ----
+*				---- OS-9/68k V2.2 released ----
+*				---- OS-9/68k V2.3 released ----
+*				---- OS-9/68k V2.4 released ----
+*				---- OS-9/68k V3.0 released ----
+* 03 07-10-96 Added Append_ and Exec_ to Mode byte.				wwb
+*				---- OS-9/68k V3.0.3 released ----
+*				---- OS-9/68k V3.1 released ----
+*
+Edition equ 3
+
+ use defsfile
+
+TypeLang set (Devic<<8)+0
+Attr_Rev set (ReEnt<<8)+0
+ psect Pipe2,TypeLang,Attr_Rev,Edition,0,0
+
+ dc.l 1 port address (pipe device #one)
+ dc.b 0 no trap assignment
+ dc.b 0 no IRQ hardware interrupt level
+ dc.b 0 0 no polling priority
+ dc.b Dir_+ISize_+Append_+Exec_+Updat_ device Mode capabilities
+ dc.w PipeMgr file manager name offset
+ dc.w PipeDrv device driver name offset
+ dc.w 0 DevCon
+ dc.w 0,0,0,0 reserved
+ dc.w OptLen option byte count
+
+OptTbl
+ dc.b DT_Pipe Device Type: Pipe
+ dc.b 0 reserved
+ dc.l $4000 use 16k pipe buffer
+OptLen equ *-OptTbl
+
+PipeMgr dc.b "PipeMan",0 file manager
+PipeDrv dc.b "Null",0 device driver
+
+ ends
+

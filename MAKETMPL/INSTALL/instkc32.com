@@ -1,0 +1,1 @@
+MAKE.kc32		=	$(MAKEIT) TARGET=kc32 $(SUBTRGT)

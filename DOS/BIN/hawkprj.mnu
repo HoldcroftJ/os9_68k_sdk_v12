@@ -1,0 +1,166 @@
+
+[Component]
+Open                              ; hawkProjDispatch IDM_HAWK_COMP_OPEN
+New...                            ; hawkProjDispatch IDM_HAWK_COMP_NEW
+Remove                            ; hawkProjDispatch IDM_HAWK_ELEM_REMOVE
+Rename                            ; hawkProjDispatch IDM_HAWK_COMP_RENAME
+Duplicate                         ; hawkProjDispatch IDM_HAWK_COMP_DUPLICATE
+Regenerate Dependencies           ; hawkProjDispatch IDM_HAWK_COMP_REGEN_DEPENDS
+Unit Maintenance...               ; hawkProjDispatch IDM_HAWK_COMP_ADDUNITS
+>Move
+Up one level                      ; hawkProjDispatch IDM_HAWK_COMP_UPONELEVEL
+Root level                        ; hawkProjDispatch IDM_HAWK_COMP_ROOTLEVEL
+<
+-
+Use Debug Info                    ; hawkProjDispatch IDM_HAWK_ELEM_TOGGLE_DBGINFO	;!hawkElemUsingDbgInfo
+Toggle exclude from build         ; hawkProjDispatch 405
+Link                              ; hawkProjDispatch IDM_HAWK_COMP_LINK
+Build                             ; hawkProjDispatch IDM_HAWK_ELEM_BUILD
+Rebuild                           ; hawkProjDispatch IDM_HAWK_ELEM_REBUILD
+-
+Debug                             ; hawkProjDispatch IDM_HAWK_COMP_DEBUG
+Load                              ; hawkProjDispatch IDM_HAWK_COMP_LOAD
+-
+Import...                         ; hawkProjDispatch IDM_HAWK_COMP_IMPORT
+-
+Properties...                     ; hawkProjDispatch IDM_HAWK_ELEM_PROPERTIES
+-
+Edit this menu...                 ; DlgEditPopupMenu $
+
+[Unit]
+Open                              ; hawkProjDispatch IDM_HAWK_UNIT_OPEN
+Close                             ; hawkProjDispatch IDM_HAWK_UNIT_CLOSE
+Touch                             ; hawkProjDispatch IDM_HAWK_UNIT_TOUCH
+Remove from Project               ; hawkProjDispatch IDM_HAWK_ELEM_REMOVE
+-
+Use Debug Info                    ; hawkProjDispatch IDM_HAWK_ELEM_TOGGLE_DBGINFO	;!hawkElemUsingDbgInfo
+Build                             ; hawkProjDispatch IDM_HAWK_ELEM_BUILD
+Rebuild                           ; hawkProjDispatch IDM_HAWK_ELEM_REBUILD
+>Special
+Preprocess                        ; hawkBuildSpecial "-pE" TRUE	;~!hawkAllowSpecial
+Disassemble                       ; hawkBuildSpecial "-as=lgx" TRUE	;~!hawkAllowSpecial
+Enumerate Headers                 ; hawkBuildSpecial "-pH" TRUE	;~!hawkAllowSpecial
+<
+-
+>Version Control
+Get Latest                        ; hawkVCSDispatch 3
+Check Out                         ; hawkVCSDispatch 2
+Check In                          ; hawkVCSDispatch 1
+Unlock                            ; hawkVCSDispatch 4
+Add                               ; hawkVCSDispatch 5
+Remove                            ; hawkVCSDispatch 6
+-
+History                           ; hawkVCSDispatch 7	;~(hawkGetSelectedUnitCount() > 1)
+Properties                        ; hawkVCSDispatch 8	;~(hawkGetSelectedUnitCount() > 1)
+-
+Setup...                          ; DlgVCSSetup
+Maintenance...                    ; DlgVCMMaintain
+<
+-
+Properties...                     ; hawkProjDispatch IDM_HAWK_ELEM_PROPERTIES
+-
+Edit this menu...                 ; DlgEditPopupMenu $
+
+[Multi-Contents]
+Open                              ; hawkProjDispatch IDM_HAWK_UNIT_OPEN
+Close                             ; hawkProjDispatch IDM_HAWK_UNIT_CLOSE
+Touch                             ; hawkProjDispatch IDM_HAWK_UNIT_TOUCH
+Remove from Project               ; hawkProjDispatch IDM_HAWK_ELEM_REMOVE
+-
+Build                             ; hawkProjDispatch IDM_HAWK_ELEM_BUILD
+Rebuild                           ; hawkProjDispatch IDM_HAWK_ELEM_REBUILD
+-
+>Version Control
+Get Latest                        ; hawkVCSDispatch 3
+Check Out                         ; hawkVCSDispatch 2
+Check In                          ; hawkVCSDispatch 1
+Unlock                            ; hawkVCSDispatch 4
+Add                               ; hawkVCSDispatch 5
+Remove                            ; hawkVCSDispatch 6
+-
+History                           ; hawkVCSDispatch 7	;~(hawkGetSelectedUnitCount() > 1)
+Properties                        ; hawkVCSDispatch 8	;~(hawkGetSelectedUnitCount() > 1)
+-
+Setup...                          ; DlgVCSSetup
+Maintenance...                    ; DlgVCMMaintain
+<
+-
+Edit this menu...                 ; DlgEditPopupMenu $
+
+[Project_Explorer]
+>View
+Large Icons                       ; hawkProjMenuDispatch IDM_HAWK_PROJ_LARGE_ICON	;!hawkProjMenuChecked IDM_HAWK_PROJ_LARGE_ICON
+Small Icons                       ; hawkProjMenuDispatch IDM_HAWK_PROJ_SMALL_ICON	;!hawkProjMenuChecked IDM_HAWK_PROJ_SMALL_ICON
+List                              ; hawkProjMenuDispatch IDM_HAWK_PROJ_LIST	;!hawkProjMenuChecked IDM_HAWK_PROJ_LIST
+Details                           ; hawkProjMenuDispatch IDM_HAWK_PROJ_DETAILS	;!hawkProjMenuChecked IDM_HAWK_PROJ_DETAILS
+<
+-
+>Arrange Icons
+by Name                           ; hawkProjMenuDispatch IDM_HAWK_PROJ_SORTBYNAME	;!hawkProjMenuChecked IDM_HAWK_PROJ_SORTBYNAME
+by Type                           ; hawkProjMenuDispatch IDM_HAWK_PROJ_SORTBYTYPE	;!hawkProjMenuChecked IDM_HAWK_PROJ_SORTBYTYPE
+by Date                           ; hawkProjMenuDispatch IDM_HAWK_PROJ_SORTBYDATE	;!hawkProjMenuChecked IDM_HAWK_PROJ_SORTBYDATE
+by Build                          ; hawkProjMenuDispatch IDM_HAWK_PROJ_SORTBYBUILD	;!hawkProjMenuChecked IDM_HAWK_PROJ_SORTBYBUILD
+<
+Refresh                           ; hawkProjMenuDispatch IDM_HAWK_PROJ_REFRESH
+Show Toolbar                      ; hawkProjDispatch IDM_HAWK_PROJ_SHOWTOOLBAR
+Show Microware Tools              ; hawkProjDispatch 518
+-
+>New
+Project...                        ; hawkProjMenuDispatch IDM_HAWK_PROJ_NEW
+Component...                      ; hawkProjMenuDispatch IDM_HAWK_PROJ_NEW_COMP
+<
+-
+Project Properties...             ; hawkProjMenuDispatch IDM_HAWK_PROJ_PROPERTIES	;~!hawkProjIsOpen
+-
+Edit this menu...                 ; DlgEditPopupMenu $
+
+[Project_Tree]
+Refresh
+-
+>New
+Project...
+Component...
+<
+-
+Project Properties...
+-
+Edit this menu...                 ; DlgEditPopupMenu $
+[###]
+
+
+[Hawk:ProjectCurrent]
+Rebuild all projects              ; hawkProjDispatch IDM_HAWK_PROJSPACE_REBUILD
+Build all projects                ; hawkProjDispatch IDM_HAWK_PROJSPACE_BUILD
+New Component...                  ; hawkProjMenuDispatch IDM_HAWK_PROJ_NEW_COMP
+-
+Save                              ; hawkProjDispatch IDM_HAWK_PROJ_SAVE
+Close                             ; hawkProjDispatch IDM_HAWK_PROJ_CLOSE
+Remove                            ; hawkProjDispatch IDM_HAWK_PROJ_REMOVE
+-
+Build                             ; hawkProjDispatch IDM_HAWK_PROJ_BUILD
+Rebuild                           ; hawkProjDispatch IDM_HAWK_PROJ_REBUILD
+Load All                          ; hawkProjDispatch IDM_HAWK_COMP_LOAD_ALL
+Unload All                        ; hawkProjDispatch IDM_HAWK_COMP_UNLINK_ALL	;;Unload all the modules in the project from the target's memory
+Clean All                         ; hawkProjDispatch IDM_HAWK_COMP_CLEAN_ALL
+-
+>Version Control
+Setup...                          ; MenuCommand IDM_TOOLS_VCS_SETUP
+<
+-
+Settings...                       ; DlgProjectEx NULL TAB_PROJDIR_ID 4 NULL 0
+Properties...                     ; hawkProjMenuDispatch IDM_HAWK_PROJ_PROPERTIES
+-
+Edit this menu...                 ; DlgEditPopupMenu $
+[###]
+
+
+[Hawk:Project]
+Set as Current Project            ; (ProjOpen(_ProjectGetSelectedItem(),1))
+-
+Remove from Project Space         ; (ProjSpaceDelProj(_ProjectGetSelectedItem()))	;~ConfigQUserWorkspaceAutoSync
+-
+Settings...                       ; DlgProjectEx NULL TAB_PROJDIR_ID 4 NULL 0
+-
+Edit this menu...                 ; DlgEditPopupMenu $
+[###]
+

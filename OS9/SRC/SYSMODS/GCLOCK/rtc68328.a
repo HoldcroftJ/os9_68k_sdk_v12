@@ -1,0 +1,164 @@
+******************************************************************************
+* Real-Time Clock Driver for MC68328 internal RTC
+******************************************************************************
+** Copyright 1995, 1996 by Microware Systems Corporation                    **
+** Reproduced Under License                                                 **
+**                                                                          **
+** This source code is the proprietary confidential property of             **
+** Microware Systems Corporation, and is provided to licensee               **
+** solely for documentation and educational purposes. Reproduction,         **
+** publication, or distribution in any form to any party other than         **
+** the licensee is strictly prohibited.                                     **
+******************************************************************************
+** Edition History:                                                         **
+** #   Date     Comments                                          By        **
+** --- -------- ------------------------------------------------- --------- **
+*  01  09/08/95 Copied from rtc68341.a                             rws      **
+*  02  08/01/96 General cleanup.                                   ats      **
+*               --- OS-9/68K MC68328 Support Beta2 Release ---              **
+******************************************************************************
+
+ nam rtc68328.a
+ ttl Real Time Clock subroutine module for MC68328 on-chip RTC
+ 
+Edition equ 2 current edition number
+Revision set 0
+
+Typ_Lang set (Sbrtn<<8)+Objct Subroutine Object module
+Attr_Rev set ((ReEnt+SupStat)<<8)+Revision
+
+ psect RTClock,Typ_Lang,Attr_Rev,Edition,0,RTCTab
+
+
+********************
+* hardware definitions in rtcm328.d, pulled in from defsfile
+*
+ use <defsfile>
+
+
+ page
+ 
+********************
+* RTCTab: Branch table for the two
+*         main subroutines
+*
+* General Description: This branch to "GetTime" with the "SetTime"
+*                      subroutine immediately following are accessed as
+*                      an offset table by the tickgeneric code in order
+*                      to effectively start execution at the appropriate
+*                      subroutine after an F$Link call to this module.
+*                      Tickgeneric uses the format: jsr GetTime(a1)
+*                                                   jsr SetTime(a1)
+*                      
+*                      Where GetTime = 0, SetTime = 4, and (a1) = the
+*                      execution address of this module.  (i.e. RTCTab)
+*
+RTCTab: bra GetTime
+ 
+* NOP Note: if the assembler's -b option is used (Optimize branch sizing)
+*	  and if the SetTime routine is less than 128 bytes, the assembler
+*	  will create a "bra.b GetTime" instruction (2 bytes) and this NOP
+*	  instruction will be needed for proper construction of the jump 
+*	  table (otherwise SetTime will be called 2 bytes into its routine)
+
+********************
+* SetTime: Set the time in the MC68328
+*          Real Time Clock
+*
+* Passed: (a3) = base address of ticker chip -- the MC68328 contains
+*                internal timers, one of which is certainly used as the
+*                ticker, however, the RTC is at a different base address,
+*                so the RTC address will need to be explicitely loaded in 
+*                this routine.
+*         (d0) = current time data (00hhmmss) (hh, mm, and ss are 
+*				 binary formatted, not BCD formatted)
+*         (d1) = current date data (yyyymmdd) (yyyy, mm, and dd are 
+*				 binary formatted, not BCD formatted)
+*
+* Returns: (cc) = carry cleared if no error
+*                 carry set if error occurred
+*          (d1) = zero if no error
+*                 Error code if error occurred (E$Param)
+*
+SetTime:
+*
+ movem.l d2-d3/a3,-(a7)  store registers used for local variables
+ movea.l #MHSRMap,a3     move RTC base address into a3
+ move.b #^RTC_ENABLE,RTCCTL(a3) disable RTC to write to it
+*
+* Setting the Time in the RTC 
+*
+ move.l d0,d2         copy time contents
+ move.l d0,d3         and again -- time in d0, d2, and d3 now
+ andi.l #$00FF0000,d0 isolate hours bits in d0
+ lsl.l #8,d0          put hours in correct bit position for RTCHMSR
+ andi.l #$0000FF00,d2 isolate minutes bits in d2
+ lsl.l #8,d2          put minutes in correct bit position for RTCHMSR
+ andi.l #$000000FF,d3 isolate seconds bits in d3
+ or.l d2,d0           combine minutes to hours
+ or.l d3,d0           combine seconds to hours and minutes
+ move.l d0,RTCHMSR(a3) write RTC Hours Minutes Seconds Register
+*
+* There is no Date Register in the RTC 
+*
+ andi #NoCarry,ccr    clear the carry bit to indicate no error
+ move.l #0,d1         return no error
+ move.b #RTC_ENABLE,RTCCTL(a3) RTC enabled
+ movem.l (a7)+,d2-d3/a3 restore registers used as local vars
+ rts
+
+
+ page
+
+********************
+* GetTime: Get the time from MC68328
+*          Real Time Clock 
+*
+* Passed: (a3) = base address of ticker chip -- the MC68328 contains
+*                internal timers, one of which is certainly used as the
+*                ticker, however, the RTC is at a different base address,
+*                so the RTC address will need to be explicitely loaded in
+*                this routine.
+* 		  (a4) = current process descriptor
+*	      (a5) = caller's registers pointer
+*         (a6) = system global pointer
+*
+* Returns: (d0) = current time (00hhmmss) (hh, mm, and ss are 
+*				  binary formatted, not BCD formatted)
+*          (d1) = current date (yyyymmdd) if no error (yyyy, mm, and dd are
+*				  binary formatted, not BCD formatted)
+*                 Error code if error occurred 
+*          (cc) = carry cleared if no error
+*                 carry set if error occurred
+*
+GetTime:
+*
+ movem.l d2/a3,-(a7)  store registers used for local variables
+ movea.l #MHSRMap,a3  move RTC base address into a3
+*
+* There is no date register in the RTC -- hardcode a return date
+*
+ move.l #((1995<<16)+(5<<8)+5),d1	Happy Birthday rws!
+*
+* Getting the time from the RTC
+* 
+ move.b #^RTC_ENABLE,RTCCTL(a3) disable RTC to properly read from it
+*
+ clr.l d0			  	prepare time register
+ move.l RTCHMSR(a3),d0 	get RTC Hours Minutes Seconds Register
+ andi.l #$1F000000,d0  	isolate hours bits
+ lsr.l #8,d0          	put hours in correct bit position for return
+ move.l RTCHMSR(a3),d2 	get RTC Hours Minutes Seconds Register
+ andi.l #$003F0000,d2 	isolate minutes bits
+ lsr.l #8,d2          	put minutes in correct bit position for return
+ or.l d2,d0           	combine minutes with hours
+ move.l RTCHMSR(a3),d2 	get RTC Hours Minutes Seconds Register
+ andi.l #$0000003F,d2 	isolate seconds
+ or.l d2,d0           	combine seconds with minutes and hours
+ andi #NoCarry,ccr    	clear the carry bit to indicate no error
+ move.b #RTC_ENABLE,RTCCTL(a3) RTC enabled
+ movem.l (a7)+,d2/a3  	restore registers used as local vars
+ rts 
+
+
+ ends

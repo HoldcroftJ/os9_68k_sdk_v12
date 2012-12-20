@@ -1,0 +1,46 @@
+/*
+ * Support header for RW Tools
+ */
+
+#ifndef _STAT_H
+#define _STAT_H
+
+/* define st_mode constants: these are defined so that an
+ * octal number 0XYZ (where X, Y and Z are octal digits) will
+ * specify the user, group and other permissions respectively with the MSB
+ * of each digit denoting read permission and the LSB denoting execute 
+ * permission
+ */
+
+#define	S_IRUSR	0x100U
+#define S_IWUSR	0x80U
+#define S_IXUSR	0x40U
+#define S_IRWXU	(S_IRUSR|S_IWUSR|S_IXUSR)
+#ifdef _OS9000
+#define S_IRGRP	0x20U
+#define S_IWGRP	0x10U
+#define S_IXGRP	0x8U
+#define S_IRWXG	(S_IRGRP|S_IWGRP|S_IXGRP)
+#endif
+#define	S_IROTH	0x4U
+#define S_IWOTH	0x2U
+#define S_IXOTH	0x1U
+#define S_IRWXO	(S_IROTH|S_IWOTH|S_IXOTH)
+
+
+#include <sys/ctypes>
+
+struct stat {
+	mode_t	st_mode;		/* file mode (perms) */
+	off_t	st_size;		/* file size in bytes */
+	/* POSIX stat has other fields too but we don't need those */
+};
+
+namespace __unix {
+
+int stat(const char* fname, struct stat* stbuf);
+int fstat(int fildes, struct stat* stbuf);
+
+};
+
+#endif /* _STAT_H */

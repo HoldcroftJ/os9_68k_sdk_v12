@@ -1,0 +1,17 @@
+
+  use <oskdefs.d>
+  psect csub,(Sbrtn<<8)+Objct,0x8001,212,0,entry
+
+  org 0
+
+entry:
+  dc.l mppm_initsize
+  dc.l mppm_init
+  dc.l mppm_attach
+  dc.l mppm_process_msg
+  dc.l mppm_process_data
+  dc.l mppm_detach
+  dc.l mppm_term
+
+  ends
+

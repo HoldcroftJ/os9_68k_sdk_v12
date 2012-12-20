@@ -1,0 +1,425 @@
+ nam scp167
+ ttl parallel interface driver for VME167 printer port
+
+* Copyright 1991, 1993 by Microware Systems Corporation
+* Reproduced Under License
+
+* This source code is the proprietary confidential property of
+* Microware Systems Corporation, and is provided to licensee
+* solely for documentation and educational purposes. Reproduction,
+* publication, or distribution in any form to any party other than
+* the licensee is strictly prohibited.
+
+
+********************
+* SCP167 - Parallel Interface Driver for MVME167
+*
+
+
+********************
+* Edition History:
+*  #   Date    Comments												by
+* -- -------- ----------------------------------------------------	---
+* 00 91/05/10 Derived from the mVme147 PCC Parallel port driver		Rwb
+* 01 91/10/07 Reality check... Yes it do seem to work				Rwb
+*              ---- OS-9/68k V2.4 released ----
+* 02 93/02/10 Reworked V_IRQMsk code for MSP support.				wwb
+* 03 93/07/01 reworked use pathlists for MWOS structure.			wwb
+*              ---- OS-9/68k V3.0 released ----
+*              ---- OS-9/68k V3.1 released ----
+*
+Edition equ 3 current edition number
+
+
+********************
+* SCP167 Device Driver
+*
+Typ_Lang set (Drivr<<8)+Objct device driver, object code
+Attr_Rev set ((ReEnt+SupStat)<<8)+0 attributes and revision
+
+ psect scp167,Typ_Lang,Attr_Rev,Edition,0,scpentry
+
+ use defsfile
+
+ page
+********************
+* Macro definitions
+*
+
+ use <os9svc.m>
+
+********************
+*  Note:  this printer port driver communicates with the mVme167 PCC
+*    parallel port.  This port can be configured for input as well
+*    but that is currently not supported.  This is a centronics style
+*    driver for printers.
+
+********************
+* Definitions
+*
+BuffSize equ 500 I/O buffer size
+
+*Rename some of the registers and bits from the pcc2.d file
+IRQACK  equ PCCPPackCt  ACK interrupt control register
+IRQFLT  equ PCCPPFlticr FAULT interrupt control register
+IRQSTAT equ PCCPPInStat Parallel Port Status Register
+PPDATA  equ PCCPPData   Parallel Port Data Register
+PPCNTRL equ PCCPPCntrl  Parallel Port Control Register
+
+IrqClr  equ b_PCCicr_ICLR interrupt clear (register independent)
+IrqEn   equ b_PCCicr_IEN interrupt enable
+
+*  interrupt mode:  set edge sensative, rising edge
+IrqMode equ m_PCCicr_MEL+m_PCCicr_ICLR+m_PCCicr_PLTY
+
+* printer mode word
+Pmode equ PCCPPCntrl_DOEN  auto-mode
+
+* irq status flags
+IrqAck_b  equ b_PCCicr_INT (acknowledge asserted)
+IrqFalt_b equ b_PCCicr_INT (fault asserted)
+
+* printer status flags
+StBusy_b equ b_PPBusy (busy asserted)
+StFalt_b equ b_PPflt (fault asserted)
+StAck_b  equ b_PPack (acknowledge asserted)
+
+delayval equ 20 delay value for irq delay
+
+********************
+* Static Storage
+*
+ vsect
+V_BufPtr ds.l 1 i/o buffer ptr
+V_BufEnd ds.l 1 end of buffer ptr
+V_NxtIn ds.l 1 next in ptr
+V_NxtOut ds.l 1 next out ptr
+V_IRQMsk ds.w 1 interrupt mask word
+V_Ready ds.b 1 port ready flag
+V_Data ds.b 1 data in buffer flag
+V_Buffer ds.b BuffSize beginning of buffer
+ ends
+
+
+***************
+* Entry Offset Table
+*
+scpentry dc.w SCInit initialization routine
+ dc.w SCRead read routine
+ dc.w SCWrite write routine
+ dc.w SCGetStt get status routine
+ dc.w SCSetStt set status routine
+ dc.w SCTerm terminate routine
+ dc.w 0 exception handler (0=none)
+ pag
+***************
+* SCInit - initialize hardware
+*
+* Passed: (a1) = device descriptor ptr
+*         (a2) = static storage ptr
+*         (a4) = process descriptor ptr
+*         (a6) = system global data ptr
+*
+* Returns:  Carry set, d1.w = error code if error
+*
+SCInit: lea.l V_Buffer(a2),a0 get buffer ptr
+ move.l a0,V_BufPtr(a2) set buffer ptr
+ move.l a0,V_NxtIn(a2) set next in ptr
+ move.l a0,V_NxtOut(a2) set next out ptr
+ lea.l BuffSize(a0),a0 get end of buffer ptr
+ move.l a0,V_BufEnd(a2) set end ptr
+
+* form interrupt mask value.
+* NOTE: the IRQMasking is always performed "outside" of the Interrupt
+* Service context, thus move.w V_IRQMsk(a2),sr is ok, as there will not
+* be an accidental stack switch.
+*
+ move.b M$IRQLvl(a1),d2 get irq level
+ asl.w #8,d2 shift into priority
+ move.w sr,d0 get sr (for stack/trace flags)
+ andi.w #IntEnab,d0 clear irq masks
+ or.w d0,d2 form "current stack, irqs masked to this level" value
+ move.w d2,V_IRQMsk(a2) save for future use
+
+* add device to irq polling table
+
+ move.b M$Vector(a1),d0 get vector number
+ move.b M$Prior(a1),d1 get priority
+ lea.l SCIRQ(pc),a0 addr of service routine for ACK IRQ
+ movea.l V_PORT(a2),a3 get port addr
+ OS9 F$IRQ Add to irq polling table
+ bcs.s InitExit ..exit if error
+ move.b M$Vector(a1),d0 get vector number
+ subq.b #1,d0 Fault vector = Ack vector - 1
+ move.b M$Prior(a1),d1 get priority
+ lea.l SCIRQFlt(pc),a0 addr of service routine for FAULT IRQ
+ OS9 F$IRQ Add to irq polling table
+ bcs.s InitExit ..exit if error
+
+* init printer port
+
+ move.w sr,d6 save irq masks
+ move.w V_IRQMsk(a2),sr mask interrupts
+ move.b #Pmode,PPCNTRL(a3) set printer mode
+ move.b M$IRQLvl(a1),d0 get irq h/w level
+ andi.b #m_PCCicr_Lvl,d0 ensure valid range
+ ori.b #IrqMode,d0 place mode bits in place
+ move.b d0,IRQFLT(a3) clr and set level for FAULT
+ move.b d0,IRQACK(a3) and same for ACK 
+ bset #IrqEn,IRQFLT(a3) enable the interrupts
+ bset #IrqEn,IRQACK(a3)
+ move.w d6,sr restore sr
+ moveq.l #0,d1 flag no error
+InitExit: rts return   
+
+ pag
+********************
+* SCRead - read character from parallel port
+*
+* Passed: (a1) = path descriptor ptr
+*         (a2) = static storage ptr
+*         (a4) = process descriptor ptr
+*         (a6) = system global data pointer
+*
+* Returns: Carry set, (d1.w) = E$EOF
+*
+SCRead: move.w #E$EOF,d1 return "End of File" error
+ ori.b #Carry,ccr set carry
+ rts
+
+
+********************
+* SCGetStt - get status routines
+*
+* Passed: (a1) = path descriptor ptr
+*         (a2) = static storage ptr
+*         (a4) = process descriptor ptr
+*         (a5) = caller's register stack ptr
+*         (a6) = system global data pointer
+*         d0.w = status call function code
+*
+* Returns:  Carry set, d1.w = E$UnkSvc
+*
+SCGetStt: move.w #E$UnkSvc,d1 return "Unknown Service Request"
+ ori.b #Carry,ccr set carry
+ rts return
+
+
+********************
+* SCSetStt - set status routines
+*
+* Passed: (a1) = path descriptor ptr
+*         (a2) = static storage ptr
+*         (a4) = process descriptor ptr
+*         (a5) = caller's register stack ptr
+*         (a6) = system global data pointer
+*         d0.w = status call function code
+*
+* Returns:  Carry set, d1.w = E$UnkSvc
+*
+SCSetStt: equ SCGetStt same as get status
+ pag
+********************
+* SCTerm - Terminate processing.
+*
+* Wait for all output to be sent, then terminate the device.
+*
+* Passed: (a1) = device descriptor ptr
+*         (a2) = static storage
+*         (a4) = process descriptor ptr
+*         (a6) = system global data ptr
+*
+* Returns: none
+*
+SCT_A bsr.s SCSleep wait for port ready
+
+SCTerm: movea.l V_PORT(a2),a3 get port address
+ move.w P$ID(a4),d0 get process id
+ move.w d0,V_BUSY(a2) mark user of port...
+ move.w d0,V_LPRC(a2) ..in case of signals
+ move.w sr,d6 save interrupt masks
+ move.w V_IRQMsk(a2),sr mask irqs
+ move.b V_Data(a2),d1 is buffer empty?
+ bne.s SCT_A ..No; Wait
+ move.w d6,sr retrieve interrupt masks
+ 
+SCTerm_B tst.b V_Ready(a2) now, wait for final irq to set port ready
+ bne.s SCTerm_B
+
+* clear device irq control
+
+ bclr #IrqEn,IRQACK(a3) disable all interrupts from the PCC parallel port
+ bclr #IrqEn,IRQFLT(a3)
+ move.b M$Vector(a1),d0 get vector number (Ack IRQ)
+ suba.l a0,a0 set zero address
+ OS9 F$IRQ remove port from polling tbl
+ move.b M$Vector(a1),d0 get vector number (Flt IRQ)
+ subq.b #1,d0
+ suba.l a0,a0 set zero address
+ OS9 F$IRQ remove port from polling tbl
+ rts
+ pag
+***************
+* SCSleep - Sleep until port is ready
+*
+* Passed: d6.w = saved SR
+*         (a1) = path descriptor ptr
+*         (a2) = static storage ptr
+*         (a4) = current process descriptor ptr
+*         (a6) = system global data pointer
+*
+* Returns: Carry = Set if signal error
+*
+* Destroys:
+*
+SCSleep: move.w V_BUSY(a2),V_WAKE(a2) set wake-up call
+ move.w d6,sr retrieve sr
+ move.l d0,-(a7) save (d0)
+ moveq.l #0,d0 wait for signal
+ OS9svc F$Sleep call sleep directly
+ move.w P$Signal(a4),d0 signal waiting?
+ beq.s SCSleep_B ..No; check status 
+ cmpi.w #S$Deadly,P$Signal(a4) deadly signal?
+ blo.s SCSleep_C ..Yes; return error
+SCSleep_B: btst.b #Condemn,P$State(a4) has process died?
+ bne.s SCSleep_C ..yes; exit
+ move.l (a7)+,d0 restore d0, clear carry
+ rts return
+
+SCSleep_C: move.l (a7)+,d0 restore d0
+ ori.b #Carry,ccr set carry to flag signal/death
+ rts
+ pag
+***************
+* SCWrite - Write one byte to parallel port
+*
+* Passed: (a1) = path descriptor ptr
+*         (a2) = static storage ptr
+*         (a4) = process descriptor ptr
+*         (a5) = caller's register stack ptr
+*         (a6) = system global data pointer
+*         d0.b = char to write to port
+*
+* Returns: Carry set, d1.w = error code if error
+*
+SCW_A bsr.s SCSleep wait for port
+ bcs.s SCW_Z abort if error
+SCWrite: movea.l V_PORT(a2),a3 get port ptr
+ move.w sr,d6 save interrupt masks
+ move.w V_IRQMsk(a2),sr mask irqs
+ tst.b V_Ready(a2) is port ready?
+ beq.s SCW_B branch if so
+ bsr.s BuffIn put byte in buffer
+ bcs.s SCW_A branch if not successful
+ move.w d6,sr restore sr
+ moveq.l #0,d1 clear Carry
+ rts
+
+SCW_B move.b #1,V_Ready(a2) set port not ready
+ move.w d6,sr restore sr
+ move.w d0,PPDATA(a3) write byte (16 bit port,  low 8 bits count)
+SCW_Z rts
+ pag
+********************
+* BuffIn - put character into buffer
+*
+* Passed:  (a2) = static storage ptr
+*          d0.b = character to buffer
+*
+* Returns:  Carry set if buffer full
+*
+* Destroys: a0
+*
+BuffIn: movea.l V_NxtIn(a2),a0 get next in ptr
+ tst.b V_Data(a2) already data in buffer?
+ beq.s BufI_A branch if not
+ cmpa.l V_NxtOut(a2),a0 is buffer full?
+ bne.s BufI_B branch if not
+ ori.b #Carry,ccr set Carry
+ rts
+
+BufI_A move.b #1,V_Data(a2) set data in buffer flag
+
+BufI_B move.b d0,(a0)+ put byte in buffer
+ cmpa.l V_BufEnd(a2),a0 end of buffer?
+ bcs.s BufI_C branch if not
+ movea.l V_BufPtr(a2),a0 get buffer ptr
+BufI_C move.l a0,V_NxtIn(a2) update next in ptr
+ rts
+
+
+********************
+* BuffOut - read character from buffer
+*
+* Passed:  (a2) = static storage ptr
+*
+* Returns:  Carry set if buffer empty, else
+*           d0.b = character to buffer
+*
+* Destroys: a0
+*
+BuffOut: tst.b V_Data(a2) is there data in buffer?
+ bne.s BufO_A branch if so
+ ori.b #Carry,ccr set Carry
+ rts
+
+BufO_A movea.l V_NxtOut(a2),a0 get next out ptr
+ move.b (a0)+,d0 get byte from buffer
+ cmpa.l V_BufEnd(a2),a0 end of buffer?
+ bcs.s BufO_B branch if not
+ movea.l V_BufPtr(a2),a0 reset next out ptr
+BufO_B move.l a0,V_NxtOut(a2) update next out ptr
+ cmpa.l V_NxtIn(a2),a0 is buffer empty?
+ bne.s BufO_C branch if not
+ clr.b V_Data(a2) clear data in buffer flag
+BufO_C moveq.l #0,d1 clear Carry
+ rts
+ pag
+***************
+* SCIRQ - process parallel port interrupt
+*
+* Passed: (a2) = static storage
+*         (a3) = port address
+*         (a6) = system global data pointer
+*
+* Returns:  Carry = Set if interrupt not serviced
+*
+* The kernel only preserves d0, d1, a0, a2, a3 and a6.
+* All other registers used must be preserved by this routine.
+*
+
+* Entry for the ACK interrupt
+SCIRQ: btst #IrqAck_b,IRQACK(a3) was it us?
+ bne.s SCIRQ_0 ..yes it's our irq; continue
+ ori.b #Carry,ccr no, was not
+ rts
+
+SCIRQ_0: move.b IRQSTAT(a3),d0 get irq status
+ bset #IrqClr,IRQACK(a3) reset ack irq
+ bsr.s BuffOut get byte from buffer
+ bcs.s SCIRQ_B branch if empty
+ move.w d0,PPDATA(a3) write it  (16 bit port,  low 8 bits count)
+SCIRQ_A move.w V_WAKE(a2),d0 is there waiting process?
+ beq.s SCIRQ_X ..no; return
+ clr.w V_WAKE(a2) mark signal sent
+ moveq.l #S$Wake,d1 (wake up)
+ OS9svc F$Send call send directly
+SCIRQ_X moveq.l #0,d1 clear carry
+ rts
+
+SCIRQ_B clr.b V_Ready(a2) set port ready
+ bra.s SCIRQ_A flag input ready due to empty buffer
+
+* entry point for FAULT interrupt
+SCIRQFlt: 
+ btst #IrqFalt_b,IRQFLT(a3) interrupt pending for fault?
+ bne.s ClearFault yes, clear the fault status.
+ ori.b #Carry,ccr not a Fault IRQ
+ rts
+
+ClearFault:
+ bset #IrqClr,IRQFLT(a3) clear the fault interrupt status
+ bra.s SCIRQ_A and wake the writer
+
+ ends
+ 

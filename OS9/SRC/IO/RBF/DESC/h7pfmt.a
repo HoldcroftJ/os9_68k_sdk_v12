@@ -1,0 +1,10 @@
+ nam H7 Physical Device Descriptor
+ use defsfile
+
+ use "rbfdesc.a"
+
+DrvNum set 7
+ DiskH7pfmt
+Control set (Control&(^FmtDsabl))!PhysEnab physical format only
+Trys set 1
+ ends

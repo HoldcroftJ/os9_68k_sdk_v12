@@ -1,0 +1,9 @@
+ nam T8
+ ttl 68000 T8 device descriptor module
+ use defsfile
+
+ use "scfdesc.a"
+
+ T8
+ ends
+

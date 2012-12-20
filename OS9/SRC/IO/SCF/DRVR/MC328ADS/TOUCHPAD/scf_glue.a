@@ -1,0 +1,278 @@
+******************************************************************************
+** ID:     @(#) scf_glue.a 1.1@(#)
+** Date:   11/1/95
+******************************************************************************
+* scf_glue:  interface code for C language SCF drivers.
+*            This code provides the register interface
+*            between SCF and SCF Device Drivers written 
+*            in C.
+*            This psect is the "root psect" for the final
+*            output module, thus it must be linked first.
+******************************************************************************
+** Copyright 1995 by Microware Systems Corporation                          **
+** Reproduced Under License                                                 **
+**                                                                          **
+** This source code is the proprietary confidential property of             **
+** Microware Systems Corporation, and is provided to licensee               **
+** solely for documentation and educational purposes. Reproduction,         **
+** publication, or distribution in any form to any party other than         **
+** the licensee is strictly prohibited.                                     **
+******************************************************************************
+** Edition History:                                                         **
+** #   Date     Comments                                          By        **
+** --- -------- ------------------------------------------------- --------- **
+**	 1 06/14/95 creation                                          rws       **
+******************************************************************************
+
+ nam scf_glue
+ ttl glue code for SCF drivers written in C
+
+ use "defsfile"
+
+Edition set 1 driver should change this by means of @_sysedit:
+
+Typ_Lang set (Drivr<<8)+Objct 
+Attr_Rev set ((ReEnt+SupStat)<<8)+7 attributes and revision
+ psect main,Typ_Lang,Attr_Rev,Edition,0,Entry
+
+
+********************
+*
+* The entry table
+*
+
+Entry dc.w Init
+      dc.w Read
+      dc.w Write
+      dc.w GetStat
+      dc.w PutStat
+      dc.w Term
+      dc.w 0 exception handler (0 = none)
+
+
+********************
+*
+* Init - Initialize Device and its Static Storage
+*
+* SCF Conventions:
+*
+*    Passed:  (a1) = device descriptor ptr
+*             (a2) = static storage ptr
+*             (a4) = current process descriptor ptr
+*             (a5) = caller's register stack pointer
+*             (a6) = system global data ptr
+*
+*    Returns:  nothing
+*
+*    Error Return:  (cc) = carry set
+*                   d1.w = error code
+*
+* C Driver Conventions:
+*
+*    Call:     error_code init (mod_dev *dd, TStatics lst,
+*					Sysglobs globals) 
+*				(dd = device descriptor ptr,
+*				 lst = static storage ptr,
+*				 globals = system global data ptr)
+*
+*    Returns:  d0.l = 0 (no error), else Error Code
+*
+Init: 
+ lea init(pc),a0        address of the init routine
+ pea.l (a6)             pass system global data ptr
+ move.l a2,d1           pass the static storage ptr
+ move.l a1,d0           pass the device descriptor
+
+* Set up interface between assembly and Ultra C:
+ move.l a2,a6           set local statics ptr
+ jsr (a0)               call init()
+ movea.l (sp)+,a6       restore SysGlobs ptr
+ andi #NoCarry,ccr      reset error flag
+ move.l d0,d1           copy any error code
+ beq EndNoErr           return if no error
+ bra EndErr
+
+
+********************
+*
+* Term - terminate device driver
+*
+* SCF Conventions:
+*
+*    Passed:  (a1) = device descriptor ptr
+*             (a2) = static storage ptr
+*             (a4) = current process descriptor ptr
+*             (a6) = system global data ptr
+*
+*    Returns:  nothing
+*
+*    Error Return:  (cc) = carry set
+*                   d1.w = error code
+*
+* C Driver Conventions:
+*
+*    Call:     error_code term (mod_dev *dd, TStatics lst) 
+*					(dd = device descriptor ptr,
+*					 lst = static storage ptr)
+*
+*    Returns:  d0.l = 0 (no error), else Error Code
+*
+Term: 
+ lea term(pc),a0        address of the term routine
+ pea.l (a6)             save SysGlobs ptr
+ move.l a1,d0           pass device descriptor
+ move.l a2,d1			pass static storage ptr
+
+* Set up interface between assembly and Ultra C:
+ move.l a2,a6           set local statics ptr
+ jsr (a0)               call term()
+ movea.l (sp)+,a6       restore SysGlobs ptr
+ andi #NoCarry,ccr      reset error flag
+ move.l d0,d1           copy any error code
+ beq.s EndNoErr         return if no error
+ bra.s EndErr
+
+
+********************
+*
+* GetStat/PutStat - get/set device status
+*
+* SCF Conventions:
+*
+*    Passed:  d0.w = status call function code
+*             (a1) = path descriptor ptr
+*             (a2) = static storage ptr
+*             (a4) = current process descriptor ptr
+*             (a5) = caller's register stack image ptr
+*             (a6) = system global data ptr
+*
+*    Returns:  nothing
+*
+*    Error Return:  (cc) = carry set
+*                   d1.w = error code
+*
+* C Driver Conventions:
+*
+*    Call: error_code getstat (u_int code, REGISTERS *regs, Pathdesc path_desc, 
+*								Sysglobs globals, TStatics lst)
+*          error_code setstat (u_int code, REGISTERS *regs, Pathdesc path_desc,
+*								Sysglobs globals, TStatics lst)
+*
+*    Returns:  d0.l = 0 (no error), else Error Code
+*
+GetStat: 
+ lea getstat(pc),a0 address of the getstat routine
+ bra.s GetPutCom
+
+PutStat: 
+ lea putstat(pc),a0 address of the setstat routine
+
+GetPutCom 
+ pea.l (a2)         pass static storage ptr
+ pea.l (a6)         pass (and save) system global data ptr
+ pea.l (a1)         pass path descriptor ptr
+ ext.l d0           make the code a long
+ move.l a5,d1       pass register image ptr
+
+* Set up interface between assembly and Ultra C:
+ move.l a2,a6       set local statics ptr
+ jsr (a0)           call getstat() or putstat()
+ movea.l (sp)+,a1   restore path descriptor ptr
+ movea.l (sp)+,a6   restore SysGlobs ptr
+ movea.l (sp)+,a2   restore TStatics ptr
+ andi #NoCarry,ccr  reset error flag
+ move.l d0,d1       copy any error code
+ beq.s EndNoErr     return if no error
+ bra.s EndErr
+
+
+********************
+*
+* Write - output a character
+*
+* SCF Conventions:
+*
+*    Passed:  d0.b = character to write
+*             (a1) = path descriptor ptr
+*             (a2) = static storage ptr
+*             (a4) = current process descriptor ptr
+*             (a5) = caller's register stack pointer
+*             (a6) = system global data ptr
+*
+*    Returns:  nothing
+*
+*    Error Return:  (cc) = carry set
+*                   d1.w = error code
+*
+* C Driver Conventions:
+*
+*    Call:     int write (char outp, Pathdesc path_desc)
+*
+*    Returns:  d0.w = Error Code
+*
+Write: 
+ lea write(pc),a0       address of the write routine
+ pea.l (a6)             save SysGlobs ptr
+ move.l a1,d1           pass path descriptor ptr
+
+* Set up interface between assembly and Ultra C:
+ move.l a2,a6           set global storage ptr for C
+ jsr (a0)               call write()
+ movea.l (sp)+,a6       restore SysGlobs ptr
+ andi #NoCarry,ccr      reset error flag
+ move.l d0,d1           copy any error code
+ beq.s EndNoErr         return if no error
+ bra.s EndErr
+
+
+********************
+*
+* Read - Get Next Character
+*
+* SCF Conventions:
+*
+*    Passed:  (a1) = path descriptor ptr
+*             (a2) = static storage ptr
+*             (a4) = current process descriptor ptr
+*             (a5) = caller's register stack pointer
+*             (a6) = system global data ptr
+*
+*    Returns:  d0.b = input character
+*
+*    Error Return:  (cc) = carry set
+*                   d1.w = error code
+*
+* C Driver Conventions:
+*
+*    Call:     error_code read (char *inp, procid *proc_desc)
+*
+*    Returns:  d0.b = Error Code
+*
+Read: 
+ pea.l (a6)             save SysGlobs ptr
+ sub.l #4,sp            make room for character buffer (inp)
+ lea.l (sp),a0          move character buffer pointer (&inp) into d0
+ move.l a0,d0           pass &inp
+ move.l a4,d1			pass the current process descriptor ptr
+ lea read(pc),a0        address of the read routine
+
+* Set up interface between assembly and Ultra C:
+ move.l a2,a6           set global storage ptr for C
+ jsr (a0)               call read()
+
+ move.l d0,d1           copy any error code
+ move.b 0(sp),d0        get read character
+ add.l #4,sp            take character buffer (inp) off stack
+ movea.l (sp)+,a6       restore SysGlobs ptr
+ andi #NoCarry,ccr      reset error flag
+ tst.l d1               see if error occured
+ beq.s EndNoErr         return if no error
+
+EndErr
+ ori #Carry,ccr         set error flag (Carry defined in process.a)
+
+EndNoErr
+ rts
+
+
+ ends

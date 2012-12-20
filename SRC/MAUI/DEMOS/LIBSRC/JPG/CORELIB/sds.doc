@@ -1,0 +1,7 @@
+jpg_init
+
+
+Syntax: error_code jpg_init(void)
+
+
+Description: jpg_init() initializes 

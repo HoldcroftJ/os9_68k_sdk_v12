@@ -1,0 +1,47 @@
+# /etc/bootptab: database for bootp server (/etc/bootpd)
+# Last update Mon 11/7/88 18:03
+# Blank lines and lines beginning with '#' are ignored.
+#
+# Legend:
+#
+#	first field -- hostname
+#			(may be full domain name and probably should be)
+#
+#	hd -- home directory
+#	bf -- bootfile
+#	cs -- cookie servers
+#	ds -- domain name servers
+#	gw -- gateways
+#	ha -- hardware address
+#	ht -- hardware type
+#	im -- impress servers
+#	ip -- host IP address
+#	lg -- log servers
+#	lp -- LPR servers
+#	ns -- IEN-116 name servers
+#	rl -- resource location protocol servers
+#	sm -- subnet mask
+#	tc -- template host (points to similar host entry)
+#	to -- time offset (seconds)
+#	ts -- time servers
+
+#
+# Be careful about including backslashes where they're needed.  Weird (bad)
+# things can happen when a backslash is omitted where one is intended.
+#
+
+
+# First, we define a global entry which specifies the stuff every host uses.
+
+global.dummy:\
+	:sm=255.255.255.0:\
+	:hd=/h0/tftpboot:bf=null:bs:to=18000:
+
+
+# Individual entries (could also have different servers for some/all of these
+# hosts, but we don't really use this feature at CMU):
+
+boop:tc=global.dummy:ht=ethernet:ha=08003E205284:ip=192.9.200.96:
+vite:tc=global.dummy:ht=ethernet:ha=08003e20c300:ip=192.9.200.57:
+boesky:tc=global.dummy:ht=ethernet:ha=08003E202eae:ip=192.9.200.61:
+

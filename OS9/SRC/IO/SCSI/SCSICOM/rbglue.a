@@ -1,0 +1,206 @@
+ nam rbglue
+ ttl glue code for rbf drivers in c
+
+* Copyright 1988, 1990, 1993 by Microware Systems Corporation
+* Reproduced Under License
+
+* This source code is the proprietary confidential property of
+* Microware Systems Corporation, and is provided to licensee
+* solely for documentation and educational purposes. Reproduction,
+* publication, or distribution in any form to any party other than
+* the licensee is strictly prohibited.
+
+
+********************
+* rbglue:  interface code for C language RBF drivers.
+*          This code provides the register interface
+*          between RBF and RBF-style Device Drivers
+*          that are written in C.
+*          This psect is the "root psect" for the final
+*          output module, thus it must be linked first.
+
+
+********************
+* Edition History:
+*
+* ed.    date.     reason.                                         who.
+* --  --------  -------------------------------------------------  ---
+* 00  88/??/??  original version.                                  djl
+* 01  88/09/02  revised for minimal stack usage in drivers and     lac
+*               revised static storage handling.
+* 02  88/09/13  added history.                                     wwb
+* 03  88/10/10  preserved a6 for Detach.                           wwb
+* 04  90/04/18  added initialization of a5 (=0) for Stack          wwb
+*               traceback of debuggers.  Updated calling
+*               conventions (from RBF, to Driver) for clarity.
+*               ---- OS-9/68K V2.4 released ----
+* 05  93/07/02  converted for UCC.                                 wwb
+*               ---- OS-9/68K V3.0 released ----
+*               ---- OS-9/68K V3.1 released ----
+
+
+********************
+*
+* rbglue - glue code for rbf drivers in c
+*
+
+ use defsfile
+
+Edition set 5 driver should change this by means of @_sysedit:
+
+Typ_Lang set (Drivr<<8)+Objct let's call it a driver
+Attr_Rev set ((ReEnt+SupStat)<<8)+0 attributes and revision
+ psect main,Typ_Lang,Attr_Rev,Edition,0,Entry
+
+********************
+*
+* The entry table
+*
+
+Entry dc.w Init
+ dc.w Read
+ dc.w Write
+ dc.w GetStat
+ dc.w PutStat
+ dc.w Term
+ dc.w 0 exception handler (0 = none)
+
+
+********************
+*
+* Init - initialize device driver
+*
+* RBF Conventions:
+*
+*    Passed:  (a1) = device descriptor ptr
+*             (a2) = static storage ptr
+*             (a4) = current process descriptor ptr
+*             (a6) = system global data ptr
+*
+*    Returns:  nothing
+*
+*    Error Return:  (cc) = carry set
+*                   d1.w = error code
+*
+* C Driver Conventions:
+*
+*    Call:     init (dd)  (dd = device descriptor ptr)
+*
+*    Returns:  d0.l = 0 (no error), else Error Code
+*
+Init: lea init(pc),a0 address of the init routine
+ move.l a6,sys_stat(a2) initialize the systems globals ptr
+ move.l a2,stat(a2) initialize the static storage ptr
+InitTerm move.l a1,d0 pass the device descriptor
+ move.l a2,a6 set global storage ptr for C
+ bra.s calldriver
+
+
+********************
+*
+* Read/Write - read/write disk sector(s)
+*
+* RBF Conventions:
+*
+*    Passed:  d0.l = number of blocks
+*             d2.l = starting LSN
+*             (a1) = path descriptor ptr
+*             (a2) = static storage ptr
+*             (a4) = current process descriptor ptr
+*             (a5) = caller's register stack image ptr
+*             (a6) = system global data ptr
+*
+*    Returns:  nothing
+*
+*    Error Return:  (cc) = carry set
+*                   d1.w = error code
+*
+* C Driver Conventions:
+*
+*    Call:     read  (numsects, blkaddr)
+*              write (numsects, blkaddr)
+*
+*    Returns:  d0.l = 0 (no error), else Error Code
+*
+Read: lea read(pc),a0 address of the read routine
+
+ReadWrite move.l d2,d1 copy the starting block number
+
+setupcall move.l a2,a6 set global storage ptr for C
+ move.l a1,pathdesc(a6) set path ptr
+ move.l a4,procdesc(a6) set process ptr
+calldriver: move.l a5,-(sp) save register
+ movea.w #0,a5 set top of stack (traceback)
+ jsr (a0)
+ movea.l (sp)+,a5 restore register
+ move.l sys_stat(a6),a6 restore system global ptr
+ move.l d0,d1 copy error code
+ beq.s ReadEnd leave if no error
+ ori #Carry,ccr set error flag
+ReadEnd rts
+
+Write: lea write(pc),a0 address of the write routine
+ bra.s ReadWrite
+
+
+********************
+*
+* GetStat/PutStat - get/set device status
+*
+* RBF Conventions:
+*
+*    Passed:  d0.w = status call function code
+*             (a1) = path descriptor ptr
+*             (a2) = static storage ptr
+*             (a4) = current process descriptor ptr
+*             (a5) = caller's register stack image ptr
+*             (a6) = system global data ptr
+*
+*    Returns:  nothing
+*
+*    Error Return:  (cc) = carry set
+*                   d1.w = error code
+*
+* C Driver Conventions:
+*
+*    Call:     getstat (code, regs)
+*              setstat (code, regs)
+*
+*    Returns:  d0.l = 0 (no error), else Error Code
+*
+GetStat: lea getstat(pc),a0 address of the getstat routine
+ bra.s GetPut
+
+PutStat: lea putstat(pc),a0 address of the setstat routine
+
+GetPut ext.l d0 make the code a long
+ move.l a5,d1 pass register image ptr
+ bra.s setupcall
+
+
+********************
+*
+* Term - terminate device driver
+*
+* RBF Conventions:
+*
+*    Passed:  (a1) = device descriptor ptr
+*             (a2) = static storage ptr
+*             (a4) = current process descriptor ptr
+*             (a6) = system global data ptr
+*
+*    Returns:  nothing
+*
+*    Error Return:  (cc) = carry set
+*                   d1.w = error code
+*
+* C Driver Conventions:
+*
+*    Call:     term (dd)  (dd = device descriptor ptr)
+*
+*    Returns:  d0.l = 0 (no error), else Error Code
+*
+Term: lea term(pc),a0 address of the term routine
+ bra.s InitTerm
+
+ ends

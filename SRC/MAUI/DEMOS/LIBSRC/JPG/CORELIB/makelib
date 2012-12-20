@@ -1,0 +1,580 @@
+# 
+# FasTrak Generated Makefile - Version 1.3.0
+# 
+# Created: Thu Nov 16 12:47:31 1995
+# Last Modified: Fri Dec  1 13:35:24 1995
+# 
+# Filename: /tmp_mnt/itv/MWOS/SRC/MAUI/JPEG/QUANT/makelib
+# 
+# This makefile creates a Program Module named "jviewer"JPEG library jpeg.l
+# The Link is done at the I-Code Level
+# This program is compiled for OS-9/68K
+# 
+
+MWOS	= /vobs/mwos
+I_MWOS	= /itv/MWOS
+TRGTS	= jpeg.l jpeg.il
+TARGET = k68k
+ALL_TRGTS = k68k kc32 k020 pppc p386 o386 arm4
+MAKENAME	= makelib
+
+include $(MWOS)/MAKETMPL/make.com
+
+IDIR	= IDIR/$(TARGET)
+ILDIR   = $(IDIR)/HOST5
+LDIR	= ./$(TARGET)
+I_LDIR  = ./$(TARGET)/HOST5
+
+DEFS = -v=.  
+
+OPTMZ	= -t=10 
+
+include $(I_MWOS)/SRC/MAUI/MAKETMPL/trgt$(TARGET).tpl
+
+
+COMPILE = $(CC) $(CPARMS) $(TARGDEFINES) \
+		  $(COPT_CODEADDR) $(COPT_LONGCODE) \
+		  $(COPT_LONGDATA) $(OPTMZ) $(DEFS) $(UCCDEFS) \
+		  $(COPTS) -DOS_$(TARG_OS) -DPROC_$(TARG_PROC) \
+		  -DHAVE_PROTOTYPES -olM=8 -eas
+
+COMPILE_IL = $(CC) $(CPARMS) $(TARGDEFINES) \
+		  $(COPT_CODEADDR) $(COPT_LONGCODE) \
+		  $(COPT_LONGDATA) $(OPTMZ) $(DEFS) $(UCCDEFS) \
+		  $(COPTS) -DHAVE_PROTOTYPES  \
+          -DOS_$(TARG_OS) -DPROC_$(TARG_PROC) -efe
+
+I = .r
+IL = .i
+
+IC_FILES =  $(IDIR)/jcapimin$I \
+  $(IDIR)/jcapistd$I \
+  $(IDIR)/jctrans$I \
+  $(IDIR)/jcparam$I \
+  $(IDIR)/jcinit$I \
+  $(IDIR)/jcmaster$I \
+  $(IDIR)/jcmarker$I \
+  $(IDIR)/jcmainct$I \
+  $(IDIR)/jcprepct$I \
+  $(IDIR)/jccoefct$I \
+  $(IDIR)/jccolor$I \
+  $(IDIR)/jcsample$I \
+  $(IDIR)/jchuff$I \
+  $(IDIR)/jcphuff$I \
+  $(IDIR)/jcdctmgr$I \
+  $(IDIR)/jfdctfst$I \
+  $(IDIR)/jfdctflt$I \
+  $(IDIR)/jfdctint$I \
+  $(IDIR)/rdswitch$I
+
+
+
+
+ID_FILES	=  $(IDIR)/jdatasrc$I \
+	   $(IDIR)/jdatadst$I \
+	   $(IDIR)/jdapistd$I \
+	   $(IDIR)/jdinput$I \
+	   $(IDIR)/jdmainct$I \
+	   $(IDIR)/jdmarker$I \
+	   $(IDIR)/jdmaster$I \
+	   $(IDIR)/jdmerge$I \
+	   $(IDIR)/jdpostct$I \
+	   $(IDIR)/jdtrans$I \
+	   $(IDIR)/jerror$I \
+	   $(IDIR)/jidctflt$I \
+	   $(IDIR)/jidctfst$I \
+	   $(IDIR)/jidctint$I \
+	   $(IDIR)/jidctred$I \
+	   $(IDIR)/jmemmaui$I \
+	   $(IDIR)/jmemmgr$I \
+	   $(IDIR)/cdjpeg$I \
+	   $(IDIR)/rdcolmap$I \
+	   $(IDIR)/jdapimin$I \
+	   $(IDIR)/jutils$I \
+	   $(IDIR)/jdphuff$I \
+	   $(IDIR)/jcomapi$I \
+	   $(IDIR)/jquant1$I \
+	   $(IDIR)/jquant2$I \
+	   $(IDIR)/jdcolor$I \
+	   $(IDIR)/jdcoefct$I \
+	   $(IDIR)/jdhuff$I \
+	   $(IDIR)/jddctmgr$I \
+	   $(IDIR)/jdsample$I
+
+#	   $(IDIR)/wrbmp$I \
+#	   $(IDIR)/wrgif$I \
+#	   $(IDIR)/wrppm$I \
+#	   $(IDIR)/wrrle$I \
+#	   $(IDIR)/wrtarga$I \
+
+ICL_FILES =  $(ILDIR)/jcapimin$(IL) \
+  $(ILDIR)/jcapistd$(IL) \
+  $(ILDIR)/jctrans$(IL) \
+  $(ILDIR)/jcparam$(IL) \
+  $(ILDIR)/jcinit$(IL) \
+  $(ILDIR)/jcmaster$(IL) \
+  $(ILDIR)/jcmarker$(IL) \
+  $(ILDIR)/jcmainct$(IL) \
+  $(ILDIR)/jcprepct$(IL) \
+  $(ILDIR)/jccoefct$(IL) \
+  $(ILDIR)/jccolor$(IL) \
+  $(ILDIR)/jcsample$(IL) \
+  $(ILDIR)/jchuff$(IL) \
+  $(ILDIR)/jcphuff$(IL) \
+  $(ILDIR)/jcdctmgr$(IL) \
+  $(ILDIR)/jfdctfst$(IL) \
+  $(ILDIR)/jfdctflt$(IL) \
+  $(ILDIR)/jfdctint$(IL) \
+  $(ILDIR)/rdswitch$(IL)
+
+IDL_FILES	=  $(ILDIR)/jdatasrc$(IL) \
+	   $(ILDIR)/jdatadst$(IL) \
+	   $(ILDIR)/jdapistd$(IL) \
+	   $(ILDIR)/jdinput$(IL) \
+	   $(ILDIR)/jdmainct$(IL) \
+	   $(ILDIR)/jdmarker$(IL) \
+	   $(ILDIR)/jdmaster$(IL) \
+	   $(ILDIR)/jdmerge$(IL) \
+	   $(ILDIR)/jdpostct$(IL) \
+	   $(ILDIR)/jdtrans$(IL) \
+	   $(ILDIR)/jerror$(IL) \
+	   $(ILDIR)/jfdctflt$(IL) \
+	   $(ILDIR)/jfdctfst$(IL) \
+	   $(ILDIR)/jfdctint$(IL) \
+	   $(ILDIR)/jidctflt$(IL) \
+	   $(ILDIR)/jidctfst$(IL) \
+	   $(ILDIR)/jidctint$(IL) \
+	   $(ILDIR)/jidctred$(IL) \
+	   $(ILDIR)/jmemmaui$(IL) \
+	   $(ILDIR)/jmemmgr$(IL) \
+	   $(ILDIR)/cdjpeg$(IL) \
+	   $(ILDIR)/rdcolmap$(IL) \
+	   $(ILDIR)/jdapimin$(IL) \
+	   $(ILDIR)/jutils$(IL) \
+	   $(ILDIR)/jdphuff$(IL) \
+	   $(ILDIR)/jcomapi$(IL) \
+	   $(ILDIR)/jquant1$(IL) \
+	   $(ILDIR)/jquant2$(IL) \
+	   $(ILDIR)/jdcolor$(IL) \
+	   $(ILDIR)/jdcoefct$(IL) \
+	   $(ILDIR)/jdhuff$(IL) \
+	   $(ILDIR)/jddctmgr$(IL) \
+	   $(ILDIR)/jdsample$(IL)
+
+#	   $(ILDIR)/wrbmp$(IL) \
+#	   $(ILDIR)/wrgif$(IL) \
+#	   $(ILDIR)/wrppm$(IL) \
+#	   $(ILDIR)/wrrle$(IL) \
+#	   $(ILDIR)/wrtarga$(IL) \
+
+#I_FILES = $(ID_FILES) $(IC_FILES)
+#IL_FILES = $(IDL_FILES) $(ICL_FILES)
+
+I_FILES = $(ID_FILES)
+IL_FILES = $(IDL_FILES)
+
+H_FILES = jversion.h \
+		cderror.h \
+		jerror.h \
+		jmorecfg.h \
+		jpeglib.h \
+		jconfig.h \
+		jinclude.h \
+		cdjpeg.h
+
+#DEPENDS = $(H_FILES)
+DEPENDS = $(H_FILES) $(MAKENAME)
+
+
+jpeg.l : $(IDIR) $(LDIR) $(LDIR)/jpeg.l
+	$(COMMENT)
+
+jpeg.il : $(ILDIR) $(I_LDIR) $(I_LDIR)/jpeg.il
+	$(COMMENT)
+
+$(IDIR): nulltrg
+	$(MAKDIR) $(IDIR)
+
+$(ILDIR): nulltrg
+	$(MAKDIR) $(ILDIR)
+
+$(LDIR): nulltrg
+	$(MAKDIR) $(LDIR)
+
+$(I_LDIR): nulltrg
+	$(MAKDIR) $(I_LDIR)
+
+
+$(LDIR)/jpeg.l :  $(I_FILES) $(MAKENAME)
+	$(MERGE) $(I_FILES) >$@
+#	$(LIBGEN) $(I_FILES) -e=200 -o=$@
+   
+
+$(I_LDIR)/jpeg.il :  $(IL_FILES) $(MAKENAME)
+	$(CC) -eil -ilm $(IL_FILES) -ole=200 -fd=$@
+
+##
+
+$(IDIR)/djpeg$I : djpeg.c $(DEPENDS)
+	$(COMPILE)  djpeg.c $(CC_COMP_OUT)$@
+
+$(IDIR)/jdatasrc$I : jdatasrc.c $(DEPENDS)
+	$(COMPILE) jdatasrc.c $(CC_COMP_OUT)$@
+
+$(IDIR)/jdatadst$I : jdatadst.c $(DEPENDS)
+	$(COMPILE) jdatadst.c $(CC_COMP_OUT)$@
+
+$(IDIR)/jdapistd$I : jdapistd.c $(DEPENDS)
+	$(COMPILE) jdapistd.c $(CC_COMP_OUT)$@
+
+$(IDIR)/jdinput$I : jdinput.c $(DEPENDS)
+	$(COMPILE) jdinput.c $(CC_COMP_OUT)$@
+
+$(IDIR)/jdmainct$I : jdmainct.c $(DEPENDS)
+	$(COMPILE) jdmainct.c $(CC_COMP_OUT)$@
+
+$(IDIR)/jdmarker$I : jdmarker.c $(DEPENDS)
+	$(COMPILE) jdmarker.c $(CC_COMP_OUT)$@
+
+$(IDIR)/jdmaster$I : jdmaster.c $(DEPENDS)
+	$(COMPILE) jdmaster.c $(CC_COMP_OUT)$@
+
+$(IDIR)/jdmerge$I : jdmerge.c $(DEPENDS)
+	$(COMPILE) jdmerge.c $(CC_COMP_OUT)$@
+
+$(IDIR)/jdpostct$I : jdpostct.c $(DEPENDS)
+	$(COMPILE) jdpostct.c $(CC_COMP_OUT)$@
+
+$(IDIR)/jdtrans$I : jdtrans.c $(DEPENDS)
+	$(COMPILE) jdtrans.c $(CC_COMP_OUT)$@
+
+$(IDIR)/jerror$I : jerror.c $(DEPENDS)
+	$(COMPILE) jerror.c $(CC_COMP_OUT)$@
+
+$(IDIR)/jfdctflt$I : jfdctflt.c $(DEPENDS)
+	$(COMPILE) jfdctflt.c $(CC_COMP_OUT)$@
+
+$(IDIR)/jfdctfst$I : jfdctfst.c $(DEPENDS)
+	$(COMPILE) jfdctfst.c $(CC_COMP_OUT)$@
+
+$(IDIR)/jfdctint$I : jfdctint.c $(DEPENDS)
+	$(COMPILE) jfdctint.c $(CC_COMP_OUT)$@
+
+$(IDIR)/jidctflt$I : jidctflt.c $(DEPENDS)
+	$(COMPILE) jidctflt.c $(CC_COMP_OUT)$@
+
+$(IDIR)/jidctfst$I : jidctfst.c $(DEPENDS)
+	$(COMPILE) jidctfst.c $(CC_COMP_OUT)$@
+
+$(IDIR)/jidctint$I : jidctint.c $(DEPENDS)
+	$(COMPILE) jidctint.c $(CC_COMP_OUT)$@
+
+$(IDIR)/jidctred$I : jidctred.c $(DEPENDS)
+	$(COMPILE) jidctred.c $(CC_COMP_OUT)$@
+
+$(IDIR)/jmemmaui$I : jmemmaui.c $(DEPENDS)
+	$(COMPILE) jmemmaui.c $(CC_COMP_OUT)$@
+
+$(IDIR)/jmemmgr$I : jmemmgr.c $(DEPENDS)
+	$(COMPILE) jmemmgr.c $(CC_COMP_OUT)$@
+
+$(IDIR)/wrbmp$I : wrbmp.c $(DEPENDS)
+	$(COMPILE) wrbmp.c $(CC_COMP_OUT)$@
+
+$(IDIR)/wrgif$I : wrgif.c $(DEPENDS)
+	$(COMPILE) wrgif.c $(CC_COMP_OUT)$@
+
+$(IDIR)/wrppm$I : wrppm.c $(DEPENDS)
+	$(COMPILE) wrppm.c $(CC_COMP_OUT)$@
+
+$(IDIR)/wrrle$I : wrrle.c $(DEPENDS)
+	$(COMPILE) wrrle.c $(CC_COMP_OUT)$@
+
+$(IDIR)/wrtarga$I : wrtarga.c $(DEPENDS)
+	$(COMPILE) wrtarga.c $(CC_COMP_OUT)$@
+
+$(IDIR)/cdjpeg$I : cdjpeg.c $(DEPENDS)
+	$(COMPILE) cdjpeg.c $(CC_COMP_OUT)$@
+
+$(IDIR)/rdcolmap$I : rdcolmap.c $(DEPENDS)
+	$(COMPILE) rdcolmap.c $(CC_COMP_OUT)$@
+
+$(IDIR)/jdapimin$I : jdapimin.c $(DEPENDS)
+	$(COMPILE) jdapimin.c $(CC_COMP_OUT)$@
+
+$(IDIR)/jutils$I : jutils.c $(DEPENDS)
+	$(COMPILE) jutils.c $(CC_COMP_OUT)$@
+
+$(IDIR)/jdphuff$I : jdphuff.c $(DEPENDS)
+	$(COMPILE) jdphuff.c $(CC_COMP_OUT)$@
+
+$(IDIR)/jcomapi$I : jcomapi.c $(DEPENDS)
+	$(COMPILE) jcomapi.c $(CC_COMP_OUT)$@
+
+$(IDIR)/jquant1$I : jquant1.c $(DEPENDS)
+	$(COMPILE) jquant1.c $(CC_COMP_OUT)$@
+
+$(IDIR)/jquant2$I : jquant2.c $(DEPENDS)
+	$(COMPILE) jquant2.c $(CC_COMP_OUT)$@
+
+$(IDIR)/jdcolor$I : jdcolor.c $(DEPENDS)
+	$(COMPILE) jdcolor.c $(CC_COMP_OUT)$@
+
+$(IDIR)/jdcoefct$I : jdcoefct.c $(DEPENDS)
+	$(COMPILE) jdcoefct.c $(CC_COMP_OUT)$@
+
+$(IDIR)/jdhuff$I : jdhuff.c $(DEPENDS)
+	$(COMPILE) jdhuff.c $(CC_COMP_OUT)$@
+
+$(IDIR)/jddctmgr$I : jddctmgr.c $(DEPENDS)
+	$(COMPILE) jddctmgr.c $(CC_COMP_OUT)$@
+
+$(IDIR)/jdsample$I : jdsample.c $(DEPENDS)
+	$(COMPILE) jdsample.c $(CC_COMP_OUT)$@
+
+############ I-Code
+#
+
+$(ILDIR)/djpeg$(IL) : djpeg.c $(DEPENDS)
+	$(COMPILE_IL)  djpeg.c $(CC_COMP_OUT)$@
+
+$(ILDIR)/jdatasrc$(IL) : jdatasrc.c $(DEPENDS)
+	$(COMPILE_IL) jdatasrc.c $(CC_COMP_OUT)$@
+
+$(ILDIR)/jdatadst$(IL) : jdatadst.c $(DEPENDS)
+	$(COMPILE_IL) jdatadst.c $(CC_COMP_OUT)$@
+
+$(ILDIR)/jdapistd$(IL) : jdapistd.c $(DEPENDS)
+	$(COMPILE_IL) jdapistd.c $(CC_COMP_OUT)$@
+
+$(ILDIR)/jdinput$(IL) : jdinput.c $(DEPENDS)
+	$(COMPILE_IL) jdinput.c $(CC_COMP_OUT)$@
+
+$(ILDIR)/jdmainct$(IL) : jdmainct.c $(DEPENDS)
+	$(COMPILE_IL) jdmainct.c $(CC_COMP_OUT)$@
+
+$(ILDIR)/jdmarker$(IL) : jdmarker.c $(DEPENDS)
+	$(COMPILE_IL) jdmarker.c $(CC_COMP_OUT)$@
+
+$(ILDIR)/jdmaster$(IL) : jdmaster.c $(DEPENDS)
+	$(COMPILE_IL) jdmaster.c $(CC_COMP_OUT)$@
+
+$(ILDIR)/jdmerge$(IL) : jdmerge.c $(DEPENDS)
+	$(COMPILE_IL) jdmerge.c $(CC_COMP_OUT)$@
+
+$(ILDIR)/jdpostct$(IL) : jdpostct.c $(DEPENDS)
+	$(COMPILE_IL) jdpostct.c $(CC_COMP_OUT)$@
+
+$(ILDIR)/jdtrans$(IL) : jdtrans.c $(DEPENDS)
+	$(COMPILE_IL) jdtrans.c $(CC_COMP_OUT)$@
+
+$(ILDIR)/jerror$(IL) : jerror.c $(DEPENDS)
+	$(COMPILE_IL) jerror.c $(CC_COMP_OUT)$@
+
+$(ILDIR)/jfdctflt$(IL) : jfdctflt.c $(DEPENDS)
+	$(COMPILE_IL) jfdctflt.c $(CC_COMP_OUT)$@
+
+$(ILDIR)/jfdctfst$(IL) : jfdctfst.c $(DEPENDS)
+	$(COMPILE_IL) jfdctfst.c $(CC_COMP_OUT)$@
+
+$(ILDIR)/jfdctint$(IL) : jfdctint.c $(DEPENDS)
+	$(COMPILE_IL) jfdctint.c $(CC_COMP_OUT)$@
+
+$(ILDIR)/jidctflt$(IL) : jidctflt.c $(DEPENDS)
+	$(COMPILE_IL) jidctflt.c $(CC_COMP_OUT)$@
+
+$(ILDIR)/jidctfst$(IL) : jidctfst.c $(DEPENDS)
+	$(COMPILE_IL) jidctfst.c $(CC_COMP_OUT)$@
+
+$(ILDIR)/jidctint$(IL) : jidctint.c $(DEPENDS)
+	$(COMPILE_IL) jidctint.c $(CC_COMP_OUT)$@
+
+$(ILDIR)/jidctred$(IL) : jidctred.c $(DEPENDS)
+	$(COMPILE_IL) jidctred.c $(CC_COMP_OUT)$@
+
+$(ILDIR)/jmemmaui$(IL) : jmemmaui.c $(DEPENDS)
+	$(COMPILE_IL) jmemmaui.c $(CC_COMP_OUT)$@
+
+$(ILDIR)/jmemmgr$(IL) : jmemmgr.c $(DEPENDS)
+	$(COMPILE_IL) jmemmgr.c $(CC_COMP_OUT)$@
+
+$(ILDIR)/wrbmp$(IL) : wrbmp.c $(DEPENDS)
+	$(COMPILE_IL) wrbmp.c $(CC_COMP_OUT)$@
+
+$(ILDIR)/wrgif$(IL) : wrgif.c $(DEPENDS)
+	$(COMPILE_IL) wrgif.c $(CC_COMP_OUT)$@
+
+$(ILDIR)/wrppm$(IL) : wrppm.c $(DEPENDS)
+	$(COMPILE_IL) wrppm.c $(CC_COMP_OUT)$@
+
+$(ILDIR)/wrrle$(IL) : wrrle.c $(DEPENDS)
+	$(COMPILE_IL) wrrle.c $(CC_COMP_OUT)$@
+
+$(ILDIR)/wrtarga$(IL) : wrtarga.c $(DEPENDS)
+	$(COMPILE_IL) wrtarga.c $(CC_COMP_OUT)$@
+
+$(ILDIR)/cdjpeg$(IL) : cdjpeg.c $(DEPENDS)
+	$(COMPILE_IL) cdjpeg.c $(CC_COMP_OUT)$@
+
+$(ILDIR)/rdcolmap$(IL) : rdcolmap.c $(DEPENDS)
+	$(COMPILE_IL) rdcolmap.c $(CC_COMP_OUT)$@
+
+$(ILDIR)/jdapimin$(IL) : jdapimin.c $(DEPENDS)
+	$(COMPILE_IL) jdapimin.c $(CC_COMP_OUT)$@
+
+$(ILDIR)/jutils$(IL) : jutils.c $(DEPENDS)
+	$(COMPILE_IL) jutils.c $(CC_COMP_OUT)$@
+
+$(ILDIR)/jdphuff$(IL) : jdphuff.c $(DEPENDS)
+	$(COMPILE_IL) jdphuff.c $(CC_COMP_OUT)$@
+
+$(ILDIR)/jcomapi$(IL) : jcomapi.c $(DEPENDS)
+	$(COMPILE_IL) jcomapi.c $(CC_COMP_OUT)$@
+
+$(ILDIR)/jquant1$(IL) : jquant1.c $(DEPENDS)
+	$(COMPILE_IL) jquant1.c $(CC_COMP_OUT)$@
+
+$(ILDIR)/jquant2$(IL) : jquant2.c $(DEPENDS)
+	$(COMPILE_IL) jquant2.c $(CC_COMP_OUT)$@
+
+$(ILDIR)/jdcolor$(IL) : jdcolor.c $(DEPENDS)
+	$(COMPILE_IL) jdcolor.c $(CC_COMP_OUT)$@
+
+$(ILDIR)/jdcoefct$(IL) : jdcoefct.c $(DEPENDS)
+	$(COMPILE_IL) jdcoefct.c $(CC_COMP_OUT)$@
+
+$(ILDIR)/jdhuff$(IL) : jdhuff.c $(DEPENDS)
+	$(COMPILE_IL) jdhuff.c $(CC_COMP_OUT)$@
+
+$(ILDIR)/jddctmgr$(IL) : jddctmgr.c $(DEPENDS)
+	$(COMPILE_IL) jddctmgr.c $(CC_COMP_OUT)$@
+
+$(ILDIR)/jdsample$(IL) : jdsample.c $(DEPENDS)
+	$(COMPILE_IL) jdsample.c $(CC_COMP_OUT)$@
+
+#########################
+###### Compression part
+
+$(IDIR)/jcapimin$I : jcapimin.c $(DEPENDS)
+	$(COMPILE) jcapimin.c $(CC_COMP_OUT)$@
+
+$(IDIR)/jcapistd$I : jcapistd.c $(DEPENDS)
+	$(COMPILE) jcapistd.c $(CC_COMP_OUT)$@
+
+$(IDIR)/jctrans$I : jctrans.c $(DEPENDS)
+	$(COMPILE) jctrans.c $(CC_COMP_OUT)$@
+
+$(IDIR)/jcparam$I : jcparam.c $(DEPENDS)
+	$(COMPILE) jcparam.c $(CC_COMP_OUT)$@
+
+$(IDIR)/jdatadst$I : jdatadst.c $(DEPENDS)
+	$(COMPILE) jdatadst.c $(CC_COMP_OUT)$@
+
+$(IDIR)/jcinit$I : jcinit.c $(DEPENDS)
+	$(COMPILE) jcinit.c $(CC_COMP_OUT)$@
+
+$(IDIR)/jcmaster$I : jcmaster.c $(DEPENDS)
+	$(COMPILE) jcmaster.c $(CC_COMP_OUT)$@
+
+$(IDIR)/jcmarker$I : jcmarker.c $(DEPENDS)
+	$(COMPILE) jcmarker.c $(CC_COMP_OUT)$@
+
+$(IDIR)/jcmainct$I : jcmainct.c $(DEPENDS)
+	$(COMPILE) jcmainct.c $(CC_COMP_OUT)$@
+
+$(IDIR)/jcprepct$I : jcprepct.c $(DEPENDS)
+	$(COMPILE) jcprepct.c $(CC_COMP_OUT)$@
+
+$(IDIR)/jccoefct$I : jccoefct.c $(DEPENDS)
+	$(COMPILE) jccoefct.c $(CC_COMP_OUT)$@
+
+$(IDIR)/jccolor$I : jccolor.c $(DEPENDS)
+	$(COMPILE) jccolor.c $(CC_COMP_OUT)$@
+
+$(IDIR)/jcsample$I : jcsample.c $(DEPENDS)
+	$(COMPILE) jcsample.c $(CC_COMP_OUT)$@
+
+$(IDIR)/jchuff$I : jchuff.c $(DEPENDS)
+	$(COMPILE) jchuff.c $(CC_COMP_OUT)$@
+
+$(IDIR)/jcphuff$I : jcphuff.c $(DEPENDS)
+	$(COMPILE) jcphuff.c $(CC_COMP_OUT)$@
+
+$(IDIR)/jcdctmgr$I : jcdctmgr.c $(DEPENDS)
+	$(COMPILE) jcdctmgr.c $(CC_COMP_OUT)$@
+
+$(IDIR)/jfdctfst$I : jfdctfst.c $(DEPENDS)
+	$(COMPILE) jfdctfst.c $(CC_COMP_OUT)$@
+
+$(IDIR)/jfdctflt$I : jfdctflt.c $(DEPENDS)
+	$(COMPILE) jfdctflt.c $(CC_COMP_OUT)$@
+
+$(IDIR)/jfdctint$I : jfdctint.c $(DEPENDS)
+	$(COMPILE) jfdctint.c $(CC_COMP_OUT)$@
+
+$(IDIR)/rdswitch$I : rdswitch.c $(DEPENDS)
+	$(COMPILE) rdswitch.c $(CC_COMP_OUT)$@
+
+############# Compression part - I-code
+$(ILDIR)/jcapimin$(IL) : jcapimin.c $(DEPENDS)
+	$(COMPILE_IL) jcapimin.c $(CC_COMP_OUT)$@
+
+$(ILDIR)/jcapistd$(IL) : jcapistd.c $(DEPENDS)
+	$(COMPILE_IL) jcapistd.c $(CC_COMP_OUT)$@
+
+$(ILDIR)/jctrans$(IL) : jctrans.c $(DEPENDS)
+	$(COMPILE_IL) jctrans.c $(CC_COMP_OUT)$@
+
+$(ILDIR)/jcparam$(IL) : jcparam.c $(DEPENDS)
+	$(COMPILE_IL) jcparam.c $(CC_COMP_OUT)$@
+
+$(ILDIR)/jdatadst$(IL) : jdatadst.c $(DEPENDS)
+	$(COMPILE_IL) jdatadst.c $(CC_COMP_OUT)$@
+
+$(ILDIR)/jcinit$(IL) : jcinit.c $(DEPENDS)
+	$(COMPILE_IL) jcinit.c $(CC_COMP_OUT)$@
+
+$(ILDIR)/jcmaster$(IL) : jcmaster.c $(DEPENDS)
+	$(COMPILE_IL) jcmaster.c $(CC_COMP_OUT)$@
+
+$(ILDIR)/jcmarker$(IL) : jcmarker.c $(DEPENDS)
+	$(COMPILE_IL) jcmarker.c $(CC_COMP_OUT)$@
+
+$(ILDIR)/jcmainct$(IL) : jcmainct.c $(DEPENDS)
+	$(COMPILE_IL) jcmainct.c $(CC_COMP_OUT)$@
+
+$(ILDIR)/jcprepct$(IL) : jcprepct.c $(DEPENDS)
+	$(COMPILE_IL) jcprepct.c $(CC_COMP_OUT)$@
+
+$(ILDIR)/jccoefct$(IL) : jccoefct.c $(DEPENDS)
+	$(COMPILE_IL) jccoefct.c $(CC_COMP_OUT)$@
+
+$(ILDIR)/jccolor$(IL) : jccolor.c $(DEPENDS)
+	$(COMPILE_IL) jccolor.c $(CC_COMP_OUT)$@
+
+$(ILDIR)/jcsample$(IL) : jcsample.c $(DEPENDS)
+	$(COMPILE_IL) jcsample.c $(CC_COMP_OUT)$@
+
+$(ILDIR)/jchuff$(IL) : jchuff.c $(DEPENDS)
+	$(COMPILE_IL) jchuff.c $(CC_COMP_OUT)$@
+
+$(ILDIR)/jcphuff$(IL) : jcphuff.c $(DEPENDS)
+	$(COMPILE_IL) jcphuff.c $(CC_COMP_OUT)$@
+
+$(ILDIR)/jcdctmgr$(IL) : jcdctmgr.c $(DEPENDS)
+	$(COMPILE_IL) jcdctmgr.c $(CC_COMP_OUT)$@
+
+$(ILDIR)/jfdctfst$(IL) : jfdctfst.c $(DEPENDS)
+	$(COMPILE_IL) jfdctfst.c $(CC_COMP_OUT)$@
+
+$(ILDIR)/jfdctflt$(IL) : jfdctflt.c $(DEPENDS)
+	$(COMPILE_IL) jfdctflt.c $(CC_COMP_OUT)$@
+
+$(ILDIR)/jfdctint$(IL) : jfdctint.c $(DEPENDS)
+	$(COMPILE_IL) jfdctint.c $(CC_COMP_OUT)$@
+
+$(ILDIR)/rdswitch$(IL) : rdswitch.c $(DEPENDS)
+	$(COMPILE_IL) rdswitch.c $(CC_COMP_OUT)$@
+
+
+

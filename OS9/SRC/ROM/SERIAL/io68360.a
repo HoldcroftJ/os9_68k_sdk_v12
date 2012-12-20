@@ -1,0 +1,312 @@
+ nam IO68360
+ ttl Rudimentary I/O Routines for MC68360 on-board Serial Device
+
+* Copyright 1993, 1994 by Microware Systems Corporation
+* Reproduced Under License
+
+* This source code is the proprietary confidential property of
+* Microware Systems Corporation, and is provided to licensee
+* solely for documentation and educational purposes. Reproduction,
+* publication, or distribution in any form to any party other than
+* the licensee is strictly prohibited.
+*
+
+
+********************
+* Edition History
+*
+*  #    date     Comments                                   who
+* -- ---------  ------------------------------------------  ---
+*  00 93/10/25	Genesis from 68302 driver					arb
+*  01 94/02/02  Reworked for MWOS structure.				wwb
+*               ---- OS-9/68K V3.0.1 Release ----
+*
+edition set 1
+
+ psect io68360_a,0,0,edition,0,0
+
+ use defsfile
+
+ use <sysglob.m>
+
+
+*********************************************
+*
+* dp ram look like this for the rom debugger
+*
+*  4*64 bytes for scc buffer descriptors
+*  rxbd		8 bytes
+*  txbd		8 bytes
+
+ page
+**************
+* Subroutine PortInit
+*   Inititialize Comm Port for non-interrupt I/O
+* Passed: none
+* Returns: none
+* Destroys: cc
+OutPort:
+PortInit:
+InPort:
+PortDeIn:
+ChekPort:
+ moveq #0,d1 clear carry (no errors)
+ rts
+
+
+***************
+* Subroutine ConsInit
+*   Initialize Console Port for non-interrupt I/O
+* Passed: none
+* Returns: none
+* Destoys: cc
+ConsInit:
+ 	movem.l d0-d2/a2-a4,-(a7)
+	movea.l #DPRBASES,a2
+ 	lea.l SCC3_BASE(a2),a3
+
+*** Set up Port A Pins
+	ori.w	#$30,PAPAR(a2)
+	andi.w	#$ffcf,PADIR(a2)
+	andi.w	#$ffcf,PAODR(a2)
+
+*** Set up BRG3 for SCC3
+	ifdef FASTCONS
+	move.l	#$0100a0,BRGC3(a2)	; set brg3 to baud rate 19200bits/s
+	else
+	move.l	#$010144,BRGC3(a2)	; set brg3 to baud rate 9600bits/s
+	endc
+    ori.l	#$00120000,SICR(a2)	; route brg3 to scc3 and select nmsi
+
+ 	move.w #$80,RBASE(a3)			first 8 bytes of dp ram is rxbd
+ 	move.w #$88,TBASE(a3)		next 8 bytes of dp ram is txbd
+ 	move.b	#FC_DMA+$10,RFCR(a3)	
+ 	move.b	#FC_DMA+$10,TFCR(a3)	
+ 	move.w	#1,MRBLR(a3)		; max. bytes per Buffer (1)
+*** Execute the INIT RX & TX Parameters for SCC3
+	move.w	#$0081,CR(a2)	; initialize transmit and receive parameter
+*							; in the parameter ram of scc3
+
+*** Set up UART Specific Parameters
+	clr.w	MAXIDL(a3)	; set idle timeout to max value
+	move.w	#$0001,BRKCR(a3)	; stop trans issues 1 break chara.
+	clr.w	PAREC(a3)		; clear error counters
+	clr.w	FRMEC(a3)
+	clr.w	NOSEC(a3)
+	clr.w	BRKEC(a3)
+	clr.w	UADDR1(a3)		; no multidrop address
+	clr.w	UADDR2(a3)
+	clr.w	TOSEQ(a3)		; No CTRL Char to be sent
+	move.w	#$8000,CHARACTER1(a3)	; No more control Characters
+	move.w	#$8000,CHARACTER2(a3)	; No more control Characters
+	move.w	#$8000,CHARACTER3(a3)	; No more control Characters
+	move.w	#$8000,CHARACTER4(a3)	; No more control Characters
+	move.w	#$8000,CHARACTER5(a3)	; No more control Characters
+	move.w	#$8000,CHARACTER6(a3)	; No more control Characters
+	move.w	#$8000,CHARACTER7(a3)	; No more control Characters
+	move.w	#$8000,CHARACTER8(a3)	; No more control Characters
+	move.w	#$8000,RCCM(a3)	; No masking of received Ctl Chars
+* set up rx bd
+	lea		$80(a2),a3				;leave room for os9 buffer desc.
+	clr.w	2(a3)					; initialize length
+	lea		IOReserv(a5),a4			point to rx buf
+ 	move.l	a4,4(a3)				; pointer to buffer number 0
+	move.w	#$a000,(a3)				; empty, wrap
+    lea		8(a3),a3
+*** Set up Transmit BDs
+	move.w	#1,2(a3)				; length 1
+    lea		IOReserv(a5),a4
+	lea		4(a4),a4				; point to tx buf
+	move.l	a4,4(a3)				; pointer to buffer #0
+	move.w	#$2000,(a3)			;  nowrap, noint, Normal CTS
+*** Final Set up
+	clr.l	GSMR_H3(a2)				; rx fifo set to 1 bytes
+*									; tx FIFO is 1 byte
+	move.l	#$00028004,GSMR_L3(a2)	; tdcr ='10', txclk is 16* clock mode
+*									; rdcr ='10', rxclk is 16* clock mode
+*									; channel protocol mode = uart
+	move.w	#$B000,PSMR3(a2)		; set automatic flow control
+    clr.w	SCCM3(a2)				; we are not using irqs
+*									; character length set to 8 bits
+	move.l	#$00028034,GSMR_L3(a2)	; enable transmitter and receiver
+	movem.l (a7)+,d0-d2/a2-a4
+ 	moveq #0,d1 clear carry (no errors)
+ 	rts
+
+***************
+* Subroutine ConsSet
+*   Reinitialize Console Port for non-interrupt I/O
+* Passed: none
+* Returns: none
+* Destoys: cc
+ConsSet: movem.l a3,-(a7)
+ move.w sr,-(a7)
+ ori.w #IntMask,sr
+ movea.l #DPRBASES,a3
+ andi.l #^(1<<b_SCC3),CIMR(a3) mask SCC3 interrupts
+ move.w (a7)+,sr
+ movem.l (a7)+,a3
+ moveq #0,d1 clear carry (no errors)
+ rts
+
+ 
+***************
+* Subroutine InChar
+*   Return one byte of input from the Acia
+
+* Passed: none
+* Returns: (d0.b)=input char
+* Destroys: cc
+
+InChar: 
+ movem.l d1/a0-a1,-(a7)
+ move sr,-(a7)
+ ori #IntMask,sr
+ movea.l #DPRBASES,a0
+ lea.l	SCC3_BASE(a0),a1
+ clr.l	d1
+ move.w	RBASE(a1),d1
+ adda.l d1,a0
+*******************
+* Common 'input' code - used by both Console and Comms Ports
+*
+InChar10 move.w (a0),d1		*! receive char available ?
+ btst #15,d1
+ bne.s InChar10					*! ..no; wait for one
+ move.l	4(a0),a1
+ move.b	(a1),d0				* buffer is at fixed lcoation
+ move.w	#$a000,(a0)				* buffer now available to cp
+ move (a7)+,sr
+ movem.l (a7)+,d1/a0-a1
+InChar20 cmpi.b #$7f,d0				*! Delete key?
+ bne.s InChar30
+ move.w #$08,d0						*! Convert to backspace char (^H)
+InChar30 
+ bsr.s OutChar echo the character
+* Edition 3 change here, ifdef added so onlu 'debug' forces upper case
+ ifndef ROMBUG
+* Conversion to upper case not required for RomBug
+ cmp.b #'a',d0 lower case?
+ blo.s InChar90 exit if not
+ cmp.b #'z',d0 lower case?
+ bhi.s InChar90 exit if not
+ subi.b #('a'-'A'),d0
+ endc
+InChar90 rts
+
+**************
+* Subroutine InChCheck
+*   Check console for input char
+
+* Passed: none
+* Returns: (d0.b) = -1 if no char, else char available
+
+InChChek:
+ movem.l d1/a0-a1,-(a7)
+ movea.l #DPRBASES,a0
+ lea.l	SCC3_BASE(a0),a1
+ clr.l	d1
+ move.w	RBASE(a1),d1
+ adda.l d1,a0
+*******************
+* Common 'check' code - used by both Console and Comms Ports
+*
+ move.w (a0),d1		*! receive char available ?
+ btst #15,d1
+ beq.s Check20					*! ..no; wait for one
+ moveq.l #-1,d0 					*! flag no character
+ bra.s Check40
+*Here if character available
+*
+Check20 moveq.l #0,d0 clear the reg
+ move.l	4(a0),a1
+  move.b (a1),d0
+ move.w	#$a000,(a0)				* buffer now available to cp
+Check40 movem.l (a7)+,d1/a0-a1
+ rts
+
+
+ 
+ page
+***************
+* Subroutine OutChar
+*   Output one character to Acia
+
+* Passed: (d0.b)=char to write
+* Returns: none
+
+OutChar:
+ cmp.b #C$CR,d0				*! output CR ?
+ bne.s OutChar0						*! ..no
+ move.l d0,-(a7)
+ bsr.s OutChar0						*! output CR
+ moveq.l #C$LF,d0					*! insert LF
+ bsr.s OutChar0
+ move.l (a7)+,d0
+ rts
+
+OutChar0 movem.l d1/a0-a1,-(a7)
+ move sr,-(a7)
+ ori #IntMask,sr
+ move.l	 #DPRBASES,a0
+ lea.l	SCC3_BASE(a0),a1
+ clr.l	d1
+ move.w	TBASE(a1),d1
+ adda.l d1,a0
+OutChar1
+ move.w (a0),d1				*! Get Transmit Buffer Info
+ btst #15,d1						*! Can we write to buffer?
+ bne.s OutChar1						*! .. no
+ move.l	4(a0),a1
+ move.b d0,(a1)						*! Store data in buffer
+ move.w	#1,2(a0)				; length 1
+ move.w #TXR+TXW,0(a0)
+OutChar2
+ move (a7)+,sr restore sr
+ movem.l (a7)+,d1/a0-a1 restore regs
+ rts return
+
+ 
+*************
+* Subroutine OutRaw 
+*   Output one char
+
+* Passed: (d0.b) = char to write
+* Returns: none
+
+OutRaw:
+ movem.l d1/a0-a1,-(a7)
+ move.w sr,-(a7)
+ ori.w #IntMask,sr
+ movea.l #DPRBASES,a0
+ lea.l	SCC3_BASE(a0),a1
+ clr.l	d1
+ move.w	TBASE(a1),d1
+ adda.l d1,a0
+OutRaw1 move.w (a0),d1			*! Can we use the buffer?
+ btst #15,d1
+ bne.s OutRaw1	 					*! .. no
+ move.l	4(a0),a1
+ move.b d0,(a1)						*! Store data in buffer
+ move.w	#1,2(a0)				; length 1
+ move.w #TXR+TXW,0(a0)
+ move.w (a7)+,sr
+ movem.l (a7)+,d1/a0-a1
+ rts
+
+ConsDeIn:
+ move.l #(1<<b_SCC3),d0 re-enable SCC1 int mask for IMR
+
+DeInCommon move.w sr,-(a7) save sr
+ ori.w #IntMask,sr mask all interrupts
+ sysglob a0
+ cmpi.w #M$ID12,(a0) has the system been started ?
+ bne.s DeInitXt ..no; then no IMR to restore
+ move.l a0,-(a7)
+ movea.l #DPRBASES,a0
+ or.l d0,CIMR(a0) ensure SCC interrupts enabled
+ move.l (a7)+,a0
+DeInitXt move.w (a7)+,sr restore sr
+ rts
+
+ ends

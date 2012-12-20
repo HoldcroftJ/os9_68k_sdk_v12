@@ -1,0 +1,279 @@
+000:002 keyboard quit
+000:003 keyboard interrupt
+000:032	abort
+000:033	erroneous math operation 
+000:034	illegal function image 
+000:035	segment violation (bus error) 
+000:036	termination request 
+000:037	alarm time elapsed 
+000:038	write to pipe with no readers 
+000:039	user signal #1
+000:040	user signal #2
+000:041	address error 
+000:042	chk instruction 
+000:043	trapv instruction 
+000:044	priveledge violation 
+000:045	trace exception 
+000:046	line-A exception 
+000:047	line-F exception 
+000:064 illegal function code (math)
+000:065 ascii->numeric format conversion error (math)
+000:066 not a number (math)
+000:067 illegal argument (usually math)
+000:102 bus trap
+000:103 address trap
+000:104 illegal instruction
+000:105 integer divide by zero
+000:106 "chk" or "chk2" instruction trap
+000:107 "trapv", "trapcc" or "ftrapcc" instruction trap
+000:108 privileged instruction
+000:109 trace exception
+000:110 illegal instruction (1010)
+000:111 illegal instruction (1111)
+000:112 exception 12
+000:113 coprocessor protocol violation
+000:114 system stack frame format error
+000:115 uninitialized interrupt
+000:116 exception 16
+000:117 exception 17
+000:118 exception 18
+000:119 exception 19
+000:120 exception 20
+000:121 exception 21
+000:122 exception 22
+000:123 exception 23
+000:124 spurious interrupt
+000:133 an uninitialized user TRAP (1-15) was executed
+000:148 floating point unordered condition
+000:149 floating point inexact result
+000:150 floating point divide by zero
+000:151 floating point underflow
+000:152 floating point operand error
+000:153 floating point overflow
+000:154 floating point not a number
+000:155 floating point unimplemented data type
+000:156 pmmu configuration
+000:157 pmmu illegal operation
+000:158 pmmu access level violation
+000:159 exception 59
+000:160 unimplemented effective address (68060)
+000:161 unimplemented integer instruction (68060)
+000:162 exception 62
+000:163 exception 63
+000:164 no permission
+000:165 arguments to F$ChkNam didn't match
+000:166 system stack overflow
+000:167 invalid event ID number
+000:168 event not found
+000:169 the event is busy
+000:170 impossible event parameters
+000:171 system data structures have been damaged
+000:172 module revision is incompatable with operating system
+000:173 path became lost because network node was down
+000:174 bad disk partition, or no active partition
+000:175 hardware is damaged
+000:176 invalid sector size
+000:177 unexpected or bad signal
+000:200 the path table is full
+000:201 bad path number
+000:202 system IRQ table is full
+000:203 bad I/O mode
+000:204 system device table is full
+000:205 bad module header
+000:206 system module directory is full
+000:207 memory full
+000:208 unknown service code 
+000:209 non-sharable module is busy
+000:210 bad page address
+000:211 end of file
+000:212 IRQ vector is busy
+000:213 non-existing segment
+000:214 file not accessible
+000:215 bad pathlist
+000:216 file not found
+000:217 file segment list is full
+000:218 creating an existing file
+000:219 illegal memory block address
+000:220 modem data carrier lost
+000:221 module not found
+000:222 system clock not running
+000:223 deleting stack memory
+000:224 illegal process ID
+000:225 bad IRQ parameter
+000:226 no children
+000:227 invalid trap number
+000:228 process has aborted
+000:229 system process table is full
+000:230 illegal fork parameter
+000:231 known module
+000:232 bad module CRC
+000:233 signal error
+000:234 non executable module
+000:235 bad name
+000:236 bad module header parity
+000:237 no RAM available
+000:238 directory is not empty
+000:239 no available task number
+000:240 illegal unit (drive) number
+000:241 bad sector number
+000:242 media is write protected
+000:243 I/O error - bad check sum
+000:244 read error
+000:245 write error
+000:246 device not ready
+000:247 seek error
+000:248 media full
+000:249 incompatible media
+000:250 device busy
+000:251 disk media has changed
+000:252 record is busy
+000:253 non-sharable file/device is busy
+000:254 I/O deadlock error
+000:255 device is format protected
+001:000 ANSI C - number out of range
+001:001 ANSI C - number not in mathematical domain of function
+006:000 Illegal parameter
+006:001 Identifier (ID) table full
+006:002 Bad size error
+006:003 Region definition full (overflow)
+006:004 Unallocated identifer number
+006:005 Null region
+006:006 Bad drawmap/pattern mode
+006:007 No active font
+006:008 No drawmap
+006:009 No audio play in progress
+006:010 Audio record/play has been aborted
+006:011 Audio queue is full
+006:012 Audio processor is busy
+006:100 No free slot is left in the resource table
+006:101 The specified resource module ID is not a valid slot
+006:102 The resource is not sharable
+006:103 The type of the resource is bad
+006:104 The ID of a resource is bad
+006:110 There are no items specified for the request
+006:111 The item number is out of range
+006:112 The number of columns is out of range
+006:113 The item array pointer is bad
+006:114 Request could not be created
+006:115 A modal request has timed out
+006:116 No selection was made for a modal request
+006:117 Bad definition function ID
+006:118 Bad definition action code
+006:119 Bad item state value
+006:120 The request rectangle is bad
+006:130 Bad standard behavior ID
+006:131 Bad standard definition ID
+006:132 Bad action for definition function
+006:133 Bad action for behavior function
+006:134 Bad control state
+006:135 Bad control part code
+006:136 Bad flags
+006:137 Bad min, max or value
+006:138 Bad Type of control
+006:140 Cannot find the clipboard device in preferences
+006:141 The clipboard is full
+006:142 Type not represented in clipboard
+006:143 Clipboard not opened for the requested access
+006:144 Type offset is greater than the type count
+006:145 Clipboard is not currently opened
+006:146 Clipboard is not initialized
+006:147 Clipboard is not currently closed
+006:148 Can't rewrite, the type is not in the clipboard
+006:150 The handler is unknown
+006:155 No Entry Found
+006:160 Line Table Overflow
+006:161 Text Too Long (Maximum is 65535)
+006:162 Bad Type or Type Not Implemented
+006:163 Attempt to draw a line too long
+006:164 Need A Line Table
+006:165 Font Not Set In The Drawmap
+006:166 Bad Rectangle
+006:180 Global Variable Error
+006:185 No Preference Module
+006:186 Illegal Argument
+006:190 Bad Rectangle for Overlay
+006:191 The Overlay is not the top of the stack
+006:192 Unknown Overlay
+006:200 Bad Definition ID
+006:201 Bad Definition Action
+006:202 Bad min, max or value
+006:203 Bad Coordinates
+006:204 Indicator Not Created
+006:205 Bad Flags
+006:206 Bad Pointer
+007:001 (ESP) I/O operation would block. (IFF) This path is read-only.
+007:002 (ESP) I/O operation now in progress. (IFF) This path is write-only.
+007:003 (ESP) operation already in progress. (IFF) There is no FORM active.
+007:004 (ESP) destination address required. (IFF) Wrong reader for this type
+ of FORM.
+007:005 (ESP) message too long. (IFF) Not an IFF file.
+007:006 (ESP) protocol wrong type for socket. (IFF) Bad parameters.
+007:007 (ESP) bad protocol option. (IFF) Bad CAT id (for iff_open).
+007:008 (ESP) protocol not supported. (IFF) Can not skip, size is unknown.
+007:009 (ESP) socket type not supported. (IFF) Not to the data yet.
+007:010 (ESP) operation not supported on socket. (IFF) Attempt to seek back in
+ a pipe.
+007:011 (ESP) protocol family not supported. (IFF) Fixed size chunk was not
+ the correct size. Could indicate wrong version of reader.
+007:012 (ESP) address family not supported by protocol. (IFF) Can not make
+ floating point conversion.
+007:013 address already in use
+007:014 can't assign requested address
+007:015 network is down
+007:016 network is unreachable
+007:017 network dropped connection on reset
+007:018 software caused connection abort
+007:019 connection reset by peer
+007:020 no buffer space available
+007:021 socket is already connected
+007:022 socket is not connected
+007:023 can't send after socket shutdown
+007:024 too many references
+007:025 connection timed out
+007:026 connection refused by target
+007:027 mbuf too small for mbuf operation
+007:028 socket module already attached
+007:029 path is not a socket
+007:030 no route to host
+007:031 host is down
+008:001 Line down or layer 1 error on attach.
+008:002 Connection error - connection not made.
+008:003	Receive thread incoming packet handler error.
+008:004 Management entity error.
+008:005 Unrecognized Service Access Point (SAPI).
+008:006 Terminal Endpoint Identifier (TEI) error.
+008:007 Maximum number Terminal Endpoints in use.
+008:008 Illegal Layer 2 state.
+008:009 Terminal endpoint (TEI) initialization denied.
+008:010	Unrecognized primitive.
+008:011 Layer 2 error on incoming message.
+008:012 Peer receiver (far end) busy condition.
+008:013 Maximum number of outstanding messages exceeded.
+008:014	Maximum number of call references in use.
+008:015 Call reference doesn't exist.
+008:016 Call progress state error.
+008:017 Receiver assignment/removal error.
+008:018 Request denied by far end
+008:019 SPF receive thread failed to start
+008:020 Last driver on path's stack
+008:021 Attempt to pop last driver in stack
+008:022 Notify parameter is null on asynchronous call
+008:023 Per path static storage not found
+008:024 Path's stack array is full
+008:025 Sysmbuf is not installed
+008:026 Timer not found
+008:027 Get time error
+008:028 Timer interrupt?
+008:029 No device entry in mbuf
+008:030 PSI/SI table is in use
+008:031 Too many tables being read
+008:032 Table not found in list of tables being read
+008:033 Program not found
+008:034 No program currently playing
+008:035 No down driver
+
+008:040 Receive mbuf contains errors
+008:192 WAN API error
+008:224 Custom 3rd party driver error codes
+008:256 IEEE 1394 error
+

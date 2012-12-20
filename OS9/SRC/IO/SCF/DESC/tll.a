@@ -1,0 +1,12 @@
+ nam TLL
+ ttl 68000 TLL device descriptor module
+ use defsfile
+
+* The default characteristics in "scfdesc.a" can be overridden
+* by equating the desired values here.  For example:
+
+ use "scfdesc.a"
+
+ TLL
+ ends
+

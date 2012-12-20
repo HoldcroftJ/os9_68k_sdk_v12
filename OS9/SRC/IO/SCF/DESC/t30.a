@@ -1,0 +1,10 @@
+ nam T30
+ ttl 68000 T30 device descriptor module
+ use defsfile
+
+ use "scfdesc.a"
+
+ T30
+ ends
+
+

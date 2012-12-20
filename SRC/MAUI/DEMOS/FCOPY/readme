@@ -1,0 +1,46 @@
+**********************************************************************
+MAUI fast copy demo code
+**********************************************************************
+What this demo does:
+  - This demo exercises a block copy operation from a source drawmap
+    to a destination drawmap.  A portion of one image will be copied 
+    into the drawmap of another image.  
+
+**********************************************************************
+System requirements:
+  - A working MAUI environment is assumed.
+  - The demo requires that gfx is in memory.
+  - The demo requires that mfm is in memory.
+ 
+*********************************************************************
+Directories:
+  - Source code
+	   $MWOS/SRC/MAUI/DEMOS/FCOPY
+  - Assets
+	   $MWOS/<operating system>/<hardware platform>/ASSETS/IMAGES
+
+*********************************************************************
+To make this demo:
+  - From the source file directory type:
+      % os9make
+ 
+*********************************************************************
+Operation:  
+  - The demo expects three image modules to be in memory. These
+    are:
+      fun.<CM>
+      travel.<CM>
+      mwlogo.<CM>
+
+    Where <CM> is c4 if the supported coding method is GFX_CM_4BIT
+    and c8 if the supported coding method is GFX_CM_8BIT. The images
+    can be found in the assets directory listed above.
+
+  - This demo has no command line options. To run simply type the
+    demo name. The shell prompt will return after the demo ends. 
+      
+      $ fcopy
+  
+********************************************************************* 
+  
+

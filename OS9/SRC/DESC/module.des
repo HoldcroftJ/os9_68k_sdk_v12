@@ -1,0 +1,122 @@
+#ifndef _MODULE_DES
+#define _MODULE_DES
+
+
+#cinclude <modes.h>
+#cinclude <module.h>
+
+
+struct modhcom {
+    u_int16     _msync;
+	int16		_msysrev = 1;
+    int32       _msize;
+    int16       _mgroup, "Module owner - group:"
+		"This is the group number of the module's owner. System modules must\n"
+		"generally be owned by group number 0.\n";
+	int16		_muser, "Module owner - user:"
+		"This is the user number of the module's owner.";
+	pointer u_int32 _mname = mod_name;
+	u_int16		_maccess = 0x555, "Module access permissions:"
+		"Module access permissions specify what classes of users are allows to access\n"
+		"a module once it has been loaded into memory (file access permissions\n"
+		"protect the module while it's on the disk). The following are the bits\n"
+		"and their meanings. The names shown have been provided for easier editing.\n"
+		"   Mask    Name    Access\n"
+		"     0     O_R	    owner read\n"
+		"     1     O_W     owner write\n"
+		"     2     O_E     owner execute\n"
+		"    10     G_R     owner's group read\n"
+		"    20     G_W     owner's group write\n"
+		"    40     G_E     owner's group execute\n"
+		"   100     P_R     public read\n"
+		"   200     P_W     public write\n"
+		"   400     P_E     public execute\n";
+			#define O_R 0x001
+			#define O_W 0x002
+			#define O_E 0x004
+			#define G_R 0x010
+			#define G_W 0x020
+			#define G_E 0x040
+			#define P_R 0x100
+			#define P_W 0x200
+			#define P_E 0x400
+	int8		_mtype, "Module type";
+	int8		_mlang, "Module language";
+    u_int8      _mattr, "Module attributes";
+	u_int8		_mrev, "Module revision";
+    int16       _medit, "Module edition";
+	int32		_musage;
+	int32		_msymbol;
+	int16		_mident;
+	char		_mspare1;
+	char		_mspare2;
+	char		_mspare3;
+	char		_mspare4;
+	char		_mspare5;
+	char		_mspare6;
+	int32		_mhdext;
+	int16		_mhdextsz;
+	int16		_mparity;
+}, "Module header information";
+
+string mod_name, "Module name:"
+	"This is the name by which the module will be known when it's loaded \n"
+	"into memory.\n";
+
+struct mod_dev {
+	u_int32 _mport, "Desc port address:"
+		"This is the absolute physical address of the hardware controller.\n";
+	u_int8 _mvector, "Desc irq vector:"
+		"This is the irq vector that the device will assert.\n"
+		"  Auto-vectored interrupt devices will use vectors 25 - 31.\n"
+		"  Vectored interrupt devices will use vectors 64 - 255.\n"
+		"  68070 on-chip peripherals can also use auto-vectors 57 - 63.\n";
+	u_int8 _mirqlvl, "Desc irq level:"
+		"This is the device's hardware irq level.\n";
+	int8 _mpriority, "Desc irq priority:"
+		"For devices that use the F$IRQ Polling system, this field is used\n"
+		"to establish the polling priority of the device when more than\n"
+		"one device shares the vector.\n"
+		"Priorities are from 0 (highest) to 255 (lowest).  A priority of 0\n"
+		"indicates that the device requires exclusive use of the vector.\n"
+		"For devices that use the F$FIRQ system, this field is ignored.\n"
+		"[NOTE also, an F$FIRQ device can co-exist on a vector with an\n"
+		" F$IRQ (priority 0) device].\n";
+	u_int8 _mmode = S_IREAD|S_IWRITE, "Desc capabilities:"
+		"This byte is used to validity check a caller's access mode byte\n"
+		"in I$Create or I$Open calls.  If a bit is set, the device is\n"
+		"capable of performing the corresponding function.  The ISize_\n"
+		"bit is usually set, because it is usually handled by the file\n"
+		"manager or ignored.  If the Share_ bit (Single User bit) is set\n"
+		"here, the device will be non-sharable (this is useful for printers).\n"
+		"\n"
+		"In the following definitions, a bit set means that the device is\n"
+		"capable of the action specified:\n"
+		"\n"
+		"bit 0 -- read [S_IREAD]\n"
+		"bit 1 -- write [S_IWRITE]\n"
+		"bit 2 -- execute [S_IEXEC]\n"
+		"bit 3 -- reserved\n"
+		"bit 4 -- reserved\n"
+		"bit 5 -- creates with initial file size are supported [S_ISIZE]\n"
+		"bit 6 -- single-user (non-sharable) [S_ISHARE]\n"
+		"bit 7 -- directory [S_IFDIR]\n";
+	pointer int16 _mfmgr = fm_name;
+	pointer int16 _mpdev = drvr_name;
+	pointer int16 _mdevcon = devcon;
+	int16 _mdscres_1;
+	int32 _mdevflags;
+	int16 _mdscres2_1;
+	int16 _mopt;
+}, "Descriptor common data";
+
+string fm_name, "Desc file manager name:"
+"This is the name of the file manager associated with the device.\n";
+
+string drvr_name, "Desc device driver name:"
+"This is the name of the device driver associated with the device.\n";
+
+string devcon, "Desc device config area:";
+
+
+#endif /* _MODULE_DES */

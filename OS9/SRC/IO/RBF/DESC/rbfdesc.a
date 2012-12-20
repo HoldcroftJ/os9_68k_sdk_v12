@@ -1,0 +1,734 @@
+ ttl Device Descriptor for RBF disk media
+
+*****************************************************************************
+*                                                                           *
+*              Copyright 1998 by Microware Systems Corporation              *
+*                            All Rights Reserved                            *
+*                          Reproduced Under License                         *
+*                                                                           *
+*  This software is confidential property of Microware Systems Corporation, *
+*  and is provided under license for internal development purposes only.    *
+*  Reproduction, publication, modification, distribution, or creation of    *
+*  derivative works in any form to any party other than the Licensee is     *
+*  strictly prohibited, unless expressly provided for under the terms of a  *
+*  mutually executed written license agreement for this software between    *
+*  the end-user and Microware Systems Corporation, or otherwise expressly   *
+*  authorized in writing by Microware Systems Corporation.  Licensee shall  *
+*  reproduce this copyright notice exactly as provided herein on any copies *
+*  of the software that Licensee is authorized to distribute.               *
+*                                                                           *
+*****************************************************************************
+* Edition History
+*  #   date    comments                                         by
+* -- -------- ------------------------------------------------- ---
+* 00 83/12/05 Converted to 68000 from 6809 edition 1.           res
+* 00 84/04/06 Added FlpyName macro usage                        WGP
+* 00 84/04/06 Added defs for some variable opts                 WGP
+* 01 84/10/12 Added IRQ Level & resesrved bytes.                rfd
+* 02 85/11/07 Split into seperate files                         res
+* 03 85/06/27 Added mode byte.									rfd
+* 04 85/06/25 Added sector size, format control, retry control.	res
+* 05 86/09/15 Added write precomp, reduced write current, park 
+*             cylinder, scsi unit number, scsi controller id,
+*             total number of cylinders and offset.             djl
+*              ---- OS-9/68K V2.1 Release ---- 
+*              ---- OS-9/68K V2.2 Release ---- 
+* 06 88/04/27 Added "ramdisk" and "nvramdisk" defaults.         wwb
+* 07 88/05/02 Added "uv580" defaults.                           wwb
+* 08 88/09/22 Made TotalCyls match Cylnders.                    wwb
+* 09 88/11/22 Added "autosize" defaults.                        wwb
+* 10 89/02/27 added scsi option flags.                          wwb
+* 11 89/03/02 added dd380 and uv380 default types, removed all  wwb
+*             "DevCon set 0's" except for ram disk.
+*              ---- OS-9/68K V2.3 Release ---- 
+* 12 90/02/16 added maximum transfer count.						wwb
+* 13 90/03/20 added multi-sector enable, MaxCount for ramdisk.  wwb
+* 14 90/07/03 updated for high-density floppy support and new   wwb
+*             path definitions (PD_TYP, PD_DNS updated,
+*             PD_Rate added).
+*              ---- OS-9/68K V2.4 Release ---- 
+* 15 92/03/30 added hd380 macro (1.4M HD).                      wwb
+*    92/04/07 fixed some hd380 defaults.						wwb
+* 16 93/03/08 added Append_ to default mode.					wwb
+* 17 93/10/12 added WritEnab/WritDsabl Control defs.			wwb
+*              ---- OS-9/68k V3.0 released ----
+* 18 94/03/09 added pcdos380, pcdos580 and uv377 macros.		wwb
+* 19 94/04/14 added pcdos380ed macro.							wwb
+* 20 94/06/08 fixed typo (xrf300k -> xfr300k).					wwb
+* 21 94/07/15 added scsi_wide definition to ScsiOpts.			wwb
+* 22 94/08/22 added SectOffs value for pcdos macros.			wwb
+*              ---- OS-9/68k V3.0.1 released ----
+* 23 96/05/14 added AutoEnabl/FmtDsabl for ramdisk macros.		wwb
+* 24 96/07/18 removed default setup for DevCon from ramdisk		wwb
+*             macros.  Default is set in rX.a file now, and
+*             may be over-ridden in DiskRX macro in systype.d.
+*             Added DevCon ramdisk flag values.					wwb
+*              ---- OS-9/68k V3.0.3 released ----
+* 25 98/07/07 added RBFTLDesc information.						dwj
+* 26 98/08/11 added new copyright info.							wwb
+*             added new defs for partitioning support.			wwb
+*              ---- OS-9/68k V3.1 released ----
+*             $$                    <RELEASE_INFO>                     $$   *
+*
+Edition equ 26 current edition number
+
+
+********************
+* RBF descriptor definitions
+*
+
+**********
+* Disk density definitions (PD_DNS values) - usually for floppy disks
+*
+Single   equ 0     FM encoded media
+Double   equ 1     MFM encoded media/double-track density
+Quad     equ 1<<1  Quad track density
+Octal    equ 1<<2  Octal track density
+
+**********
+* Disk type definitions (PD_TYP values)
+*
+* Note: For pre-V2.4 Five/Eight defines the disk size, rotational
+*       speed and data transfer rate.  From V2.4 the physical size
+*       is defined in bits 4 - 1, and PD_Rate defines the rotational
+*       speed and data transfer rate.
+
+* floppy disk definitions
+*
+Five     equ 0<<0  drive is 5 1/4"
+Eight    equ 1<<0  drive is 8"
+SizeOld  equ 0<<1  size/speed defined by bit 0 value (pre-V2.4)
+Size8    equ 1<<1  physical size is 8"
+Size5    equ 2<<1  physical size is 5 1/4"
+Size3    equ 3<<1  physical size is 3 1/2"
+
+* hard disk definitions
+*
+HRemov   equ 1<<6  hard disk is removable
+Hard     equ 1<<7  hard disk media
+
+**********
+* Disk transfer/rotation rate definitions (PD_Rate values)
+*
+* Note: V2.4 drivers should derive the disk data transfer rate and
+*       rotational speed from this field if PD_TYP, bits 4 - 1 are
+*       non-zero.  If not, then PD_TYP, bit 0 infers these.
+*
+rpm300   equ 0     rotational speed is 300 rpm
+rpm360   equ 1     rotational speed is 360 rpm
+rpm600   equ 2     rotational speed is 600 rpm
+xfr125K  equ 0<<4  transfer rate is 125K bits/sec
+xfr250K  equ 1<<4  transfer rate is 250K bits/sec
+xfr300K  equ 2<<4  transfer rate is 300K bits/sec
+xfr500K  equ 3<<4  transfer rate is 500K bits/sec
+xfr1M    equ 4<<4  transfer rate is 1M bits/sec
+xfr2M    equ 5<<4  transfer rate is 2M bits/sec
+xfr5M    equ 6<<4  transfer rate is 5M bits/sec
+
+**********
+* Verify media write definitions (PD_VFY values)
+*
+ON       equ 1 "no-verify" ON
+OFF      equ 0 "no-verify" OFF (i.e. verify is ON!)
+
+
+**********
+* Ramdisk definitions
+*
+
+* ramdisk DevCon values
+*
+ org 0
+RD_Flag do.b 1 flags for ramdisk options
+ 
+* RD_Flag definitions
+*
+b_RDF_Concat equ 0 set if sect/trk values are concatenated
+RamConcat set 1<<b_RDF_Concat
+
+
+**********
+* RBFDesc macro definitions
+*
+* macro parameter #6 definitions (drive type)
+*
+d877		equ 1 single density 8"
+dd877		equ 4 double density 8"
+d540		equ 2 single density 5 1/4" 40 trk
+dd540		equ 5 double density 5 1/4" 40 trk
+d580		equ 3 single density 5 1/4" 80 trk
+dd580		equ 6 double density 5 1/4" 80 trk
+ramdisk		equ 7 volatile ram disk
+nvramdisk	equ 8 non-volatile ram disk
+uv580		equ 9 universal 5 1/4" 80 track
+autosize	equ 10 autosize device (SS_DSize tells media size)
+dd380		equ 11 double density 3 1/2", 80 trk
+uv380		equ 12 universal 3 1/2" 80 track
+hd580		equ 13 double density 5 1/4" 80 track '8" image'
+ed380		equ 14 double density 3 1/2" 80 track, 4M byte unformatted
+hd577		equ 15 double density 5 1/4" 77 track '8" image'
+uv577		equ 16 universal 5 1/4" '8" image'
+uv877		equ 17 universal 8"
+hd380		equ 18 double density 3 1/2" 80 track, 2M (UF)/ 1.4M (F)
+pcdos380	equ 19 3 1/2":  double/sided, 80trk, 1440K
+pcdos580	equ 20 5 1/4":  double/sided, 80trk, 1200K
+uv377		equ 21 universal 3 1/2" '8" image'
+pcdos380ed	equ 22 3 1/2":  double/sided, 80trk, extra-density 2800K
+
+* macro parameter #7 definitions (additional drive type)
+*
+hard_phys	equ 23 hard-disk: physical device
+hard_part	equ 24 hard-disk: partition
+hard_disk	equ 25 hard-disk: non-partitioned
+
+
+**********
+* Collate module definitions
+*
+Density  set BitDns+(TrkDns<<1)
+DiskType set DiskKind+(DnsTrk0<<5)
+
+TypeLang set (Devic<<8)+0
+Attr_Rev set (ReEnt<<8)+0
+
+
+
+********************
+* RBF Descriptor
+*
+ psect RBFDesc,TypeLang,Attr_Rev,Edition,0,0
+
+ dc.l Port port address
+ dc.b Vector auto-vector trap assignment
+ dc.b IRQLevel IRQ hardware interrupt level
+ dc.b Priority irq polling priority
+ dc.b Mode device mode capabilities
+ dc.w FileMgr file manager name offset
+ dc.w DevDrv device driver name offset
+ dc.w DevCon device specific information
+ dc.w 0,0,0,0 reserved
+ dc.w OptLen
+
+* Default Parameters
+*
+OptTbl equ *
+ dc.b DT_RBF device type
+ dc.b DrvNum drive number
+ dc.b StepRate step rate
+ dc.b DiskType type of disk 8"/5 1/4"/Hard/etc
+ dc.b Density Bit Density and track density
+ dc.b 0 reserved
+ dc.w Cylnders-TrkOffs number of logical cylinders
+ dc.b Heads Number of Sides (Floppy) Heads(Hard Disk)
+ dc.b NoVerify OFF = disk verify ON = no verify
+ dc.w SectTrk default sectors/track
+ dc.w SectTrk0 default sectors/track track 0
+ dc.w SegAlloc segment allocation size
+ dc.b Intrleav sector interleave factor
+ dc.b DMAMode DMA mode (driver dependant)
+ dc.b TrkOffs track base offset (first accessable track)
+ dc.b SectOffs sector base offset (starting physical sector number)
+ dc.w SectSize # of bytes/sector
+ dc.w Control control byte
+ dc.b Trys number of retrys 0 = no retrys/error correction
+ dc.b ScsiLun scsi logical unit number
+ dc.w WrtPrecomp write precomp cylinder
+ dc.w RedWrtCrnt reduce write current cylinder
+ dc.w ParkCyl cylinder to park head for hard disk
+ dc.l LSNOffset logical sector offset
+ dc.w TotalCyls total cylinders on drive
+ dc.b CtrlrID scsi controller id
+ dc.b Rates data-transfer rate & rotational speed
+ dc.l ScsiOpts scsi option flags
+ dc.l MaxCount-1 maximum byte count passable to driver
+ dc.l PartSize partition size (if explicit)
+OptLen equ *-OptTbl
+
+FileMgr dc.b "RBF",0 Random block file manager
+
+
+********************
+* RBFDesc macro information (set via DiskXX macro in systype.d)
+*
+* The basic form of the RBFDesc disk macro has 5 parameters:
+*
+* #1:  Port address
+* #2:  Interrupt vector
+* #3:  Interrupt level
+* #4:  Interrupt polling priority
+* #5:  Device Driver name
+*
+* Optional parameters may follow to describe standard setups, as defined
+* in the following:
+*
+* #6:  Standard Drive Type setup code
+* #7:  Additional setup for Drive Type
+*
+RBFDesc macro
+
+Port     equ \1 Port address
+Vector   equ \2 autovector number
+IRQLevel equ \3 hardware interrupt level 
+Priority equ \4 polling priority
+DevDrv   dc.b "\5",0 driver module name
+
+* optional parameters for RBFDesc setup
+*
+ ifgt \#-5 standard device setup requested?
+
+
+**********
+* Standard Floppy Disk drive type setups
+*
+ ifeq \6-d877  8", 77 track drive, single density
+DiskKind  set Eight+Size8 (set Eight for compatibility)
+Cylnders  set 77
+BitDns    set Single FM encoding
+Rates     set xfr250K+rpm360
+TrkDns    set Single 48 tpi
+SectTrk   set 16
+SectTrk0  set 16 
+TotalCyls set Cylnders number of actual cylinders on disk
+ endc
+
+ ifeq \6-dd877  8", 77 track, double density
+DiskKind  set Eight+Size8 (set Eight for compatibility)
+Cylnders  set 77
+BitDns    set Double MFM encoding
+Rates     set xfr500K+rpm360
+TrkDns    set Single 48 tpi
+SectTrk   set 28
+SectTrk0  set 16 
+TotalCyls set Cylnders number of actual cylinders on disk
+ endc
+
+ ifeq \6-d540 5 1/4", 40 track drive, single density
+DiskKind  set Size5
+Cylnders  set 40
+BitDns    set Single FM encoding
+Rates     set xfr125K+rpm300
+TrkDns    set Single 48 tpi
+SectTrk   set 10
+SectTrk0  set 10 
+TotalCyls set Cylnders number of actual cylinders on disk
+ endc
+
+ ifeq \6-dd540 5 1/4", 40 track, double density drive
+DiskKind  set Size5
+Cylnders  set 40
+BitDns    set Double MFM encoding
+Rates     set xfr250K+rpm300
+TrkDns    set Single 48 tpi
+SectTrk   set 16
+SectTrk0  set 10 
+TotalCyls set Cylnders number of actual cylinders on disk
+ endc
+
+ ifeq \6-d580 5 1/4", 80 track, single density drive
+DiskKind  set Size5
+Cylnders  set 80 
+BitDns    set Single FM encoding
+Rates     set xfr125K+rpm300
+TrkDns    set Double 96tpi
+SectTrk   set 10
+SectTrk0  set 10 
+TotalCyls set Cylnders number of actual cylinders on disk
+ endc
+
+ ifeq \6-dd580 5 1/4", 80 track drive, double density
+DiskKind  set Size5
+Cylnders  set 80 
+BitDns    set Double MFM encoding
+Rates     set xfr250K+rpm300
+TrkDns    set Double 96tpi
+SectTrk   set 16
+SectTrk0  set 10
+TotalCyls set Cylnders number of actual cylinders on disk
+ endc
+
+ ifeq \6-uv580 universal 5 1/4" 80 track
+DiskKind  set Size5   five inch disk
+Cylnders  set 80     number of (physical) tracks
+BitDns    set Double MFM recording
+Rates     set xfr250K+rpm300
+DnsTrk0   set Double MFM track 0
+TrkDns    set Double 96tpi
+SectTrk   set 16     sectors/track (except trk 0, side 0)
+SectTrk0  set 16     sectors/track, track 0, side 0
+SectOffs  set 1      physical sector start = 1
+TrkOffs   set 1      track 0 not used
+TotalCyls set Cylnders number of actual cylinders on disk
+ endc
+ 
+ ifeq \6-dd380 3 1/2", 80 track drive
+DiskKind  set Size3
+Cylnders  set 80 
+BitDns    set Double
+Rates     set xfr250K+rpm300
+TrkDns    set Double 135tpi
+SectTrk   set 16
+SectTrk0  set 10
+TotalCyls set Cylnders number of actual cylinders on disk
+ endc
+
+ ifeq \6-uv380 universal 3 1/2" 80 track
+DiskKind  set Size3
+Cylnders  set 80     number of (physical) tracks
+BitDns    set Double MFM recording
+Rates     set xfr250K+rpm300
+DnsTrk0   set Double MFM track 0
+TrkDns    set Double 135tpi
+SectTrk   set 16     sectors/track (except trk 0, side 0)
+SectTrk0  set 16     sectors/track, track 0, side 0
+SectOffs  set 1      physical sector start = 1
+TrkOffs   set 1      track 0 not used
+TotalCyls set Cylnders number of actual cylinders on disk
+ endc
+ 
+ ifeq \6-hd580 5 1/4" 80 track '8" image'
+DiskKind  set Eight+Size5 (set Eight for compatibility)
+Cylnders  set 80     number of (physical) tracks
+BitDns    set Double MFM recording
+Rates     set xfr500K+rpm360
+TrkDns    set Double 96tpi
+SectTrk   set 28     sectors/track (except trk0, side 0)
+SectTrk0  set 16     sectors/track, track 0, side 0
+TotalCyls set Cylnders number of actual cylinders on disk
+ endc
+ 
+ ifeq \6-ed380 3 1/2" 80 track EXTRA density (4M unformatted)
+DiskKind  set Size3
+Cylnders  set 80     number of (physical) cylinders
+BitDns    set Double MFM recording
+Rates     set xfr1M+rpm300
+DnsTrk0   set Double MFM track 0
+TrkDns    set Double 135tpi
+SectTrk   set 61     sectors/track (except trk 0, side 0)
+SectTrk0  set 61     sectors/track, track 0, side 0
+SectOffs  set 1      physical sector start = 1
+TotalCyls set Cylnders number of actual cylinders on disk
+ endc
+ 
+ ifeq \6-hd577 5 1/4" 77 track '8" image'
+DiskKind  set Eight+Size5 (set Eight for compatibility)
+Cylnders  set 77     number of (physical) tracks
+BitDns    set Double MFM recording
+Rates     set xfr500K+rpm360
+TrkDns    set Double 96tpi
+SectTrk   set 28     sectors/track (except trk0, side 0)
+SectTrk0  set 16     sectors/track, track 0, side 0
+TotalCyls set Cylnders number of actual cylinders on disk
+ endc
+
+ ifeq \6-uv577 universal 5 1/4" 77 track '8" image'
+DiskKind  set Eight+Size5 (set Eight for compatibility)
+Cylnders  set 77     number of (physical) tracks
+BitDns    set Double MFM recording
+Rates     set xfr500K+rpm360
+DnsTrk0   set Double MFM track 0
+TrkDns    set Double 96tpi
+SectTrk   set 28     sectors/track (except trk0, side 0)
+SectTrk0  set 28     sectors/track, track 0, side 0
+SectOffs  set 1      physical sector start = 1
+TrkOffs   set 1      track 0 not used
+TotalCyls set Cylnders number of actual cylinders on disk
+ endc
+ 
+ ifeq \6-uv877 universal 8" 77 track
+DiskKind  set Eight+Size8 (set Eight for compatibility)
+Cylnders  set 77     number of (physical) tracks
+BitDns    set Double MFM recording
+Rates     set xfr500K+rpm360
+DnsTrk0   set Double MFM track 0
+TrkDns    set Single 48 tpi
+SectTrk   set 28     sectors/track (except trk0, side 0)
+SectTrk0  set 28     sectors/track, track 0, side 0
+SectOffs  set 1      physical sector start = 1
+TrkOffs   set 1      track 0 not used
+TotalCyls set Cylnders number of actual cylinders on disk
+ endc
+ 
+ ifeq \6-hd380 3 1/2" 80 track (2M unformatted, 1.4M formatted)
+DiskKind  set Eight+Size3 (set Eight for compatibility)
+Cylnders  set 80     number of (physical) tracks
+BitDns    set Double MFM recording
+Rates     set xfr500K+rpm300
+TrkDns    set Double 135 tpi
+SectSize  set 512    physical sector size
+SectTrk   set 18     sectors/track (except trk0, side 0)
+SectTrk0  set 18     sectors/track, track 0, side 0
+TotalCyls set Cylnders number of actual cylinders on disk
+ endc
+ 
+ ifeq \6-pcdos580 5 1/4", 80-track, double density, double sided (1200K)
+DiskKind  set Eight+Size5 (set Eight for compatibility)
+Cylnders  set 80
+BitDns    set Double
+Rates     set xfr500K+rpm360 (high-density)
+TrkDns    set Double  96 tpi
+SectSize  set 512 sector size 512 bytes.
+SectTrk   set 15
+SectTrk0  set 15
+TotalCyls set Cylnders number of actual cylinders on disk
+SectOffs  set 1 physical sector start = 1
+ endc
+
+ ifeq \6-pcdos380 3 1/2", 80-track, double density, double sided (1440K)
+DiskKind  set Eight+Size3 (set Eight for compatibility)
+Cylnders  set 80
+BitDns    set Double
+Rates     set xfr500K+rpm300 (high-density)
+TrkDns    set Double  135tpi
+SectSize  set 512 sector size 512 bytes.
+SectTrk   set 18
+SectTrk0  set 18
+SectOffs  set 1 physical sector start = 1
+TotalCyls set Cylnders number of actual cylinders on disk
+ endc
+
+ ifeq \6-uv377 3 1/2", 77 track '8" image'
+DiskKind  set Eight+Size3 (set Eight for compatibility)
+Cylnders  set 77     number of (physical) tracks
+BitDns    set Double MFM recording
+Rates     set xfr500K+rpm360
+DnsTrk0   set Double MFM recording
+TrkDns    set Double 135 tpi
+SectTrk   set 26     sectors/track (except track 0, side 0)
+SectTrk0  set 26     sectors/track, track 0, side 0
+SectOffs  set 1      physical sector start = 1
+TrkOffs   set 1      track 0 not used
+TotalCyls set Cylnders number of actual cylinders on disk
+ endc
+
+ ifeq \6-pcdos380ed 3 1/2", 80-track, double density, double sided (2800K)
+DiskKind  set Size3
+Cylnders  set 80
+BitDns    set Double
+Rates     set xfr1M+rpm300 (high-density)
+TrkDns    set Double  135tpi
+SectSize  set 512 sector size 512 bytes.
+SectTrk   set 36
+SectTrk0  set 36
+SectOffs  set 1 physical sector start = 1
+TotalCyls set Cylnders number of actual cylinders on disk
+ endc
+
+**********
+* Standard Ram Disk drive type setups
+*
+ ifeq \6-ramdisk volatile ram disk
+DiskKind  set 0
+Cylnders  set 0
+BitDns    set Single
+TrkDns    set Single
+SectTrk0  set 0
+Heads     set 0
+StepRate  set 0
+Intrleav  set 0
+NoVerify  set ON
+SegAlloc  set 4
+Trys      set 0
+* standard ram disks are format disabled, multi-sector capable, support ss_dsize
+* Note - format disabled is significant when formatting the media using the
+* Format utility, or when using OS9Gen.
+Control   set FmtDsabl+MultEnabl+AutoEnabl
+MaxCount  set $ffffffff
+ endc
+
+ ifeq \6-nvramdisk non-volatile ram disk
+DiskKind  set 0
+Cylnders  set 0
+BitDns    set Single
+TrkDns    set Single
+SectTrk0  set 0
+Heads     set 0
+StepRate  set 0
+Intrleav  set 0
+NoVerify  set ON
+SegAlloc  set 4
+Trys      set 0
+* nvram disks are format disabled, multi-sector capable, support ss_dsize
+Control   set FmtDsabl+MultEnabl+AutoEnabl
+MaxCount  set $ffffffff
+ endc
+
+
+**********
+* Standard AutoSize Device drive type setups
+*
+ ifeq \6-autosize "autosize" device (SS_DSize tells capacity)
+SectTrk   set 0      sectors/track (except trk 0, side 0)
+SectTrk0  set 0      sectors/track, track 0, side 0
+Cylnders  set 0      total cylinders
+Heads     set 0      total heads
+Control   set Control!AutoEnabl	autosize device
+ endc
+
+
+ ifgt \#-6 additional drive type setups requested?
+**********
+* Standard Hard Disk drive type setups
+*
+ ifeq \7-hard_disk hard disk drive, no partitioning
+
+* used to perform physical and logical partitioning on a device that
+* does not require partitioning
+*
+DiskKind  set Hard
+BitDns    set Single
+TrkDns    set Single
+DnsTrk0   set Single
+StepRate  set 0
+DiskType  set DiskKind+(DnsTrk0<<5)
+Density   set BitDns+(TrkDns<<1)
+* Control word sets not physical-only, not a partition
+Control   set (Control&^PhysDsabl)&^PartDsabl formattable, not a partition
+ endc
+
+ ifeq \7-hard_phys hard-disk: physical format only device
+
+* used to perform physical formatting of a device that will be used
+* to hold multiple logical partitions
+*
+DiskKind  set Hard
+BitDns    set Single
+TrkDns    set Single
+DnsTrk0   set Single
+StepRate  set 0
+DiskType  set DiskKind+(DnsTrk0<<5)
+Density   set BitDns+(TrkDns<<1)
+* Control sets physical-only format, not a partition
+Control   set (Control!PhysEnab)&^PartEnab physical device only
+
+ endc
+
+ ifeq \7-hard_part hard-disk: partition (logical) device
+
+* used to perform logical formatting of a partition on a physical device
+*
+DiskKind  set Hard
+BitDns    set Single
+TrkDns    set Single
+DnsTrk0   set Single
+StepRate  set 0
+DiskType  set DiskKind+(DnsTrk0<<5)
+Density   set BitDns+(TrkDns<<1)
+* Control sets not physical-only format, partition active
+Control   set (Control&^PhysEnab)!PartEnab partition on device
+ endc
+
+ endc (optional param 7)
+
+ endc (optional param 6)
+ endm
+
+********************
+* FLASHDesc macro information (set via FlashXX macro in systype.d)
+*
+* The basic form of the FLASHDesc disk macro has 8 parameters:
+*
+* #1:  Port Address
+* #2:  Device Size
+* #3:  ???
+* #4:  Device Width
+* #5:  Manufacturer ID
+* #6:  Device ID Code
+* #7:  Device Driver Name
+* #8:  ???
+*
+*****************
+*
+* FLASHDesc macro Port,Size,Source,Width,MFGID,DEVID,Driver name,MTD name
+
+FLASHDesc macro
+
+Port     equ \1 Port address
+DevCon   dc.l \2
+         dc.b \3,\4,\5,\6
+         dc.b "\8",0
+DevDrv   dc.b "\7",0 driver module name
+
+IRQLevel  set 0
+Priority  set 0
+SectTrk   set 0
+Vector    set 0
+Control   set AutoEnabl+FmtDsabl+MultEnabl+DelblkEnab
+SectSize  set 512 default sector size (fixed for now)
+DiskKind  set Hard
+Cylnders  set 0
+BitDns    set Single
+TrkDns    set Single
+SectTrk0  set 0
+Heads     set 0
+StepRate  set 0
+Intrleav  set 0
+NoVerify  set ON
+SegAlloc  set 1 most efficient storage
+Trys      set 0
+MaxCount  set $ffffffff
+DrvNum    set 0 driver allocates only 1 drive table
+ endm
+
+
+****************
+* Descriptor Defaults
+*
+Mode        set Dir_+ISize_+Append_+Exec_+Updat_
+BitDns      set Single
+Heads       set 2 
+StepRate    set 2
+Intrleav    set 3 
+NoVerify    set OFF
+DnsTrk0     set Single
+DMAMode     set 0 non dma device
+SegAlloc    set 8 minimum segment allocation size
+TrkOffs     set 0
+SectOffs    set 0
+SectSize    set 256 default sector size 256 bytes.
+WrtPrecomp  set 0 no write precomp
+RedWrtCrnt  set 0 no reduced write current
+ParkCyl     set 0 where to park the head for hard disk
+ScsiLun     set 0 scsi logical unit number
+CtrlrID     set 0 controller id
+LSNOffset   set 0 logical sector offset for scsi hard disks
+TotalCyls   set 0 number of actual cylinders on disk
+Trys        set 7 number of Trys
+MaxCount    set 65536 default maximum transfer count of driver (16-bit)
+Rates       set 0 default transfer-rate & rotational speed
+PartSize	set 0 default partition size (none OR remainder)
+
+* scsi options flag definitions
+*
+scsi_atn    set 1<<0 assert ATN supported
+scsi_target set 1<<1 target mode supported
+scsi_synchr set 1<<2 synchronous transfers supported
+scsi_parity set 1<<3 enable SCSI parity checking
+scsi_wide	set	1<<4 enable wide (16 or 32) transfers
+
+ScsiOpts    set 0 scsi options flags (default)
+
+* device control word definitions
+*
+FmtEnabl    set 0<<0 enable formatting
+FmtDsabl    set 1<<0 disable formatting
+MultDsabl   set 0<<1 disable multi-sectors
+MultEnabl   set 1<<1 enable multi-sectors
+StabDsabl   set 0<<2 device doesn't have stable id
+StabEnabl   set 1<<2 device has stable id
+AutoDsabl   set 0<<3 device size from device descriptor
+AutoEnabl   set 1<<3 device tells size via SS_DSize
+FTrkDsabl   set 0<<4 device can't format a single track
+FTrkEnabl   set 1<<4 device can format a single track
+WritEnab	set 0<<5 device is writable by RBF
+WritDsabl	set 1<<5 device is write-protected by RBF
+DelblkDsabl	set 0<<6 device does not call driver to delete blocks (for flash)
+DelblkEnab	set 1<<6 device does call driver to delete blocks (for flash)
+PhysDsabl	set 0<<7 device can be logically formatted
+PhysEnab	set 1<<7 device can only be physically formatted
+PartDsabl	set 0<<8 logical device is not a partition
+PartEnab	set 1<<8 logical device is a partition on a physical device
+
+Control     set 0 descriptor control word (default)
+
+
+* end of rbfdesc.a

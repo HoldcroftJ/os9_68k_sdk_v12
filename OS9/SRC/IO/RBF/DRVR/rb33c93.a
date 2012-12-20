@@ -1,0 +1,1577 @@
+ nam RB33C93
+ ttl device driver for WD33C93
+
+* Copyright 1988, 1989, 1992, 1993 by Microware Systems Corporation
+* Reproduced Under License
+
+* This source code is the proprietary confidential property of
+* Microware Systems Corporation, and is provided to licensee
+* solely for documentation and educational purposes. Reproduction,
+* publication, or distribution in any form to any party other than
+* the licensee is strictly prohibited.
+
+
+********************
+* RB33C93:  Device driver for the WD33C93 SCSI Controller
+*
+
+
+********************
+* Edition History:
+*
+* ed    date      reason                                              who
+* --  --------  ----------------------------------------------------  ---
+* 00  88/03/08  derived from vme620 driver (with many fixes).         wwb
+* 01  88/03/14  removed irq masking (no -a=NOIRQ please).             wwb
+*               made write use single-sector writes (omti5400's will  wwb
+*               add random corruption to data).
+* 02  88/03/14  added dma capability (for 68070).                     wwb
+* 03  88/03/16  removed NOIRQ code.                                   wwb
+* 04  88/04/07  added delay macro after write accesses to scsi device jal
+*               for PVB070 to handle bogus line 'f' exceptions
+* 05  88/04/10  re-installed NOIRQ code for PVB070                    jal
+* 06  88/07/26  added VME147 conditionals.                            wwb
+* 07  89/03/20  removed old edition comments for release.             wwb
+* 08  89/03/21  added default definition for VME147.                  wwb
+*                ---- OS-9/68K V2.3 Release ---- 
+*                ---- OS-9/68K V2.4 Release ---- 
+* 09  92/08/27  Changed case in use statement,  no code change        Rwb
+* 10  93/07/02  Reworked use statements for MWOS structure.           wwb
+*                ---- OS-9/68k V3.0 released ----
+*                ---- OS-9/68k V3.1 released ----
+*
+Edition equ 10 current edition 
+
+Typ_Lang set (Drivr<<8)+Objct
+Attr_Rev set ((ReEnt+SupStat)<<8)+0
+
+ psect rb33c93,Typ_Lang,Attr_Rev,Edition,0,DiskEntry
+ 
+ use defsfile
+
+*********************************
+* This nop instruction is needed
+* for the PVB070 to handle bogus
+* "line 'f'" exceptions
+*
+delay macro
+ ifdef PVB070
+ nop
+ endc
+ endm
+
+
+********************
+* Default Definitions
+*
+ ifndef VME147
+VME147 equ 147 default value for VME147 cpu
+ endc
+
+
+********************
+* Assembly Options:
+*
+* The following options can be invoked from the assembler command
+* line (e.g. -a=XXX):
+*
+* USEDMA - enables dma transfers instead of polled i/o.
+*          (NOTE:  not tested yet)
+*
+ ifdef USEDMA
+ ifdef DMA070_1
+
+* driver setup for 68070 DMA channel #1
+
+ fail Sorry, but 68070 dma code not working yet!
+ else
+ fail unknown dma controller type
+ endc DMA070_1
+ endc USEDMA
+
+
+********************
+* Known Problems/Deficiencies:
+*
+* 1.  68070 DMA code does not work yet.
+* 2.  Different floppy formats (e.g. double-stepping) are not supported.
+* 3.  No re-init of drive if formatting.
+* 4.  No park heads support.
+* 5.  PD_WPC and PD_RWR are are ignored.
+*
+
+ ttl device driver for WD33C93
+ pag
+********************
+* Macro definitions
+*
+ use <os9svc.m>
+
+
+* OMTIFIX:  macro
+* This macro will "block" any multi-sector writes into 'n'
+* single sector writes, because the OMTI5400 controller's
+* will randomly corrupt multi-sector writes.
+*
+OMTIFIX macro
+ move.l PD_BUF(a1),-(sp) save original buffer pointer
+
+omtifix_a movem.l d0/d2,-(sp) save count/lsn
+ moveq.l #1,d0 indicate single sector write
+ bsr.s omtifix_sub write one sector
+ movem.l (sp)+,d0/d2 restore regs
+ bcs.s omtifix_exit ..exit if error
+ addq.l #1,d2 point to next sector
+ addi.l #BuffSize,PD_BUF(a1) point to next user block
+ subq.l #1,d0 count the sector written
+ bne.s omtifix_a go again if more to write
+ move.l (sp)+,PD_BUF(a1) restore user buffer ptr
+ rts return carry clear
+
+omtifix_exit move.l (sp)+,PD_BUF(a1) restore original buffer ptr
+ ori.b #Carry,ccr set carry to indicate error
+ rts return
+
+omtifix_sub equ *
+ endm
+
+
+********************
+*  General Definitions
+*
+SectSzBit equ 8 size of a sector in bits
+BuffSize equ 1<<SectSzBit size of a sector
+MaxTime equ 100 bus timeout value in 8mS increments
+ ifndef NumDriv
+NumDriv equ 4 Max # of drives
+ endc
+
+ ifndef DD581
+DD581 equ $87 Double density 80 track DS sector offset = 1
+DD580 equ $A7 Double density 80 track DS sector offset = 0
+* note: type DD580 requires special omti5400 firmware
+ endc
+
+ pag
+********************
+* Register set up of the WD33c93 chip
+*
+* The WD33C93 registers must be accessed indirectly via
+* the AddrReg pointer.  Reads/Writes to the selected
+* register are then made through the RegFile register.
+*
+
+ ifeq CPUType-VME147
+AddrReg equ 0 address register - write
+RegFile equ 1 register file - r/w
+ else
+ ifdef PVB070
+VectReg equ $01 Vector Register
+CtlStat equ $41 Control/Status Register
+AddrReg equ $C0 Address Register - Write 
+RegFile equ $C1 Register File - Read / Write
+ else
+AddrReg equ 0 Address Register - Write 
+RegFile equ 2 Register File - Read / Write
+ endc
+ endc VME147
+AuxReg equ AddrReg Auxiliary Register - Read 
+
+* The following are the registers in the WD33c93 register file.
+* Addresses shown are the indirect address # that is placed in the
+* AddrReg (address register).
+*
+aOwnID equ $00
+aCntrl equ $01
+aTimeOut equ $02
+aCDB1 equ $03
+aCDB2 equ $04
+aCDB3 equ $05
+aCDB4 equ $06
+aCDB5 equ $07
+aCDB6 equ $08
+aCDB7 equ $09
+aCDB8 equ $0a
+aCDB9 equ $0b
+aCDB10 equ $0c
+aCDB11 equ $0d
+aCDB12 equ $0e
+aTargLUN equ $0f
+aCmdPhse equ $10
+aSyncXfr equ $11
+aXfrMSB equ $12
+aXfrNSB equ $13
+aXfrLSB equ $14
+aDestID equ $15
+aSrcID equ $16
+aStatus equ $17
+aCommand equ $18
+aData equ $19
+
+
+********************
+* WD33C93 commands
+*
+sRESET equ $00
+sSelXfr equ $09 select and Xfr with NO ATN
+
+
+********************
+* WD33C93 definitions
+*
+
+* Auxiliary register bits
+
+Irq_B equ 7 irq pending bit
+Data_B equ 0 data ready/request bit
+
+* control register
+
+DmaOff equ 0 non-dma mode transfers
+DmaOn equ $80 enable dma-mode transfers
+
+* status register values
+
+Successful equ $16 select & transfer completed successfully
+Disconnect equ $85 disconnect occurred
+
+ pag
+********************
+* OMTI 5400 Commands
+*
+TUR equ $00 Test Unit Ready
+CALB equ $01 recalibrate to track zero
+REQSNS equ $03 request sense
+FORM equ $04 Format Unit
+FMTRK equ $06 Format Track
+FMTBD equ $07 Format Bad Track
+READ equ $08 Read Track
+WRITE equ $0a Write Track
+SEEK equ $0b Seek
+AlTrk equ $0e Assign Alternate Track
+COPY equ $20 Copy
+
+DEFINE equ $c0 Define Floppy Disk Format
+ASSIGN equ $c2 Assign Disk Parameters
+
+WRTECC equ $e1
+READID equ $e2 
+
+
+********************
+* OMTI5400 definitions
+*
+
+* control byte (CDB6)
+
+Retry equ %00000000 retry/ecc on
+NoRetry equ %11000000 retry/ecc off
+
+ ifdef USEDMA
+ ifdef DMA070_1
+********************
+* DMA Definitions (68070 Channel #1)
+*
+DCR.OCR equ chx_cy+chx_typ_ack+chx_ocr_null dma DCR/OCR default
+SCR.CCR equ ch1_scr+chx_irq+DMA1Level dma SCR/CCR default
+ endc DMA070_1
+ endc USEDMA
+
+ pag
+********************
+* Static Storage
+*
+
+* Offsets into CDBTbl:
+
+tCDB1 equ 0
+tCDB2 equ 1
+tCDB3 equ 2
+tCDB4 equ 3
+tCDB5 equ 4
+tCDB6 equ 5
+tCDB7 equ 6
+tCDB8 equ 7
+tCDB9 equ 8
+tCDB10 equ 9
+tCDB11 equ 10
+tCDB12 equ 11
+
+DPBSIZE equ 10 Disk Drive Parameter Block Size (in bytes)
+
+ vsect
+VerfBuff ds.l 1 write-verify buffer ptr
+DataLen ds.l 1 data transfer size
+
+V_IRQmask ds.w 1 status register/irq mask
+ ifdef USEDMA
+dmastatus ds.w 1 dma status word
+ endc USEDMA
+
+SCSIstat ds.b 4 Status of last SCSI operation from Request Sense 
+CDBTbl ds.b 12 Command Descriptor Block (RAM Image)
+DPB ds.b DPBSIZE Drive Parameter Block
+NoDMA ds.b 1 No DMA flag  (1 = No DMA  / 0 = DMA )
+compbyte ds.b 1 completion status flag
+auxstatus ds.b 1 wd aux register irq status
+cmdstatus ds.b 1 wd command complete status
+ ifdef USEDMA
+dmaactive ds.b 1 dma irq acknowledge
+dmawrite ds.b 1 dma write flag (dev to memory if TRUE)
+ endc USEDMA
+ ends
+
+
+********************
+* Module Entry Table
+*
+DiskEntry dc.w Init initialize device
+ dc.w Read read sector(s)
+ dc.w Write write sector(s)
+ dc.w GetStat get device status
+ dc.w PutStat set device status
+ dc.w Terminate terminate device
+ dc.w 0 exception handler (0=none)
+
+ pag 
+********************
+* Init - initialize controller
+*
+* passed:  (a1) = address of device descriptor
+*          (a2) = address of static storage
+*          (a4) = process descriptor ptr
+*          (a6) = system global data ptr
+*
+* returns: (cc) = carry set on error
+*          (d1) = error code if error
+*
+Init: moveq.l #NumDriv,d0 number of drives
+ move.b d0,V_NDRV(a2) max number of drives
+ moveq.l #-1,d1 fake media size
+ subq.b #1,d0 adjust for loop count
+
+* initialize drive tables
+
+ lea.l DRVBEG(a2),a0 first drive table
+Init10 move.w d1,DD_TOT(a0) set fake media size
+ lea.l DRVMEM(a0),a0 point at next drive table
+ dbra d0,Init10 loop till done
+
+* get verify buffer for writes
+
+ movea.l a2,a0 save static pointer
+ move.l #BuffSize,d0 size of buffer
+ os9 F$SRqMem get the buffer
+ exg a0,a2 static ptr = A2, buffer = A0
+ bcs.s Init20 ..skip on if no buffer
+ move.l a0,VerfBuff(a2) save buffer address
+
+* finish off static initialization
+
+Init20 move.b M$IRQLvl(a1),d2 get irq level of device
+ lsl.w #8,d2 shift into correct sr position
+ bset.l #SupvrBit+8,d2 set supervisor bit
+ move.w d2,V_IRQmask(a2) save IRQ Mask for later use
+ ifndef USEDMA
+ st.b NoDMA(a2) set non-dma mode
+ endc USEDMA
+
+* add device(s) to system IRQ polling table
+
+ ifdef USEDMA
+ ifdef DMA070_1
+ movea.l #DMA1,a3 get dma device address
+ move.b #DMA1Vect,d0 get dma vector #
+ move.b #DMA1Prior,d1 get dma priority
+ lea.l DmaISR(pc),a0 point at interrupt service routine
+ OS9 F$IRQ add dma device to system
+ bcs.s Init99 ..abort if error
+ endc DMA070_1
+ endc USEDMA
+ movea.l V_PORT(a2),a3 get (wd) device port address
+ move.b M$Vector(a1),d0 get vector #
+ ifdef PVB070
+ move.b d0,VectReg(a3) install vector
+ endc
+ move.b M$Prior(a1),d1 get polling priority
+ ifndef NOIRQ
+ lea.l DiskISR(pc),a0 point to interrupt service routine
+ OS9 F$IRQ install device on irq polling table
+ bcs.s Init99 ...abort if error
+ endc NOIRQ
+* initialize hardware devices
+
+ bsr InitWD_DMA init wd33c93, dma device
+
+ ifeq CPUType-VME147
+ bcs.s Init99 ..abort if error
+ move.b M$IRQLvl(a1),d0 get h/w irq level
+ andi.b #scsi_ilmask,d0 ensure range correct
+ ori.b #scsi_enab,d0 add irq enable
+ move.b d0,SCSICtl tell pcc chip
+ endc VME147
+Init99 rts return result
+
+ pag
+********************
+* Read - Read block(s) from disk
+*
+* passed:  (a1) = path descriptor ptr
+*          (a2) = device static storage ptr
+*          (a4) = process descriptor ptr
+*          (a6) = system global data ptr
+*          d0.l = # of contiguous sectors
+*          d2.l = logical sector #
+*
+* returns:  (cc) = carry set if error
+*           d1.w = error code if error
+*
+Read: bsr SetOMTI set up controller parameters
+ bcs.s RdExit ...exit if error
+ tst.l d2 read starts at sector 0 ?
+ bne.s Read20 ..no; hit the disk
+ cmpi.w #1,d0 single-sector read only ?
+ bne.s Read20 ..no; hit the disk anyway
+ movea.l PD_DTB(a1),a0 get drive table pointer
+ tst.b V_ZeroRd(a0) got sector 0 buffered ?
+ bne.s RetLSN0 ..yes; return it
+
+* here to access the disk
+
+Read20 movea.l PD_BUF(a1),a5 point to data buffer
+ move.b #READ,CDBTbl(a2) read command opcode
+ bsr rw_exec read sector into buffer
+ bcs.s RdExit ..exit if fatal error
+ bne report_stat report scsi status
+ tst.l d2 reading sector 0 ?
+ beq.s ReadZero ..yes; update drive table
+RdExit rts
+
+* here when sector zero read from disk
+
+ReadZero: movea.l PD_DTB(a1),a0 drive table pointer
+ move.w #DD_SIZ-1,d1 Update drive table
+ReadZ10 move.b (a5,d1.w),(a0,d1.w) move from buffer to drv table
+ dbra d1,ReadZ10
+ tst.b PD_TYP(a1) what type of drive ?
+ bpl.s ReadZ99 ...exit if floppy (removable)
+ move.l V_ScZero(a0),d1 have we got a sector 0 buffer ?
+ beq.s ReadZ99 ..no; simply return
+ st.b V_ZeroRd(a0) flag sector 0 buffered
+ movea.l d1,a0 set sector 0 buffer ptr
+ReadZ20 move.w #(BuffSize/4)-1,d1 get count
+
+ReadZ40 move.l (a5)+,(a0)+ copy sector 0 data
+ dbra d1,ReadZ40
+ReadZ99 rts (carry clear)
+
+* here to return buffered sector 0
+
+RetLSN0 movea.l V_ScZero(a0),a5 get buffered sector 0 ptr
+ movea.l PD_BUF(a1),a0 get (dest) buffer ptr
+ bra.s ReadZ20 return buffered sector 0 to caller
+
+ pag
+********************
+* Write - Write block(s) to disk
+*
+* Passed:  (a1) = path descriptor ptr
+*          (a2) = device static storage ptr
+*          (a4) = process descriptor ptr
+*          (a6) = system global data ptr
+*          d0.l = number of contiguous sectors
+*          d2.l = logical sector number
+*
+* Returns:  (cc) = Carry Set on Error
+*           d1.w = Error code
+*
+Write: bsr SetOMTI set up controller parameters
+ bcs WriteErr99 ...exit if error
+ OMTIFIX omti5400 damage control
+ tst.l d2 writing sector 0 ?
+ bne.s Write10 ..no; branch on
+ btst.b #FmtDis_B,PD_Cntl+1(a1) device format protected ?
+ bne FmtProt ..yes; return error
+ movea.l PD_DTB(a1),a0 address of drive table
+ sf.b V_ZeroRd(a0) signal sector 0 unbuffered
+Write10 move.l d0,d4 save sector count for verify
+ move.b #WRITE,CDBTbl(a2) write opcode
+ movea.l PD_BUF(a1),a5 address of buffer
+ bsr rw_exec execute the write
+ bcs.s WriteErr99 ...exit if fatal error
+ bne report_stat report scsi status if problem
+
+* write peformed ok, check for verify required
+
+ tst.b PD_VFY(a1) verify required ?
+ bne.s Write_exit no verify so exit
+ cmpi.w #1,d4 multi-sector transfer ?
+ bne.s Write_exit ..yes; don't bother with verify
+ move.l VerfBuff(a2),d0 is there a verify buffer ?
+ beq.s Write_exit ..no; simply exit
+ movea.l d0,a5 set buffer pointer
+ move.b #READ,CDBTbl(a2) set read command
+ move.l d4,d0 restore sector count
+ bsr rw_exec execute read
+ bcs.s WriteErr99 ..exit if fatal error
+ bne report_stat report scsi status if problem
+ movea.l PD_BUF(a1),a0 get data ptr
+ lsl.l #SectSzBit-2,d4 convert to long-word count
+ subq.w #1,d4 adjust for loop counter
+WriteVerf cmpm.l (a0)+,(a5)+ compare the data
+ dbne d4,WriteVerf loop till done or mismatch
+ bne.s WriteErr ..mismatch; return error
+ 
+* here when write all ok
+
+Write_exit moveq.l #0,d1 signal no errors
+ rts
+
+* here when error on write-verify
+
+WriteErr move.w #E$Write,d1 flag "write error"
+ ori.b #Carry,ccr set carry
+WriteErr99 rts
+
+ pag
+********************
+* PutStat - set device status
+*
+* Passed:  d0.w = status code
+*          (a1) = path descriptor ptr
+*          (a2) = device static storage ptr
+*          (a4) = process descriptor ptr
+*          (a5) = caller's register stack ptr
+*          (a6) = system global data ptr
+*
+* Returns:  depends on status code
+*           (cc) = carry set if error
+*           d1.w = error code if error
+*
+PutStat: bsr SetOMTI set up controller parameters
+ bcs.s UnKnown99 ...exit if error
+ movea.l V_PORT(a2),a3 get device port address
+ cmpi.w #SS_WTrk,d0 Write Track ?? (format track)
+ beq.s WriteTrk ..yes; branch
+ cmpi.w #SS_Reset,d0 Recalibrate ??
+ beq.s Restore ...yes; branch
+
+* else, fall into Unknown Service Request
+
+UnKnown: move.w #E$UnkSvc,d1 signal "unknown service request"
+ ori.b #Carry,ccr set the carry
+UnKnown99 rts
+
+
+********************
+* GetStat - get device status
+*
+* Passed:  d0.w = status code
+*          (a1) = path descriptor ptr
+*          (a2) = device static storage ptr
+*          (a4) = process descriptor ptr
+*          (a5) = caller's register stack ptr
+*          (a6) = system global data ptr
+*
+* Returns:  depends on status code
+*           (cc) = carry set if error
+*           d1.w = error code if error
+*
+GetStat: equ UnKnown no getstats supported
+
+ pag
+********************
+* Restore - restore disk head to track 0
+*
+* Passed:  (a1) = path descriptor ptr
+*          (a2) = device static storage ptr
+*          (a3) = device port address
+*          (a4) = process descriptor ptr
+*          (a5) = caller's register stack ptr
+*          (a6) = system global data ptr
+*
+* Returns:  (cc) = carry set if error
+*           d1.w = error code if error
+*
+Restore: move.b #CALB,CDBTbl(a2) recal opcode
+ move.w #(0<<8)+Retry,CDBTbl+tCDB5(a2) clear cmd blk 5 & enable retries
+ moveq.l #0,d2 force LSN=0
+ move.l #0,DataLen(a2) no data xfr
+ bsr cmd_exec execute restore
+ bcs.s Restore99 ...exit if fatal error
+ bne report_stat report scsi status if problem
+Restore99 rts
+
+
+********************
+* WriteTrk:  format device media
+*
+* Passed:  (a1) = path descriptor ptr
+*          (a2) = device static storage ptr
+*          (a3) = device port address
+*          (a4) = process descriptor ptr
+*          (a5) = caller's register stack ptr
+*                 R$a0 = caller's track buffer
+*                 R$a1 = interleave table
+*                 R$d2 = track number
+*                 R$d3 = bits 15-8:  side number
+*                        bit 2:  track density
+*                        bit 1:  density
+*                        bit 0:  side flag
+*                 R$d4 = interleave value
+*          (a6) = system global data ptr
+*
+* Returns:  (cc) = carry set if error
+*           d1.w = error code if error
+*
+WriteTrk: btst.b #FmtDis_B,PD_Cntl+1(a1) format protected ?
+ bne.s FmtProt ...yes; return error
+ move.l R$d2(a5),d2 track #
+ bne.s WrtTrkEx ...exit if not zero
+ move.b R$d3+2(a5),d1 side #
+ bne.s WrtTrkEx ..exit if not zero
+ move.b R$d4+3(a5),CDBTbl+tCDB5(a2) interleave factor
+ move.b #NoRetry,d1 assume retrys off
+ tst.b PD_Trys(a1) check try counter
+ beq.s WriteTrk50 ..if 0, then no retries
+ cmpi.b #1,PD_Trys(a1) is it set to 1 ?
+ beq.s WriteTrk50 ..yes; then no retries
+ move.b #Retry,d1 ..else, enable retries/ecc
+WriteTrk50 move.b d1,CDBTbl+tCDB6(a2) set control byte
+ move.b #FORM,CDBTbl(a2) format media cmd
+ move.l #0,DataLen(a2) no data transfer
+ bsr cmd_exec execute format media cmd
+ bcs.s WriteTrk99 ...exit if fatal error
+ bne report_stat report scsi status if problem
+WrtTrkEx moveq.l #0,d1 signal no errors
+
+WriteTrk99 rts
+
+* here when device is format protected
+
+FmtProt move.w #E$Format,d1 "format protected" device
+ ori.b #Carry,ccr set the carry
+ rts
+
+ pag
+********************
+* Terminate - terminate device
+*
+* Passed:  (a2) = static storage ptr
+*          (a4) = process descriptor ptr
+*          (a6) = system global data ptr
+*
+* Returns:  (cc) = carry set if error
+*           d1.w = error code if error
+*
+Terminate: movea.l a2,a0 save static ptr
+ lea.l DRVBEG(a0),a3 point at drive tables
+ moveq.l #0,d2 sweep d2
+ move.b V_NDRV(a0),d2 get number of drives (max)
+ subq.b #1,d2 adjust for loop count
+ move.l #BuffSize,d0 get size of each buffer
+
+* return sector 0 buffers
+
+Term20 move.l V_ScZero(a3),d3 sector 0 buffer allocated ?
+ beq.s Term30 ..no; skip on
+ movea.l d3,a2 copy address into A2
+ os9 F$SRtMem return the memory block
+Term30 lea.l DRVMEM(a3),a3 point at next drive table
+ dbra d2,Term20 loop thru all drive tables
+
+* return verify buffer
+
+ move.l VerfBuff(a0),d3 buffer allocated ?
+ beq.s Term40 ..no; skip on
+ movea.l d3,a2 point to buffer
+ os9 F$SRtMem return the buffer
+Term40 movea.l a0,a2 restore static ptr
+
+* disable devices and remove from irq polling table
+
+ ifdef USEDMA
+ ifdef DMA070_1
+ movea.l #DMA1,a0 get address of dma device
+ move.b #0,dma_ccr(a0) clear irq enable, irq level
+ move.b #DMA1Vect,d0 get dma vector #
+ suba.l a0,a0 remove from polling table
+ os9 F$IRQ do it
+ endc DMA070_1
+ endc USEDMA
+ ifdef PVB070
+ moveq.l #0,d0
+ move.b d0,VectReg(a0) clear chip vector
+ endc
+ ifndef NOIRQ
+ move.b M$Vector(a1),d0 get vector to remove from table
+ suba.l a0,a0 remove from polling table
+ os9 F$IRQ do it
+ endc NOIRQ
+ rts return result
+
+ ifndef NOIRQ
+ pag
+********************
+* DiskISR - Disk Interrupt Service Routine for WD33C93
+*
+* Passed:  (a2) = device static storage ptr
+*          (a3) = wd33c93 device port address
+*          (a6) = system global data ptr
+*
+* Returns:  (cc) = carry clear if irq serviced, else set
+*
+* This routine may use any of the following registers:  D0, D1, A0,
+* A2, A3 and A6.  Any other registers used MUST be preserved.
+*
+DiskISR:
+
+*** NOTE:  the PCC could be checked, but for now let's look
+***        straight at the wd33c93
+
+ move.b AuxReg(a3),d0 our device irq ?
+ bpl.s NotUs ...no; return carry set
+ move.b d0,auxstatus(a2) ..yes; set irq acknowledge
+ move.b #aStatus,AddrReg(a3) access status register..
+ delay
+ move.b RegFile(a3),d0 ..to clear actual irq
+ tst.b cmdstatus(a2) got a status pending already ?
+ bne.s DiskISR10 ..yes; ignore this one
+ move.b d0,cmdstatus(a2) save status
+DiskISR10 move.w V_WAKE(a2),d0 process waiting ?
+ beq.s DiskISR99 ...no; return carry clear
+ moveq.l #S$Wake,d1 get wakeup signal
+ OS9svc F$Send wake up waiting process
+ clr.w V_WAKE(a2) signal irq occurred & clear carry
+DiskISR99
+ ifdef PVB070
+ move.b #00,CtlStat(a3) no interrupts enabled
+ endc
+ rts
+
+NotUs ori.b #Carry,ccr irq not serviced
+ rts
+ endc NOIRQ
+
+ ifdef USEDMA
+ ifdef DMA070_1
+********************
+* DmaISR - dma interrupt service routine
+*
+* Passed:  (a2) = device static storage ptr
+*          (a3) = dma device port address
+*          (a6) = system global data ptr
+*
+* Returns:  (cc) = carry clear if irq serviced, else set
+*
+* This routine may use any of the following registers:  D0, D1, A0,
+* A2, A3 and A6.  Any other registers used MUST be preserved.
+*
+DmaISR: move.w dma_csr(a3),d0 get/test dma status
+ bpl.s NotUs ..exit if not dma device
+ move.w d0,dmastatus(a2) save dma status
+ move.b #(chx_coc+chx_ndt+chx_err)>>8,dma_csr(a3) ready dma for next cmd
+ sf.b dmaactive(a2) signal dma device finished
+
+* let wd33c93 interrupt be the one that wakes up the process
+
+ rts (carry clear)
+ endc DMA070_1
+ endc USEDMA
+ pag
+********************
+* SetOMTI - Initialize OMTI 5400 Controller
+*
+* Passed:  (a1) = path descriptor ptr
+*          (a2) = device static storage ptr
+*          (a4) = process descriptor ptr
+*          (a6) = system global data ptr
+*
+* Returns:
+*
+SetOMTI: move.b PD_DRV(a1),d1 get logical unit #
+ cmp.b V_NDRV(a2),d1 valid unit # ?
+ bhs.s BadDrive ..no; return error
+ movea.l PD_DTB(a1),a0 get drive table address
+ tst.b V_Init(a0) drive initialized ?
+ beq.s SetOMTI_a ..no; do so
+ rts return (carry clear)
+
+BadDrive move.w #E$Unit,d1 flag "unit error"
+ ori.b #Carry,ccr set the carry
+ rts
+
+* here to initialize drive
+
+SetOMTI_a movem.l d0/d2/a5,-(sp) save registers
+ moveq.l #0,d2 set LSN=0
+ lea.l DPB(a2),a0 point A0 to disk parameter block storage
+ move.b #0,(a0)+ zero -> step pulse width
+ move.b #ASSIGN,CDBTbl(a2) assign disk parameters
+ move.w #0,CDBTbl+tCDB5(a2) clear CDB bytes 5 & 6
+ tst.b PD_TYP(a1) hard or floppy ?
+ bpl.s DefFlpy define floppy type
+
+* here for hard disk setup
+
+ move.b PD_STP(a1),(a0)+ set step rate
+ move.b #0,(a0)+ step mode = 0
+ move.b PD_SID(a1),(a0) set head count
+ subq.b #1,(a0)+ heads - 1
+ move.w PD_CYL(a1),(a0) set cylinder count
+ subq.w #1,(a0)+ max cyl -1
+****=================================
+**** need to pay attention to PD here
+****=================================
+ move.b #0,(a0)+ wsi / precomp
+ move.b #%00000001,(a0)+  type/hs/wsi
+
+ move.b PD_SCT+1(a1),(a0) sect/trk
+ subq.b #1,(a0)+ sect per track -1
+ move.b #0,(a0) always 0
+ bra.s assndisk
+
+* here for floppy disk setup
+ 
+DefFlpy bsr StepRate get step rate
+ move.b d1,(a0)+ set it
+ move.b PD_CYL+1(a1),(a0) set cylinder count
+ subq.b #1,(a0)+ max cyl-1
+ move.b #2,(a0)+ head settle: 2 = 8mS (250K), 4mS (500k)
+ move.w #0,(a0)+ 5 & 6 not used
+ move.w #$0080,(a0)+ 7 not used  / 8 == floppy table
+ moveq.l #0,d1 sweep d1
+ btst.b #0,PD_TYP(a1) 5" or 8" drive ?
+ beq.s df10 ..if 5" (250k/sec), got correct value
+ bset.l #7,d1 define 8" drive (500k/sec)
+****===========================================
+**** here to set up double-stepping, wpc value.
+**** for d/s option, need sector 0 reads to check
+**** current vs new disk fmt, call SetOMTI again,
+**** but don't allocate new buffers
+****===========================================
+df10 move.b d1,(a0)+ set floppy type (250/500k)
+****=================================
+**** need to pay attention to PD here
+****=================================
+ move.b #$ff,(a0) set floppy wpc OFF
+
+* here to assign disk parameters
+
+assndisk: lea.l DPB(a2),a5 point at parameter block
+ move.l #DPBSIZE,DataLen(a2) 10 bytes to move
+ bsr cmd_exec assign disk parameters
+ bcs.s initexit ...abort if error
+ beq.s assnOK passed ok; continue
+ bsr report_stat get scsi status
+ bra.s initexit exit
+
+assnOK tst.b PD_TYP(a1) hard or floppy ?
+ bmi.s getbuff get sector 0 buffer & flag drive iniz'd
+
+* define floppy type to controller
+
+ move.b #DEFINE,CDBTbl(a2) define floppy type
+ move.b PD_SCT+1(a1),CDBTbl+tCDB5(a2) set sect/trk
+ move.b #DD581,CDBTbl+tCDB6(a2) assume sector offset = 1
+ tst.b PD_SOffs(a1) sector offset??
+ bne.s def10 yes then assumption is correct / do nothing
+
+* WARNING: sector offset of 0 requires special OMTI firmware
+
+ move.b #DD580,CDBTbl+tCDB6(a2) sector offset = 0
+def10 move.l #0,DataLen(a2) no data to transfer
+ bsr.s cmd_exec define floppy type
+ bcs.s initexit ..error; abort
+ beq.s getbuff get sector 0 buffer, flag drive iniz'd
+ bsr report_stat report scsi status
+ bra.s initexit return it
+
+* flag drive initialized ok, get sector 0 buffer
+
+getbuff movea.l PD_DTB(a1),a0 get drive table ptr
+ st.b V_Init(a0) flag drive iniz'd
+ tst.b PD_TYP(a1) what type of drive ?
+ bpl.s getbuff20 ..exit if floppy (don't buffer removable media)
+ move.l a2,d2 save static pointer
+ move.l #BuffSize,d0 single sector buffer
+ os9 F$SRqMem request the memory
+ exg a2,d2 static ptr in a2, buffer ptr in d2
+ bcs.s getbuff20 ..branch on if failed
+ move.l d2,V_ScZero(a0) set buffer address/active
+getbuff20 moveq.l #0,d2 clear carry, set zero flags
+ 
+initexit movem.l (sp)+,d0/d2/a5 restore regs
+ rts
+
+* here to determine step rate 
+
+StepRate: moveq.l #0,d1 Clear d1 long 
+ move.b PD_STP(a1),d1 get os9 Step Code
+ andi.b #%00000011,d1 mask to valid ranges
+ lea.l coderate(pc),a5 base addr of step code to rate table
+ move.b (a5,d1.w),d1 get step rate value
+ rts
+
+* Step Rate table
+
+coderate
+ dc.b 15 0 = 30/15 (5/8") msec rate
+ dc.b 10 1 = 20/10 (5/8") msec rate
+ dc.b 6 2 = 12/6 (5/8") msec rate
+ dc.b 3 3 = 6/3 (5/8") msec rate
+ 
+ align
+
+ pag
+********************
+* rw_exec - execute read/write command
+* cmd_exec - execute scsi command
+*
+* Starts execution of specified command at logical sector
+* number (if applicable) 
+* 
+* For use with 6 byte CDB commands only !!!
+*
+* Passed:  (a1) = path descriptor ptr
+*          (a2) = device static storage ptr
+*          (a4) = process descriptor ptr
+*          (a5) = address of buffer
+*          (a6) = system global data ptr
+*
+* Returns:
+*
+*
+
+* here for read/write commands
+* d0.w = number of contiguous sectors
+* d2.l = logical sector number
+
+rw_exec: move.b #NoRetry,d1 assume error correction off
+ tst.b PD_Trys(a1) try counter = 0 ?
+ beq.s rw_exec10 ..yes; correction is off
+ cmpi.b #1,PD_Trys(a1) try once ?
+ beq.s rw_exec10 ..yes; correction is off
+ move.b #Retry,d1 ..else; corrections are on
+rw_exec10 move.b d1,CDBTbl+tCDB6(a2) set retry/ecc mode
+ move.b d0,CDBTbl+tCDB5(a2) # of blocks to transfer
+ lsl.l #SectSzBit,d0 # blks -> byte count
+ move.l d0,DataLen(a2) save it
+
+* here for any command
+
+cmd_exec: movem.l d2/d4/a3/a5,-(sp) save registers
+ movea.l PD_DTB(a1),a0 current drive table
+ move.l DD_TOT(a0),d5 total number of sectors
+ lsr.l #8,d5 adjust to 3-byte value
+ cmp.l d2,d5 is sector out of range ?
+ bls SectErr ...yes; abort
+ move.b PD_LUN(a1),d5 get device LUN
+ lsl.b #5,d5 shift into LUN position
+ move.w d2,CDBTbl+tCDB3(a2) NSB -> CDB3  LSB -> CDB4
+ swap d2
+ andi.w #$001f,d2 get MSB
+ or.b d2,d5 LUN + MSB
+ move.b d5,CDBTbl+tCDB2(a2) CDB2
+ move.l #0,CDBTbl+tCDB7(a2) clear CDB7-10
+ move.w #0,CDBTbl+tCDB11(a2) clear CDB11-12
+ ifdef USEDMA
+ cmpi.b #READ,CDBTbl(a2) is it a read command ?
+ beq.s cmd_exec20 ..yes; go set dma
+ cmpi.b #WRITE,CDBTbl(a2) is it a write command ?
+ bne.s cmd_exec50 ..no; skip dma setup
+cmd_exec20 bsr setDMA initialize dma device
+ bcc.s cmd_exec40 ..continue if no problems
+ bsr RelDMA release dma device
+ bra ExecBusy ..abort command
+
+cmd_exec40 move.w V_BUSY(a2),V_WAKE(a2) arrange wakeup id
+ endc USEDMA
+cmd_exec50 movea.l V_PORT(a2),a3 get device port address
+ bsr SCSIcmd issue command to target
+ movea.l a5,a0 save a5 use a0 as pointer to data buffer
+ move.l DataLen(a2),d0 get transfer count
+
+scsipoll:
+ ifdef NOIRQ
+ move.b AuxReg(a3),d1
+ btst.l #Irq_B,d1
+ bne pollexit
+ tst.l d0 data to be xfered ??
+ beq.s noDataXfr
+ btst.l #Data_B,d1 data buffer ready ??
+ beq.s scsipoll
+ cmpi.b #WRITE,CDBTbl(a2) write ?
+ beq.s writedata
+ cmpi.b #READ,CDBTbl(a2) Read ?
+ beq.s readdata
+ else
+ tst.b auxstatus(a2) irq done ?
+ bmi pollexit ...exit if done
+ tst.l d0 data to be xfered ??
+ beq.s noDataXfr
+ btst.b #Data_B,AuxReg(a3) data buffer ready ??
+ beq.s scsipoll
+ cmpi.b #WRITE,CDBTbl(a2) write ?
+ beq.s writedma
+ cmpi.b #READ,CDBTbl(a2) Read ?
+ beq.s readdma
+ endc NOIRQ
+ cmpi.b #REQSNS,CDBTbl(a2) request sense ?
+ beq.s readdata
+ cmpi.b #ASSIGN,CDBTbl(a2) assign parameters to disk ?
+ beq.s writedata
+
+noDataXfr bra.s scsipoll
+
+readdma:
+ ifdef USEDMA
+ st.b dmawrite(a2) signal device to memory transfer
+ tst.b NoDMA(a2) dma active ?
+ beq.s dmaxfer ...yes; branch on
+ endc USEDMA
+readdata:
+ ifdef NOIRQ
+ btst.b #Irq_B,AuxReg(a3)
+ bne.s pollexit
+ else
+ tst.b auxstatus(a2) irq done ?
+ bmi.s pollexit ...exit if done
+ endc NOIRQ
+ btst.b #Data_B,AuxReg(a3) chk data ready
+ beq.s readdata ..wait if not
+ move.b #aData,AddrReg(a3) select data register
+ delay
+ move.b RegFile(a3),(a0)+ read the data
+ subq.l #1,d0 count it
+ ifdef NOIRQ
+ bra.s readdata ..keep reading
+ else
+ bne.s readdata ..keep reading if more to come
+ bra.s scsipoll ..data count exhausted; wait for irq
+ endc NOIRQ
+
+writedma:
+ ifdef USEDMA
+ sf.b dmawrite(a2) signal memory to device transfer
+ tst.b NoDMA(a2) dma active ?
+ beq.s dmaxfer ...yes; branch on
+ endc USEDMA
+writedata: 
+ ifdef NOIRQ
+ btst.b #Irq_B,AuxReg(a3)
+ bne.s pollexit
+ else
+ tst.b auxstatus(a2) irq done ?
+ bmi.s pollexit ...exit if done
+ endc
+ btst.b #Data_B,AuxReg(a3) chk data ready
+ beq.s writedata ..loop if not
+ move.b #aData,AddrReg(a3) address data register
+ delay
+ move.b (a0)+,RegFile(a3) write the data
+ delay
+ subq.l #1,d0 count it
+ ifdef NOIRQ
+ bra.s writedata ..keep writing
+ else
+ bne.s writedata ..keep writing if more to come
+ bra scsipoll ..data count exhausted; wait for irq
+ endc NOIRQ
+
+ ifdef USEDMA
+dmaxfer:
+dmasleep moveq.l #0,d0 sleep forever or wake up signal 
+ OS9svc F$Sleep wait for interrupt
+ tst.w V_WAKE(a2) valid wakeup ?
+ bne.s dmasleep ...no; wait for irq
+ bsr RelDMA release dma device
+ endc USEDMA
+
+pollexit bsr.s chkstat check scsi status
+ bcs.s ExecBusy ...error; abort
+ beq.s scsiOK ..all ok; branch on
+ moveq.l #0,d0 set data count = 0
+ bra scsipoll wait for cmd complete
+
+* here for error exits
+
+SectErr: move.w #E$Sect,d1 "sector out of range" error
+ bra.s ExecErr
+
+ExecBusy: move.w #E$DevBsy,d1 "device busy" error
+
+ExecErr: ori.b #Carry,ccr signal error occurred
+ movem.l (sp)+,d2/d4/a3/a5 restore regs
+ rts
+
+scsiOK: movem.l (sp)+,d2/d4/a3/a5 restore regs
+ tst.b compbyte(a2) no errors ?
+ ifdef USEDMA
+ bne.s scsiOK10 ..scsi problem, exit
+ tst.w dmastatus(a2) what about dma status ?
+ endc USEDMA
+scsiOK10 rts 
+
+ pag
+********************
+* chkstat - check scsi status
+*
+* Passed:  (a2) = device static storage ptr
+*          (a3) = device port address
+*          (a6) = system global data ptr
+*
+* Returns:  (cc) = carry set if fatal error
+*           d0.l = 0 (Z set) if good scsi status
+*           d0.l <> 0 (Z clear) if bad scsi status
+*
+chkstat:
+ ifdef USEDMA
+ tst.b dmaactive(a2) dma irq arrived ?
+ bne.s chkstat ..no; wait for it
+ andi.w #chx_err_mask,dmastatus(a2) isolate dma error status
+ endc USEDMA
+ ifdef NOIRQ
+ move.b #aStatus,AddrReg(a3) point to scsi chip status register
+ delay
+ move.b RegFile(a3),d1 get command status
+ else
+ move.b cmdstatus(a2),d1 get cmd status
+ move.b #0,cmdstatus(a2) erase old occurance
+ endc NOIRQ
+ cmpi.b #Successful,d1 select & xfer successfully completed ?
+ beq.s goodscsi ...yes; do good exit
+ cmpi.b #$4c,d1
+ bne.s redo10
+ move.b #aCmdPhse,AddrReg(a3) point to command phase register
+ delay
+ move.b #$20,RegFile(a3)
+ delay
+ bra.s redo90
+
+redo10 cmpi.b #$4b,d1
+ bne.s  fatalscsi
+ ifdef USEDMA
+ bsr setDMA_cont restart dma device
+ endc USEDMA
+ move.b #aXfrMSB,AddrReg(a3)
+ delay
+ move.b #0,RegFile(a3)
+ delay
+ move.b #aXfrNSB,AddrReg(a3)
+ delay
+ move.b #0,RegFile(a3)
+ delay
+ move.b #aXfrLSB,AddrReg(a3)
+ delay
+ move.b #0,RegFile(a3)
+ delay
+ move.b #aCmdPhse,AddrReg(a3) point to command phase register
+ delay
+ move.b #$46,RegFile(a3)     
+ delay
+redo90 move.b #sSelXfr,d0 select & xfer No ATN
+ bsr wrWDcmd issue command
+ moveq.l #1,d0 zero not set / carry clear
+ rts
+
+goodscsi move.b #aTargLUN,AddrReg(a3)
+ delay
+ move.b RegFile(a3),d1 get completion status byte
+ andi.b #$1f,d1
+ move.b d1,compbyte(a2)
+ moveq.l #0,d0 zero set /carry clear
+ rts
+
+fatalscsi ori.b #Carry,ccr set carry
+ rts
+
+ pag
+********************
+* SCSIcmd - Setup WD SCSI chip & Issue a SCSI command
+*
+* Passed:  (a1) = path descriptor ptr
+*          (a2) = device static storage ptr
+*          (a3) = device port address
+*          (a4) = process descriptor ptr
+*          (a6) = system global data ptr
+*
+* Returns:
+*
+SCSIcmd: move.b #aCmdPhse,AddrReg(a3) point at cmd phase reg
+ delay
+ move.b #00,RegFile(a3) zero command phase register
+ delay
+ move.b #aCntrl,AddrReg(a3) point at control register
+ delay
+ cmpi.b #REQSNS,CDBTbl(a2) "request sense" cmd ?
+ beq.s scnodma ..yes; no dma required
+ cmpi.b #ASSIGN,CDBTbl(a2) "assign drive parameters" cmd ?
+ beq.s scnodma ..yes; no dma required
+ cmpi.b #DEFINE,CDBTbl(a2) "define floppy type" cmd ?
+ beq.s scnodma ..yes; no dma required
+
+* here for read/write blocks
+
+ tst.b NoDMA(a2) dma capability ?
+ beq.s scdma ..yes; setup for dma
+scnodma move.b #DmaOff,RegFile(a3) non-dma mode transfers
+ delay
+ bra.s sc00
+
+scdma move.b #DmaOn,RegFile(a3) dma mode transfers
+ delay
+sc00 move.b #aTimeOut,AddrReg(a3) bus timeout reg
+ delay
+ move.b #MaxTime,RegFile(a3) set timeout value
+ delay
+ move.b #aSyncXfr,AddrReg(a3) sync xfer cntl byte
+ delay
+ move.b #$00,RegFile(a3) Async tfer
+ delay
+ move.b #aXfrLSB,AddrReg(a3) setup transfer count
+ delay
+ move.b DataLen+3(a2),RegFile(a3)
+ delay
+ move.b #aXfrNSB,AddrReg(a3)
+ delay
+ move.b DataLen+2(a2),RegFile(a3) 
+ delay
+ move.b #aXfrMSB,AddrReg(a3)
+ delay
+ move.b DataLen+1(a2),RegFile(a3) 
+ delay
+
+* copy command block into wd33c93
+
+ lea.l CDBTbl(a2),a0 point at command block
+ moveq.l #aCDB1,d0 point at wd33c93 cmd blk 1 register
+sc10 move.b d0,AddrReg(a3) set WD 33c93 internal address pointer to reg # D0
+ delay
+ move.b (a0)+,RegFile(a3) write cmd byte
+ delay
+ addq.b #1,d0 next register
+ cmpi.b #aTargLUN,d0
+ bne.s sc10 
+
+* set scsi id's
+
+ move.b #aTargLUN,AddrReg(a3) point to Target LUN reg
+ delay
+ move.b PD_LUN(a1),RegFile(a3) set LUN for target
+ delay
+ move.b #aDestID,AddrReg(a3)
+ delay
+ move.b PD_CtrlrID(a1),RegFile(a3) set scsi target id
+ delay
+ move.b #aSrcID,AddrReg(a3)
+ delay
+ move.b #0,RegFile(a3) clear last scsi id
+ delay
+ moveq.l #sSelXfr,d0 select and transfer, no ATN
+
+* fall into "write WD command"
+
+ pag
+********************
+* wrWDcmd:  Write to command register
+*
+* Passed:  d0.b = wd33c93 command code
+*          (a2) = device static storage ptr
+*          (a3) = device port address
+*
+* Because of special WD 33c93 requirements, you must delay at
+* LEAST 7 usec before writing to command register.
+*
+wrWDcmd: move sr,-(sp) save 68000 SR
+ move.w V_IRQmask(a2),sr mask interrupts
+ move.l d1,-(sp) save d1 & waste some time
+ move.b AuxReg(a3),d1 read aux register
+ move.b #aStatus,AddrReg(a3) point to status register
+ delay
+ move.b RegFile(a3),d1 read it
+ move.b #0,auxstatus(a2) clear aux register image
+ move.b #0,cmdstatus(a2) erase cmd status flag
+ moveq.l #14,d1 delay time
+dlygt7 nop
+ dbra d1,dlygt7 delay > 7 usec (for all speeds of 68000/68020)
+ move.l (sp)+,d1 restore d1 and waste some time
+ move.b #aCommand,AddrReg(a3) point at command register
+ delay
+ move.b d0,RegFile(a3) issue command
+ delay
+ move.w (sp)+,sr UNMASK interrupts
+ rts
+
+ pag
+********************
+* report_stat - report status of cmd operation
+* 
+* Passed:  (a1) = path descriptor ptr
+*          (a2) = device static storage ptr
+*          (a3) = device port address
+*          (a4) = process descriptor address
+*          (a6) = system global data ptr
+*
+* Returns:  (cc) = carry set if error
+*           d1.w = error code if error
+*
+report_stat:
+ ifdef USEDMA
+ ifdef DMA070_1
+ tst.w dmastatus(a2) test dma status
+ beq.s report_scsi ..no dma error, then check scsi
+ move.w #DmaErrCnt-1,d2 get error table count
+ lea.l DmaErrTbl(pc),a0 point at error code table
+report_st10 movem.w (a0)+,d0/d1 get table entry/error code
+ cmp.w dmastatus(a2),d0 status match ?
+ dbeq d2,report_st10 ..loop till done or match
+ beq.s report_err ..got match; exit with error code
+ move.w dmastatus(a2),d1 get dma status
+ ori.w #$ff00,d1 form "error 255:nnn" code
+ bra.s report_err exit
+ endc DMA070_1
+ endc USEDMA
+
+* here to determine scsi status
+
+report_scsi move.b #REQSNS,CDBTbl(a2) request sense
+ move.w #0,CDBTbl+tCDB5(a2) clear CDB5 & 6
+ move.l #4,DataLen(a2) set data length
+ lea.l SCSIstat(a2),a5 point to error table
+ bsr cmd_exec get scsi status
+ bcs.s nr_error ...fatal error; abort
+ bne.s nr_error ...fatal error; abort
+ moveq.l #0,d1 sweep d1
+ move.b SCSIstat(a2),d1 get scsi status
+ andi.b #$3f,d1 mask error bits
+ beq.s report_exit ...exit if all ok
+ lea ErrorTbl(pc),a0 get base of table
+ move.b (a0,d1.w),d1 get error code
+report_err ori.b #Carry,ccr set carry for error
+
+report_exit rts
+
+* here for error exit
+
+nr_error: move.w #E$NotRdy,d1 "not ready" error
+ ori.b #Carry,ccr
+ rts
+
+ ifdef USEDMA
+ ifdef DMA070_1
+* dma status error-code lookup table
+*
+DmaErrTbl
+* note:  "_to" and "_abt" conditions are considered problems
+* within the driver itself:  they are commented out of this
+* table because we do not have appropriate OS-9 error codes,
+* and so we want to generate "error 255:nnn" errors
+
+* dc.w chx_err_to,0 channel time-out
+ dc.w chx_err_bem,E$BusErr bus error: memory access
+ dc.w chx_err_bed,E$BusErr bus error: device access
+* dc.w chx_err_abt,0 channel abort by s/w
+DmaErrCnt equ (*-DmaErrTbl)/4
+ endc DMA070_1
+ endc USEDMA
+
+* scsi status error-code lookup table
+*
+ErrorTbl
+ dc.b $00 00 = no error
+ dc.b E$NotRdy 01 = no index
+ dc.b E$Seek 02 = no seek complete positioning error
+ dc.b E$Write 03 = write fault
+ dc.b E$NotRdy 04 = drive not ready
+ dc.b E$NotRdy 05 = drive not selected
+ dc.b E$Seek 06 = no track zero found
+ dc.b E$Unit 07 = multiple drives selected
+ dc.b E$NotRdy 08 = not used
+ dc.b E$DIDC 09 = cartridge changed
+ dc.b E$NotRdy 0a = not used
+ dc.b E$NotRdy 0b = not used
+ dc.b E$NotRdy 0c = not used
+ dc.b E$DevBsy 0d = operation in progress
+ dc.b E$NotRdy 0e = not used
+ dc.b E$NotRdy 0f = not used
+ dc.b E$NotRdy 10 = tape exception
+ dc.b E$CRC 11 = uncorrectable error in data field
+ dc.b E$NotRdy 12 = not used
+ dc.b E$Sect 13 = no address mark in data field
+ dc.b E$Read 14 = no record found
+ dc.b E$Seek 15 = seek error
+ dc.b E$NotRdy 16 = not used
+ dc.b E$WP 17 = write protected
+ dc.b E$Read 18 = correctable ECC error
+ dc.b E$Read 19 = bad track flag set
+ dc.b E$Unit 1a = incorrect interleave
+ dc.b E$NotRdy 1b = not used
+ dc.b E$Read 1c = cannot read alternate track
+ dc.b E$NotRdy 1d = not used
+ dc.b E$Read 1e = illegal access to alternate track
+ dc.b E$Seek 1f = tape drive failure
+ dc.b E$Unit 20 = invalid command
+ dc.b E$Unit 21 = bad parameters
+ dc.b E$Unit 22 = illegal function for drive
+ dc.b E$Full 22 = volume overflow
+ dc.b E$NotRdy 23 = not used
+ dc.b E$NotRdy 24 = not used
+ dc.b E$NotRdy 25 = not used
+ dc.b E$NotRdy 26 = not used
+ dc.b E$NotRdy 27 = not used
+ dc.b E$NotRdy 28 = not used
+ dc.b E$NotRdy 29 = not used
+ dc.b E$NotRdy 2a = not used
+ dc.b E$NotRdy 2b = not used
+ dc.b E$NotRdy 2c = not used
+ dc.b E$NotRdy 2d = not used
+ dc.b E$NotRdy 2e = not used
+ dc.b E$NotRdy 2f = not used
+ dc.b E$Unit 30 = diagnostic error
+ dc.b E$DevBsy 31 = FDC error or hung
+ dc.b E$NotRdy 32 = not used
+ dc.b E$NotRdy 33 = not used
+ dc.b E$NotRdy 34 = not used
+ dc.b E$NotRdy 35 = not used
+ dc.b E$NotRdy 36 = not used
+ dc.b E$NotRdy 37 = not used
+ dc.b E$NotRdy 38 = not used
+ dc.b E$NotRdy 39 = not used
+ dc.b E$NotRdy 3a = not used
+ dc.b E$NotRdy 3b = not used
+ dc.b E$NotRdy 3c = not used
+ dc.b E$NotRdy 3d = not used
+ dc.b E$NotRdy 3e = not used
+ dc.b E$NotRdy 3f = not used
+ 
+ align
+ pag
+********************
+* InitWD_DMA - initialize WD33C93 and DMA device.
+*
+* Passed:  (a2) = device static storage ptr
+*          (a3) = device port address (wd33c93)
+*          (a6) = system global data ptr
+*
+* Returns:
+*
+InitWD_DMA:
+ ifdef USEDMA
+ bsr.s InitDMA init dma device
+ bcs.s InitWD99 ...abort if error
+ endc
+
+* initialize WD33C92 device
+*
+* Note that some WD33C93 parameters are initialized
+* during the first command execution
+*
+InitWD: move.b #aStatus,AddrReg(a3) point to status register
+ delay
+ move.b RegFile(a3),d0 clear pending intr by reading status
+ move.b #aOwnID,AddrReg(a3) start at OWN ID reg. in reg file
+ delay
+ move.b #SelfID,RegFile(a3) ID of WD33C93 on SCSI bus
+ delay
+ move.b #sRESET,d0 reset wd chip & sample OWN ID
+ move.w sr,-(sp) save irq masks
+ move.w V_IRQmask(a2),sr mask interrupts
+ bsr wrWDcmd issue cmd
+iwd10 btst.b #Irq_B,AuxReg(a3) check int bit
+ beq.s iwd10 loop till asserted
+ move.b #aStatus,AddrReg(a3) point to status register
+ delay
+ move.b RegFile(a3),d0 clear pending intr by reading status
+ move.w (sp)+,sr restore irq masks (carry is clear)
+InitWD99 rts
+
+ ifdef USEDMA
+ pag
+********************
+* InitDMA - initialize dma device
+*
+* Passed:  (a2) = device static storage ptr
+*          (a3) = device port address (wd33c93)
+*          (a6) = system global data ptr
+*
+* Returns:
+*
+InitDMA:
+ ifdef DMA070_1
+
+* dma setup for 68070 on-chip dma channel #1
+
+ movea.l #DMA1,a0 get dma base address
+ move.w #DCR.OCR,dma_dcr(a0) init DCR, OCR
+ move.w #SCR.CCR,dma_scr(a0) init SCR, CCR
+ rts return (carry clear)
+ endc DMA070_1
+
+ 
+********************
+* setDMA - set up dma transfer
+*
+* Passed:  (a1) = path descriptor ptr
+*          (a2) = device static storage ptr
+*          (a5) = data buffer pointer
+*          (a6) = system global data ptr
+*
+* Returns:
+*
+setDMA:
+ ifdef DMA070_1
+* start transfer using on-chip dma channel #1
+ movem.l d0/a0,-(sp) save used regs
+
+ ifdef PROTO_070
+* due to silicon problems with "prototype 070's", there can only
+* be one active dma channel at a time in the system.
+
+ bra.s setDMA20 enter loop
+
+setDMA10 moveq.l #1,d0 give up time slice
+ OS9 F$Sleep
+
+setDMA20 tas.b D_DMAReq(a6) dma devices in use ?
+ bne.s setDMA10 ..yes; wait till finished
+ endc PROTO_070
+
+ movea.l #DMA1,a0 get dma device address
+ move.w DataLen+2(a2),dma_mtch(a0) set transfer count
+ move.l a5,dma_mach(a0) set memory address
+ tst.b dmawrite(a2) device to memory direction ?
+ beq.s setDMA30 ..no; branch
+ bset.b #b_chx_dir,dma_ocr(a0) set dir=dev to mem
+ bra.s setDMA_cont continue
+
+setDMA30 bclr.b #b_chx_dir,dma_ocr(a0) set dir=mem to dev
+
+* dma "start/restart" entry point
+
+setDMA_cont move.b #(chx_coc+chx_ndt+chx_err)>>8,dma_csr(a3) ready dma for cmd
+ st.b dmaactive(a2) flag dma active
+ bset.b #b_chx_go,dma_ccr(a0) enable channel
+ movem.l (sp)+,d0/a0 restore regs
+ rts (carry clear)
+ endc DMA070_1
+
+
+********************
+* RelDMA - release/disable dma device
+*
+* Passed:  (a1) = path descriptor ptr
+*          (a2) = device static storage ptr
+*          (a6) = system global data ptr
+*
+RelDMA:
+ ifdef DMA070_1
+ ifdef PROTO_070
+ clr.b D_DMAReq(a6) allow other dma device to operate
+ endc PROTO_070
+ rts (carry clear)
+ endc DMA070_1
+
+ endc USEDMA
+
+ ends

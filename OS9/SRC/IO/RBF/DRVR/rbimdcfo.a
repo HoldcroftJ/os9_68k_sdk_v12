@@ -1,0 +1,1062 @@
+ nam rbimdcfo.a
+ ttl Floppy Disk (only) Driver For 68454 Disk Controller Module
+
+********************************
+* Floppy Disk (only) Driver For 68454 Disk Controller Module
+*
+* Copyright 1987 by Microware Systems Corporation
+* Reproduced Under License
+
+* This source code is the proprietary confidential property of
+* Microware Systems Corporation, and is provided to licensee
+* solely for documentation and educational purposes. Reproduction,
+* publication, or distribution in any form to any party other than
+* the licensee is strictly prohibited.
+
+********************************
+* Editon History
+
+*  #    Date      Comments                                      By
+* -- --------- ------------------------------------------------ ---
+* 00  86/08/18 write for Matrix Corps. Preliminary Version      sms
+* 01  86/09/?  debugged and improved                            sms/wwb  
+* 02  86/09/23 changed to handle standard os9 format(exclusive) sms
+* 03  86/09/24 attempted increase speed                         sms
+* 04  86/10/28 converted for v2.0                               sms
+* 05  87/09/23 Added Supervisor State Bit to Psect              jal
+* 05  87/09/23 Added CY4110 conditionals for Cyclone system     jal
+* 05  87/09/24 All hard drive and single density code removed   jal
+* 06  87/09/29 Fully debugged and tested; appears functional    jal
+* 07  88/05/05 Added timed sleep to take care of open disk door jal
+*
+Edition equ 07
+
+Typ_Lang set (Drivr<<8)+Objct Device Driver In Assembly Language
+Attr_Rev set (ReEnt+SupStat<<8)+0
+
+ psect rbimdcfo,Typ_Lang,Attr_Rev,Edition,0,DiskEnt
+
+ use defsfile
+
+ page
+ 
+*******************
+* NumDriv: Defines the number of drives
+* this device will control at one time.
+* It can not be greater than 4.
+*
+NumDriv equ 4
+BuffSize equ 256
+SleepTime equ $80000700 sleep seven seconds
+
+*******************
+* IMDC command set
+*
+WRMS equ 0 write multiple sectors
+WRDD equ 1 write deleted data
+VER equ  $10 verify (read without data transfer)
+REMS equ $11 read multiple sectors with overlapper seek
+PRP equ  $12  programable record processing (not used here)
+TRKD equ  $13  Track dump
+RETD equ $20 read identifier
+FORM equ $40 format a track
+CALB equ $41 recalibrate  to track zero
+CORR equ $81 correct data 
+DIAG equ $80 diagnositic mode
+
+*******************
+* Main Status Codes decimal values
+*
+NoErr equ 0 no error occured during operation
+IrrErr equ 1 non recoveralbe error auto retries attempted
+DrvNotRdy equ 2 drive not ready
+PrpOpfail equ 4 prp operation failed
+CmdReject equ 6 command rejected
+CmdAbort  equ 10 command abort
+
+********************
+* extended status bits
+*
+WtFault equ (1<<0) write fault
+ErrDataId equ (1<<1) crc/ecc error on data or id 
+FifoOvrRn equ (1<<2)  data over run
+NoID equ (1<<3)  no identifier found
+CRCID equ (1<<4)  crc error on id
+DelAdMk equ (1<<5)  deleted address markes
+WtProt equ (1<<6)  write on write protected diskettes
+PostErr equ (1<<7)  positioning error 
+PortTO equ (1<<8) data port time out 
+UnCorrErr equ (1<<10) uncorrectable error ecc
+PostTO equ (1<<13)  positioning timeout
+BusErr equ (1<<15) bus error fault
+
+********************
+* SEEK types
+*
+Normal equ 0
+Accel equ 1 accellerated (st506)
+Buffered equ (1<<1) 
+
+********************
+* Command options bits 
+*
+IBMdd set $20!(1<<0) fmf ibm double density format
+Pdf1 set (1<<1) programmable disk format 1 byte cylinder
+Pdf2 set (3<<0) programable disk format 2 byte cylinder
+CITTCrc set (0<<3) crc using citt standard 16 bits
+Ecc32 set  (1<<3) crc using 32 bit ecc poly
+Ecc40 set  (1<<4) crc using 40 bit ecc poly
+SkpDAdMk set (1<<5) transfer sectors w/deleted address marks
+
+********************
+* Other Variables
+*
+MotDly equ 100 maximum delay = 1 second
+DmaCnt equ $0f number of bytes to transfer per dma 
+TimeOut equ $FFFF time out for various routines
+StartFlag equ $07 bit seven
+IMDCinit equ 01 initial the  imdc registers
+Trks80 equ 80
+ByteWord equ 01 
+FillByte equ $E5 fill byte for data area of formated media
+
+********************
+* sector codes for eca sector size code
+*
+Sct128 equ 0
+Sct256 equ 1
+Sct512 equ 2
+Sct1024 equ 3
+Sct2048 equ 4
+Sct4096 equ 5
+
+ page
+ 
+********************
+* density definitions 
+*
+* IBM 34 double density parameters
+*
+N0dd equ 80
+N1dd equ 50
+N2dd equ 12
+N3dd equ 22
+N4dd equ 54
+N5dd equ 3
+
+*******************
+* Static Storage Definitions
+*
+* Internal Registers of IMDC
+*
+ org 0
+EPH 	do.b 1 eca pointer high byte
+EPMH 	do.b 1 eca mid high 
+EPML	do.b 1 eca mid low byte pointer
+EPL 	do.b 1 eca low byte pointer ( 24 bit addressses only)
+IVR	    do.b 1 interrupt vector reg
+ISR	    do.b 1 irq source status reg
+DSCR    do.w 1 drive status register
+*
+* ECA Table ( pointers to the ECA's for each drive)
+*
+ org 0
+ECA0 do.l 1 address of eca block for device 1 
+ECA1 do.l 1 address of eca block for device 2
+ECA2 do.l 1 addrsess of eca block for device 3
+ECA3 do.l 1 ... ad infinitum 
+ECATabEnd equ . end of eca table
+
+ page
+ 
+*******************
+* event control area layout
+*
+  org 0
+CmdCode do.b 1 Command Code
+MainStat do.b 1 Main Status 
+ExtndSta do.w 1 extended Status
+MaxRtrys do.b 1 max number of retries per command
+ActRtrys do.b 1 actual number of retries reported
+DMACnt do.b 1 dma count, number of operands transferred per dma bus cycle
+CmdOpt do.b 1 command options
+BufAdr0 do.w 1 lsw of buffer address
+BufAdr1 do.w 1 msw of buffer address
+BufLen do.w 1 byte count to read/write
+ActLen do.w 1 actual numberof bytes transfered 
+CylNum do.w 1 cylinder Number
+HeadNum do.b 1  head number
+SectNum do.b 1  sector number
+CurntPos do.w 1  current cylinder position
+PRPCntl do.w 1  prp fields not impliemented w/os9
+Scwt do.l 1  pointer used in format 
+ do.w 2  prp fields not impliemented w/os9
+* next 8 bytes are termed "disk track format fields"
+N0 do.b 1  pre-index gap
+N1 do.b 1  post index gap
+N2 do.b 1  sync byte count
+N3 do.b 1  post id gap
+N4 do.b 1  post data gap
+N5 do.b 1  address mark count
+ do.w 1  reserved not used by os9
+EccMask	do.w 3  ECC mask 
+* these bytes are termed "Drive control parameters"
+Motrdely do.b 1 motor on  delay 10 millisecond increments
+NumSurf do.b 1 number of surfaces
+EndSct do.b 1 the last sector on the track
+StepRate do.b 1 step rate (no kidding?) in .5millsec inc
+HdStlgTm do.b 1 head settling time in .5 millisec incr
+HdLdTm do.b 1 head loading time in .5 millisec incr
+SeekTyp do.b  1 seek type
+PhsCnt do.b 1 phase count
+LWCBT do.w 1 low write current boundary track
+PCBT do.w 1 precomp boundary track
+ECCRmdr do.w 3 ECC code remainder
+MaxCyl do.w 1 max number of cyclenders on device
+SctCode do.b 1 sector lenght code power of 2 
+FlagByte do.b 1 flag for transparent reads
+Btree do.l 1 B- tree pointer for prp 
+WorkArea do.w 10 10 words used as scratch for disk
+DiskMem equ . Total static requirement
+ 
+ org 0
+Cy do.w 1 cylinder word or byte
+HD do.b 1 head byte
+ST do.b 1 sector byte
+LN do.b 1 length flag
+OneSct equ . size of info block for one sector in format data buffer
+ 
+ align 
+ org 0
+FormData dc.b $00,$02  floppy disk parameters
+ dc.b $A1,$FE
+ dc.b $80,N3dd-3
+ dc.b $4e,$01
+ dc.b $00,02
+ dc.b $A1,$FB
+ dc.b FillByte,$00
+ dc.b $4e,N4dd-5
+ dc.b $4e,$00
+ dc.b $00,N5dd-1
+ dc.b $c2,$fc
+ dc.b $4e,$00
+FDSiz equ *-FormData format data size
+ align 
+
+* 68454  double density  parameters
+DblDenTrk: dc.b 05 number of bytes to follow
+ dc.b N0dd,N1dd
+ dc.b N2dd,N3dd
+ dc.b N4dd,N5dd
+
+Step dc.b 60 step rates 
+ dc.b 40
+ dc.b 24
+ dc.b 12 
+
+ vsect
+ org 0
+VBuffer ds.l 64 Verify Buffer
+V_BufRsv ds.l (BuffSize/4)*NumDriv
+V_VBuff ds.l 1 Pointer to verify buffer
+IRQMask ds.w 1 irq mask
+SctCnt ds.w 1 number of bytes to read for controler
+DataBufPt ds.l 1 pointer to data buffer w/modified address
+FormTabPt ds.l 1 pointer to Format table w/modified addreess
+ECATable ds.b ECATabEnd one table per controler
+DrivSto0 ds.b DiskMem  storage for drive 0
+DrivSto1 ds.b DiskMem  storage for drive 1
+DrivSto2 ds.b DiskMem  storage for drive 2
+DrivSto3 ds.b DiskMem  storage for drive 3
+DataBuff ds.b OneSct*$20 32 sectors per track at most
+FormTab ds.b FDSiz  storage for format table
+ ends
+
+ page
+
+********************
+* Offsets
+*
+DiskEnt dc.w Init Initialize Storage 
+ dc.w Read Read A Sector
+ dc.w Write Write A Sector
+ dc.w Return No Get Status Supported
+ dc.w PutStat Set Status (Format And Restore)
+ dc.w Term Shut Down Device
+ dc.w 0 No Exception Handler
+ 
+  page
+  
+********************
+* Initialize Controller
+*
+* This subroutine resets the controller & sets up the
+* drive tables.
+*
+* Passed: (a1) = Address Of Device Descriptor Module
+*		  (a2) = Address Of Statics Storage
+*		  (a6) = system global data pointer
+*
+* Returns: (cc) = Carry Set If Error
+*          (d1) = Error Code If Error
+*
+Init:
+ move.l a6,-(sp) save a6
+ moveq #0,d0
+ move.b M$IRQLvl(a1),d0 get irq level
+ asl.w #8,d0 shift into priority
+ bset #SupvrBit+8,d0 set system state bit
+ move.w sr,-(sp) save 
+ move.w d0,sr
+ move.w d0,IRQMask(a2)
+*
+* store verify buff address
+*
+ lea VBuffer(a2),a3 form address of verify buf
+ move.l a3,V_VBuff(a2) store it 
+ lea DataBuff(a2),a3
+ move.l a3,DataBufPt(a2)
+ lea FormTab(a2),a3
+ move.l a3,FormTabPt(a2)
+*
+* iniz drive tables 
+*
+ moveq #NumDriv,d0 Number Of Drives
+ move.b d0,V_NDRV(a2) setup number of drives
+ moveq.l #$FF,d1 Init Fake Media Size
+ lea V_BufRsv(a2),a3
+ lea DRVBEG(a2),a0 point to first drv table
+Init10 move.b d1,DD_TOT(a0) Set Up Size
+ move.l a3,V_ScZero(a0)
+ lea BuffSize(a3),a3 form next 
+ lea DRVMEM(a0),a0 Move To Next Table
+ subq.b #1,d0 last drive?
+ bne.s Init10 branch if not
+*
+* iniz eca table
+*
+ moveq.l #NumDriv-1,d0 init counter
+ lea ECATable(a2),a0    point to ECA table    
+ lea DrivSto0(a2),a3  form address of first drv static storage
+ move.l a3,d1 transfer address
+TabIniz move.l d1,(a0)+
+ addi.l #DiskMem,d1 point to next eca
+ move.b #MotDly,Motrdely(a3) iniz motor delay  in eca block
+ move.b #DmaCnt,DMACnt(a3)
+ lea DiskMem(a3),a3 point to start of next drv static storge
+ dbra d0,TabIniz
+*
+* iniz controller
+*
+ move.l V_PORT(a2),a3  
+ lea ECATable(a2),a0    point to ECA table    
+ move.b M$Vector(a1),d0
+ lsl.w #08,d0 put vector into msb
+ move.w d0,IVR(a3)
+ move.l a0,d0 form address of eca table
+ move.w d0,EPML(a3) low word
+ swap d0
+ move.w d0,EPH(a3) high word
+*
+* install device on polling table
+*
+ move.b M$Vector(a1),d0
+ move.b M$IRQLvl(a1),d2 get irq level
+ move.b M$Prior(a1),d1
+ lea DiskIRQ(pcr),a0 Point To IRQ Routine
+ OS9 F$IRQ Get On The Table
+ bcs.s InitErr table full
+ move.w (sp)+,sr
+ move.l (sp)+,a6 restore a6
+Return:  rts
+
+InitErr move.w (sp)+,sr restore masks
+ move.l (sp)+,a6 restore 
+ ori #Carry,ccr set carry
+ rts exit with error
+
+ page
+ 
+*******************
+* Read Block(s) From Disk
+*
+* This subroutine reads the block from the disk.  If the
+* block being read is block 0, the first "DRVMEM" bytes
+* are copied into the drive table.
+*
+* Passed (a1) = Address Of The Path Descriptor
+*        (a2) = Address Of The Device Static Storage
+*        (a4) = Process descriptor
+*        (a5) = callers register stack pointer
+*        (a6) = system global data storage pointer
+*        (d0.l) = Number of sectors to read
+*        (d2.l) = Logical sector #
+*
+* Returns: (CC) = Carry Set If Error
+*          (d1) = Error Code If Error
+*
+Read:
+ tst.b PD_TYP(a1) is it a hard disk ?
+ bmi.s BUnitErr hard drive impossible for CY4110
+ movem.l d0/d3-d5/a0/a3/a6,-(sp) save registers
+ move.l d2,d3 save lsn in d3 for now
+ movea.l PD_DTB(a1),a0 calc needs drv table pointer
+ lsl.l #8,d0 mult the # of sectors by 256 to get # of bytes
+ move.w d0,SctCnt(a2) save it
+ moveq #0,d0 sweep d0
+ bsr CmptAdr
+*
+* calculate head sector and track
+*
+ bsr Calc
+ bcs.s ReadErr something is wrong with lsn
+ move.b #REMS,d4 read cmd
+*
+* set eca block to match drive table and track,sct and head from above
+*
+ bsr SetUp note setup moves lsn to d3 
+ movea.l V_PORT(a2),a3 
+ tst.l d3 reading sector zero?
+ beq.s Read20 branch if so
+ bsr Execute Read sector and exit
+ bcs.s ReadErr
+ bra.s ReadExit
+*
+* Here If Sector 0 Being Read
+*
+Read20 move.w #200,d5 try several times (in case not spun up)
+Read30 bsr Execute do the read
+ bcc.s Read40 if no error move data
+ cmp.b #E$NotRdy,d1 is it a not ready
+ bne.s ReadErr branch on any error code other than "not ready"
+ dbra d5,Read30 try again
+ bra.s InitErr exit with error
+*
+* update drive table on each read of sector zero
+*
+Read40 move.w #DD_SIZ-1,d1 UpDate Drive Table
+ movea.l PD_BUF(a1),a3 point to data just read
+Read50 move.b (a3,d1.w),(a0,d1.w) update drive table
+ dbra d1,Read50 branch if not
+*
+* Exit
+*
+ReadExit
+ movem.l (sp)+,d0/d3-d5/a0/a3/a6 restore registers
+ moveq #0,d1 No Errors
+ rts
+*
+* Error Exit
+*
+ReadErr
+ movem.l (sp)+,d0/d3-d5/a0/a3/a6 restore registers
+ ori #Carry,ccr
+ rts
+ 
+BUnitErr move.w #E$Unit,d1 hard drive impossible
+ ori #Carry,ccr
+ rts
+
+ page
+ 
+*******************
+* WRITE-Write A Block To The Disk
+*
+* This subroutine writes the contents of PD_BUF to the
+* logical sector specified in d2.l.  A re-read of the
+* block will be done if PD_VFY is 0.
+*
+* Passed: (a2) = Address Of Device Static Storage
+*         (a1) = Address Of Path Descriptor
+*         (a6) = global static storage
+*         (d0.l) = Number of sectors to write
+*         (d2.l) = The Disk Logical Sector Number
+*
+* Returns: (CC) = Carry Set If Error
+*          (d1.w) = Error Code If Error
+*
+Write:
+ tst.b PD_TYP(a1) is it a hard disk ?
+ bmi.s BUnitErr hard drive impossible for CY4110
+*
+* is lsn = 0, if not go on, if so check write sct zero enable 
+*
+ tst.l d2 writing sector 0
+ bne.s Write01 branch if not writing to sect 0
+ btst #FmtDis_B,PD_Cntl+1(a1) ok to write to sect 0 ?
+ bne.s FormatErr branch if not
+Write01 
+ move.l a6,-(sp) save a6
+ movea.l PD_DTB(a1),a0 calc needs drv table pointer
+ lsl.w #08,d0 mult the # of sectors by 256 to get # of bytes
+ move.w d0,SctCnt(a2) save it
+ moveq.l #0,d0 terrible problems occur here
+ move.l d2,d3 save it for now
+ bsr CmptAdr
+*
+* calulate sct,track and head
+*
+ bsr Calc
+ move.b #WRMS,d4 load cmdcode
+*
+* set up eca block
+*
+ bsr SetUp
+*
+* execute cmd
+*
+ bsr Execute Execute The Command
+ bcs.s WriteErr Leave If Error
+ tst.l d3 was it sector 0
+ bne.s Write10 branch if not
+ clr.b V_ZeroRd(a0) flag sector zero writen
+Write10 tst.b PD_VFY(a1) Verify ?
+ bne.s WriteExit No, Leave
+*
+* read sector that was just written and check against PD_BUF
+*
+ moveq.l #1,d0 read only one sector
+ move.l PD_BUF(a1),-(sp) save buffer pointer
+ move.l V_VBuff(a2),PD_BUF(a1) substitute verify buffer
+ move.l d3,d2  put lsn in proper reg
+ bsr Read Re-Read The Written Block
+ move.l (sp)+,a3 recover buffer pointer
+ move.w sr,-(sp) save cc
+ move.l a3,PD_BUF(a1)
+ move.w (sp)+,sr restore cc
+ bcs.s WriteErr exit with error
+*
+* verify write 
+*
+ movea.l V_VBuff(a2),a3
+ move.w #256/4,d0 get # of bytes to check
+ movea.l PD_BUF(a1),a0
+ bra.s Verify10
+VerifyLp subq.w #1,d0
+ beq.s WriteExit branch if so
+Verify10 cmpm.l (a0)+,(a3)+ is data the same?
+ beq.s VerifyLp branch if so
+ move.w #E$Write,d1 flag write error
+ bra.s WriteErr
+ 
+ page
+
+********************
+* Write: Continued
+*
+* Error Exits
+*
+FormatErr move.w #E$Format,d1 flag write error
+WriteErr move.l (sp)+,a6 
+ ori #Carry,ccr
+ rts
+*
+* Exit
+*
+WriteExit move.l (sp)+,a6 restore a6
+ moveq #0,d1 No Errors
+ rts 
+
+ 
+*******************
+* GetStat/PutStat
+*
+* Passed: (d0.w)=Status Code
+*         (a1)=Path Descriptor
+*         (a2)=Static Storage Address
+*
+* Returns: Depends on status code
+*
+PutStat: 
+ cmpi.w #SS_WTrk,d0 is it a Write Track call?
+ beq.s WriteTrk branch if so
+ cmpi.w #SS_Reset,d0 is it a restore call?
+ beq.s Restore branch if so
+
+GetStat: move.w #E$UnkSvc,d1 flag unknown service code
+ ori #Carry,ccr flag error
+ rts
+
+Restore: 
+ move.l a6,-(sp) save a6
+ movea.l V_PORT(a2),a3
+ bsr CmptAdr point to eca block
+ move.b #CALB,d4 restore to cyl zero
+ moveq.l #0,d3 simulate lsn 0
+ moveq.l #0,d1
+ moveq.l #0,d2
+ add.b PD_SOffs(a1),d2 add in sector base offset
+ movea.l PD_DTB(a1),a0 drive table pointer
+ bsr SetUp
+ bsr Execute recalibrate to cylinder zero
+ bcs.s RestEr check for error
+ move.l (sp)+,a6 restore a6
+Rest20 rts
+
+RestEr move.l (sp)+,a6
+ ori #Carry,ccr
+ rts
+
+ page
+ 
+*******************
+* WriteTrk: the format utility
+*
+* Passed (a1) = Path descriptor
+*        (a2) = device static storge pointer
+*        (a4) = process descriptor pointer
+*        (a6) = sys global static storage pointer
+*        (d0.w) status code of setstat
+*
+WriteTrk: 
+*
+* get user info and build data buffer
+*
+ btst.b #FmtDis_B,PD_Cntl+1(a1) formatting allowed?
+ beq.s WritTk11 if yes, go do it
+ move.w #E$Format,d1 else, flag illegal format attempt
+ ori #Carry,ccr exit with error
+ rts
+
+WritTk11 movem.l d5/a6,-(sp) save a6
+ movea.l PD_RGS(a1),a3 get user reg pointer
+ movem.l R$d2(a3),d0-d1 d0 = track number; d1.w = side/density
+ move.l d0,d4 save track # in d4
+ lsr.w #8,d1 set side from upper byte of word
+ move.w PD_SSize(a1),d3 get sct size
+ lsr.w #8,d3 divide by 256 
+ movea.l R$a1(a3),a0 get interleave table
+ lea DataBuff(a2),a3 form address of data buffer
+ move.b PD_SOffs(a1),d5 get the sector offset value
+ move.w PD_SCT(a1),d2 assume all tracks double density
+ subq.w #1,d2 adjust for dbra loop
+*
+* build format table here
+*
+WrtTrk00 move.b d0,(a3)+ store cylinder info
+ move.b d1,(a3)+ store head
+ move.b (a0)+,(a3) store sector number by interleave
+ add.b d5,(a3)+ bump the sector number by the offset value
+ move.b d3,(a3)+ store length code
+ dbra d2,WrtTrk00 
+*
+* now set up eca
+*
+ moveq.l #0,d2 make lsn 0
+ add.b d5,d2 add in the base sector offset
+ swap d1 put head number in upper word
+ move.w d4,d1 put track number in lower word
+WrtTrk67 moveq.l #FORM,d4 set for eca
+ movea.l PD_DTB(a1),a0
+ bsr CmptAdr
+ bsr SetUp
+*
+* fill format table
+*
+ lea FormData(pcr),a3 default to floppy data
+ lea FormTab(a2),a0
+ moveq #FDSiz-1,d2 
+WrtTrk01 move.b (a3)+,(a0)+ store it
+ dbra d2,WrtTrk01
+ movea.l PD_DTB(a1),a0
+ movem.l (sp)+,d5/a6 restore it
+ bra Execute
+
+ page
+ 
+********************
+* TERM-Terminate Device
+*
+* This subroutine waits until V_WAKE is clear, takes
+* the device off the polling table and returns.
+*
+* Passed: (a2) = Address Of Device Static Storage
+*         (a1) = Address Of device discriptor
+*
+* Returns: (CC) = Carry Set If Error
+*          (d1) = Error Code If Error
+*
+Term:
+ movea.l V_PORT(a2),a3 get port address
+ move.b ISR(a3),d0
+ eori.b #ByteWord,d0
+ bne.s TermErr check to make sure drive is clr
+ move.w #$0001,DSCR(a3) clr cmd /stats
+ move.b #0,ISR(a3) clr IRQs 
+ move.b M$IRQLvl(a1),d2 get irq level
+ move.b M$Prior(a1),d1
+ move.b M$Vector(a1),d0 get vector #
+ suba.l a3,a3
+ OS9 F$IRQ
+ rts
+
+TermErr move.w #E$Share,d1 device is busy
+ ori #Carry,ccr
+ rts
+
+  page
+  
+*******************
+* Calc:  calculates the cylinder,head and sector given
+*        the lsn and info from track zero,sector zero
+*
+* input (a0) = drv table ptr
+*       (a1) = path desc ptr
+*       (d2.l) = lsn
+* returns 
+*        d2.w = sector 
+*        d1.lsw = cylinder 
+*        d1.msw = head 
+Calc:
+ moveq #0,d1
+ tst.l d2 reading sector 0
+ beq.s CyExit lsn=sect,cyl=0,head=0
+ move.l V_ScZero(a0),a3 use sct zero info
+ move.b DD_OPT+(PD_T0S-PD_OPT)(a3),d0 get # of sectors in Trk 0 (6809 format)
+ bne.s CC01 branch if good value
+ move.b DD_OPT+(PD_T0S-PD_OPT)+1(a3),d0 get # of sectors in Trk 0 (68k format)
+ bne.s CC01 branch if good value (i.e. sector zero is buffered)
+ move.b PD_T0S+1(a1),d0 default to device's capabilities
+CC01 cmp.l d0,d2
+ blt.s CyExit cy=0 head=0 sect=lsn
+ move.l DD_TOT(a0),d1 get total # of sectors
+ lsr.l #8,d1 adjust for 3 byte value
+ cmp.l d2,d1 sector out of range?
+ bls.s CyErr branch if so
+ sub.l d0,d2  lsn-tos
+ moveq.l #0,d1
+ move.b DD_TKS(a0),d1
+ beq.s CyErr
+ divu d1,d2  lsn-trk0/trks
+ moveq.l #0,d1 
+ move.w d2,d1 continue calculations in reg d1
+ swap d2  place sct# in lsw
+ addi.w #01,d1 (lsn-trk0/trks) + 1 = XYX
+*
+* calculate track/side for floppies
+*
+ btst.b #0,DD_FMT(a0) is it double sided?
+ beq.s CyExit  branch if not (divide by 1) 
+ lsr.w #1,d1 divide by 2
+ bcc.s CyExit
+ ori.l #$00010000,d1
+
+CyExit moveq #0,d0
+ move.b PD_SOffs(a1),d0 get any sector offset FROM PATH DESCRIPTOR
+ add.w d0,d2 compute physical sector #
+ move.b PD_TOffs(a1),d0 get any track offset FROM PATH DESCRIPTOR
+ add.w d0,d1 form disk's track number
+ moveq.l #0,d0 clr carry
+ rts done
+CyErr move.w #E$Sect,d1 bad lsn
+ ori #Carry,ccr
+ rts
+ 
+ page
+ 
+*******************
+* SetUp: setup eca field  for read,write only
+* 
+* passed (d2.b) = sector number 
+*        (d1.lsw) = cylinder (track) (including any track offsets)
+*        (d1.msw) = head of track to read,write
+*        (d3) = lsn 
+*        (d4) = cmd code for eca block
+*        (a0) = pointer to drv table
+*
+SetUp: 
+ move.b d4,CmdCode(a6) store code
+ move.b d2,SectNum(a6) store sect num
+ move.w d1,CylNum(a6)
+ move.w PD_SCT(a1),d0  
+ clr.w LWCBT(a6)
+ swap d1
+ move.b d0,EndSct(a6) 
+ move.b d1,HeadNum(a6)
+ move.w SctCnt(a2),BufLen(a6) number of sectors to read times 256
+ move.b #$80!Sct256,SctCode(a6) set sct code
+*
+* set up track parameter on each read
+*
+ move.l a0,-(sp) save it for now
+ lea N0(a6),a0 point to eca block
+ move.b #IBMdd,CmdOpt(a6) assume double density
+ lea DblDenTrk(pcr),a3 point to double density disk trak parameters
+ bsr LdBlock load them into the eca block
+ move.l (sp)+,a0 restore a0
+*
+* set up steprate
+*
+ moveq #0,d0 clr d0
+ move.b PD_STP(a1),d0 get step rate
+ lea Step(pcr),a3
+ move.b (a3,d0.w),StepRate(a6)
+ tst.b V_Init(a0) has ECA been pre-initialized?
+ bne.s SetUp08 if yes, don't do it again
+*
+* First Time ECA initilalization
+*
+ move.w PD_CYL(a1),MaxCyl(a6) set maximum cyls from descriptor
+ move.b PD_SID(a1),NumSurf(a6) set no. of sides from descriptor
+ move.b PD_Trys(a1),MaxRtrys(a6) set rtries from descriptor
+ movea.l PD_DEV(a1),a3 get device table pointer
+ movea.l V$DESC(a3),a3 point a3 to device descriptor
+ moveq #0,d0 sweep d0
+ move.w M$DevCon(a3),d0 get offset to init bytes
+ addq.w #2,d0 
+ adda.l d0,a3 set up pointer to init bytes
+ move.l a0,-(sp) save a0
+ lea HdStlgTm(a6),a0 maybe next version we can put this in desc
+ bsr.s LdBlock
+ lea LWCBT(a6),a0 point to low write current in ECA block
+ move.w PD_RWR(a1),(a0)+ low write current passed to drive
+ move.w PD_WPC(a1),(a0) write precomp passed to drive
+ move.l (sp)+,a0 
+ move.b #1,V_Init(a0) flag initialized ECA block
+*
+* Set Up Format Parameters
+*
+SetUp08 cmpi.b #FORM,d4 is this a format command?
+ bne.s SetUp18 branch if not
+ move.l FormTabPt(a2),Scwt(a6) address modified in init
+ move.l DataBufPt(a2),BufAdr0(a6) ditto
+ move.w PD_SCT(a1),d2
+SetUp32 lsl.w #2,d2 multiply by 4
+ move.w d2,BufLen(a6) set for format
+ clr.b V_ZeroRd(a0) flag sector zero invalid data
+ bra.s SetUpEx 
+*
+*
+*
+SetUp18  move.l PD_BUF(a1),BufAdr0(a6) set pd_buf active buf; store in eca
+SetUpEx rts
+
+ page
+ 
+*******************
+* CmptAdr computes address of eca block
+* 
+* Passed (a1) = Address Of The Path Descriptor
+*        (a2) = Address Of The Device Static Storage
+*        (a4) = Process descriptor
+*        (a5) = callers register stack pointer
+*        (a6) = system global data storage pointer
+*        (d0-d1,d3,d4) do not destroy!!
+*
+* returns (a6) = start of eca block
+*
+CmptAdr:
+ lea ECATable(a2),a6 get eca table begining
+ moveq #0,d5 
+ move.b PD_DRV(a1),d5 
+ lsl.b #2,d5
+ movea.l (a6,d5.w),a6 form address of eca block w/o address modifier
+ rts
+
+ 
+*******************
+* LdBlock: simply reads disk format info in eca block
+*
+*  passed = (a0) pointer to eca block
+*           (a3) pointer to driv parameters
+*
+LdBlock:
+ moveq #0,d0
+ move.b (a3)+,d0 get number of bytes
+LdB00 move.b (a3)+,(a0)+ 
+ dbra d0,LdB00 
+ rts
+
+ page
+ 
+*******************
+* Select Drive
+* Input: (a0) = pointer  to drive table
+*        (a1) = path descriptor
+*        (a2) = Static Storage ptr
+*
+* Returns: (d2.b) = value to place in controller to
+*                   select drive and start command
+*
+Select:
+ move.b PD_DRV(a1),d0 Get Logical Unit Number
+*
+* test proper range of drv numbers and form drive select bits
+*
+ cmp.b V_NDRV(a2),d0 drive in range?
+ bhs.s BadDrive branch if so
+ moveq #$10,d2
+ lsl.b d0,d2
+ addq #4,d0
+ rts
+
+BadDrive: move.w #E$Unit,d1 flag bad unit
+ ori #Carry,ccr
+ rts
+
+*******************
+* Execute- Execute Command
+*
+* Passed: (a0.l) = device table 
+*         (a1.l) = path descriptor
+*         (a2.l) = device static storage
+*         (a3.l) = device chip address
+*         (d3.l) = Logical Sector Number
+*
+* Returns: (CC) = Carry Set If Error
+*          (d1.b) = Error Code If Error, Else Unchanged
+*
+Execute: 
+ bsr.s Select get drive select bit and check for ready
+ bcs.s ExecExit branch if drive number out of range
+ bsr.s Sleep drive is read so go do command
+ bcc.s ExecExit branch if ok 
+ bsr.s Recalb retry.. possible soft error
+ExecExit rts
+
+ page
+*******************
+* Sleep: initiates drv cmd and then sleep until done
+*  
+* passed (a0) = drv table pointer
+*        (a1) = pointer to path discriptor
+*        (a2) = static storage
+*        (a3) = port address
+*        (d2.b) = drive select bits
+*
+Sleep: 
+ move.w V_BUSY(a2),V_WAKE(a2)
+ ori.b #ByteWord,d2 add in kluge bit
+ movea.l V_PORT(a2),a3
+ andi.w #$00FF,d2 mask off MSB
+ move.w d2,DSCR(a3) start command
+* begin ed. 7 change
+*WaitIRQ moveq #0,d0 sleep until irq wakes us up
+* OS9 F$Sleep go to sleep
+* tst.w V_WAKE(a2) valid wake-up
+* bne.s WaitIRQ branch if not
+ move.l #SleepTime,d0 sleep seven seconds
+ OS9 F$Sleep go to sleep
+ tst.w V_WAKE(a2) valid wake-up call?
+ beq.s GoodWake if yes, wake up call came through in time
+ move.w E$NotRdy,d1 else, get not ready error number
+ bra.s SleepEr2 go to error exit
+
+GoodWake
+* end ed. 7 change
+ move.l a6,-(sp) save a6
+ bsr.s CmptAdr
+ move.b MainStat(a6),d0
+ beq.s SleepEx
+ bsr.s ErrRout 
+ bcs.s SleepEr
+SleepEx move.l (sp)+,a6
+  rts
+SleepEr
+ move.l (sp)+,a6
+SleepEr2
+  ori #Carry,ccr
+  rts
+
+*******************
+* DiskIRQ-Interrupt Service Routine
+*
+* Passed: 
+*         (a2) = Device Static Storage
+*         (a3) = port address
+* Returns: cc=carry clear if irq carry set if no irq
+*
+DiskIRQ:
+ move.b ISR(a3),d0 did we cause irq?
+ beq.s Dirq09 branch if not
+Dirq99 move.w V_WAKE(a2),d0 waiting for irq
+ beq.s Irq01 branch if not
+ clr.w V_WAKE(a2) flag irq serivced
+ moveq #S$Wake,d1 wake up waiting process
+ OS9 F$Send send signal
+Irq01 
+ move.w #ByteWord,DSCR(a3) clr busy bit first or irq may occur again 
+ move.b #0,ISR(a3) clr irq status bit
+ moveq #0,d1 clear errors
+ rts
+Dirq09 ori #Carry,ccr
+ rts 
+
+********************
+* ReCalb  commands controler to seek to track zero and 
+*         then retrys the given command.
+*
+* Passed: (a0.l) = drv table
+*         (a1.l) = path descriptor
+*         (a2.l) = device static storage
+*         (a3.l) = controller address
+*         (a5.l) = buffer pointer
+*
+Recalb:
+ move.l a6,-(sp) 
+ bsr CmptAdr
+ move.w CmdCode(a6),-(sp) stack orginal cmd and code
+ move.b #CALB,CmdCode(a6)
+ bsr Sleep  recalb
+ move.w (sp)+,CmdCode(a6) restore cmd
+ bsr Sleep try cmd a second time
+ bcs.s RecalErr to exit if still error
+ move.l (sp)+,a6
+ rts
+RecalErr
+ move.l (sp)+,a6
+ ori #Carry,ccr
+ rts
+
+ page
+ 
+********************
+* Recov: attempts to translate imdc errors to os9 error format 
+* 
+* passed (d0) result status of cmd
+*        (a6) pointer to eca block
+*
+ErrRout: 
+ cmpi.b #DrvNotRdy,d0
+ bne.s R01
+ move.w #E$NotRdy,d1
+ bra.s RecovEx
+R01 
+ move.w ExtndSta(a6),d1
+ andi.w #(ErrDataId!UnCorrErr),d1
+ beq.s R02
+ move.w #E$CRC,d1
+ bra.s RecovEx
+R02 
+ move.w ExtndSta(a6),d1
+ andi.w #(PostTO!PostErr),d1
+ beq.s R03
+ move.w #E$Seek,d1
+ bra.s RecovEx
+R03 
+ move.w ExtndSta(a6),d1
+ andi.w #WtProt,d1
+ beq.s R04
+ move.w #E$WP,d1
+ bra.s RecovEx
+R04
+ move.w ExtndSta(a6),d1
+ andi.w #BusErr,d1
+ beq.s R05
+ move.w #E$BusErr,d1
+ bra.s RecovEx
+R05
+ cmpi.b #WRMS,CmdCode(a6)
+ bne.s R06
+ move.w #E$Write,d1
+ bra.s RecovEx
+R06 cmpi.b #REMS,CmdCode(a6)
+ bne.s R07
+ move.w #E$Read,d1
+ bra.s RecovEx
+R07 move.w #E$BTyp,d1
+RecovEx ori.w #Carry,ccr
+ rts
+
+ ends
+

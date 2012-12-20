@@ -1,0 +1,77 @@
+%PDX 2.0
+
+ObjBegin 
+<< 
+/Type /Globals
+/DirList [  ]
+/WatchedDirs [ [()(.)]  ]
+/SkipedDirs [  ]
+/TimeBuilt 1020443116
+/DBFields [[/Title
+/tstr
+[]
+]
+[/Subject
+/str
+[]
+]
+[/Author
+/str
+[]
+]
+[/Keywords
+/str
+[]
+]
+[/Creator
+/str
+[]
+]
+[/Producer
+/str
+[]
+]
+[/CreationDate
+/date
+[]
+]
+[/ModificationDate
+/date
+[]
+]
+]
+/nWordsLessThanChars 0
+/nWordsGreaterThanChars 0
+/nIndexAvailableAfterFiles 4000
+/nGoalDocs 4096
+/bNumbers 0
+/bModifyPDFs 0
+/bCDROM 1
+/bSoundsLike 1
+/bAssistsAtEnd 1
+/bWordAssists 1
+/bWordStemming 1
+/bCaseSensitive 0
+/bChangedOptions 0
+/nMaxWords (250000)
+/nMaxLogFileSize (1048576)
+/Properties [[/IndexName
+/str
+[(Microware Documentation v3.2.4)
+]
+]
+[/IndexDescription
+/str
+[(Microware Documentation Index v3.2.4)
+]
+]
+]
+/StopWrds [(i)
+(an)
+(the)
+(you)
+(on)
+]
+>> 
+ObjEnd 
+

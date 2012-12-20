@@ -1,0 +1,56 @@
+ nam OS-9/68k RBF Static Storage Requirements
+
+*****************************************************************************
+*                                                                           *
+*              Copyright 1998 by Microware Systems Corporation              *
+*                            All Rights Reserved                            *
+*                          Reproduced Under License                         *
+*                                                                           *
+*  This software is confidential property of Microware Systems Corporation, *
+*  and is provided under license for internal development purposes only.    *
+*  Reproduction, publication, modification, distribution, or creation of    *
+*  derivative works in any form to any party other than the Licensee is     *
+*  strictly prohibited, unless expressly provided for under the terms of a  *
+*  mutually executed written license agreement for this software between    *
+*  the end-user and Microware Systems Corporation, or otherwise expressly   *
+*  authorized in writing by Microware Systems Corporation.  Licensee shall  *
+*  reproduce this copyright notice exactly as provided herein on any copies *
+*  of the software that Licensee is authorized to distribute.               *
+*                                                                           *
+*****************************************************************************
+* Edition History
+*  #   Date    Changes Made												by
+* -- -------- --------------------------------------------------------- ---
+* 01 84/02/13 converted for linkage use.								rfd
+* 02 84/10/12 changed size of drive table entry (in rbfdev.a).			rfd
+*				---- OS-9/68k V1.2 released ----
+*				---- OS-9/68k V2.0 released ----
+*				---- OS-9/68k V2.1 released ----
+*				---- OS-9/68k V2.2 released ----
+*				---- CD-RTOS V0.97 released ----
+*				---- CD-RTOS V0.99 released ----
+*				---- OS-9/68k V2.2 edition #50 released ----
+*				---- OS-9/68k V2.3 released ----
+*				---- CD-RTOS V1.1 released ----
+*				---- OS-9/68k V2.4 released ----
+*				---- OS-9/68k V2.5 (Discovery Pak) released ----
+*				---- OS-9/68k V3.0 released ----
+*				---- OS-9/68K V3.0.2 Beta_2 Release ----
+*				---- OS-9/68K V3.0.2 Release ----
+*				---- OS-9/68K V3.0.3 PwrMan Beta Release ----
+*				---- OS-9/68K V3.0.3 Release ----
+* 03 98/07/15 added new copyright info.									wwb
+*				---- OS-9/68K V3.1 Release ----								*
+*             $$                    <RELEASE_INFO>                     $$   *
+*
+edition set 3
+
+ use iodev.a
+ use rbfdev.a
+ 
+ psect rbfstat,0,0,0,0,0
+ vsect
+ ds.b DRVBEG reserve system globals (NO drives)
+ ends
+ ends
+

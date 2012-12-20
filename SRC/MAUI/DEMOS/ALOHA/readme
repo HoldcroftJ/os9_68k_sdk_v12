@@ -1,0 +1,43 @@
+**********************************************************************
+MAUI aloha demo code
+**********************************************************************
+What this demo does:
+  - "Aloha MAUI demo..." is displayed.
+  - "Press a key to exit" is displayed.
+  - When a key on the input device is selected, the program exits.
+
+**********************************************************************
+System requirements:
+  - A working MAUI environment is assumed.
+  - The demo requires that gfx is in memory.
+  - The demo requires that mfm is in memory.
+ 
+*********************************************************************
+Directories: 
+  - Source code 
+      $MWOS/SRC/MAUI/DEMOS/ALOHA
+
+  - Assets
+      $MWOS/<operating system>/<hardware platform>/ASSETS/FONTS
+
+*********************************************************************
+To make this demo:
+  - From the source file directory type:
+      % os9make
+
+*********************************************************************
+Operation:
+  - To list the options available for this demo type the demo name 
+	followed by -? or -h.
+
+  - The font 'default.fnt' must be in memory. The font can be found
+	  in the assets directory noted above.
+
+  - The process 'maui_inp' must be running in the background. To 
+	verify that it is use the os9000 command 'procs'. If it is not 
+	present run it before starting the demo. e.g.
+
+	  $ maui_inp <>>>/nil &
+
+*********************************************************************
+

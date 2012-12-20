@@ -1,0 +1,9 @@
+ nam T10
+ ttl 68000 T10 device descriptor module
+ use defsfile
+
+ use "scfdesc.a"
+
+ T10
+ ends
+

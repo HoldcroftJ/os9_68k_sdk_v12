@@ -1,0 +1,249 @@
+04/8/98, by Yuri Persion.
+
+
+This document is a brief description of the MAUI JPEG API.  JPEG API
+is based on the public domain code written by the Independent JPEG
+Group (IJG). Effectively it is a MAUI-izing wrapper for the core
+library functions (see ../CORELIB), based on the original IJG code
+with some modifications (for example, MAUI MEM API was used for the
+memory management).
+
+The JPEG API library is stored in $MWOS/SRC/DEFS/MAUI/maui_jpg.l.
+
+*****************************************************************************
+JPEG API functions:
+_____________________________________________________________________________
+
+cjpgctx.c:
+error_code jpg_create_context(JPG_CONTEXT_ID *ret_context)
+
+This function creates the JPEG context, which stores the current
+decompression parameters.
+
+_____________________________________________________________________________
+djpgctx.c:
+error_code jpg_destroy_context(JPG_CONTEXT_ID context)
+
+This function destroys the JPEG context.
+
+_____________________________________________________________________________
+gjpgctx.c:
+error_code jpg_get_context_params(JPG_CONTEXT_PARAMS *ret_context_params, 
+                                  JPG_CONTEXT_ID ctx)
+
+This function returns values of some of the decompression parameters,
+stored in a context.  The parameters are (as fields of
+ret_context_params):
+.image_width
+.image_height
+.num_components
+.out_color_space
+.scale_num
+.buffered_image
+.dct_method
+.do_fancy_upsampling
+.do_block_smoothing
+.quantize_colors
+.dither_mode
+.two_pass_quantize
+.desired_number_of_colors
+.enable_1pass_quant
+.enable_2pass_quant
+.output_width
+.output_height
+.out_color_components
+
+_____________________________________________________________________________
+jabort.c:
+error_code jpg_abort(JPG_CONTEXT * context)
+
+This function aborts current decompression.
+
+_____________________________________________________________________________
+jdecomp.c:
+error_code jpg_decompress(JPG_CONTEXT_ID context, GFX_DIMEN x, GFX_DIMEN y,
+						  int * scan_num, GFX_DIMEN max_width, 
+				          GFX_DIMEN max_height, 
+						  BOOLEAN * has_multi_scans);
+
+This function actually performs JPEG decompression. 
+
+x and y - coordinates on the destination drawmap where the left-top corner of 
+          the image should be placed.
+
+scan_num - when passed - number of scans to be processed in case of 
+	       progressive scan (0 - all)
+           when returned - number of scans actually processed.
+max_width and max_height - maximum dimensions of the picture; 
+						   if the picture is larger, it is cropped.
+has_multi_scans - returns TRUE in case of progressive scan.
+
+_____________________________________________________________________________
+jpgerr.c:
+error_code jpg_set_error_action(MAUI_ERR_LEVEL debug_level, 
+                                MAUI_ERR_LEVEL passback_level, 
+                                MAUI_ERR_LEVEL exit_level)
+
+This function sets error action for JPEG API, exactly like any other MAUI API.
+
+_____________________________________________________________________________
+jpginit.c:
+error_code jpg_init(void)
+
+This function initializes the usage of JPG API. It must be called
+before any call to JPG API.
+
+_____________________________________________________________________________
+jpgterm.c:
+error_code jpg_term(void)
+
+This function terminates the usage of JPG API. It should be called
+when no there is no further need in JPG API. jpg_init must be called
+again to use JPG API after this call.
+
+_____________________________________________________________________________
+jrdhead.c:
+error_code jpg_read_header(JPG_CONTEXT * context, BOOLEAN image_req)
+
+This function reads the image attributes which can be used by an
+application to prepare for the decompression. The attributes are
+placed into the context and can be read using jpg_get_context_params()
+call.
+
+_____________________________________________________________________________
+jsbuf.c:
+error_code jpg_set_context_buffering(JPG_CONTEXT * context, 
+                                     JPG_BUFF_LEVEL buff)
+
+Sets the buffering whether an image should be internally buffered for
+the enhanced performance (in exchange of memory expense). 
+
+Possible values are:
+JPG_NO_BUFF,
+JPG_BUFF.
+
+Default is JPEG_NO_BUFF.
+
+_____________________________________________________________________________
+jscolnum.c:
+error_code jpg_set_context_color_number(JPG_CONTEXT * context, 
+                                        u_int16 col_num)
+
+This function sets the resulting number of colors used in a
+decompressed image.
+
+Default is 256.
+_____________________________________________________________________________
+jsdct.c:
+error_code jpg_set_context_dct_method(JPG_CONTEXT *context, 
+                                      J_DCT_METHOD method)
+
+This function sets the discrete cosine transformation method, which
+can affect the speed and the final quality of decompression.
+
+JDCT_IFAST - integer; fast but lower quality
+JDCT_ISLOW - integer; slower, but better quality
+JDCT_FLOAT - floating-point; accurate, fast on fast HW
+
+Default is JDCT_IFAST.
+
+_____________________________________________________________________________
+jsdither.c:
+error_code jpg_set_context_dither(JPG_CONTEXT *context, J_DITHER_MODE mode)
+
+This function sets the color dithering method, which can affect the
+speed and the final quality of decompression.
+
+JDITHER_NONE - no dithering, low quality, especially when low number of 
+               colors is requested.  
+JDITHER_FS - Floyd-Steinberg dithering.  
+JDITHER_ORDERED - ordered dithering.  
+
+The last two yield different visual results, not necessarily better or
+worse comparing to each other.
+
+Default is JDITHER_FS.
+_____________________________________________________________________________
+jsdst.c:
+error_code jpg_set_context_dst(JPG_CONTEXT *context, GFX_DMAP *dmap)
+
+This function sets the destination drawmap where the image will be
+decompressed to.
+
+_____________________________________________________________________________
+jsocolor.c:
+error_code jpg_set_context_out_colorspace(JPG_CONTEXT *context, 
+                                          J_COLOR_SPACE colorspace)
+
+This function sets the output image colorspace.
+Possible values are:
+	JCS_UNKNOWN,		/* error/unspecified */
+	JCS_GRAYSCALE,		/* monochrome */
+	JCS_RGB,		/* red/green/blue */
+	JCS_YCbCr,		/* Y/Cb/Cr (also known as YUV) */
+	JCS_CMYK,		/* C/M/Y/K */
+	JCS_YCCK		/* Y/Cb/Cr/K */
+
+_____________________________________________________________________________
+jsqual.c:
+error_code jpg_set_context_quality(JPG_CONTEXT * context, 
+                                   JPG_QUALITY_LEVEL qual)
+
+This a convenience function which sets several parameters at once.
+
+qual - quality level, values are:
+JPG_LOW_QUAL, JPG_MED_QUAL, JPG_HIGH_QUAL.
+
+If set to JPG_LOW_QUAL, it is equivalent to following calls:
+	jpg_set_context_dct_method(context,JDCT_IFAST);
+	jpg_set_context_dither(context,JDITHER_NONE);
+	jpg_set_context_quantization(context,JPG_1PASS);
+
+If set to JPG_MED_QUAL, it is equivalent to following calls:
+	jpg_set_context_dct_method(context,JDCT_IFAST);
+	jpg_set_context_quantization(context,JPG_1PASS);
+	jpg_set_context_dither(context,JDITHER_FS);
+
+If set to  JPG_HIGH_QUAL,  it is equivalent to following calls:
+	jpg_set_context_dct_method(context,JDCT_ISLOW);
+	jpg_set_context_quantization(context,JPG_2PASS);
+	jpg_set_context_dither(context,JDITHER_FS);
+
+_____________________________________________________________________________
+jsquant.c:
+error_code jpg_set_context_quantization(JPG_CONTEXT * context, 
+                                        JPG_QUANT_LEVEL qt)
+
+This call sets the quantization method. 
+Possible values:
+JPG_1PASS - Faster, but lower quality
+JPG_2PASS - Slower, but better quality.
+
+Default is JPG_1PASS.
+
+_____________________________________________________________________________
+jsscale.c:
+error_code jpg_set_context_scale(JPG_CONTEXT *context, u_int32 numerator,
+                                 u_int32 denominator)
+
+This function sets the scale of the image. In current implementation,
+the scale values supported are 1/2, 1/4, and 1/8.
+
+_____________________________________________________________________________
+jssize.c:
+error_code jpg_set_context_out_size(JPG_CONTEXT *context, GFX_DIMEN width,
+                                    GFX_DIMEN height)
+
+This function sets the dimensions of the resulting image. If they are
+smaller than the original size, the image is cropped. If greater, the
+call is ignored.
+
+_____________________________________________________________________________
+jssource.c:
+error_code jpg_set_context_source(JPG_CONTEXT *context, 
+                                  void *ptr, u_int32 size)
+
+This call sets the pointer to the source for the compressed data, and
+its size. For example, an application can either allocate the memory
+and read the whole JPEG file in it, or link to a module and pass the
+pointer to the data.

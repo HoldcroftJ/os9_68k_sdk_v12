@@ -1,0 +1,307 @@
+/*--------------------------------------------------------------------------,
+|                                                                           |
+|           Copyright 1996-1998 by Microware Systems Corporation            |
+|                            All Rights Reserved                            |
+|                          Reproduced Under License                         |
+|                                                                           |
+|  This software is confidential property of Microware Systems Corporation, |
+|  and is provided under license for internal development purposes only.    |
+|  Reproduction, publication, distribution, or creation of derivative works |
+|  in any form to any party other than the licensee is strictly prohibited, |
+|  unless expressly authorized in writing by Microware Systems Corporation. |
+|                                                                           |
+|---------------------------------------------------------------------------|
+|                                                                           |
+| Edition History:                                                          |
+| #   Date    Comments                                                By    |
+| -- -------- ------------------------------------------------------- ---   |
+|  01 95/12/12 Created                                                  sep |
+|  02 96/01/26 Added default for boot_cmdsize                           sep |
+|  03 96/01/29 Changed type of llpm_interface_data's if_name field      rak |
+|              ---- OS9000/PPC V2.0 Release ----                            |
+|              ---- OS-9000/x86 V2.1 Released ----                          |
+|              ---- OS-9000/PPC V2.1.1 Released ----                        |
+|  04 97/02/10 Changed c_boot to c_cons in config_data CONS_NAME sect.  ljs |
+|  05 97/02/20 Revised fields                                           lmcb|
+|  06 97/03/05 Fixed description for abbreviated booter name.           lmcb|
+|  07 97/04/30 Added include of rom.h.                                  ljs |
+|  08 97/05/01 Changed to use ROM/rom.h relative path so rom.h is found     |
+|              in standard search paths.                                ljs |
+|              ---- OS-9000/ARMv3 V2.2 Released ----                        |
+|              ---- OS-9000/ARMv3 V2.2.1 Released ----                      |
+|              ---- Modular Rom Sub-system v1.0 Released ----               |
+|              ---- MBX_BSP_Beta Released ----                              |
+|              ---- MBX_BSP Released ----                                   |
+|              ---- OS-9000/SH3 V2.2.6 Released ----                        |
+|              ---- OS-9000/SPARC V2.2.7 Released ----                      |
+|              ---- Modular Rom v1.1 Sub-component Released ----            |
+|              ---- Modular ROM v1.2 Sub-component Released ----            |
+|  09 01/05/23 Added if_mtu to support ability to change SLIP MRU/MTU   jhd |
+|              $$                    <RELEASE_INFO>                      $$ |
+`--------------------------------------------------------------------------*/
+#if !defined(_CNFGDATA_DES)
+#define _CNFGDATA_DES
+
+#if !defined(_ROM_H)
+#cinclude <ROM/rom.h>
+#endif
+
+#define M_EXEC config_data
+
+#if defined(_MODULE_DES)
+#error cnfgdata.des must be included before module.des
+#endif
+
+#include <module.des>
+
+struct config_console {
+	/* configuration entry header */
+	char	("cnfg_id[4]") cnfg_id0 = 'C',	".configuration id field";
+	char  	("") cnfg_id1 = 'N',			".configuration id field";
+	char	("") cnfg_id2 = 'F',			".configuration id field";
+	char	("") cnfg_id3 = 'G',			".configuration id field";
+	char	("cnfg_hw_type[4]") cnfg_hw_type0 = 'C', ".entry type id field";
+	char	("") cnfg_hw_type1 = 'O',		".entry type id field";
+	char	("") cnfg_hw_type2 = 'N',		".entry type id field";
+	char	("") cnfg_hw_type3 = 'S',		".entry type id field";
+	u_int16	cnfg_rev = 1,		".revision field";
+	u_int16 spare1;
+	u_int32	spare2;
+
+	pointer u_int32	cons_name = console_name,	".console name";
+	u_int32	cons_vector,	"interrupt vector number";
+	u_int32	cons_priority,	"interrupt priority";
+	u_int32 cons_level,		"interrupt level";
+	u_int32	cons_timeout,	"polling timeout";
+	u_int8	cons_parity,	"parity";
+	u_int8	cons_baudrate,	"baud rate";
+	u_int8	cons_wordsize,	"character size";
+	u_int8	cons_stopbits,	"stop bit";
+	u_int8	cons_flow,		"flow control";
+	u_int8	reserved1;
+	u_int16 reserved2;
+	u_int32	reserved3;
+}, "console port data structure";
+
+struct config_comm {
+	/* configuration entry header */
+	char	("cnfg_id[4]") cnfg_id0 = 'C',	".configuration id field";
+	char  ("") cnfg_id1 = 'N',				".configuration id field";
+	char	("") cnfg_id2 = 'F',			".configuration id field";
+	char	("") cnfg_id3 = 'G',			".configuration id field";
+	char	("cnfg_hw_type[4]") cnfg_hw_type0 = 'C', ".entry type id field";
+	char	("") cnfg_hw_type1 = 'O',		".entry type id field";
+	char	("") cnfg_hw_type2 = 'M',		".entry type id field";
+	char	("") cnfg_hw_type3 = 'M',		".entry type id field";
+	u_int16	cnfg_rev = 1,		".revision field";
+	u_int16 spare1;
+	u_int32	spare2;
+
+	pointer u_int32	cons_name = comm_name,	".console name";
+	u_int32	cons_vector,	"interrupt vector number";
+	u_int32	cons_priority,	"interrupt priority";
+	u_int32 cons_level,		"interrupt level";
+	u_int32	cons_timeout,	"polling timeout";
+	u_int8	cons_parity,	"parity";
+	u_int8	cons_baudrate,	"baud rate";
+	u_int8	cons_wordsize,	"character size";
+	u_int8	cons_stopbits,	"stop bit";
+	u_int8	cons_flow,		"flow control";
+	u_int8	reserved1;
+	u_int16 reserved2;
+	u_int32	reserved3;
+}, "communication port data structure";
+
+
+struct config_debugger {
+	/* configuration entry header */
+	char	("cnfg_id[4]") cnfg_id0 = 'C',	".configuration id field.";
+	char  ("") cnfg_id1 = 'N', 				".configuration id field";
+	char	("") cnfg_id2 = 'F',			".configuration id field";
+	char	("") cnfg_id3 = 'G',			".configuration id field";
+	char	("cnfg_hw_type[4]") cnfg_hw_type0 = 'D', ".entry type id field";
+	char	("") cnfg_hw_type1 = 'E',		".entry type id field";
+	char	("") cnfg_hw_type2 = 'B',		".entry type id field";
+	char	("") cnfg_hw_type3 = 'G',		".entry type id field";
+	u_int16	cnfg_rev = 1,		".revision field";
+	u_int16 spare1;
+	u_int32	spare2;
+
+	pointer u_int32	debug_default_client = debug_name,	".debug name";
+	u_int32	debug_call_at_cold,		"cold start flag";
+	u_int32	reserved1;
+	u_int32 reserved2;
+	
+}, "debugger data structure";
+
+struct cnfg_llpm {
+	/* configuration entry header */
+	char	("cnfg_id[4]") cnfg_id0 = 'C',	".configuration id field";
+	char  ("") cnfg_id1 = 'N',				".configuration id field";
+	char	("") cnfg_id2 = 'F',			".configuration id field";
+	char	("") cnfg_id3 = 'G',			".configuration id field";
+	char	("cnfg_hw_type[4]") cnfg_hw_type0 = 'L', ".entry type id field";
+	char	("") cnfg_hw_type1 = 'L',		".entry type id field";
+	char	("") cnfg_hw_type2 = 'P',		".entry type id field";
+	char	("") cnfg_hw_type3 = 'M',		".entry type id field";
+	u_int16	cnfg_rev = 2,		".revision field";
+	u_int16 spare1;
+	u_int32	spare2;
+
+	u_int16		maxllpmprotos,	"maximum number of protocols";
+	u_int16		maxrcvmbufs,	"maximum number of receive mbufs";
+	u_int16		maxllpmconns,	"maximum number of connections";
+	u_int16		reserved1;
+	u_int32		llpm_count,		"number of data entries";
+	pointer u_int32		llpm_config = llpm_interface_data, ".configuration data entries.";
+	u_int32		llpm_datasize = 128,	".size of individual data entry";
+	u_int32		reserved3;
+	u_int32		reserved4;
+	u_int32		reserved5;
+}, "low level protocol manager data structure";
+
+repeat llpm_interface_data[cnfg_llpm.llpm_count] {
+	in_addr		("u_int8 ip_address[16]") ip_address, "internet address";
+	u_int32		("") ip_address1, ".reserved";
+	u_int32		("") ip_address2, ".reserved";
+	u_int32		("") ip_address3, ".reserved";
+	in_addr		("u_int8 subnet_mask[16]")	subnet_mask,	"subnet mask";
+	u_int32		("") subnet_mask1, ".reserved";
+	u_int32		("") subnet_mask2, ".reserved";
+	u_int32		("") subnet_mask3, ".reserved";
+	in_addr		("u_int 8 brdcst_address[16]") brdcst_address,	"broadcast address";
+	u_int32		("") brdcst_address1,	".reserved";
+	u_int32		("") brdcst_address2,	".reserved";
+	u_int32		("") brdcst_address3,	".reserved";
+	in_addr		("u_int8 gw_address[16]") gw_address,	"gateway address";
+	u_int32		("") gw_address1,	".reserved";
+	u_int32		("") gw_address2,	".reserved";
+	u_int32		("") gw_address3,	".reserved";
+	et_addr		("u_int8 mac_address[16]") mac_address,	"MAC (ethernet) address";
+	u_int16		("") mac_address1,	".reserved";
+	u_int32		("") mac_address2,	".reserved";
+	u_int32		("") mac_address3,	".reserved";
+	u_int8		hwtype,				"driver type";
+	u_int8		alt_parity,			"alternate serial port parity";
+	u_int8		alt_baudrate,		"alternate serial port baudrate";
+	u_int8		alt_wordsize,		"alternate serial port wordsize";
+	u_int8		alt_stopbits,		"alternate serial port stopbits";
+	u_int8		alt_flow,			"alternate serial port flow control";
+	u_int16		if_flags,			"interface-specific flag(s)";
+	pointer u_int32		if_name = ifname,			".offset to interface name";
+	u_int32		port_address,		"interface port address";
+	u_int32		if_vector,			"interrupt vector";
+	u_int32		if_priority,		"interrupt priority";
+	u_int32		if_level,			"interrupt level";
+	u_int32		alt_timeout,		"alternate serial port timeout";
+	u_int32		use_alt,			"alternate usage flags";
+	u_int16		if_mtu,			    "alternate MTU/MRU";
+	u_int16		reserved1;
+	u_int32		reserved2;
+	u_int32		reserved3;
+} until (1), "low level protocol interface data";
+
+string ifname, "interface name";
+
+struct config_boot {
+	/* configuration entry header */
+	char	("cnfg_id[4]") cnfg_id0 = 'C',	".configuration id field";
+	char  ("") cnfg_id1 = 'N',				".configuration id field";
+	char	("") cnfg_id2 = 'F',			".configuration id field";
+	char	("") cnfg_id3 = 'G',			".configuration id field";
+	char	("cnfg_hw_type[4]") cnfg_hw_type0 = 'B', ".entry type id field";
+	char	("") cnfg_hw_type1 = 'O',		".entry type id field";
+	char	("") cnfg_hw_type2 = 'O',		".entry type id field";
+	char	("") cnfg_hw_type3 = 'T',		".entry type id field";
+	u_int16	cnfg_rev = 2,		".revision field";
+	u_int16 spare1;
+	u_int32	spare2;
+
+	u_int32	boot_count,						"number of boot system entries";
+	pointer u_int32	boot_config = boot_data,	".configuration data entries";
+	u_int32 boot_datasize = 32,				".size of individual data entry";
+	u_int32 boot_cmdsize = 32,				"maximum size of user input string";
+	u_int32	reserved1;
+	u_int32	reserved2;
+	u_int32	reserved3;
+	u_int32	reserved4;
+}, "boot services data structure";
+
+repeat boot_data[config_boot.boot_count]
+{
+	pointer u_int32		boot_abname = s1;
+	pointer u_int32		boot_newab = s2;
+	pointer u_int32		boot_newname = s3;
+	u_int8				boot_automenu,	"auto/menu flag";
+	u_int8				reserved1;
+	u_int16				reserved2;
+	pointer u_int32		boot_params = s4;
+	u_int32				autoboot_delay,	"autoboot delay in microseconds";
+	u_int32				reserved3;
+	u_int32				reserved4;
+} until (1), "boot data";
+
+string s1,	"abbreviated booter name";
+string s2,	"optional replacement abname";
+string s3,	"optional replacement full name";
+string s4,	"optional parameter string";
+
+struct config_ntfysvc
+{
+	/* configuration entry header */
+	char	("cnfg_id[4]") cnfg_id0 = 'C',	".configuration id field";
+	char  ("") cnfg_id1 = 'N',				".configuration id field";
+	char	("") cnfg_id2 = 'F',			".configuration id field";
+	char	("") cnfg_id3 = 'G',			".configuration id field";
+	char	("cnfg_hw_type[4]") cnfg_hw_type0 = 'N', ".entry type id field";
+	char	("") cnfg_hw_type1 = 'T',		".entry type id field";
+	char	("") cnfg_hw_type2 = 'F',		".entry type id field";
+	char	("") cnfg_hw_type3 = 'Y',		".entry type id field";
+	u_int16	cnfg_rev = 1,		".revision field";
+	u_int16 spare1;
+	u_int32	spare2;
+
+	u_int32		max_notifiers,	"maximum number of registered notifiers";
+	u_int32		reserved1;
+	u_int32		reserved2;
+	u_int32		reserved3;
+}, "notification services data structure";
+
+string comm_name,		"communication port name";
+string console_name,	"console port name";
+string debug_name,		"debugger name";
+
+struct config_data {
+#if	defined(CONS_NAME) || defined(c_cons) || defined(c_all)
+	pointer u_int32 consptr = config_console;
+#endif
+
+#if	defined(COMM_NAME) || defined(c_comm) || defined(c_all)
+	pointer u_int32 commptr= config_comm;
+#endif
+
+#if	defined(DEBUG_NAME) || defined(c_debg) || defined(c_all)
+	pointer u_int32 debugptr = config_debugger;
+#endif
+
+#if	defined(LLPM_CNFG_ARRAY) || defined(c_llpm) || defined(c_all)
+	pointer u_int32 llpmptr = cnfg_llpm;
+#endif
+
+#if defined(BOOT_ARRAY) || defined(c_boot) || defined(c_all)
+	pointer u_int32 bootptr = config_boot;
+#endif
+
+#if	defined(NTFY_CNFG_NOTIFIERS) || defined(c_ntfy) || defined(c_all)
+	pointer u_int32 notifyptr = config_ntfysvc;
+#endif
+
+	u_int32 terminator = 0;
+}, "configuration data";
+
+module {
+	mh_com,
+	config_data
+};
+
+#endif

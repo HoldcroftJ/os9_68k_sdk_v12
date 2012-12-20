@@ -1,0 +1,187 @@
+;$Header:   K:/source/cwright/addons/cwhtml/html.mnv   1.8   02 Apr 1999 08:47:06   donk  $
+;
+;   HTML Pop-Up Menu Definition
+;   Contributed by Bill Buxton
+;   Enertech Consultants
+;   8/9/96
+;
+; This section is redefined to allow for the insertion of additional HTML tags
+;quickly and easily.  The following menu definitions establish pop-up menus for
+;a main HTML listing and the associated submenus (which are also pop-ups).  The
+;entries will tag text if selected, else they will be inserted where the cursor
+;is positioned.  This is not true of the paragraph open tag, <P>, which will be
+;placed at the beginning of the current line.
+; The use of separate pop-up menus became necessary when the number of tags
+;began to exceed the size of the screen and could not be wrapped.
+;
+; The current listing supports HTML Standard 3.2 (Wilbur).  Extensions for
+;Netscape 2.0 and Internet Explorer 2.0 may be included in separate menus.
+;
+[HTML]
+>Utilities
+ Quick Search                    ; SearchQuick
+-						         
+ Check in                        ; MenuCommand IDM_TOOLS_VCS_PUT
+ Check out                       ; MenuCommand IDM_TOOLS_VCS_GETLOCK
+-
+ Place column marker             ; WinColumnMark
+-						         
+ EnTab                           ; EnTab    ;~BufQIsReadOnly
+ DeTab                           ; DeTab    ;~BufQIsReadOnly
+-						         
+>Display Mode			         
+ Text                            ; BufSetAscii      ;!MacroEvaluate "((BufQSysFlags() & (BUFFER_COMPACT | BUFFER_HEX_BIN | BUFFER_HEX_ASCII)) == 0)"
+ Hexadecimal                     ; BufSetHexAscii   ;!MacroEvaluate "((BufQSysFlags() & (BUFFER_HEX_BIN | BUFFER_HEX_ASCII)) != 0)"
+ Selective Display               ; BufSetCompact    ;!MacroEvaluate "((BufQSysFlags() & BUFFER_COMPACT) != 0)"
+-						         
+ Search text                     ; CollapseSearchText
+>Braces					         
+ 1                               ; CollapseBrace 1
+ 2                               ; CollapseBrace 2
+ 3                               ; CollapseBrace 3
+ 4                               ; CollapseBrace 4
+ 5                               ; CollapseBrace 5
+ 6                               ; CollapseBrace 6
+ all                             ; CollapseBrace 126
+<
+>Indentation
+ 1                               ; CollapseIndentation 1
+ 2                               ; CollapseIndentation 2
+ 3                               ; CollapseIndentation 3
+ 4                               ; CollapseIndentation 4
+ 5                               ; CollapseIndentation 5
+ 6                               ; CollapseIndentation 6
+ all                             ; CollapseIndentation 126
+<						         
+ Preprocessor                    ; Preprocess
+ Paragraphs                      ; CollapseParagraph
+ Routines                        ; Routines
+<						         
+-						         
+ Add file to project             ; ProjAddFile
+ Remove file from project        ; ProjDelFile
+-						         
+ Browse for uses                 ; CWBrowseSearch
+-						         
+ Properties...                   ; DlgSetSelectBuffer
+<
+>Block Operations
+ Cut                             ; MenuCommand IDM_EDIT_SCRAP_CUT      ;~BufQIsReadOnly
+ Copy                            ; MenuCommand IDM_EDIT_SCRAP_COPY
+ Paste                           ; MenuCommand IDM_EDIT_SCRAP_PASTE    ;~MacroEvaluate "BufQIsReadOnly() || (((SysQFlags() & SYSFLAG_CLIPBOARD) != 0) && !ClipboardQHasText()) || ((SysQFlags() & SYSFLAG_CLIPBOARD) == 0) && !BufQScrapHasText()))"
+ Append                          ; MenuCommand IDM_EDIT_SCRAP_APPEND
+-						         
+ Upper case block                ; Upper              ;~BufQIsReadOnly
+ Lower case block                ; Lower              ;~BufQIsReadOnly
+ Slide in                        ; SlideIn '	'      ;~BufQIsReadOnly  ;; literal tab, not spaces
+ Slide out                       ; SlideOut '	'      ;~BufQIsReadOnly  ;; literal tab, not spaces
+ Prompted slide in               ; SlideInPrompt      ;~BufQIsReadOnly
+ Prompted slide out              ; SlideOutPrompt     ;~BufQIsReadOnly
+-						         
+ Wrap selected lines             ; WrapSelectedLines    ;~BufQIsReadOnly
+<
+-
+ <P>         New Paragraph (left); ExtExpandTemplate "%home<P>"                                                                                                                ;~BufQIsReadOnly
+ <P>         Center Justified    ; ExtExpandTemplate "%xBufClearScrap$%xBufCutToScrap$<P ALIGN=CENTER>%xBufInsertScrap$%xBufClearScrap$"                                       ;~BufQIsReadOnly
+ <P>         Right Justified     ; ExtExpandTemplate "%xBufClearScrap$%xBufCutToScrap$<P ALIGN=RIGHT>%xBufInsertScrap$%xBufClearScrap$"                                        ;~BufQIsReadOnly
+ </P>        End Paragraph       ; ExtExpandTemplate "</P>\n"                                                                                                                  ;~BufQIsReadOnly
+ <BR>        Line Break          ; ExtExpandTemplate "<BR>\n"                                                                                                                  ;~BufQIsReadOnly
+ <HR>        Horizontal Rule     ; ExtExpandTemplate "%home<HR>\n"                                                                                                             ;~BufQIsReadOnly
+ <CENTER>    Center Text         ; ExtExpandTemplate "%xBufClearScrap$%xBufCutToScrap$<CENTER>%xBufInsertScrap$</CENTER>%ml9%xBufClearScrap$"                                  ;~BufQIsReadOnly
+ <COMMENT>   Comment Text        ; ExtExpandTemplate "%xBufClearScrap$%xBufCutToScrap$<!-- %xBufInsertScrap$ -->%ml4%xBufClearScrap$"                                          ;~BufQIsReadOnly
+ <BQ>        Block Quote         ; ExtExpandTemplate "%xBufClearScrap$%xBufCutToScrap$<BLOCKQUOTE>%xBufInsertScrap$</BLOCKQUOTE>%ml13%xBufClearScrap$"                         ;~BufQIsReadOnly
+-
+>Structure
+ <DTD>       Document Type Def   ; ExtExpandTemplate "%home<!DOCTYPE HTML PUBLIC &>"                                                                                           ;~BufQIsReadOnly
+ <HTML>      Defines Document    ; ExtExpandTemplate "%home<HTML>\n\n</HTML>%mu1%home"                                                                                         ;~BufQIsReadOnly
+ <HEAD>      Defines Header      ; ExtExpandTemplate "%home<HEAD>\n\n</HEAD>%mu1%home"                                                                                         ;~BufQIsReadOnly
+ <TITLE>     Document Title      ; ExtExpandTemplate "%xBufClearScrap$%xBufCutToScrap$<TITLE>%xBufInsertScrap$</TITLE>%ml8%xBufClearScrap$"                                    ;~BufQIsReadOnly
+ <BODY>      Defines Body        ; ExtExpandTemplate "%home<BODY>\n\n</BODY>%mu1%home"                                                                                         ;~BufQIsReadOnly
+ <META>      Document Info       ; ExtExpandTemplate "%xBufClearScrap$%xBufCutToScrap$<META>%xBufInsertScrap$</META>%ml7%xBufClearScrap$"                                      ;~BufQIsReadOnly
+ <ADDRESS>   Address             ; ExtExpandTemplate "%xBufClearScrap$%xBufCutToScrap$<ADDRESS>%xBufInsertScrap$</ADDRESS>%ml10%xBufClearScrap$"                               ;~BufQIsReadOnly
+ <DIV>       Divisions           ; ExtExpandTemplate "%xBufClearScrap$%xBufCutToScrap$<DIV ALIGN=&>%xBufInsertScrap$</DIV>%ml6%xBufClearScrap$"                                ;~BufQIsReadOnly
+<
+>Headings
+ <H1>        Header #1           ; ExtExpandTemplate "%xBufClearScrap$%xBufCutToScrap$<H1>%xBufInsertScrap$</H1>%ml5%xBufClearScrap$"                                          ;~BufQIsReadOnly
+ <H2>        Header #2           ; ExtExpandTemplate "%xBufClearScrap$%xBufCutToScrap$<H2>%xBufInsertScrap$</H2>%ml5%xBufClearScrap$"                                          ;~BufQIsReadOnly
+ <H3>        Header #3           ; ExtExpandTemplate "%xBufClearScrap$%xBufCutToScrap$<H3>%xBufInsertScrap$</H3>%ml5%xBufClearScrap$"                                          ;~BufQIsReadOnly
+ <H4>        Header #4           ; ExtExpandTemplate "%xBufClearScrap$%xBufCutToScrap$<H4>%xBufInsertScrap$</H4>%ml5%xBufClearScrap$"                                          ;~BufQIsReadOnly
+ <H5>        Header #5           ; ExtExpandTemplate "%xBufClearScrap$%xBufCutToScrap$<H5>%xBufInsertScrap$</H5>%ml5%xBufClearScrap$"                                          ;~BufQIsReadOnly
+ <H6>        Header #6           ; ExtExpandTemplate "%xBufClearScrap$%xBufCutToScrap$<H6>%xBufInsertScrap$</H6>%ml5%xBufClearScrap$"                                          ;~BufQIsReadOnly
+<
+>Character
+ <CITE>      Citation            ; ExtExpandTemplate "%xBufClearScrap$%xBufCutToScrap$<CITE>%xBufInsertScrap$</CITE>%ml7%xBufClearScrap$"                                      ;~BufQIsReadOnly
+ <CODE>      Extracts            ; ExtExpandTemplate "%xBufClearScrap$%xBufCutToScrap$<CODE>%xBufInsertScrap$</CODE>%ml7%xBufClearScrap$"                                      ;~BufQIsReadOnly
+ <DFN>       Defining Instance   ; ExtExpandTemplate "%xBufClearScrap$%xBufCutToScrap$<DFN>%xBufInsertScrap$</DFN>%ml6%xBufClearScrap$"                                        ;~BufQIsReadOnly
+ <EM>        Emphasis            ; ExtExpandTemplate "%xBufClearScrap$%xBufCutToScrap$<EM>%xBufInsertScrap$</EM>%ml5%xBufClearScrap$"                                          ;~BufQIsReadOnly
+ <KBD>       Keystroke           ; ExtExpandTemplate "%xBufClearScrap$%xBufCutToScrap$<KBD>%xBufInsertScrap$</KBD>%ml6%xBufClearScrap$"                                        ;~BufQIsReadOnly
+ <PRE>       Preformatted Text   ; ExtExpandTemplate "%xBufClearScrap$%xBufCutToScrap$<PRE>%xBufInsertScrap$</PRE>%ml6%xBufClearScrap$"                                        ;~BufQIsReadOnly
+ <SAMP>      Example Text        ; ExtExpandTemplate "%xBufClearScrap$%xBufCutToScrap$<SAMP>%xBufInsertScrap$</SAMP>%ml7%xBufClearScrap$"                                      ;~BufQIsReadOnly
+ <STRONG>    Strong Emphasis     ; ExtExpandTemplate "%xBufClearScrap$%xBufCutToScrap$<STRONG>%xBufInsertScrap$</STRONG>%ml9%xBufClearScrap$"                                  ;~BufQIsReadOnly
+ <VAR>       Variables           ; ExtExpandTemplate "%xBufClearScrap$%xBufCutToScrap$<VAR>%xBufInsertScrap$</VAR>%ml6%xBufClearScrap$"                                        ;~BufQIsReadOnly
+<
+>Style
+ <B>         Bold                ; ExtExpandTemplate "%xBufClearScrap$%xBufCutToScrap$<B>%xBufInsertScrap$</B>%ml4%xBufClearScrap$"                                            ;~BufQIsReadOnly
+ <I>         Italic              ; ExtExpandTemplate "%xBufClearScrap$%xBufCutToScrap$<I>%xBufInsertScrap$</I>%ml4%xBufClearScrap$"                                            ;~BufQIsReadOnly
+ <U>         Underline           ; ExtExpandTemplate "%xBufClearScrap$%xBufCutToScrap$<U>%xBufInsertScrap$</U>%ml4%xBufClearScrap$"                                            ;~BufQIsReadOnly
+ <TT>        Teletype            ; ExtExpandTemplate "%xBufClearScrap$%xBufCutToScrap$<TT>%xBufInsertScrap$</TT>%ml5%xBufClearScrap$"                                          ;~BufQIsReadOnly
+ <STRIKE>    Strike-through      ; ExtExpandTemplate "%xBufClearScrap$%xBufCutToScrap$<STRIKE>%xBufInsertScrap$</STRIKE>%ml9%xBufClearScrap$"                                  ;~BufQIsReadOnly
+ <BIG>       Large Font          ; ExtExpandTemplate "%xBufClearScrap$%xBufCutToScrap$<BIG>%xBufInsertScrap$</BIG>%ml6%xBufClearScrap$"                                        ;~BufQIsReadOnly
+ <SMALL>     Small Font          ; ExtExpandTemplate "%xBufClearScrap$%xBufCutToScrap$<SMALL>%xBufInsertScrap$</SMALL>%ml8%xBufClearScrap$"                                    ;~BufQIsReadOnly
+ <SUB>       Subscript           ; ExtExpandTemplate "%xBufClearScrap$%xBufCutToScrap$<SUB>%xBufInsertScrap$</SUB>%ml6%xBufClearScrap$"                                        ;~BufQIsReadOnly
+ <SUP>       Supperscript        ; ExtExpandTemplate "%xBufClearScrap$%xBufCutToScrap$<SUP>%xBufInsertScrap$</SUP>%ml6%xBufClearScrap$"                                        ;~BufQIsReadOnly
+<
+>Special
+ <FONT>      Font                ; ExtExpandTemplate "%xBufClearScrap$%xBufCutToScrap$<FONT SIZE=& COLOR=>%xBufInsertScrap$</FONT>%ml7%xBufClearScrap$"                        ;~BufQIsReadOnly
+ <A NAME>    Anchor              ; ExtExpandTemplate "%xBufClearScrap$%xBufCutToScrap$<A NAME=&>%xBufInsertScrap$</A>%ml4%xBufClearScrap$"                                     ;~BufQIsReadOnly
+ <A HREF>    Text Link           ; ExtExpandTemplate "%xBufClearScrap$%xBufCutToScrap$<A HREF=&>%xBufInsertScrap$</A>%ml4%xBufClearScrap$"                                     ;~BufQIsReadOnly
+ <IMG SRC>   Image Link          ; ExtExpandTemplate "<IMG SRC=& ALT= ALIGN=>"                                                                                                 ;~BufQIsReadOnly
+ 
+ ;<MAP>       Image Map          ; ExtExpandTemplate "<MAP></MAP>%ml6"
+-
+ <APPLET>    Applet              ; ExtExpandTemplate "<APPLET CODE=& CODEBASE= WIDTH= HEIGHT= ALIGN=>"                                                                         ;~BufQIsReadOnly
+ <PARAM>     Paramater           ; ExtExpandTemplate "<PARAM NAME=& VALUE=>"                                                                                                   ;~BufQIsReadOnly
+<
+>Lists
+ <LI>        List Item           ; ExtExpandTemplate "%home<LI>"                                                                                                               ;~BufQIsReadOnly
+ <UL>        Unordered List      ; ExtExpandTemplate "%xBufClearScrap$%xBufCutToScrap$<UL>%xBufInsertScrap$</UL>%ml5%xBufClearScrap$"                                          ;~BufQIsReadOnly
+ <OL>        Ordered List        ; ExtExpandTemplate "%xBufClearScrap$%xBufCutToScrap$<OL>%xBufInsertScrap$</OL>%ml5%xBufClearScrap$"                                          ;~BufQIsReadOnly
+ <DL>        Definition List     ; ExtExpandTemplate "%xBufClearScrap$%xBufCutToScrap$<DL>%xBufInsertScrap$</DL>%ml5%xBufClearScrap$"                                          ;~BufQIsReadOnly
+ <DT>        Definition Term     ; ExtExpandTemplate "%home<DT>"                                                                                                               ;~BufQIsReadOnly
+ <DD>        Definition Data     ; ExtExpandTemplate "<DD>"                                                                                                                    ;~BufQIsReadOnly
+<
+>Tables
+ <TD>        Table Data          ; ExtExpandTemplate "%xBufClearScrap$%xBufCutToScrap$<TD>%xBufInsertScrap$</TD>%ml5%xBufClearScrap$"                                          ;~BufQIsReadOnly
+ <TH>        Table Header        ; ExtExpandTemplate "%xBufClearScrap$%xBufCutToScrap$<TH>%xBufInsertScrap$</TH>%ml5%xBufClearScrap$"                                          ;~BufQIsReadOnly
+ <TR>        Table Row           ; ExtExpandTemplate "<TR>\n\n</TR>%mu1%home"                                                                                                  ;~BufQIsReadOnly
+ <TABLE>     Table               ; ExtExpandTemplate "<TABLE BORDER=&>\n\n</TABLE>%mu1%home"                                                                                   ;~BufQIsReadOnly
+<
+>Forms
+ <FORM>      Form                ; ExtExpandTemplate "<FORM METHOD=& ACTION=>\n\n</FORM>%mu1%home"                                                                             ;~BufQIsReadOnly
+-
+ <INPUT>     Undefined Input     ; ExtExpandTemplate "<INPUT TYPE=& NAME= VALUE=>"                                                                                             ;~BufQIsReadOnly
+ <INPUT>     Checkbox            ; ExtExpandTemplate "<INPUT TYPE=CHECKBOX NAME=& VALUE=>"                                                                                     ;~BufQIsReadOnly
+ <INPUT>     Checkbox (checked)  ; ExtExpandTemplate "<INPUT TYPE=CHECKBOX NAME=& VALUE= CHECKED>"                                                                             ;~BufQIsReadOnly
+ <INPUT>     Hidden              ; ExtExpandTemplate "<INPUT TYPE=HIDDEN NAME=& VALUE=>"                                                                                       ;~BufQIsReadOnly
+ <INPUT>     Image               ; ExtExpandTemplate "<INPUT TYPE=IMAGE SRC=& ALIGN=>"                                                                                         ;~BufQIsReadOnly
+ <INPUT>     Radio               ; ExtExpandTemplate "<INPUT TYPE=RADIO NAME=& VALUE=>"                                                                                        ;~BufQIsReadOnly
+ <INPUT>     Radio (checked)     ; ExtExpandTemplate "<INPUT TYPE=RADIO NAME=& VALUE= CHECKED>"                                                                                ;~BufQIsReadOnly
+ <INPUT>     Reset               ; ExtExpandTemplate "<INPUT TYPE=RESET VALUE=&>"                                                                                              ;~BufQIsReadOnly
+ <INPUT>     Submit              ; ExtExpandTemplate "<INPUT TYPE=SUBMIT VALUE=&>"                                                                                             ;~BufQIsReadOnly
+ <INPUT>     Text                ; ExtExpandTemplate "<INPUT TYPE=TEXT NAME=& SIZE= MAXLENGTH=>"                                                                               ;~BufQIsReadOnly
+-
+ <TEXTAREA>  Textarea            ; ExtExpandTemplate "<TEXTAREA NAME=& ROWS= COLS=></TEXTAREA>"                                                                                ;~BufQIsReadOnly
+ <SELECT>    Select              ; ExtExpandTemplate "<SELECT NAME=&>\n\n</SELECT>%mu1%home"                                                                                   ;~BufQIsReadOnly
+ <SELECT>    Select (size)       ; ExtExpandTemplate "<SELECT NAME=& SIZE=>\n\n</SELECT>%mu1%home"                                                                             ;~BufQIsReadOnly
+ <SELECT>    Multiple Select     ; ExtExpandTemplate "<SELECT NAME=& MULTIPLE>\n\n</SELECT>%mu1%home"                                                                          ;~BufQIsReadOnly
+ <OPTION>    Option              ; ExtExpandTemplate "<INPUT TYPE=HIDDEN NAME=& VALUE=>"                                                                                       ;~BufQIsReadOnly
+ <OPTION>    Option (selected)   ; ExtExpandTemplate "<INPUT TYPE=HIDDEN NAME=& VALUE= SELECTED>"                                                                              ;~BufQIsReadOnly
+<
+;>Netscape                       ; ExtExpandTemplate "%xDlgMenuPopup [HTMLNetscape]$"
+;>Internet Explorer              ; ExtExpandTemplate "%xDlgMenuPopup [HTMLInternetExplorer]$"
+-
+New Document                     ; ExtExpandTemplate %fhtml.tpl$                                                                                                                            ;~BufQIsReadOnly
+-
+Edit this menu...                ; DlgEditPopupMenu $
+
+

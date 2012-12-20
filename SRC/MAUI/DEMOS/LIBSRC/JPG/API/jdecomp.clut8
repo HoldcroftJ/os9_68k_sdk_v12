@@ -1,0 +1,143 @@
+/*******************************************************************************
+* FUNCTION : jpg_decompress()
+*
+* DESCRIPTION :
+*
+*	Decompinate use of the draw functions.
+*
+* COPYRIGHT:
+*
+*	This source code is the proprietary confidential property of Microware
+*	Systems Corporation, and is provided to licensee solely for documentation
+*	and educational purposes. Reproduction, publication, or distribution in
+*	form to any party other than the licensee is strictly prohibited.
+*
+* SCCS VERSION: @(#)jdecomp.c	1.0 01/16/96
+*
+* EDITION  DATE      WHO  DETAIL
+*       1  01/16/96  YAP  First version
+*/
+#include <jpgcom.h>
+
+static error_code _jpg_decompress_colormap(JPG_CONTEXT * context, GFX_DIMEN x, GFX_DIMEN y,
+										   int * scan_num, GFX_DIMEN max_width, GFX_DIMEN max_height, 
+										   BOOLEAN * has_multi_scans);
+
+static error_code _jpg_decompress_natural(JPG_CONTEXT * context, GFX_DIMEN x, GFX_DIMEN y,
+										   int * scan_num, GFX_DIMEN max_width, GFX_DIMEN max_height, 
+										   BOOLEAN * has_multi_scans);
+
+
+
+
+
+#define READ_LOOP 	while (context->cinfo.output_scanline < context->cinfo.output_height) \
+				    {\
+                       num_scanlines=jpeg_read_scanlines(&context->cinfo,\
+					     (JSAMPARRAY)&out_ptr,\
+					     context->cinfo.rec_outbuf_height); \
+					   out_ptr += num_scanlines*line_size; \
+     				 }
+
+
+#define SCAN_LOOP(sss)	jpeg_start_output(&context->cinfo, sss);\
+					 READ_LOOP;\
+				jpeg_finish_output(&context->cinfo);
+
+
+error_code jpg_decompress(JPG_CONTEXT * context, GFX_DIMEN x, GFX_DIMEN y,
+						  int * scan_num, 
+						  GFX_DIMEN max_width, GFX_DIMEN max_height, 
+						  BOOLEAN * has_multi_scans)
+{
+	
+	u_char * out_ptr;
+	GFX_PALETTE * plt = context->dstdmap->palette;
+	u_int32 line_size = context->dstdmap->line_size;
+	error_code ec;
+	JDIMENSION num_scanlines;
+	int count=0;
+	BOOLEAN no_input;
+	GFX_DMAP * dmap =context->dstdmap;
+	
+
+	/* Make sure jpg_init() has been called */
+	if (_jpg_initcnt == 0) {
+		return _jpg_error(MAUI_ERR_NON_FATAL, EOS_MAUI_NOINIT, JPG_DECOMPRESS);
+	}
+	if(plt == NULL)
+		return _jpg_error(MAUI_ERR_NON_FATAL, EOS_MAUI_BADPTR, JPG_DECOMPRESS);
+	
+
+	/*This must work for CLUT8, where a pixel is equal to 1 byte */
+	
+	out_ptr = (u_char*)dmap->pixmem;
+	out_ptr +=(x + (y * dmap->line_size));
+
+	context->cinfo.quantize_colors=TRUE;
+	jpeg_start_decompress(&context->cinfo);
+	
+	*has_multi_scans=jpeg_has_multiple_scans(&context->cinfo);
+
+/***************** CLUT part *******************/
+	if(context->cinfo.out_color_space == JCS_GRAYSCALE)
+		for (count = 0; count <context->cinfo.actual_number_of_colors; count++)
+			plt->colors.rgb[count] = (context->cinfo.colormap[0][count]<<16) | 
+				(context->cinfo.colormap[0][count]<<8) | 
+					(context->cinfo.colormap[0][count]);
+	else
+		for (count = 0; count <context->cinfo.actual_number_of_colors; count++)
+			plt->colors.rgb[count] = (context->cinfo.colormap[0][count]<<16) | 
+				(context->cinfo.colormap[1][count]<<8) | 
+					(context->cinfo.colormap[2][count]);
+/***************************************************************/
+
+
+	/* Clipping part */
+	if(dmap->width <= x)
+		return SUCCESS;
+	if (context->cinfo.output_width + x > dmap->width)
+		context->cinfo.output_width=dmap->width - x;
+	
+	if(dmap->height <= y)
+		return SUCCESS;
+	if (context->cinfo.output_height + y > dmap->height)
+		context->cinfo.output_height=dmap->height -y;    
+/************************/
+
+	if(max_width != 0)
+		if (context->cinfo.output_width > max_width)
+			context->cinfo.output_width=max_width;
+
+	if(max_height != 0)
+		if (context->cinfo.output_height > max_height)
+			context->cinfo.output_height=max_height;
+
+	if(*has_multi_scans && context->cinfo.buffered_image)
+	{
+		if(*scan_num==0)
+		{
+			while(!jpeg_input_complete(&context->cinfo))
+			{
+				SCAN_LOOP(context->cinfo.input_scan_number);
+			}
+			*scan_num=context->cinfo.input_scan_number;
+		}
+		else
+		{
+				SCAN_LOOP(*scan_num);
+		}
+	}
+	else
+	{
+		READ_LOOP; 
+	}
+	jpeg_finish_decompress(&context->cinfo);
+	
+	return SUCCESS;
+}
+
+
+
+
+

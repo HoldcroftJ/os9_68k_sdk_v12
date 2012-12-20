@@ -1,0 +1,1683 @@
+ nam SC68681
+ ttl Interrupt-Driven Acia driver
+
+* Copyright 1983, 1984, 1985, 1986, 1987, 1988, 1989, 1990, 1991,
+* 1992, 1993, 1995 by Microware Systems Corporation
+* Reproduced Under License
+
+* This source code is the proprietary confidential property of
+* Microware Systems Corporation, and is provided to licensee
+* solely for documentation and educational purposes. Reproduction,
+* publication, or distribution in any form to any party other than
+* the licensee is strictly prohibited.
+
+***************
+* Edition History
+
+* #   date      Comments                                        by
+* -- -------- ------------------------------------------------- ---
+* 00 83/04/26 Converted from 6809 OS-9 to 68000                 RES
+* 00 83/10/31 Debugged and updated.                             rfd
+* 01 84/02/16 Converted for linkage use.                        res
+* 02 84/04/18 Changed polling scheme                            res
+* 02 84/08/25 Changed to VME7100 Serial port                    jlr
+* 03 85/05/31 changed register usage in SS_SSig                 res
+* 03 85/09/06 added code for diff. sysglobals (DevCon)          woe
+* 03 85/09/09 updated for Version 1.2                           woe
+* 04 86/09/15 fixed XON-XOFF recognition, DCDxx setup bug       wwb
+* 04 86/09/16 added initialization of acr from OEM_Globals      sms/wwb
+*              ---- OS-9/68K V2.0 Release ---- 
+* 05 87/06/18 made supervisor state module, added exception     wwb
+*             handler entry point
+*              ---- OS-9/68K V2.1 Release ---- 
+* 06 87/08/20 made send signal routines save/check path #,      wwb
+*             made status routines use passed A5.
+* 07 87/09/15 reworked to correct errors in baud setup, added   wwb
+*             support for SS_Open, SS_Opt.  General cleanups.
+* 08 87/09/18 fixed X-OFF control flow problem, fixed send-     wwb
+*             signal on data ready, fixed minor problems
+*             from ed.7.  Implemented SS_Break.
+* 09 87/11/21 Made SS_Break sleep for specified time.           wwb
+* 10 87/11/24 Made GetStat(SS_Opt) update Baud, Parity.         wwb
+*             Added support for h/w handshaking.                wwb
+* 11 87/12/23 Put DCD signalling code into DCDSIG conditional.  wwb
+*             Added description of asm "define" options.
+*              ---- OS-9/68K V2.2 Release ---- 
+* 12 88/03/16 added test for global pointer valid in TrmNat.    wwb
+*             (needed if DevCon not set)
+* 13 88/03/17 added conditionals to allow over-ride of default  wwb
+*             buffer sizes.
+* 14 88/03/21 added assertion of OP0-4 for PACER.               wwb
+* 15 88/06/20 made most labels global (for ".stb") - NOTE that  wwb
+*             no actual code changes made.
+* 16 89/04/27 changed conditional register setup to include 135 Rwb
+*              ---- OS-9/68K V2.3 Release ---- 
+* 17 89/05/31 fixed conditional problem (ed16).  Updated base   wwb
+*             address formation to use ABbit definition.
+* 18 89/08/02 Added conditionals for the VME141 card            Rwb
+* 19 89/08/15 In case of VME141, OPCR register is untouched     Rwb
+* 20 90/01/15 Added conditionals for VME165                     Rwb
+* 21 90/03/05 Changed wakeup to check for deadly signals ala the
+*                2.4 definitions                                Rwb
+*              ---- OS-9/68K V2.4 Release ---- 
+* 22 90/08/13 Added macros for access method of 165.            wwb
+* 23 90/10/15 Added conditionals for 360 Systems 68020          mjm
+* 24 91/01/06 Moved some macros to MACROS/longio.m              Rwb
+* 25 91/01/08 Made changes for the Vigra MMI100 card (RAVE)     Rwb
+* 26 91/01/14 Added chages for the BCC340 port                  Rwb
+*             ---- OS-9 V2.4 Port Pak Release #2 ----
+* 27 91/02/07 Fixed to compute board base address correctly		TJE
+*             when using the B port.
+*              ---- OS-9/68K V2.4.3 Release ---- 
+*              >>>>>>>>>>  sc68681.a  Rev 1.3
+* 28 92/02/05 Added code to reset Break IRQ, which occures by	alb
+*			  some new MVME335 boards (for VME335 only)
+*             <<<<<<<<<<  sc68681.a  Rev 1.2.1.0
+*127 91/08/30 Added KANJI condition								zoo
+*              ---- OS-9/68K V2.4J Release ---- 
+*             ==========
+* 29 92/02/24 Merged ed127 into mainstream.						wwb
+*             Removed old edition comments.						wwb
+* 30 92/02/24 Removed VME335 conditionals: break is a function	wwb
+*             of the chip, not the implementation.
+* 31 92/03/10 fixed pathlist problems with locating MACROS dir.	wwb
+* 32 92/12/01 removed ERRATA040 conditionals: code must be kept	wwb
+*             if we are to support old masks forever.
+* 33 93/02/10 reworked IRQMask code (for MSP support).			wwb
+* 34 93/03/16 reworked to keep stack long-aligned.				wwb
+* 35 93/06/07 added CPUType==68349 (same as 68340).				wwb
+* 36 93/07/01 reworked use pathlists for MWOS structure.		wwb
+*              ---- OS-9/68k V3.0 released ----
+* 37 95/03/27 added CPUType==68341 (same as 68340).				rws
+* 38 95/03/29 added support for external clock (x16).			wwb
+* 39 95/10/12 added support for 38K baud for 68340/1/9.			wwb
+*              ---- OS-9/68K V3.0.2 Release ----
+* 40 99/06/29 Adding 38k baud for all.       					rkw
+*              ---- OS-9/68K V3.1 Release ----
+*
+Edition equ 40 current Edition number
+
+Typ_Lang set (Drivr<<8)+Objct
+Attr_Rev set ((ReEnt+SupStat)<<8)+0
+
+ psect MzrMpsc,Typ_Lang,Attr_Rev,Edition,0,MpscEnt
+
+ use defsfile
+
+ pag
+********************
+* Hardware definitions (sorry)
+*
+ ifndef PACERMOS
+PACERMOS equ 20790
+ endc
+
+ ifndef VME140
+VME140 equ 140 default value for VME140
+ endc
+
+ ifndef VME135
+VME135 equ 135 default value for VME135
+ endc
+
+ ifndef VME141
+VME141 equ 141
+ endc
+
+ ifndef VME165
+VME165 equ 165
+ endc
+
+ ifndef SYS360
+SYS360 equ $360
+ endc
+
+ ifndef MC68340
+MC68340 set 68340
+ endc
+
+ ifndef MC68341
+MC68341 set 68341
+ endc
+
+ ifndef MC68349
+MC68349 set 68349
+ endc
+
+********************
+* Definable Options:
+*
+* These options control various features of the driver.  They should
+* be invoked via "ifdef" conditionals.  The best way to invoke them
+* is to define the conditional on the command line of the assembler
+* using the "-a" option e.g. -a=HWSHAKE.  The currently supported
+* options for the driver are:
+*
+* HWSHAKE:  Automatic hardware handshake support.
+* This conditional defines whether the automatic hardware handshake
+* capabilities of the 68681 will be utilized.
+*
+* DCDSIG:  DCD Transition support.
+* This conditional defines whether the driver will support sending of
+* a signal to a process when a DCD transition occurs.  NOTE that only the
+* code required in SetStat is invoked by this conditional, HOWEVER there
+* still needs to be written a hardware specific routine in the IRQ
+* service parts to written so that the signal will be sent.
+*
+* IPBUF/OPBUF:  set input/output buffer sizes.
+* These conditionals allow overriding of the default buffer sizes by
+* giving the size on the assembler command line.
+*
+
+
+********************
+* Macro Definitions
+*
+ use <os9svc.m>
+ use <longio.m>
+
+ pag
+********************
+* CHECK    macro.
+*   
+* This macros are needed so that we can define the access method
+* of the device.  For normal devices, simple ".b" instructions
+* are all that is required.  For the MVME165, each register of the
+* 68681 is accessed as the LOW BYTE of a LONG-WORD.  Thus, the
+* following types of cases need to be considered:
+*
+*         NOTE: <direction> = "to" device or "from" device.
+*
+*  1.  Check I/O register status, to see whether the Rx/Tx Ready
+*      flags are true.  As btst is a .b sized operation for <ea>
+*      of memory, we need to use an intermediate register to
+*      perform the test.
+*
+*         Syntax:  CHECK <bit #>,<ea>
+*
+CHECK macro
+ ifne \#-2
+ fail 68681: CHECK macro requires two arguments
+ endc
+ ifeq (CPUType-VME165)
+ move.l d0,-(a7) save register
+ move.l \2,d0 access I/O register
+ btst.l \1,d0 test the required bit
+ movem.l (a7)+,d0 restore register, KEEP CCR
+ nop required in case next is movem (old mask issue: 68040)
+ else
+ btst.b \1,\2 normal case, bit-test memory ea.
+ endc VME165
+ endm
+
+ pag
+********************
+* Definitions
+*
+No_IRQ set 1 (non-zero enables IRQ code)
+Signbit set 7
+
+ ifdef IPBUF
+ ifeq IPBUF-1
+ fail must specify a value for IPBUF
+ endc
+InpSiz set IPBUF set user defined buffer size
+ else
+InpSiz set 80 input buffer size
+ endc IPBUF
+ ifdef OPBUF
+ ifeq OPBUF-1
+ fail must specify a value for OPBUF
+ endc
+OutSiz set OPBUF set user defined buffer size
+ else
+OutSiz set 140 output buffer size
+ endc OPBUF
+MinBuff equ 10 Send XON when buffer contains this few
+MaxBuff equ InpSiz-MinBuff Send XOFF when buffer contains this many
+
+ ifdef VIGRA
+NameSize set 32  Name of module to use for interrupt masks
+ endc
+
+ ifdef VIGRA
+ABbit equ 5  Bit #5 of port address tells the side on Vigra Card 
+ else
+ ifeq (CPUType-VME165)
+ABbit equ 5  bit #5 of port address tells the "side" on vme135/140/141 cpu's
+ else
+ ifeq (CPUType-VME140)*(CPUType-VME135)*(CPUType-VME141)*(CPUType-SYS360)*(CPUType-MC68340)*(CPUType-MC68341)*(CPUType-MC68349)
+ABbit equ 3 bit #3 of port address tells the "side" on vme135/140/141 cpu's
+ else
+ABbit equ 4 bit #4 of port address tells the "side" of normal case
+ endc VME141 eta-al
+ endc VME165
+ endc VIGRA
+
+BrkTime equ $80000000+128 break sent for 500mSec.
+
+ ifdef HWSHAKE
+RxDefault equ RxRTS RxRTS control enabled
+TxDefault equ TxCTS TxCTS control enabled
+ else
+RxDefault equ 0 no RxRTS control
+TxDefault equ 0 no TxCTS control
+ endc HWSHAKE
+
+UseExternal equ $ff use external clock source (x16)
+
+ pag
+********************
+* Register offset definitions.
+*
+ ifdef VIGRA
+* these offsets are "side" offsets from "device side" address
+
+MPSMode equ $00 68681 mode register
+MPSBdSt equ $04 68681 baudrate/status register
+MPSCntl equ $08 68681 Control register
+MPSData equ $0c 68681 Data register
+
+* these offsets are "base" offsets from device "base" address
+
+MPSAcr equ $10 68681 ACR register
+MPSImr equ $14 68681 Interrupt mask/status register
+* MPSVec equ $30 68681 Interrupt vector register - not used on Vigra
+MPSOPCR equ $34 68681 Output port configuration register
+MPSOPSet equ $38 68681 Output port SET register
+MPSOPClr equ $3c 68681 Output port CLEAR register
+ else
+ ifeq (CPUType-VME165)
+* This CPU uses odd addresses, sequential access at low byte of long words.
+
+MPSMode equ $00 68681 mode register
+MPSBdSt equ $04 68681 baudrate/status register
+MPSCntl equ $08 68681 Control register
+MPSData equ $0C 68681 Data register
+
+* these offsets are "base" offsets from device "base" address
+
+MPSAcr equ $10 68681 ACR register
+MPSImr equ $14 68681 Interrupt mask/status register
+MPSVec equ $30 68681 Interrupt vector register
+MPSOPCR equ $34 68681 Output port configuration register
+MPSOPSet equ $38 68681 Output port SET register
+MPSOPClr equ $3C 68681 Output port CLEAR register
+ else ( is a more generic case )
+
+ ifeq (CPUType-VME140)*(CPUType-VME135)*(CPUType-VME141)*(CPUType-SYS360)*(CPUType-MC68340)*(CPUType-MC68341)*(CPUType-MC68349)
+
+* these offsets are "side" offsets from "device side" address
+
+MPSMode equ $00 68681 mode register
+MPSBdSt equ $01 68681 baudrate/status register
+MPSCntl equ $02 68681 Control register
+MPSData equ $03 68681 Data register
+
+* these offsets are "base" offsets from device "base" address
+
+MPSAcr equ $04 68681 ACR register
+MPSImr equ $05 68681 Interrupt mask/status register
+MPSVec equ $0c 68681 Interrupt vector register
+MPSOPCR equ $0d 68681 Output port configuration register
+MPSOPSet equ $0e 68681 Output port SET register
+MPSOPClr equ $0f 68681 Output port CLEAR register
+
+ ifeq (CPUType-MC68340)*(CPUType-MC68341)*(CPUType-MC68349)
+* The MC68340/68341/68349 chip has a separate mode register 2.  This leads to some
+*  interesting coding changes.  
+* Note:  These are defined as offsets from the half of the device
+*        in use.
+MR2A    equ  $10   mode register 2 for the A side of the chip.
+MR2B    equ  $09   mode register 2 for the A side of the chip.
+ endc 68340/68341/68349 -- special mode registers
+
+ else (is generic arrangement )
+* these offsets are "side" offsets from "device side" address
+
+MPSMode equ $00 68681 mode register
+MPSBdSt equ $02 68681 baudrate/status register
+MPSCntl equ $04 68681 Control register
+MPSData equ $06 68681 Data register
+
+* these offsets are "base" offsets from device "base" address
+
+MPSAcr equ $08 68681 ACR register
+MPSImr equ $0a 68681 Interrupt mask/status register
+MPSVec equ $18 68681 Interrupt vector register
+MPSOPCR equ $1a 68681 Output port configuration register
+MPSOPSet equ $1c 68681 Output port SET register
+MPSOPClr equ $1e 68681 Output port CLEAR register
+ endc VME141 eta al
+ endc VME165
+ endc VIGRA
+
+* MPSMode Registers
+
+RxRTS equ %10000000 MR1 - rx rts flow control enable
+TxRTS equ %00100000 MR2 - tx rts flow control enable
+TxCTS equ %00010000 MR2 - tx cts flow control enable
+
+* MPSAcr Register
+
+DeltaMask equ %00001111 delta IPx change mask
+CTMask equ %01110000 counter/timer source bits
+Set2 equ %10000000 select baud set #2
+Set1 equ %00000000 select baud set #1
+ACRDeflt equ Set2 default acr mode (w/o timer values)
+
+* MPSBdSt Register
+
+TxE_Bit equ 2 transmit RDY bit
+RxA_Bit equ 0 receive char avail bit
+IPOverrun equ %00010000 input over-run status bit
+InputErr equ $70 input error mask
+
+* MPSCntl Register
+
+RxEnabl equ $1 enable receiver
+RxDisabl equ $2 disable receiver
+TxEnabl equ $4 enable xmit
+TxDisabl equ $8 disable xmit
+RxReset equ $20 reset receiver
+TxReset equ $30 reset transmitter
+ErrorRst equ $40 error reset
+BreakRst equ $50 break condition reset
+StartBrk equ $60 start break
+StopBrk equ $70 stop break
+
+* MPSImr register
+
+RxIRQEnA equ $2 enable channel A receiver interrupt
+TxIRQEnA equ $1 enable channel A transmitter interrupt
+RxIRQEnB equ $20 enable channel B receiver interrupt
+TxIRQEnB equ $10 enable channel B receiver interrupt
+IRQP_BitA equ $03 xmit & rec channel A interrupt mask
+IRQP_BitB equ $30 xmit & rec channel B interrupt mask
+IRQ_RecA equ 1 Channel A rec bit no
+IRQ_RecB equ 5 Channel B rec bit no
+
+IRQ_BrkA equ 2 channel A break change
+IRQ_BrkB equ 6 channel B break change
+
+* MPSOPCR register
+
+OPCRmode equ %00000000 default o/p port control register mode
+
+OP0 equ 1<<0 OP0 set/reset pattern
+OP1 equ 1<<1 OP1
+OP2 equ 1<<2 OP2
+OP3 equ 1<<3 OP3
+OP4 equ 1<<4 OP4
+OP5 equ 1<<5 OP5
+OP6 equ 1<<6 OP6
+OP7 equ 1<<7 OP7
+
+ ifeq CPUType-PACERMOS
+Aside_hw equ OP0+OP2 a-side h/w handshake
+Bside_hw equ OP1+OP3 b-side h/w handshake
+ endc PACERMOS
+
+ pag
+**********
+* Static storage offsets
+*
+ vsect
+InFill ds.l 1 input buffer next-in ptr
+InEmpty ds.l 1 input buffer next-out ptr
+InEnd ds.l 1 end of input buffer
+OutFill ds.l 1 output buffer next-in ptr
+OutEmpty ds.l 1 output buffer next-out ptr
+OutEnd ds.l 1 output buffer end of buffer pointer
+BaseAddr ds.l 1 base address of port
+ ifdef VIGRA
+DatModAddr: ds.l 1 data module address
+DatModDat: ds.l 1 data module data pointer
+ endc
+
+InCount ds.w 1 # of chars in input buffer
+OutCount ds.w 1 # of chars in output buffer
+IRQMask ds.w 1 Interrupt mask word
+Globl ds.w 1 offset to global masks
+SigPrc ds.w 3 signal on data ready process (pid, signal, path)
+ ifdef DCDSIG
+DCDPrc ds.w 3 signal for DCD transitions process (pid, signal, path)
+ endc DCDSIG
+
+ChanelNo ds.b 1 Channel number 0 = Ch. A 1 = Ch. B
+BaudRate ds.b 1 baud rate value
+Parity ds.b 1 current parity value
+InHalt ds.b 1 input halted flag (non-zero if XON has been Sent)
+OutHalt ds.b 1 output IRQ's disabled when non-Zero
+Otpt_On ds.b 1 Value to enable acia output IRQs
+Otpt_Off ds.b 1 Value to disable acia output IRQs
+RTSmode ds.b 1 RxRTS handshake mode
+RTSstate ds.b 1 RxRTS current state
+TXmode ds.b 1 Tx handshake mode
+ ifdef VIGRA
+DatModNam: ds.b NameSize name of data module containing shadow masks.
+ endc
+InpBuf ds.b InpSiz input buffer
+OutBuf ds.b OutSiz output buffer
+ ends
+
+* OutHalt bit numbers (causes of disabled output IRQ)
+
+H_XOFF equ 0 V_XOFF has been received; awaiting V_XON
+H_Empty equ 1 output buffer is empty
+
+
+********************
+* Entry jump table
+*
+MpscEnt
+ ifndef	KANJI
+ dc.w Init
+ dc.w Read
+ dc.w Write
+ dc.w GetStat
+ dc.w PutStat
+ dc.w TrmNat
+ else
+ dc.w K_Init
+ dc.w K_Read
+ dc.w K_Write
+ dc.w K_GetStt
+ dc.w K_PutStt
+ dc.w K_TrmNat
+ endc KANJI
+ dc.w 0 Exception handler entry (0=none)
+
+
+ ttl INTERRUPT-DRIVEN MPSC device routines
+ pag
+***************
+* Init
+*   Initialize (Terminal) MPSC
+*
+* Passed:  (a1) = device descriptor address
+*          (a2) = static storage address
+*          (a4) = process descriptor ptr
+*          (a6) = system global data ptr
+*
+* Returns:  nothing
+*
+* Error Return:  (cc) = carry set
+*                d1.w = error code
+*
+* Destroys: (may destroy d0-d7, a0-a5)
+*
+Init:
+
+* initialize static storage
+
+ move.b #(1<<H_Empty),OutHalt(a2) output IRQ's disabled; buffer empty
+ lea.l InpBuf(a2),a0 init buffer pointers
+ move.l a0,InFill(a2) 
+ move.l a0,InEmpty(a2)
+ lea.l InpSiz(a0),a0 figure size of buffer
+ move.l a0,InEnd(a2) mark end of input buffer
+ lea.l OutBuf(a2),a0 point to start of output buf
+ move.l a0,OutFill(a2) init output buff pointers
+ move.l a0,OutEmpty(a2)
+ lea.l OutSiz(a0),a0 figure size of out buff
+ move.l a0,OutEnd(a2) mark end of output buffer
+
+* form interrupt mask value.
+* NOTE: the IRQMasking is always performed "outside" of the Interrupt
+* Service context, thus move.w IRQMask(a2),sr is ok, as there will not
+* be an accidental stack switch.
+*
+ move.b M$IRQLvl(a1),d2 get irq level
+ asl.w #8,d2 shift into priority
+ move.w sr,d0 get sr (for stack/trace flags)
+ andi.w #IntEnab,d0 clear irq masks
+ or.w d0,d2 form "current stack, irqs masked to this level" value
+ move.w d2,IRQMask(a2) save for future use
+
+* figure channel we are working with
+
+ movea.l V_PORT(a2),a3 I/O port address
+ move.l a3,d0 save device absolute address
+ clr.b ChanelNo(a2) assume channel A
+ move.b #RxIRQEnA!TxIRQEnA,Otpt_On(a2) set interrupt enable flags - A
+ move.b #^TxIRQEnA,Otpt_Off(a2) set xmit int disable flag
+ btst.l #ABbit,d0 figure out which port 0 = A, 1 = B
+ beq.s Init20
+ move.b #1,ChanelNo(a2) set to B
+ move.b #RxIRQEnB!TxIRQEnB,Otpt_On(a2) set interrupt enable flags - B
+ move.b #^TxIRQEnB,Otpt_Off(a2) interrupt disable mask for xmit - B
+Init20 bclr.l #ABbit,d0 get base address of port
+ movea.l d0,a5 move to address register
+ move.l d0,BaseAddr(a2) save base address
+
+ ifndef VIGRA
+* initialize OEM global data pointer
+ move.w M$DevCon(a1),d0 get offset of global masks
+ beq BadMode10 ..return error if descriptor is not valid
+ move.w (a1,d0.w),d0 get the offset to the global pair for this device
+ add.w #D_Start,d0 compute entry of the pair in the OEM_Globals
+ move.w d0,Globl(a2) save it
+
+* initialize vector register and add device to system polling table
+*
+ ifeq (CPUType-MC68340)*(CPUType-MC68341)*(CPUType-MC68349)
+* definitions for 68340/68341/68349 specific registers are in serm340.d
+ moveq.l #0,d0 sweep register of unused bits.
+ movea.l #SERMap,a0 address of the Serial Communications module in 68340/1/9
+ REGMOVE 'from',SERINTV(a0),d0 read current device vector
+ else
+ REGMOVE 'from',MPSVec(a5),d0 read current device vector
+ endc
+ cmpi.b #$0f,d0 is it uninitialized vector ?
+ beq.s Init40 ..yes; go write the register
+ move.b M$Vector(a1),d1 get descriptor's vector
+ cmp.b d1,d0 is the descriptor in error ?
+ beq.s Init45 ..no; continue
+ bra BadMode10 ..yes; return error for invalid descriptor
+
+Init40 move.b M$Vector(a1),d0 get descriptor's vector
+ ifeq (CPUType-MC68340)*(CPUType-MC68341)*(CPUType-MC68349)
+ REGMOVE 'to',d0,SERINTV(a0) setup IRQ vector in device
+ move.l d0,-(a7) save the vector for later
+ move.b M$IRQLvl(a1),d0 must tell the chip the interrupt level
+ REGMOVE 'to',d0,SERINTL(a0) 
+ move.l (a7)+,d0 reinstate the vector
+ else
+ REGMOVE 'to',d0,MPSVec(a5) setup IRQ vector in device
+ endc
+Init45 move.b M$Prior(a1),d1 get priority
+ lea.l MPSCIRQ(pc),a0 address of interrupt service routine
+ OS9 F$IRQ Add to IRQ polling table
+ bcs.s InitExit ..exit if error
+ else
+
+*
+* try to link to the data module for the VIGRA board
+*
+ movem.l a1/a4,-(a7) save device and process descriptors
+ movea.l a1,a4 get device descriptor moved
+ movea.l BaseAddr(a2),a3 get port base address (not side address)
+*
+* turn on DTR lines
+*
+ move.b #(OP0|OP1),MPSOPSet(a3) set the DTR lines high
+ suba.l #DUARTBASE,a3 subtract to get board base address
+ bsr GetDatMod get the data module pointer in (a1)
+ move.l a1,DatModDat(a2) save pointer to module data area
+*
+* set up the IRQ
+*
+ movea.l V_PORT(a2),a3 get port address
+ move.b M$Vector(a4),d0 get the vector register
+ move.b M$Prior(a4),d1 use top priority
+ lea.l MPSCIRQ(pc),a0 get the service routine
+ os9 F$IRQ set up the irq vector
+ bcs InitExit
+*
+* enable IRQs for the duart
+*
+ move.b VMIMR_Dat(a1),d0 get the vector mask register
+ ori.b #MDUA,d0 or in the keyboard
+ move.b d0,VMIMR_Dat(a1) save it in the data module
+ move.l a3,-(a7)
+ suba.l #DUARTBASE,a3 drop to base address
+ tst.b ChanelNo(a2) is it channel A ?
+ beq.s Init40 branch if it is
+ suba.l #$20,a3 subtract offset to B port
+Init40 adda.l #VMIMROFF,a3 get pointer to VMIMR
+ move.b d0,(a3) save it to hardware
+ move.l (a7)+,a3 
+ movem.l (a7)+,a1/a4 restore device & process descriptors
+ endc
+
+ pag
+
+* initialize port configuration
+
+ move.b #RxDefault,RTSmode(a2) set RxRTS h/w control
+ beq.s Init50 ..bra if no RTS to assert
+ st.b RTSstate(a2) signal RTS to be asserted
+
+Init50 move.b #TxDefault,TXmode(a2) set TxCTS h/w control
+ ifne (CPUType-VME141)*(CPUType-VME165)*(CPUType-MC68340)*(CPUType-MC68341)*(CPUType-MC68349)
+
+*** WARNING - THIS MAY BE A PROBLEM WITH CLOCK DRIVERS, DUE
+***           TO THE FACT THAT THIS IS A WRITE-ONLY REG
+***           AND WE DON'T HAVE A SHADOW REG DEFINED (ALA
+***           141/165 CLOCK DRIVER).
+ REGMOVE 'to',#OPCRmode,MPSOPCR(a5) set o/p port configuration
+ endc
+ bsr.s InitSP first init the 68681
+ move.b PD_BAU-PD_OPT+M$DTyp(a1),d0 get baud rate
+ bsr.s BaudCalc set baud rate
+ bcs.s InitExit ..exit if error
+ move.b PD_PAR-PD_OPT+M$DTyp(a1),d0 get stop bits, bit/char & parity
+ bsr BitPar set stop bits, parity, & bits per char
+ bcs.s InitExit ..exit if error
+
+ ifeq CPUType-PACERMOS
+* enable OPx hardware control
+
+ move.b #Aside_hw,d0 assume a-side port
+ tst.b ChanelNo(a2) good guess ?
+ beq.s Init60 ..yes; continue
+ move.b #Bside_hw,d0 get b-side port value
+Init60 REGMOVE 'to',d0,MPSOPSet(a5) assert port h/w lines
+ endc PACERMOS
+
+* enable receiver
+
+ move.w sr,d6 save sr
+ move.w IRQMask(a2),sr mask interrupts
+ REGMOVE 'to',#RxEnabl!TxEnabl,MPSCntl(a3) enable xmit and rec.
+ move.b Otpt_On(a2),d3 get enable flag
+ ifdef VIGRA
+* save shadow registers in the data module (Vigra card)
+ movea.l DatModDat(a2),a0
+ or.b d3,MPSImr_Dat(a0) turn xmit and rec on
+ move.b Otpt_Off(a2),d3 get disable mask
+ and.b d3,MPSImr_Dat(a0) turn xmit off
+ move.b MPSImr_Dat(a0),MPSImr(a5) put copy into hardware
+ else
+* update the shadow mask registers
+ move.w Globl(a2),d0 get offset to global
+ or.b d3,(a6,d0.w) turn xmit and rec on
+ move.b Otpt_Off(a2),d3 get disable mask
+ and.b d3,(a6,d0.w) turn xmit off
+ GLOBMOVE MPSImr(a5) put into register
+ endc
+ move.w d6,sr restore sr/irq masks
+ moveq.l #0,d1 no errors
+InitExit: rts
+ 
+ pag
+********************
+* InitSP:  initialize receiver/transmitter to idle state
+*
+* Passed:  (a3) = device port address
+*
+* Returns:  nothing
+*
+InitSP: move.w sr,d6 save irq status
+ move.w IRQMask(a2),sr mask irqs
+ REGMOVE 'to',#RxReset,MPSCntl(a3) reset receiver
+ REGMOVE 'to',#TxReset,MPSCntl(a3) reset xmit
+ REGMOVE 'to',#ErrorRst,MPSCntl(a3) reset error status
+ REGMOVE 'to',#BreakRst,MPSCntl(a3) reset channel break interrupt.
+ move.w d6,sr restore sr
+ rts
+  
+
+********************
+* BaudCalc:  initialize baud rate of device
+*
+* Passed:  d0.b = OS-9 baud rate code
+*          (a2) = static storage ptr
+*          (a3) = device port address
+*          (a6) = system global data ptr
+*
+* Returns:  nothing
+*
+* Error Return:  (cc) = carry set
+*                d1.w = error code
+*
+
+BaudCalc:
+ ifdef VIGRA
+ movem.l a0-a1,-(a7) save reg
+ else
+ move.l a0,-(a7) save reg
+ endc
+ andi.w #$00ff,d0 mask out all except baud rate
+ cmpi.b #UseExternal,d0 using external (x16) clock source?
+ bne.s BaudCalc10 ..no; decode if legal value
+ move.b #ExtClock16,d1 use external clock x 16
+ bra.s BaudCalc20
+
+BaudCalc10 cmpi.w #MaxBaud,d0 legal baud rate ?
+ bge.s BadMode ..no; return error
+ lea.l BaudTable(pcr),a0 get table address
+ move.b (a0,d0.w),d1 get baud rate value for chip
+ cmpi.b #$ff,d1 available baud rate ?
+ beq.s BadMode ..exit if unsupported rate
+BaudCalc20 REGMOVE 'to',d1,MPSBdSt(a3) set baud rate in device
+ move.b d0,BaudRate(a2) save current rate
+ ifdef VIGRA
+ movea.l DatModDat(a2),a1
+ move.w sr,d6 save irq masks
+ move.w IRQMask(a2),sr mask irqs
+ move.b MPSAcr_Dat(a1),d1 get the current acr image
+ andi.b #CTMask+DeltaMask,d1 keep the c/t, delta bits the same
+* See below case for info 
+ cmpi.b #$10,BaudRate(a2) 	 * check if 38400 is desired 0x10 for 0S9. 
+ beq.s FixACRset			 * Jump and leave ACR[7] clear, allowing 38400 usage.
+ ori.b #ACRDeflt,d1 		 * add in default baud set, likely set2 ACR7=1
+FixACRset
+ move.b d1,(a6,d0.w) 		 * update ACR image
+ ori.b #ACRDeflt,d1 		 * add in default baud set
+ move.b d1,MPSAcr_Dat(a1) 	 * save it back
+ else
+ move.w Globl(a2),d0 		 * get the global table entry ptr
+ addq.w #1,d0 				 * acr image held in second byte
+ move.w sr,d6 				 * save irq masks (NOTE: carry is clear)
+ move.w IRQMask(a2),sr 		 * mask interrupts
+ move.b (a6,d0.w),d1 		 * get the current acr image (if any)
+ andi.b #CTMask+DeltaMask,d1 * keep the c/t, delta bits the same
+*
+* test if 38400 is wanted, this will NOT mess up external timers as its ACR 
+* set number doesnt matter, it could effect the other channel of a duart for 
+* 75/150/2000, but its well worth it to get a 38400.
+*
+ cmpi.b #$10,BaudRate(a2) 	 * check if 38400 is desired 0x10 for 0S9. 
+ beq.s FixACRset			 * Leave ACR[7] clear, allowing 38400 usage.
+ ori.b #ACRDeflt,d1 		 * add in default baud set, likely set2 ACR7=1
+FixACRset
+ move.b d1,(a6,d0.w) update ACR image
+ endc
+ move.l BaseAddr(a2),a0 get device BASE address
+ REGMOVE 'to',d1,MPSAcr(a0) update the hardware
+ move.w d6,sr restore sr
+ ifdef VIGRA
+ movem.l (a7)+,a0-a1 restore register
+ else
+ movea.l (a7)+,a0
+ endc
+ rts return (carry clear)
+
+* here if illegal or unsupported baud-rate
+
+BadMode: 
+ ifdef VIGRA
+ movem.l (a7)+,a0-a1 restore registers
+ else
+ movea.l (a7)+,a0
+ endc
+
+BadMode10: move.w #E$BMode,d1 get error code
+ ori.b #Carry,ccr set the carry
+ rts return
+
+* Baud rate table for __Set 2__ of MC68681:
+
+BaudTable:
+ dc.b $ff 0 - 50 baud unavailable
+ dc.b $00 1 - 75 baud
+ dc.b $11 2 - 110 baud
+ dc.b $22 3 - 134.5 baud
+ dc.b $33 4 - 150 baud
+ dc.b $44 5 - 300 baud
+ dc.b $55 6 - 600 baud
+ dc.b $66 7 - 1200 baud
+ dc.b $aa 8 - 1800 baud
+ dc.b $77 9 - 2000 baud
+ dc.b $88 A - 2400 baud
+ dc.b $ff B - 3600 baud unavailable
+ dc.b $99 C - 4800 baud
+ dc.b $ff D - 7200 baud unavailable
+ dc.b $bb E - 9600 baud
+ dc.b $cc F - 19.2k baud
+													   
+ ifeq (CPUType-MC68340)*(CPUType-MC68341)*(CPUType-MC68349)
+  dc.b $dd 10 - 38.4K baud	   * Can only work if these supply an external timer * 
+ else
+  dc.b $cc 10 - 38.4K baud is available with set1 of baud rate tables	
+ endc
+
+MaxBaud: equ *-BaudTable
+
+* External clock source definitions for baud (sic) rate
+*
+ExtClock16 equ $ee use external clock / 16
+ExtClock1 equ $ff use external clock / 1
+ pag
+******************************
+* BitPar:  set bits/character, # stop bits, parity mode
+*
+* Passed:  d0.b = device configuration
+*                 bits 1,0:  0 = no parity
+*                            1 = odd parity
+*                            3 = even parity
+*                 bits 3,2:  0 = 8 bit data
+*                            1 = 7 bit data
+*                            2 = 6 bit data
+*                            3 = 5 bit data
+*                 bits 5,4:  0 = 1 stop bit
+*                            1 = 1.5 stop bits
+*                            2 = 2 stop bits
+*          (a2) = static storage pointer
+*          (a3) = device port address
+*
+* Returns:  nothing
+*
+* Error Return:  (cc) = carry set
+*                d1.w = error code
+*
+BitPar: move.l a0,-(a7) save register
+ moveq.l #0,d2 sweep d2
+ andi.w #$00ff,d0 clear high end of word
+ move.w d0,d1 copy parity value
+ andi.w #3,d1 isolate parity code
+ lea.l TabPar(pc),a0 point at parity mode table
+ move.b (a0,d1.w),d2 get parity code
+ bmi.s BadMode ..exit if illegal value
+ move.w d0,d1 get data bit size
+ lsr.w #2,d1 make index value
+ andi.w #3,d1 make legal index
+ lea.l TabBC(pc),a0 point at bits/char table
+ or.b (a0,d1.w),d2 add in bits/char
+ move.w d0,d1 get stop bit value
+ lsr.w #4,d1 make index value
+ andi.w #3,d1 make legal index
+ lea.l TabSB(pc),a0 point at stop bit table
+ move.b (a0,d1.w),d3 get stop bit value
+ bmi.s BadMode ..exit if illegal value 
+ move.w sr,d6 save irq masks (NOTE: carry is clear)
+ move.w IRQMask(a2),sr mask interrupts
+ REGMOVE 'to',#$10,MPSCntl(a3) point to mode 1 register
+ or.b RTSmode(a2),d2 add RxRTS h/w handshake mode
+ REGMOVE 'to',d2,MPSMode(a3) set parity/bit per char/RxRTS control
+ or.b TXmode(a2),d3 add Tx h/w handshake mode
+
+ ifeq (CPUType-MC68340)*(CPUType-MC68341)*(CPUType-MC68349)
+ move.l a3,d1 get the address of the chip in use to data register 
+ btst #ABbit,d1 is it the A or B side?
+ bne.s s_bside B side in use
+ REGMOVE 'to',d3,MR2A(a3) set no. of stop bits/Tx control
+ bra.s w_aside
+s_bside
+ REGMOVE 'to',d3,MR2B(a3) set no. of stop bits/Tx control
+w_aside
+ else
+ REGMOVE 'to',d3,MPSMode(a3) set no. of stop bits/Tx control
+ endc
+
+ move.b d0,Parity(a2) save current mode
+ tst.b RTSstate(a2) need to assert RTS ?
+ beq.s BitPar20 ..no; bra on
+ bsr EnabRTS go assert RTS line manually
+BitPar20: move.w d6,sr restore sr
+ movea.l (a7)+,a0 restore a0
+ rts return (carry clear)
+ 
+TabPar:
+ dc.b $10 no parity
+ dc.b $04 odd parity
+ dc.b $ff illegal value
+ dc.b $00 even parity
+ 
+TabBC:
+ dc.b $03 8 bits per char
+ dc.b $02 7 bits per char
+ dc.b $01 6 bits per char
+ dc.b $00 5 bits per char
+ 
+TabSB:
+ dc.b $07 1 stop bit
+ dc.b $07 1.5 stop bits (for 5 bit data)
+ dc.b $0F 2 stop bits
+ dc.b $ff illegal value
+ 
+ pag
+********************
+* Read:  Return one byte of input from the Mpsc
+*
+* Passed:  (a1) = Path Descriptor
+*          (a2) = Static Storage address
+*          (a4) = current process descriptor
+*          (a6) = system global ptr
+*
+* Returns:  (d0.b) = input char
+*
+* Error Return:  (cc) = carry set
+*                d1.w = error code
+*
+* Destroys: a0
+*
+ ifeq No_IRQ
+Read movea.l V_PORT(a2),a3
+Read00 CHECK #0,MPSBdSt(a3)
+ beq.s Read00
+ REGMOVE 'from',MPSData(a3),d0 get data
+ rts
+
+ else
+Read00 move.w V_BUSY(a2),V_WAKE(a2) arrange wake up signal
+ move.w d6,sr restore sr
+ bsr MpscSlep
+Read: tst.b InHalt(a2) is input halted?
+ ble.s Read_a branch if not
+ cmpi.w #MinBuff,InCount(a2) buffer mostly emptied?
+ bhi.s Read_a ..No; continue
+ move.b V_XON(a2),d1 get X-ON char
+ movea.l V_PORT(a2),a3 get port address
+ move.w sr,d6 save current IRQ status
+ move.w IRQMask(a2),sr mask IRQs
+ CHECK #TxE_Bit,MPSBdSt(a3) transmit buffer empty?
+ beq.s Read10 no, signal XON ready to send
+ clr.b InHalt(a2) clean up XOFF flag
+ REGMOVE 'to',d1,MPSData(a3) transmit XON character
+ bra.s Read20 continue
+
+Read10 ori.b #Sign,d1 set Sign bit
+ move.b d1,InHalt(a2) flag input resume
+ movea.l BaseAddr(a2),a0 get port base address
+ move.b Otpt_On(a2),d3
+ ifdef VIGRA
+* set interrupt registers from data module shadow masks.
+ move.l a1,-(a7)
+ movea.l DatModDat(a2),a1 address of data module
+ or.b d3,MPSImr_Dat(a1) enable IRQs
+ move.b MPSImr_Dat(a1),MPSImr(a0) put into register
+ move.l (a7)+,a1 restore
+ else
+* set interrupt mask from shadow mask set.
+ move.w Globl(a2),d0 get offset to global
+ or.b d3,(a6,d0.w) enable IRQs
+ GLOBMOVE MPSImr(a0) put into register
+ endc
+Read20 move.w d6,sr restore sr
+
+Read_a tst.w SigPrc(a2) a process waiting for device?
+ bne.s ErrNtRdy ..Yes; return dormant terminal error
+ move.w sr,d6 save current IRQ status
+ move.w IRQMask(a2),sr mask IRQs
+ tst.w InCount(a2) any data?
+ beq.s Read00 branch if not
+ move.w d6,sr restore sr
+ movea.l InEmpty(a2),a0 point to next char
+ move.b (a0)+,d0 get character
+ subq.w #1,InCount(a2) dec buffer size by one
+ cmpa.l InEnd(a2),a0 at end of buffer?
+ blo.s Read_b branch if not
+ lea.l InpBuf(a2),a0 point to start of buffer
+Read_b move.l a0,InEmpty(a2) update buffer pointer
+ move.b V_ERR(a2),PD_ERR(a1) copy I/O status to PD
+ beq.s Read90 return if no error
+ clr.b V_ERR(a2)
+ move.w #E$Read,d1 signal read error
+ ori.b #Carry,ccr return Carry set
+Read90 rts
+ endc
+
+ErrNtRdy: move.w #E$NotRdy,d1
+ ori.b #Carry,ccr return Carry set
+ rts
+
+ pag
+********************
+* MpscSlep:  Sleep until interrupt occurs
+*
+* Passed:  (a2) = driver global storage
+*          (a4) = current process descriptor ptr
+*          (a6) = system global data ptr
+*
+* Returns:  nothing
+*
+* Error Return:  (cc) = carry set
+*                d1.w = error code (signal)
+*
+* Destroys:  possibly PC
+*
+MpscSlep:
+ ifne No_IRQ
+ move.l d0,-(a7) save reg
+ moveq.l #0,d0 sleep indefinately
+ OS9svc F$Sleep wait for interrupt (*only works with Sleep 0*)
+ move.w P$Signal(a4),d1 signal present?
+ beq.s ACSL90 ..no; return
+ cmpi.w #S$Deadly,d1 Deadly signal?
+ blo.s ACSLER ..yes; return error
+ACSL90 btst.b #Condemn,P$State(a4) has process died?
+ bne.s ACSLER ..Yes; return error
+ move.l (a7)+,d0 restore register, clear carry
+ rts
+
+ACSLER addq.l #8,sp Exit to caller's caller
+ ori.b #Carry,ccr return Carry set
+ endc
+ rts
+
+ pag
+********************
+* Write
+*   Output one character to Mpsc
+*
+* Passed:  (a1) = Path Descriptor
+*          (a2) = Static Storage address
+*          (a4) = current process descriptor ptr
+*          (a6) = system global data ptr
+*          d0.b = char to write
+*
+* Returns:  nothing
+*
+* Error Return:  (cc) = carry set
+*                d1.w = error code
+*
+ ifeq No_IRQ
+Write move.l V_PORT(a2),a3
+Write10 CHECK #TxE_Bit,MPSBdSt(a3) acia ready?
+ beq.s Write10 branch if not
+ REGMOVE 'to',d0,MPSData(a3) write char
+ rts return carry clear
+
+ else
+Write00 move.w V_BUSY(a2),V_WAKE(a2) arrange wake up signal
+ move.w d6,sr restore sr
+ bsr.s MpscSlep sleep a bit
+Write: move.w sr,d6 save current IRQ status
+ move.w IRQMask(a2),sr mask IRQs
+ move.w OutCount(a2),d2 get output buffer data count
+ cmpi.w #OutSiz,d2 room for more data?
+ bhs.s Write00 ..no; wait for room
+ addq.w #1,OutCount(a2) increment byte count
+ movea.l OutFill(a2),a0 point to next char location
+ move.b d0,(a0)+ store char and inc pointer
+ cmpa.l OutEnd(a2),a0 end of buffer?
+ blo.s Write10 branch if not
+ lea.l OutBuf(a2),a0 point to start of buffer
+Write10 move.l a0,OutFill(a2) update buffer pointer
+ bclr.b #H_Empty,OutHalt(a2) clear output buffer empty flag
+ beq.s Write80 ..if data was in buffer, no need to re-enable irqs
+ btst.b #H_XOFF,OutHalt(a2) output currently halted ?
+ bne.s Write80 ..yes; don't enable irqs
+ movea.l BaseAddr(a2),a0 get device address
+ ifdef VIGRA
+ move.l a1,-(a7)
+ movea.l DatModDat(a2),a1
+ move.b Otpt_On(a2),d3
+ or.b d3,MPSImr_Dat(a1) put into dat module
+ move.b MPSImr_Dat(a1),MPSImr(a0) put into hardware
+ move.l (a7)+,a1 restore
+ else
+ move.w Globl(a2),d0 get offset to global
+ move.b Otpt_On(a2),d3 get enable flag
+ or.b d3,(a6,d0.w) put into global register
+ GLOBMOVE MPSImr(a0) put into register
+ endc
+Write80 move.w d6,sr restore sr
+ moveq.l #0,d1 clear carry
+ rts
+ endc
+
+ pag
+********************
+* GetStat:  get device status
+*
+* Passed:  (a1) = Path Descriptor
+*          (a2) = Static Storage address
+*          (a4) = process descriptor
+*          (a5) = caller's register stack ptr
+*          (a6) = system global data ptr
+*          d0.w = status call function code
+*
+* Returns:  varies with function code
+*
+* Error Return:  (cc) = carry set
+*                d1.w = error code
+*
+GetStat:
+ ifne No_IRQ
+
+* return data available count
+*
+ cmpi.w #SS_Ready,d0 Ready status?
+ bne.s GetSta10 ..no
+ clr.w R$d1(a5) sweep high word of register
+ move.w InCount(a2),R$d1+2(a5) return input char count to caller
+ beq ErrNtRdy ..No data; return not ready error
+ rts (Carry clear)
+
+* return eof status
+*
+GetSta10 cmpi.w #SS_EOF,d0 End of file?
+ beq.s GetSta99 ..yes; return (Carry clear)
+
+* check for "get options"
+*
+ cmpi.w #SS_Opt,d0 get options call ?
+ bne.s Unknown ..no; return error for unknown request
+
+* update path descriptor for currently active baud, parity
+*
+ move.b BaudRate(a2),PD_BAU(a1) set currently active baud rate
+ move.b Parity(a2),PD_PAR(a1) set currently active comms mode
+ rts (carry clear)
+
+* return error for unknown service requests
+*
+Unknown: move.w #E$UnkSvc,d1 Unknown service code
+ ori.b #Carry,ccr return Carry set
+ endc
+GetSta99: rts
+
+ pag
+********************
+* PutStat:  set device status
+*
+* Passed:  (a1) = Path Descriptor
+*          (a2) = Static Storage address
+*          (a4) = process descriptor
+*          (a5) = caller's register stack ptr
+*          (a6) = system global data ptr
+*          d0.w = status call function code
+*
+* Returns:  varies with function code
+*
+* Error Return:  (cc) = carry set
+*                d1.w = error code
+*
+PutStat:
+ ifne No_IRQ
+
+* signal process on data available
+*
+ cmpi.w #SS_SSig,d0 signal process when ready?
+ bne.s PutSta_A ..No
+ tst.w SigPrc(a2) somebody already waiting?
+ bne ErrNtRdy ..Yes; error
+ move.w PD_CPR(a1),d0 get caller's process ID
+ move.w R$d2+2(a5),d1 get signal code
+ move.w sr,d6 save IRQ status
+ move.w IRQMask(a2),sr disable IRQs
+ tst.w InCount(a2) any Data available?
+ bne.s PutSta10 yes, signal Data ready
+ move.w PD_PD(a1),d2 get associated path #
+ movem.w d0-d2,SigPrc(a2) save process id, signal, path #
+ movea.l BaseAddr(a2),a0 point to base address
+ ifdef VIGRA
+ move.l a1,-(a7)
+ movea.l DatModDat(a2),a1
+ move.b Otpt_On(a2),d3 get enable flag
+ or.b d3,MPSImr_Dat(a1) or into dat mod copy
+ move.b MPSImr_Dat(a1),MPSImr(a0) put in hardware
+ move.l (a7)+,a1 restore
+ else
+ move.w Globl(a2),d0 get offset to global
+ move.b Otpt_On(a2),d3 get enable flag
+ or.b d3,(a6,d0.w) or into global register
+ GLOBMOVE MPSImr(a0) put into register
+ endc
+ move.w d6,sr restore sr
+ moveq.l #0,d1 clear carry
+ rts
+
+PutSta10 move.w d6,sr restore sr
+ bra SendSig send the signal
+
+* release all signal conditions
+*
+PutSta_A cmpi.w #SS_Relea,d0 Release Device?
+ bne.s PutSta_B bra if not
+ move.w PD_CPR(a1),d0 get process id
+ move.w PD_PD(a1),d2 get associated path #
+ lea.l SigPrc(a2),a3 check SigPrc
+ ifdef DCDSIG
+ bsr.s ClearSig
+ lea.l DCDPrc(a2),a3 now check DCDPrc
+ endc DCDSIG
+
+ClearSig cmp.w (a3),d0 is signal for this process ?
+ bne.s ClearSig20 ..no; exit
+ cmp.w 4(a3),d2 does it concern this path ?
+ bne.s ClearSig20 ..no; exit
+ clr.w (a3) clear down signal condition
+ClearSig20 moveq.l #0,d1 flag no error
+ rts return
+
+ ifdef DCDSIG
+
+* signal on DCD transitions
+*
+PutSta_B cmpi.w #SS_DCOn,d0 signal on carrier detect?
+ beq.s PutSta20 yes, go set signal condition
+PutSta_C cmpi.w #SS_DCOff,d0 on loss of carrier?
+ bne.s PutSta_D branch if not
+PutSta20 move.w PD_CPR(a1),d0 get process id
+ move.w R$d2+2(a5),d1 get signal code
+ move.w PD_PD(a1),d2 get associated path #
+ movem.w d0-d2,DCDPrc(a2) save them
+ rts (carry clear)
+ else
+PutSta_B equ *
+ endc DCDSIG
+
+ pag
+* RTS control
+*
+PutSta_D cmpi.w #SS_EnRTS,d0 enable RTS
+ bne.s PutSta_E branch if not.
+EnabRTS move.w #MPSOPSet,d2 get SET register offset
+ st.b RTSstate(a2) flag RTS asserted
+EnabRTS10 move.b ChanelNo(a2),d1 get channel number
+ moveq.l #0,d0 sweep d0
+ bset.l d1,d0 select channel RTS o/p line
+ movea.l BaseAddr(a2),a0 get device base address
+ REGMOVE2 d0,(a0,d2.w) condition appropriate state on channel
+ rts return (carry clear)
+
+PutSta_E cmpi.w #SS_DsRTS,d0 disable RTS
+ bne.s PutSta_F branch if not
+DisablRTS move.w #MPSOPClr,d2 get CLEAR register offset
+ sf.b RTSstate(a2) flag RTS negated
+ bra.s EnabRTS10 go negate the line
+
+* change path options
+*
+PutSta_F cmpi.w #SS_Opt,d0 set options call ?
+ bne.s PutSta_G branch if not
+
+* here to check whether baud/parity have changed
+
+CheckMode: move.b PD_BAU(a1),d0 get baud rate current
+ cmp.b BaudRate(a2),d0 has it changed ?
+ bne.s ChngMode ..yes; attempt to re-configure
+ move.b PD_PAR(a1),d1 get port configuration
+ cmp.b Parity(a2),d1 has communication mode changed ?
+ beq.s PutSta90 ..no; exit (nothing to do)
+ChngMode: movea.l V_PORT(a2),a3 get device port address
+ bsr InitSP disable rx/tx
+ bsr BaudCalc attempt new baud rate
+ bcs.s ChngExit ..exit if error
+ move.b PD_PAR(a1),d0 get parity, etc
+ bsr BitPar attempt to change communication mode
+ChngExit subq.l #4,a7 get space for status (keep long-aligned)
+ move.w sr,0(a7) save ccr status
+ REGMOVE 'to',#RxEnabl!TxEnabl,MPSCntl(a3) re-enable rx/tx
+ move.w 0(a7),ccr restore ccr
+ addq.l #4,a7 toss scratch
+ rts and return
+
+* new path open
+*
+PutSta_G cmpi.w #SS_Open,d0 new path opened ?
+ beq.s CheckMode ..yes; then check for configuration changes
+
+* send BREAK out port
+*
+PutSta_H cmpi.w #SS_Break,d0 send break ?
+ bne Unknown ..no; return error
+ movea.l V_PORT(a2),a3 get device port address
+ REGMOVE 'to',#StartBrk,MPSCntl(a3) start the break
+ move.l #BrkTime,d0 get "break time"
+Brk_Timed os9 F$Sleep delay while break being sent
+ bcs.s Brk_manual do manual timing if no clock
+ tst.l d0 sleep the full time ?
+ beq.s Brk_End ..yes; go stop the break
+ bra.s Brk_Timed ..else, wait for break-time to expire
+
+Brk_manual move.w #5,d0 outer counter
+ moveq.l #-1,d1 iniz inner counter
+Brk_a dbra d1,Brk_a
+ dbra d0,Brk_a
+Brk_End REGMOVE 'to',#StopBrk,MPSCntl(a3) stop the break
+ rts (carry clear)
+
+PutSta90 moveq.l #0,d1 clear Carry
+ endc
+ rts
+ pag
+********************
+* TrmNat:  Terminate Mpsc processing
+*
+* Passed:  (a1) = device descriptor pointer
+*          (a2) = static storage
+*          (a4) = current process descriptor ptr
+*          (a6) = system global data ptr
+*
+* Returns:  none
+*
+* Error Return:  (cc) = carry set
+*                d1.w = error code
+*
+TRMN00 move.w V_BUSY(a2),V_WAKE(a2) arrange wake up signal
+ move.w d6,sr restore sr
+ pea.l TrmNat(pc) return to entry point if signals
+ bsr MpscSlep wait for interrupt
+ addq.l #4,sp toss return address if no signals
+TrmNat: move.w P$ID(a4),d0
+ move.w d0,V_BUSY(a2)
+ move.w d0,V_LPRC(a2)
+ move.w sr,d6 save current IRQ status
+ move.w IRQMask(a2),sr mask IRQs
+ tst.w OutCount(a2) any data?
+ bne.s TRMN00 sleep if there is
+ tst.b RTSstate(a2) RTS asserted ?
+ beq.s TrmNat20 ..no; no need to negate
+ bsr DisablRTS go negate RTS line
+TrmNat20 movea.l BaseAddr(a2),a0 get port base address
+
+ ifeq CPUType-PACERMOS
+* disable OPx hardware control
+
+ move.b #Aside_hw,d0 assume a-side port
+ tst.b ChanelNo(a2) good guess ?
+ beq.s TrmNat10 ..yes; continue
+ move.b #Bside_hw,d0 get b-side port value
+TrmNat10 REGMOVE 'to',d0,MPSOPClr(a0) negate port h/w lines
+ endc PACERMOS
+
+ move.b Otpt_On(a2),d1 get enable bits
+ not.b d1 complement it
+ ifdef VIGRA
+ movem.l a1-a2/a3,-(a7)
+ move.l DatModDat(a2),d0 get offset to dat module
+ beq.s TrmNat40 never got inized go out
+ move.l d0,a1 
+ and.b d1,MPSImr_Dat(a1) disable irqs in copy
+ move.b MPSImr_Dat(a1),MPSImr(a0) put in hardware
+ move.b VMIMR_Dat(a1),d0 get the VMIMR register
+ andi.b #MNODUA,d0 mask off serial irqs
+ move.b d0,VMIMR_Dat(a1) put back in 
+ movea.l V_PORT(a2),a3 get port address
+ suba.l #DUARTBASE,a3 go to board address
+ tst.b ChanelNo(a2) is it channel A ?
+ beq.s TrmNat30 branch if it is
+ suba.l #$20,a3 subtract offset to B port
+TrmNat30 adda.l #VMIMROFF,a3 go up to VMIMR register
+ move.b d0,(a3) save it to hardware
+ move.b VMIVR_Dat(a1),d0
+ ori.b #DUARTVECT,d0 make duart vector
+ movea.l #0,a0 delete IRQ
+ os9 F$IRQ
+ movea.l DatModAddr(a2),a2 get data module address
+ os9 F$UnLink unlink it
+TrmNat40
+ movem.l (a7)+,a1-a2/a3
+ move.w d6,sr restore sr
+ else
+ move.w Globl(a2),d0 get offset to global
+ beq.s TrmNat40 ..if zero; never got iniz'd
+ and.b d1,(a6,d0.w) disable interrupts
+ GLOBMOVE MPSImr(a0) move to register
+TrmNat40 move.w d6,sr restore sr
+ move.b M$Vector(a1),d0 get vector #
+ suba.l a0,a0
+
+ ifne No_IRQ
+ OS9 F$IRQ remove acia from polling tbl
+ endc
+ endc
+ rts
+
+ pag
+ ifne No_IRQ
+********************
+* MPSCIRQ:  Process interrupt (input or output) from Mpsc
+*
+* Passed:  (a2) = Static Storage addr
+*          (a3) = port address ptr
+*          (a6) = system global data ptr
+*
+* Returns:  (cc) = carry set if false interrupt, else clear
+*
+* Destroys:  May only destroy D0, D1, A0, A2, A3 and A6.  Any
+*            other registers used MUST be preserved.
+*
+
+* Exit here if no interrupts
+
+MPSIRQEx: ori.b #Carry,ccr return with carry set
+ rts
+
+MPSCIRQ: movea.l BaseAddr(a2),a0 point to base of port
+ REGMOVE 'from',MPSImr(a0),d1 get IRQ status register
+ ifdef VIGRA
+ move.l a1,-(a7)
+ movea.l DatModDat(a2),a1
+ and.b MPSImr_Dat(a1),d1 mask out disabled interrupts
+ move.l (a7)+,a1
+ else
+ move.w Globl(a2),d0 get offset to global
+ and.b (a6,d0.w),d1 mask out disabled interrupts since 68681 doesn't!!!
+ endc
+ move.l a3,d0 get port address
+ btst.l #ABbit,d0 is this channel B?
+ beq.s MIRQ.a if channel A, branch
+
+* Note! Check for receive interrupt first.
+* 
+ btst #IRQ_BrkB,d1 break change interrupt?
+ beq.s MIRQ2 branch if not
+ move.b #BreakRst,MPSCntl(a3) reset it
+MIRQ2 andi.b #IRQP_BitB,d1 mask off all except B interrupts
+ beq.s MPSIRQEx if no interrupts, branch
+ btst.l #IRQ_RecB,d1 is this an rec interrupt?
+ beq.s OutIRQ if not, branch
+ bra.s MPSIRQ.c branch if rec irq
+
+MIRQ.a btst #IRQ_BrkA,d1 break change interrupt?
+ beq.s MIRQ.a2 branch if not
+ move.b #BreakRst,MPSCntl(a3) reset it
+MIRQ.a2 andi.b #IRQP_BitA,d1 mask off all except A interrupts
+ beq.s MPSIRQEx if no interrupts, branch.
+ btst.l #IRQ_RecA,d1 is this a recv interrutpt?
+ beq.s OutIRQ if not, branch
+MPSIRQ.c move.b InHalt(a2),d1 XON or XOFF waiting to be sent?
+ bpl InIRQ handle input IRQ if not
+ CHECK #TxE_Bit,MPSBdSt(a3) transmit buffer empty?
+ beq InIRQ handle input IRQ if not
+ bclr.l #Signbit,d1 clear Sign bit
+ REGMOVE 'to',d1,MPSData(a3) send character
+ move.b V_XON(a2),d0 get X-ON value
+ eor.b d0,d1 get Zero if X-ON
+ move.b d1,InHalt(a2) mark it sent
+ bra InIRQ handle input IRQ
+
+ pag
+********************
+* OutIRQ:  Mpsc output interrupt service
+*
+* Passed:  (a0) = device base address
+*          (a2) = static storage address
+*          (a3) = device port address
+*          (a6) = system global data ptr
+*          d1.b = device status register contents
+*
+OutIRQ: move.b InHalt(a2),d0 send X-ON or X-OFF?
+ bpl.s OutI_a branch if not
+ bclr.l #Signbit,d0 clear Sign bit
+ REGMOVE 'to',d0,MPSData(a3) send character
+ move.b V_XON(a2),d1 get X-ON value
+ eor.b d1,d0 get Zero if X-ON
+ move.b d0,InHalt(a2) mark it sent
+ tst.b OutHalt(a2) is output halted?
+ bne.s OutIRQ3 branch if so
+ rts
+
+OutI_a btst.b #H_XOFF,OutHalt(a2) is output suspension requested ?
+ bne.s OutIRQ3 ..yes; go disable interrupts
+ move.w OutCount(a2),d1 any Data in buffer?
+ beq.s OutIRQ2 branch if not
+ subq.w #1,d1 taking one char
+ move.l a1,-(a7) save a1
+ movea.l OutEmpty(a2),a1 get pointer to next char
+ MEMMOVE 'to',(a1)+,MPSData(a3) put Data in acia
+ cmpa.l OutEnd(a2),a1 end of buffer?
+ blo.s OutI_1 branch if not
+ lea.l OutBuf(a2),a1 point to start
+OutI_1 move.l a1,OutEmpty(a2) update pointer
+ movea.l (a7)+,a1 
+ move.w d1,OutCount(a2) update char count
+ cmpi.w #MinBuff,d1 ready for more data?
+ bhi.s Wake90 exit if not
+ tst.w d1 output buffer empty?
+ bne.s WakeUp just wake up if not
+OutIRQ2 bset.b #H_Empty,OutHalt(a2) flag halted; buffer empty
+
+OutIRQ3:
+ ifdef VIGRA
+ move.l a1,-(a7)
+ movea.l DatModDat(a2),a1
+ move.b Otpt_Off(a2),d1 get disable mask
+ and.b d1,MPSImr_Dat(a1) disable irqs in data mod copy
+ move.b MPSImr_Dat(a1),MPSImr(a0) write to regiseter
+ move.l (a7)+,a1
+ else
+ move.w Globl(a2),d0 get offset to global
+ move.b Otpt_Off(a2),d1 get disable mask
+ and.b d1,(a6,d0.w) disable interrupts in global register
+ GLOBMOVE MPSImr(a0) write to register
+ endc
+
+WakeUp: move.w V_WAKE(a2),d0 Owner waiting?
+ beq.s Wake90 ..no; return
+ clr.w V_WAKE(a2)
+ moveq.l #S$Wake,d1 Wake up signal
+
+SendSig: OS9svc F$Send wake up process
+
+Wake90: moveq.l #0,d1 clear carry
+ rts
+
+ pag
+********************
+* InIRQ:  Mpsc input interrupt service
+*
+* Passed:  (a0) = device base address
+*          (a2) = static storage address
+*          (a3) = device port address
+*          (a6) = system global data ptr
+*
+
+* Notice the Absence of Error Checking Here
+
+InIRQ: REGMOVE 'from',MPSBdSt(a3),d1 get error status
+ andi.b #InputErr,d1 any errors?
+ beq.s InIRQ.a branch if not
+ or.b d1,V_ERR(a2) update cumulative errors
+ REGMOVE 'to',#ErrorRst,MPSCntl(a3) reset special error condition
+InIRQ.a REGMOVE 'from',MPSData(a3),d0 Read input char
+ beq.s InIRQ1 ..NULL, impossible ctl chr
+ cmp.b V_INTR(a2),d0 keyboard Interrupt?
+ beq InAbort ..Yes
+ cmp.b V_QUIT(a2),d0 keyboard Quit?
+ beq InQuit ..Yes
+ cmp.b V_PCHR(a2),d0 keyboard Pause?
+ beq InPause ..Yes
+ cmp.b V_XON(a2),d0 X-ON continue?
+ beq InXON ..Yes
+ cmp.b V_XOFF(a2),d0 X-OFF Immediate Pause request?
+ beq InXOFF ..Yes
+
+InIRQ1: move.l a1,-(a7) save a1
+ movea.l InFill(a2),a1 point to current char
+ move.b d0,(a1)+ put Data in buffer
+ addq.w #1,InCount(a2) count character
+ cmpi.w #InpSiz,InCount(a2) buffer full?
+ bls.s InIRQ10 branch if not
+ subq.w #1,InCount(a2) uncount character
+ ori.b #IPOverrun,V_ERR(a2) simulate ip over-run error
+ move.l (a7)+,a1 restore a1
+ bra WakeUp exit
+
+InIRQ10 cmp.l InEnd(a2),a1 end of buffer?
+ blo.s InIRQ30 branch if not
+ lea.l InpBuf(a2),a1 point to start of buffer
+InIRQ30 move.l a1,InFill(a2) update next in pointer
+ move.l (a7)+,a1 restore a1
+ move.w SigPrc(a2),d0 any process to notify?
+ beq.s InIRQ4 ..no
+ move.w SigPrc+2(a2),d1 get signal code
+ clr.w SigPrc(a2) disable signal sending
+ bra SendSig signal waiting process & return
+
+InIRQ4 move.b V_XOFF(a2),d0 get X-OFF char
+ beq.s InIRQ9 branch if not enabled
+ cmpi.w #MaxBuff,InCount(a2) is buffer almost full?
+ blo.s InIRQ9 bra if not
+ move.b InHalt(a2),d1 have we sent XOFF?
+ bne.s InIRQ9 yes then don't send it again
+ bclr.l #Signbit,d0 insure Sign clear
+ move.b d0,V_XOFF(a2)
+ ori.b #Sign,d0 set Sign bit
+ move.b d0,InHalt(a2) flag input halt
+ ifdef VIGRA
+ move.l a1,-(a7)
+ movea.l DatModDat(a2),a1
+ move.b Otpt_On(a2),d1 get enable flag
+ or.b d1,MPSImr_Dat(a1) write into dat mod copy
+ move.b MPSImr_Dat(a1),MPSImr(a0) write to hardware
+ move.l (a7)+,a1
+ else
+ move.w Globl(a2),d0 get offset to global
+ move.b Otpt_On(a2),d1 get enable flag
+ or.b d1,(a6,d0.w) write into global register
+ GLOBMOVE MPSImr(a0) write to device register
+ endc
+ 
+InIRQ9 CHECK #RxA_Bit,MPSBdSt(a3) any more input available?
+ beq WakeUp exit if not
+ bra InIRQ go get it if so
+
+ pag
+********************
+* Control character routines
+*
+* Passed:  (a0) = device base address
+*          (a2) = static storage ptr
+*          (a3) = device port address
+*          (a6) = system global data ptr
+*          d0.b = received input character
+*
+InPause: tst.l V_DEV2(a2) any echo device?
+ beq InIRQ1 buffer char and exit if not
+ move.l a1,-(a7) save it
+ movea.l V_DEV2(a2),a1 get echo device static ptr
+ move.b d0,V_PAUS(a1) request pause
+ move.l (a7)+,a1 restore it
+ bra InIRQ1 buffer char and exit
+
+InAbort: moveq.l #S$Intrpt,d1 keyboard INTERRUPT signal
+ bra.s InQuit10
+
+InQuit: moveq.l #S$Abort,d1 Abort signal
+
+InQuit10 move.l d0,-(a7) save input char
+ move.w V_LPRC(a2),d0 last process ID
+ beq.s InQuit90 ..none; exit
+ clr.w V_WAKE(a2)
+ OS9svc F$Send send signal to last user
+InQuit90 move.l (a7)+,d0 restore input char
+ bra InIRQ1 buffer char, exit
+
+InXON: bclr.b #H_XOFF,OutHalt(a2) enable output
+ tst.b OutHalt(a2) still halted (buffer empty)?
+ bne.s InXExit exit if so
+ ifdef VIGRA
+ move.l a1,-(a7)
+ movea.l DatModDat(a2),a1
+ move.b Otpt_On(a2),d1 get enable flag
+ or.b d1,MPSImr_Dat(a1) write into dat mod copy
+ move.b MPSImr_Dat(a1),MPSImr(a0) write to hardware
+ move.l (a7)+,a1
+ else
+ move.w Globl(a2),d0 get offset to global
+ move.b Otpt_On(a2),d1 get enable flag
+ or.b d1,(a6,d0.w) write into global register
+ GLOBMOVE MPSImr(a0) write into register
+ endc
+ CHECK #TxE_Bit,MPSBdSt(a3) output buffer empty?
+ beq.s InXExit exit if not
+ bra OutIRQ start output if so
+
+InXOFF: bset.b #H_XOFF,OutHalt(a2) flag output restricted
+ movea.l BaseAddr(a2),a0
+ ifdef VIGRA
+ move.l a1,-(a7)
+ movea.l DatModDat(a2),a1
+ move.b Otpt_Off(a2),d1 get enable flag
+ and.b d1,MPSImr_Dat(a1) write into dat mod copy
+ move.b MPSImr_Dat(a1),MPSImr(a0) write to hardware
+ move.l (a7)+,a1
+ else 
+ move.w Globl(a2),d0 get offset to global
+ move.b Otpt_Off(a2),d1 get transmit disable flag
+ and.b d1,(a6,d0.w) write into global register
+ GLOBMOVE MPSImr(a0) write to device register
+ endc
+InXExit: moveq.l #0,d1 clear carry
+ rts
+ endc
+
+ ends

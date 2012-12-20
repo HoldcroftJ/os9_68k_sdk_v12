@@ -1,0 +1,40 @@
+******************************************************************************
+******************************************************************************
+** Root Psect for Power interface Module                                    **
+******************************************************************************
+** Copyright 1995 by Microware Systems Corporation                          **
+** Reproduced Under License                                                 **
+**                                                                          **
+** This source code is the proprietary confidential property of             **
+** Microware Systems Corporation, and is provided to licensee               **
+** solely for documentation and educational purposes. Reproduction,         **
+** publication, or distribution in any form to any party other than         **
+** the licensee is strictly prohibited.                                     **
+******************************************************************************
+** Edition History:                                                         **
+** #   Date     Comments                                          By        **
+** --- -------- ------------------------------------------------- --------- **
+**   1 01/29/96 Creation                                          rmm       **
+**   2 02/09/96 Modified to return error if there is one          jgm       **
+**   3 06/04/96 Cleaned up to ship out with the Beta release      jgm       **
+******************************************************************************
+            use		<oskdefs.d>
+
+Edition		set	2	over-ridden by C-code
+Typ_Lang	set 	(Systm<<8)+Objct		system module / object code
+Attr_Rev	set 	((ReEnt+SupStat)<<8)+0	supervisor state / sharable
+			psect	ROOT,Typ_Lang,Attr_Rev,Edition,0,PIF_init
+
+
+PIF_init:
+	movem.l d0/a1/a6,-(sp)	save registers
+	move.l  a6,d0			pass system global pointer to init()
+	move.l  a3,a6			set up static storage
+	bsr     pwrif_init		call C init entry point
+	tst.l   d0				check return status
+	beq.s   _Entry_end
+	move.l  d0,d1			error: return error code and set carry bit
+	ori.b   #Carry,ccr
+_Entry_end
+	movem.l (sp)+,d0/a1/a6	restore registers
+	rts						return status

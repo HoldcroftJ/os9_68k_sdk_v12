@@ -1,0 +1,433 @@
+ nam rtc58274.a
+ ttl rtc58274 RTC Subroutine Module
+
+********************
+* rtc58274 RTC Subroutine Module
+
+* Copyright 1987, 1989, 1995, 1996 by Microware Systems Corporation
+* Reproduced Under License
+
+* This source code is the proprietary confidential property of
+* Microware Systems Corporation, and is provided to licensee
+* solely for documentation and educational purposes. Reproduction,
+* publication, or distribution in any form to any party other than
+* the licensee is strictly prohibited.
+
+
+********************
+* Edition History
+*  #    Date      Comments                                        By
+* -- -------- --------------------------------------------------- ---
+* 01 87/10/28 Converted from mm58274.a version 12                 jal
+* 02 89/03/01 Cleaned up and made truly functional                jal
+*             ---- OS-9/68K V2.3 Release ----
+*             ---- OS-9/68K V2.4 Release ----
+*             ---- OS-9/68K V3.0 released ----
+* 03 95/01/23 Correction of Attr_Rev field construction.          ats
+*             ---- OS-9/68K V3.0.2 Release ----
+* 04 96/07/16 Millenium support added                             jf
+*             ---- OS-9/68K V3.0.3 Release ----
+*             ---- OS-9/68K V3.1 Release ----
+*
+Edition equ 4 current edition number
+Revision set 0
+
+Typ_Lang set (Sbrtn<<8)+Objct Subroutine Object module
+Attr_Rev set ((ReEnt+SupStat)<<8)+Revision
+
+ psect RTClock,Typ_Lang,Attr_Rev,Edition,0,RTCTab
+
+ use defsfile
+
+ ifndef BusWidth
+BusWidth equ 1 default for VME133
+ endc
+
+ ifndef XTAL
+XTAL equ 0 default XTAL value
+ endc
+ 
+
+********************
+* MM58274 RTC Definitions
+*
+HaltClk equ $05
+StartClk equ $01
+Mode24 equ $01
+b_Chg equ 3
+Carry equ %00000001
+
+ ifdef VME133
+MM58274_Vect equ 255 vector for handling clock read irq's
+ endc VME133
+
+********************
+* MM58274 Register offsets:
+*
+ ifdef VME133
+BW set 1 consecutive addresses
+ org 0 even-byte addressable RTC
+ else
+BW set BusWidth
+ org 1 use this for odd-byte addressable RTC
+ endc
+
+ConReg do.b BW Control Register (R/W)
+Tenths do.b BW tenths of seconds (R)
+UnitSecs do.b BW seconds (R/W)
+TensSecs do.b BW tens of seconds (R/W)
+UnitMins do.b BW minutes (R/W)
+TensMins do.b BW tens of minutes (R/W)
+UnitHour do.b BW hours (R/W)
+TensHour do.b BW tens of hours (R/W)
+UnitDays do.b BW days (R/W)
+TensDays do.b BW tens of days (R/W)
+UnitMnth do.b BW months (R/W)
+TensMnth do.b BW tens of months (R/W)
+UnitYear do.b BW years (R/W)
+TensYear do.b BW tens of years (R/W)
+DayWeek do.b BW day of the week (R/W)
+ClkSet do.b BW clock setting & interrupt registers
+
+********************
+* Century Definitions
+*
+* Support for Millenium works as follows:
+*
+* "NO_MILLENIUM" symbol defined:
+*   GetTime returns two-digit year added to base Century symbol value
+*
+* "NO_MILLENIUM" symbol undefined:
+*    GetTime returns two-digit year added to either CentPreEpoch or
+*    CentPostEpoch symbol value, depending on the two-digit year
+*    value compared to the Epoch symbol value
+*
+* In the event that this code functions near the year 2070,
+* the Century symbol may be updated to the year 2000 and the
+* NO_MILLENIUM symbol defined. Then, in the event that this
+* code functions near the year 2100, the CentPreEpoch symbol
+* may be updated to the year 2100, the CentPostEpoch symbol
+* may be updated to the year 2000, and the NO_MILLENIUM symbol
+* undefined to carry the driver near the year 2170, after
+* which nobody will remember how to do all this. :-)
+*
+
+  ifdef NO_MILLENIUM
+
+Century equ 1900 old-style; just 1900's
+
+  else
+
+Epoch equ 70 year of epoch within the century
+CentPreEpoch equ 2000 century to add to pre-epoch years
+CentPostEpoch equ 1900 century to add to post-epoch years
+
+  endc NO_MILLENIUM
+
+ page
+ 
+********************
+* RTCTab: Branch table for the two
+*         main subroutines
+*
+* General Description: This branch to "GetTime" with the "SetTime"
+*                      subroutine immediately following are accessed as
+*                      an offset table by the tickgeneric code in order
+*                      to effectively start execution at the appropriate
+*                      subroutine after a F$Link call to this module.
+*                      Tickgeneric uses the format: jsr GetTime(a1)
+*                                                   jsr SetTime(a1)
+*                      
+*                      Where GetTime = 0, SetTime = 4, and (a1) = the
+*                      execution address of this module.  (i.e. RTCTab)
+*
+RTCTab: bra GetTime
+
+
+********************
+* SetTime - a routine to set the Real-Time 
+* Clock up with the user supplied time.
+*
+* Passed:  (d0) = time data
+*          (d1) = date data
+*
+* Usage:   (a3) = base address of tick device
+*
+* Returns: (cc) = Carry set if error
+*          (d1) = zero if no error
+*                 error code if error occurred
+*
+SetTime:
+ movem.l d2,-(a7) save the register
+ movea.l #MM58274_Base,a3 get port address of real time clock
+ move.b #HaltClk,ConReg(a3) halt clock
+ move.w d1,d2 get year
+ andi.w #3,d2 get lowest two bits of year
+ lsl.w #2,d2 produce no. of years since last leap year
+ ori.b #Mode24,d2 set up 24 hour mode at the same time
+ move.b d2,ClkSet(a3) set 24 hour clock mode
+ move.l d1,d2 copy whole date to d2 for safe keeping
+
+* Set time in real time clock:
+
+ bsr BinBCD returns seconds in lower word, tens of seconds in high word
+ move.b d1,UnitSecs(a3) load seconds register
+ swap d1 get tens of seconds in lower word
+ move.b d1,TensSecs(a3) load tens of seconds register
+
+ lsr.l #8,d0 shift minutes into LSB
+ bsr BinBCD returns minutes in lower word, tens of minutes in high word
+ move.b d1,UnitMins(a3) load minutes register
+ swap d1 get tens of minutes in lower word
+ move.b d1,TensMins(a3) load tens of minutes register
+
+ lsr.l #8,d0 shift hours into LSB
+ bsr BinBCD returns hours in lower word, tens of hours in high word
+ move.b d1,UnitHour(a3) load hours register
+ swap d1 get tens of hours in lower word
+ move.b d1,TensHour(a3) load tens of hours register
+* Set date in real time clock:
+
+ move.l d2,d0 copy date to d0
+ bsr BinBCD returns days in lower word, tens of days in high word
+ move.b d1,UnitDays(a3) load days register
+ swap d1 get tens of days in lower word
+ move.b d1,TensDays(a3) load tens of days register
+
+ lsr.l #8,d0 shift months into LSB
+ bsr BinBCD returns months in lower word, tens of months in high word
+ move.b d1,UnitMnth(a3) load months register
+ swap d1 get tens of months in lower word
+ move.b d1,TensMnth(a3) load tens of months register
+
+ lsr.l #8,d0 shift years into LSB
+ move.l d0,d1 save copy to play with
+ divu.w #100,d1 get year (mod 100)
+ swap d1 move remainder to LSB of d1
+ andi.l #$FF,d1 clear upper bytes
+ 
+ bsr BinBCD_10 returns years in lower word, tens of years in high word
+ move.b d1,UnitYear(a3) load years register
+ swap d1 get tens of years in lower word
+ move.b d1,TensYear(a3) load tens of years register
+
+ move.b #StartClk,ConReg(a3) restart clock
+ movem.l (a7)+,d2 retrieve register
+ moveq #0,d1 no error
+ rts
+
+ page
+ 
+********************
+* GetTime - a routine to return the time
+* from the Real-Time clock to the user.
+*
+* Passed:  Nothing
+*
+* Usage:   (a3) = base address of tick device
+*
+* Returns: (d0) = time data
+*          (d1) = date data
+*
+*          (cc) = Carry set if error
+*          (d1) = error code if error occurred
+*
+GetTime:
+ movem.l a0/a2-a3/d2-d3,-(a7) save the registers
+ movea.l #MM58274_Base,a3 get port address of real time clock
+
+ ifdef VME133
+*
+* Allocate temporary static storage
+*
+ move.l #16,d0 request 16 bytes
+ suba.l a2,a2 clear a2 for exit error testing
+ os9 F$SRqMem get temporary static storage
+ bcs CleanUp if an error occurred, exit
+*
+* Set up IRQ Handler for bogus interrupts
+*
+ move.b #MM58274_Vect,d0 get vector number
+ move.b #1,d1 get priority
+ lea BogusIRQ(pc),a0 get address of service routine
+ os9 F$IRQ put routine in polling table
+ bcs CleanUp if an error occurred, exit
+ move.b #1,(a2) set irq flag
+ endc VME133
+
+ moveq.l #0,d2 clear time register
+ tst.b ConReg(a3) clear data changed flag and interrupts
+RetLoop:
+ ifdef VME133
+ move.b #1,(a2) set irq flag
+ endc VME133
+ move.b TensSecs(a3),d1 get tens of seconds
+ ifdef VME133
+ move.b #1,(a2) set irq flag
+ endc VME133
+ move.b UnitSecs(a3),d0 get seconds as well
+ bsr BCDBin combine these to get all the seconds in d0.l
+ add.l d0,d2 add to current total of time 
+ 
+ ifdef VME133
+ move.b #1,(a2) set irq flag
+ endc VME133
+ move.b TensMins(a3),d1 get tens of minutes
+ ifdef VME133
+ move.b #1,(a2) set irq flag
+ endc VME133
+ move.b UnitMins(a3),d0 get minutes as well
+ bsr BCDBin combine these to get all the minutes in d0.l
+ lsl.l #8,d0 put minutes in correct byte
+ add.l d0,d2 add to current total of time
+
+ ifdef VME133
+ move.b #1,(a2) set irq flag
+ endc VME133
+ move.b TensHour(a3),d1 get tens of hours
+ ifdef VME133
+ move.b #1,(a2) set irq flag
+ endc VME133
+ move.b UnitHour(a3),d0 get hours as well
+ bsr BCDBin combine these to get all the hours in d0.l
+ swap d0 put hours in correct byte
+ add.l d0,d2 add to current total of time
+*
+* Get date from real-time clock:
+*
+ moveq.l #0,d3 clear date register
+ ifdef VME133
+ move.b #1,(a2) set irq flag
+ endc VME133
+ move.b TensDays(a3),d1 get tens of days
+ ifdef VME133
+ move.b #1,(a2) set irq flag
+ endc VME133
+ move.b UnitDays(a3),d0 get days as well
+ bsr BCDBin combine these to get all the days in d0.l
+ add.l d0,d3 add to current total of date
+ 
+ ifdef VME133
+ move.b #1,(a2) set irq flag
+ endc VME133
+ move.b TensMnth(a3),d1 get tens of months
+ ifdef VME133
+ move.b #1,(a2) set irq flag
+ endc VME133
+ move.b UnitMnth(a3),d0 get months as well
+ bsr.s BCDBin combine these to get all the months in d0.l
+ lsl.l #8,d0 put months in correct byte
+ add.l d0,d3 add to current total of date
+
+ ifdef VME133
+ move.b #1,(a2) set irq flag
+ endc VME133
+ move.b TensYear(a3),d1 get tens of years
+ ifdef VME133
+ move.b #1,(a2) set irq flag
+ endc VME133
+ move.b UnitYear(a3),d0 get years as well
+ bsr.s BCDBin combine these to get all the years in d0.l
+
+	ifdef NO_MILLENIUM
+
+ addi.w #Century,d0 add in century
+
+	else
+
+ cmpi.b #Epoch,d0 check d0 aginst the year in Epoch
+ blt.s PreEpoch 
+ addi.w #CentPostEpoch,d0 years are based on post-epoch century
+ bra.s years_set
+  
+PreEpoch
+
+ addi.w #CentPreEpoch,d0 years are based on pre-epoch century
+
+years_set equ *
+
+	endc NO_MILLENIUM
+
+ swap d0 put years in correct byte
+ add.l d0,d3 add to current total of date 
+ ifdef VME133
+ move.b #1,(a2) set irq flag
+ endc VME133
+ btst #b_Chg,ConReg(a3) has time changed while reading it ?
+ bne RetLoop if it has then read time all over again
+
+ ifdef VME133
+ move.l #2000,d0     wait for any leftover bogus IRQ's
+WaitIRQ dbra d0,WaitIRQ 
+*******************************************************
+* CleanUp: Deallocate the temporary static storage and
+*          remove IRQ routine from the polling table
+*
+CleanUp: move sr,-(a7)
+ cmpa.l #0,a2 is this a memory  error exit?
+ beq.s CUErr if yes, skip de-allocation
+ move.b #MM58274_Vect,d0 get vector number
+ suba.l a0,a0 
+ os9 F$IRQ remove routine from polling table
+ move.l #16,d0 return 16 bytes
+ os9 F$SRtMem return temporary static storage
+CUErr move (a7)+,sr
+ bcs.s CUExit
+ endc VME133
+
+ move.l d2,d0 copy time data to d0
+ move.l d3,d1 copy date data to d1
+CUExit movem.l (a7)+,a0/a2-a3/d2-d3 save the registers
+ rts
+
+ page
+ 
+********************
+* BinBCD - a routine for converting a binary number
+* (of less than a hundred) to BCD.
+*
+* Passed:  (d0) = the number to be converted
+*
+* Returns: (d1) = units in lower word, tens in upper
+*          (d0) = intact
+*
+BinBCD:
+ move.l d0,d1 save copy to play with
+ andi.l #$ff,d1 get LSB (seconds)
+BinBCD_10 divu #10,d1 divide number by 10, quotient in low word rem. in high word
+ swap d1 reverse these two words 
+ rts
+
+
+********************
+* BCDBin - a routine for converting a BCD number
+* (of less than a hundred) to binary.
+*
+* Passed: d0 containing the units to be converted
+*         d1 containing the tens to be converted
+*
+* Returns: d0 containing the binary value of the above
+*          registers combined together.
+*
+BCDBin:
+ andi.l #$0f,d0 only 4 bit data bus so save only LSN
+ andi.l #$0f,d1 only 4 bit data bus so save only LSN
+ mulu #10,d1 multiply tens by ten
+ add.l d1,d0 add the two together
+ rts
+
+ ifdef VME133
+***********************************
+* IRQ Handler for bogus interrupts
+*
+BogusIRQ:
+ tst.b (a2) is this our interrupt?
+ bne.s IsOurs
+ ori #Carry,ccr
+ rts
+IsOurs
+ clr.b (a2) clear the interrupt flag
+ rts (previous instruction clears carry)
+ endc VME133
+
+ ends

@@ -1,0 +1,108 @@
+#ifndef _INIT_DES
+#define _INIT_DES
+
+
+#include <module.des>
+
+struct mod_config {
+	u_int32		_mmaxmem;
+	int16		_mpollsz, "IRQ polling table entries";
+	int16		_mdevcnt, "Device table entries";
+	int16		_mprocs, "Process table entries";
+	int16		_mpaths, "Path table entries";
+	pointer u_int16 _msysparam = param_string;
+	pointer u_int16	_msysgo = sysgo_name;
+	pointer u_int16	_msysdrive = drive_name;
+	pointer u_int16	_mconsol = console_name;
+	pointer u_int16	_mextens = extens;
+	pointer u_int16	_mclock = clock_name;
+	int16		_mslice, "Clock ticks per time slice";
+	int16		_mip_id, "Interprocessor identification";
+	u_int32		_msite, "Installation site code";
+	pointer u_int16 _minstal = install_name;
+	int32		_mcputyp, "CPU class:(68000/010/020/030/3XX/040/070)";
+	int8		_mos9lvl1, "OS-9 level";
+	int8		_mos9lvl2, "OS-9 major release";
+	int8		_mos9lvl3, "OS-9 minor release";
+	int8		_mos9lvl4, "OS-9 sub-release";
+	pointer u_int16 _mos9rev = rev_string;
+	int16		_msyspri, "Initial system priority";
+	int16		_mminpty, "Initial minimum executable priority";
+	int16		_maxage, "Initial maximum natural process age";
+	int16		_mmdirsz, "Initial maximum module count";
+	int16		_mreserv3;
+	int16		_mevents, "System event table size";
+	u_int8		_mcompat, "Version change smooth byte 1";
+	u_int8		_mcompat2, "Version change smoothing byte 2";
+	pointer u_int16	_mmemlist = mem_list;
+	int16		_mstacksz, "IRQ stack size:This field is in terms of longwords";
+	int16		_mcoldretrys, "Coldstart's \"chd\" retry counter";
+	int16		_mreserv1;
+	int16		_mreserv2;
+	pointer u_int16 _mcachelist = cache_list;
+	pointer u_int16	_mioman = ioman_name;
+	pointer u_int16 _mpreio = preio_extens;
+	int16		_msysconf, "System configuration control flags";
+	u_int16		_mnumsigs;
+	u_int16		_mprcdescstack, "Process descriptor stack size";
+	u_int32		_mres1;
+	u_int32		_mres2;
+	u_int32		_mres3;
+	u_int32		_mres4;
+	u_int32		_mres5;
+	u_int32		_mres6;
+	u_int32		_mres7;
+	u_int32		_mres8;
+}, "Configuration module information";
+
+string preio_extens, "Pre-I/O extension modules";
+
+string ioman_name = "Name of IOMan module";
+
+repeat cache_list {
+	u_int32 reg_start, "Start of region";
+	u_int32 reg_end, "End of region";
+	u_int32 reg_mode, "Cache modes";
+	u_int32 not_used;
+} until (cache_list.reg_start == -1), "SSM(MMU) cache modes list";
+
+repeat mem_list {
+	u_int16 type, "Memory type code";
+	int16 prior, "Memory allocation priority";
+    u_int16 access, "Access permissions";
+	int16 blksiz, "Search block size";
+    u_int32 lolim, "Start address";
+	u_int32 hilim, "End address (+ 1)";
+	pointer u_int16 descr = desc_string;
+	u_int16 rsvd1;
+	u_int32 dma_addr, "DMA address translation";
+	u_int32 rsvd2;
+	u_int32 rsvd3;
+} until (mem_list.type == 0 || mem_list.prior == 0), "Colored memory list";
+
+string desc_string, "Description (optional)";
+
+string rev_string, "OS-9 Level/revision text";
+
+string install_name, "Installation name";
+
+string extens, "Extension modules";
+
+string param_string, "Parameter string:"
+"This string is passed to the initial process. See Initial process name";
+
+string sysgo_name, "Initial process name";
+
+string drive_name, "System RBF device";
+
+string console_name, "System SCF device";
+
+string clock_name, "Clock driver name";
+
+module {
+	modhcom,
+	mod_config
+};
+
+
+#endif /* _INIT_DES */

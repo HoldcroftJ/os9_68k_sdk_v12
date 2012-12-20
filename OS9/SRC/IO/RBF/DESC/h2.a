@@ -1,0 +1,8 @@
+ nam H2 Device Descriptor
+ use defsfile
+
+ use "rbfdesc.a"
+
+DrvNum set 2
+ DiskH2
+ ends

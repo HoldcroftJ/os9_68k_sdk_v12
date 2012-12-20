@@ -1,0 +1,6 @@
+ opt f issue form feeds
+ opt -d96
+ use <oskdefs.d>
+ use systype.d
+ use <nvram.d>
+

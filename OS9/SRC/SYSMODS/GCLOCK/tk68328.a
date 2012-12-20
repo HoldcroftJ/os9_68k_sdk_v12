@@ -1,0 +1,152 @@
+******************************************************************************
+* Tick driver for MC68328 internal Timer 1 module                           **
+******************************************************************************
+** Copyright 1995, 1996 by Microware Systems Corporation                    **
+** Reproduced Under License                                                 **
+**                                                                          **
+** This source code is the proprietary confidential property of             **
+** Microware Systems Corporation, and is provided to licensee               **
+** solely for documentation and educational purposes. Reproduction,         **
+** publication, or distribution in any form to any party other than         **
+** the licensee is strictly prohibited.                                     **
+******************************************************************************
+** Edition History:                                                         **
+** #   Date     Comments                                          By        **
+** --- -------- ------------------------------------------------- --------- **
+*  01  09/08/95 Created                                            rws      **
+*  02  12/21/95 moved initialization from sysinit.a to here        rws      **
+*  03  08/01/96 General cleanup.                                   ats      **
+*               --- OS-9/68K MC68328 Support Beta2 Release ---              **
+******************************************************************************
+
+ nam tk68328.a
+ ttl 68328 tick driver for use with tickgeneric.a
+
+********************
+* 68328 tick driver for use with tickgeneric.a
+
+Edition equ 3
+
+ psect Ticker,0,0,0,0,0
+
+ use <defsfile>
+
+********************************
+*  This is a tick driver for the mc68328 processor.  It uses Timer 1
+*  at interrupt level 6.  Refer to timm328.d
+********************************
+
+********************************
+* Expected variables and constants:
+* 
+* The following constants are used in the generic
+* code and must be defined GLOBALLY by this file:
+*
+TiksPerSec: equ TicksSec (Ticks Per Second) - Pretty self-explanatory.
+ClockVect: equ ClkVect clock vector
+ClockPort: equ ClkPort tick device base address
+ClockPrior: equ ClkPrior clock priority
+
+ page
+
+********************************
+* StartTick: (Subroutine) Initialize
+*            the "ticker" device hardware
+*            and enable it to produce "tick" IRQs
+*
+* General Description: This subroutine is called by the "tickgeneric"
+*                      initialization code.  The purpose of this
+*                      subroutine is to program the hardware registers
+*                      of the "ticker" device so that it will produce
+*                      "tick" interrupts at the rate specified by the
+*                      variable "TicksSec" - ticks per second.  This
+*                      variable is generally defined in "systype.d"
+*                      and is often set to a value of 100 ticks per
+*                      second.  The value of ClkVal also defined in 
+*                      systype.d must correspond to TicksSec.
+*
+* Registers Passed: (a3) = The base address of the "ticker" hardware
+*                   (a5) = Caller's register stack pointer
+*                   (a6) = Global storage pointer
+*
+* Registers Returned: (d1) = Error code if error occurred
+*                            Zero if no error
+*                     (cc) = carry set if error occurred
+*                            carry clear if no error
+*
+* NOTE: This subroutine may alter registers d0, d1, a0, a1 and a2 without
+*       consequence.  All others MUST be preserved!
+*
+* ANOTHER NOTE: The tickgeneric code that calls this subroutine DOES NOT
+*               MASK the interrupts!  If the initialization code for the
+*               tick device needs the interrupts masked, it must be done
+*               in THIS subroutine!
+*
+StartTick: 
+ subq.l #4,a7 make space for sr (keep stack long-aligned)
+ move.w sr,0(a7) save irq masks
+
+* MC68328 Timer 1 IRQ level set at 6 (non-programmable)
+* IRQ6 vector programmed in initext.a (autovector 6)
+ ori.w #IntMask,sr mask all irqs
+
+* now set up the counter and scaler mode
+*
+ move.w #PreScaler,TPRER(a3) set Prescaler register
+ move.w #ClkVal,TCMP(a3) set Timer-Compare register
+
+* enable interrupt on reference event, set clock source, enable timer:
+ move.w #(TIRQEN+(ClkSource<<b_CLKSOURCE)+TEN),TCTL(a3)
+
+ movea.l #SCRMap,a3  address of the System Configuration Register
+ andi.l #^(MASKTMR1),IMR(a3) unmask Timer 1 IRQ (tick)
+
+ move.w 0(a7),sr restore irqs
+ addq.l #4,a7 toss scratch
+ moveq.l #0,d1 flag no errors
+ rts
+ page
+ 
+********************************
+* TickIRQ: (Interrupt Service Routine)
+*
+* General Description: Check the "ticker" device hardware
+*                      to determine if it caused the interrupt.
+*                      If it did, clear the interrupt in the 
+*                      "ticker" device hardware.
+*                      If it did not cause the interrupt, return
+*                      with the carry bit set in the Condition
+*                      Code Register to flag that an error occurred.
+*
+* Registers Passed: (a3) = ticker chip base address
+*                   (a6) = system global storage pointer
+*
+* Registers Returned: (cc) = Carry set if an error occurred
+*                            If no error occurred, this routine
+*                            does not return, but jumps to the
+*                            Kernel's clock handling routine.
+*
+TickIRQ: 
+ move.w TSTAT(a3),d0    get Timer status register
+ btst.l #b_TCOMP,d0     has Compare Event taken place?
+ beq.s NotClk           no, exit
+
+ movea.l #SCRMap,a0     put SIM module base address in a0
+loop
+ move.w #^TCOMP,TSTAT(a3)    clear Compare Event bit
+ move.w TSTAT(a3),d0    get Timer status register again
+ btst.l #b_TCOMP,d0     is Compare Event still set?
+ bne loop               yes, try to make it 0 again
+ move.l ISR(a0),d0      get Interrupt Status Register
+ btst.l #22,d0          is TMR1 status bit still set?
+ bne loop               yes, try again to clear down Timer interrupt status
+
+ movea.l D_Clock(a6),a0 jump to system clock routine
+ jmp (a0)
+
+NotClk:
+ ori #Carry,ccr         return carry set
+ rts
+
+
+ ends

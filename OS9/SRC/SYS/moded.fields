@@ -1,0 +1,2054 @@
+*======================================================================
+* Microware module editor:  "moded.fields" file.
+*
+*****************************************************************************
+*                                                                           *
+*              Copyright 1998 by Microware Systems Corporation              *
+*                            All Rights Reserved                            *
+*                          Reproduced Under License                         *
+*                                                                           *
+*  This software is confidential property of Microware Systems Corporation, *
+*  and is provided under license for internal development purposes only.    *
+*  Reproduction, publication, modification, distribution, or creation of    *
+*  derivative works in any form to any party other than the Licensee is     *
+*  strictly prohibited, unless expressly provided for under the terms of a  *
+*  mutually executed written license agreement for this software between    *
+*  the end-user and Microware Systems Corporation, or otherwise expressly   *
+*  authorized in writing by Microware Systems Corporation.  Licensee shall  *
+*  reproduce this copyright notice exactly as provided herein on any copies *
+*  of the software that Licensee is authorized to distribute.               *
+*                                                                           *
+*****************************************************************************
+* Edition History:
+*
+*  #    date      reason                                           who
+* --  --------  ------------------------------------------------   ---
+* 01  88/03/31  history starts.                                    wwb
+*               added sc68681/scp68230/sc335/scp335 devcon info.   wwb
+* 02  88/05/02  added ramdisk information.                         wwb
+* 03  88/08/01  fixed description of "type" field.                 wwb
+* 04  88/09/16  added packet size field for net.                   wwb
+* 05  88/09/21  added scsi fields for SBF devices, updated PD_TDrv wwb
+*               comments.
+* 06  88/11/23  added stable id, autosize to rbf control word.     wwb
+* 07  89/01/04  added UCM and GFM descriptor types.                tje
+* 08  89/01/09  added Stack Size to Init module description, added wwb
+*               Init 'compat' descriptions for NoBurst and ZapMem,
+*               removed M$MaxMem (now reserved) from Init module.
+* 09  89/03/06  changed description of Init's stack size, added    wwb
+*               descriptions for scsi options flags (rbf/sbf).
+* 10  89/03/16  fixed devcon offsets for rbf due to ed.9, added    wwb
+*               init module's M$ColdTrys description.
+* 11  89/04/03  added Clock startup description to Init's Compat.  wwb
+* 12  89/04/19  changed PD_ScsiOpts to PD_ScsiOpt for RBF.         wwb
+*               <<<---- OS-9/68000 V2.3 Release ---->>>
+* 13  90/02/16  added PD_MaxCnt for RBF (ripple effect: all RBF    wwb
+*               DevCon offsets adjusted also).
+* 14  90/03/07  added Compat2 descriptions to init module.         wwb
+* 15  90/04/25  added pipe descriptor port address info.           wwb
+* 16  90/07/03  added RBF High-Density defs (PD_Rate, PD_TYP,      wwb
+*               PD-DNS).  Added comments to RBF's PD_SSize for
+*               variable sector size operation.
+* 17  90/07/18	Changed offsets of all DevCon fields for moded #12 AM
+* 18  90/08/29  Updated comments somewhat (for clarity).           wwb
+*               <<<---- OS-9/68000 V2.4 Release ---->>>
+* 19  91/03/01  Updated GFM/UCM offsets for RAVE 1.3 Release.      wwb
+* 20  91/03/19  Restored UCM offsets to ed18: CD-RTOS V1.1 uses    wwb
+*               V2.4 release definitions.
+*               <<<---- OS-9/68000 V2.4.3 Release ---->>>
+* 21  92/07/15  Added Spurious IRQ control (Init's Compat byte)    wwb
+* 22  92/08/04  Started mods for V3.0: added M$SysConf, M$NumSigs, wwb
+*               M$IOMan, M$PreP2 to init module defs.
+* 23  92/10/03  Added M$PrcDescStack field to init module.         wwb
+* 24  92/10/07  Added CRC disable info to M$SysConf.               wwb
+* 25  92/11/24  rename M$PreP2 to M$PreIO.                         wwb
+* 26  92/12/09  prepared for release.                              wwb
+*				<<<---- OS-9/68000 V2.5 (Discovery Pak) Release ---->>>
+* 27  93/01/29  reworked M$MDirSz, obsolete fields (SlowIRQ,DDIO). wwb
+* 28  93/02/08  added PrivAlm to Init module Compat field.         wwb
+* 29  93/02/22  added SSM_NoProt, SSM_SysPT, SysTSDis to Init      wwb
+*               module M$SysConf word.
+* 30  93/03/05  added write-protect flag to rbf's PD_Cntl.         wwb
+* 31  93/03/08  added Append_ mode description to RBF dev mode.    wwb
+* 32  93/03/12  added unimplemented comments to Init's NumSigs.    wwb
+* 33  93/05/10  added socket descriptor information.              ricy
+*               updated IRQ Priority field to reflect F$FIRQ.      wwb
+* 34  93/08/11  improved descriptions of Init module fields, esp.  wwb
+*               wrt ATOMIC kernel.
+* 35  93/08/23  added DevCon descriptions for 68881 drivers with   wwb
+*               new names (sc165, sc68340, sc68349)
+* 36  93/09/17  added CBank defs for Compat2 (init).               wwb
+* 37  93/09/28  prepared for release.                              wwb
+*               <<<---- OS-9/68000 V3.0 Release ---->>>
+* 38  94/06/27  added B_NoMOVES description to M$Compat (replaces  wwb
+*               obsolete B_SlowIRQ).
+*               <<<---- OS-9/68000 V3.0.1 Release ---->>>
+* 39  94/07/15  added scsi_wide descriptions.                      wwb
+* 40  95/05/16  added 68681 DevCon for sc68341.                    wwb
+*				<<<---- OS-9/68000 V3.0.2 Beta 2 Release ---->>>
+* 41  95/06/09  added Append_ mode description to NFM dev mode.    wwb
+*				<<<---- OS-9/68K V3.0.2 Release ---->>>
+* 42  96/02/22  added DevCon description for ram disk driver.      wwb
+*				updated baud rate values for SCF.                  wwb
+* 43  96/07/10	added append mode description for SCF and Pipe.    wwb
+* 44  96/07/18  preparation for V3.0.3 Release.                    wwb
+*				<<<---- OS-9/68K V3.0.3 Release ---->>>
+* 45  98/07/07	added Delblk flag to rbf control word.             wwb
+* 46  98/08/05  Added new copyright info.                          wwb
+*               Added SSM SysConf flags for Init module.           wwb
+* 47  98/08/12  Added RBF partition info.                          wwb
+*				<<<---- OS-9/68K V3.1 Release ---->>>
+* 48  00/05/05  Adjust baudrate help for top baud rates            mgh
+*             $$                    <RELEASE_INFO>                     $$   *
+*======================================================================
+*
+* module fields file for Microware module editor:
+*
+* The syntax of this file is as follows:
+*
+*   - "*" is used to mark a comment line
+*   - "{" is start of repeat fields (for socket descriptor).
+*   - "}" is end of repeat fields
+*   - "#" is used to mark the start of a module definitions section.
+*         The format of this marker is:
+*
+*            <flag>,<mod type>,<dev type>
+*
+*            where:      <flag> = #
+*                    <mod type> = module type in decimal
+*                                 (M$Type field of module).
+*                    <dev type> = device class (PD_DTP field for
+*                                 descriptor type)
+*
+*         When in a module definitions section, the entries to describe
+*         the various fields in the module are composed as follows:
+*
+*         line #1:  ascii name of module field.
+*         line #2:  field format specification, as follows:
+*
+*            <type>,<offset>,<disp base>,<init val>,[<drvr name>]
+*
+*            where:       <type> = field type
+*                                  1 = byte field
+*                                  2 = word field
+*                                  3 = 3-byte field
+*                                  4 = long word field
+*                                  5 = long offset to a string
+*                                  6 = short offset to a string
+*                       <offset> = hex offset of field from module start.
+*                    <disp base> = field contents display base
+*                                  (10 = decimal, 16 = hexadecimal,
+*                                   0 = ascii).
+*                      <def val> = default value (currently unused).
+*                    <drvr name> = name of device driver in which this
+*                                  field is driver specific.  This
+*                                  entry is OPTIONAL, and it is used to
+*                                  describe fields that are specific to
+*                                  a particular driver (i.e. DevCon section).
+*
+*                    NOTE: for "device specific fields" (i.e. DevCon
+*                          section), the offset specified is the offset
+*                          of the field in the DevCon section itself,
+*                          and NOT from the module start.
+*
+*          line #3:  ascii description of field contents.
+*                    The description of the usage of the field is here,
+*                    and it may extend over more than one line.  Each
+*                    line in the description MUST begin with a "!".
+*
+*
+*=====================================*
+* Field descriptions for Init module
+*=====================================*
+*
+#12,0
+reserved
+4,30,10,0
+! This field is currently reserved.
+number of irq polling entries
+2,34,10,0
+! M$PollSz:  This is the number of entries in the IRQ polling table.
+! One entry is required for each interrupt generating device control
+! register.
+device table size
+2,36,10,0
+! M$DevCnt:  This is the number of entries in the system device table.
+! One entry is required for each device in the system.
+initial process table size
+2,38,10,0
+! M$Procs:  This indicates the initial number of active processes
+! allowed in the system.
+! For the ATOMIC kernel, this field is fixed. For the Development kernel,
+! the table will be automatically expanded as needed.
+initial path table size
+2,3a,10,0
+! M$Paths:  This indicates the initial number of open paths in the system.
+! For the ATOMIC kernel, this field is fixed. For the Development kernel,
+! the table will be automatically expanded as needed.
+startup parameter string
+6,3c,0,0
+! M$SParam:  This is the parameter string (if any) to be passed to
+! the first executable module.
+first executable module
+6,3e,0,0
+! M$SysGo:  This is the name of the first executable module, usually
+! SYSGO or Shell.
+default directory name
+6,40,0,0
+! M$SysDev:  This is the name of the initial default directory (usually
+! /D0 or /H0).  IOMan performs a "chd" and "chx" to this device
+! prior to forking the initial process.
+console terminal name
+6,42,0,0
+! M$Consol:  This is the name of the initial I/O device (usually /TERM).
+! This device is opened by IOMan as the standard path for the initial
+! startup module.  It is generally used to set up the initial I/O paths to
+! and from a terminal.
+customization module list
+6,44,0,0
+! M$Extens:  This is a list of customization modules (if any).
+! A customization module is intended to be used to complement or change
+! the existing standard system calls used by OS-9.  These modules
+! will be searched for at startup, and if found will be executed in
+! system state.  Typically, the modules will be located in the boot
+! file.  The default name string to be searched is OS9P2.
+clock module name
+6,46,0,0
+! M$Clock:  This is the name of the clock module.
+ticks per time slice
+2,48,10,0
+! M$Slice:  This is the number of ticks per time slice.
+reserved
+2,4a,16,0
+! This field is currently reserved.
+site code
+4,4c,10,0
+! M$Site:  This is the installation site code.
+installation name
+6,50,0,0
+! M$Instal:  This is the name of the installation.
+cpu type
+4,52,10,0
+! M$CPUTyp:  This is the cpu type in use:  68000, 68008, 68010,
+! 68070, 68020, 68030, 683XX, 68040
+operating system level
+4,56,16,0
+! M$OS9Lvl:  This is the level/version/edition of OS-9:
+!
+!      byte 1 = Level
+! bytes 2 & 3 = Version
+!      byte 4 = Edition
+os-9 revision name
+6,5a,0,0
+! M$OS9Rev:  This is the OS-9 Level/Revision name.
+initial system priority
+2,5c,10,0
+! M$SysPri:  This is the system priority that the first module (usually)
+! SYSGO or Shell) is executed at.  This is generally the base priority
+! that all processes start at.
+minimum priority
+2,5e,10,0
+! M$MinPty:  This is the initial system minimum executable priority.
+maximum age
+2,60,10,0
+! M$MaxAge:  This is the initial system maximum natural age.
+module directory size
+2,62,10,0
+! M$MDirSz:  This is the initial module count for the system.
+! For the ATOMIC kernel, this field is fixed. For the Development kernel,
+! the table will be automatically expanded as needed.
+reserved
+2,64,16,0
+! This field is currently reserved.
+initial event table size
+2,66,10,0
+! M$Events:  This is the initial number of entries allowed in the
+! events table.
+! For the ATOMIC kernel, this field is fixed. For the Development kernel,
+! the table will be automatically expanded as needed.
+compatability flag #1
+1,68,16,0
+! M$Compat:  This is the system compatability flag #1:
+!
+! bit 0 -- 0 = kerc32 (CPU32-family kernel) will attempt read of CPU-Space
+!              address 0x3ff00, in order to determine the MBAR address.
+!          1 = kerc32 will NOT attempt read of CPU-Space address 0x3ff00.
+!              This flag should be set for 68331/68332/68F333/68334 systems
+!              that do NOT assert bus-error on CPU-space accesses to 0x3ff00.
+!
+! bit 1 -- 0 = kernel can use the STOP instruction.
+!          1 = kernel CANNOT use the STOP instruction.
+!
+! bit 2 -- 0 = enable ghost/sticky modules function.
+!          1 = disable ghost/sticky modules function.
+!
+! bit 3 -- 0 = enable cache burst mode (68030 systems)
+!          1 = disable cache burst mode (68030 systems)
+!
+! bit 4 -- 0 = memory will not be 'patternized' when allocated
+!              (F$SRqMem) or deallocated (F$SRtMem).
+!          1 = memory will be 'patternized' when allocated
+!              (F$SRqMem) or deallocated (F$SRtMem).
+!
+! bit 5 -- 0 = kernel will start system clock during coldstart.
+!              ("setime -s" equivalent)
+!          1 = kernel will NOT start system clock during coldstart.
+!
+! bit 6 -- 0 = kernel will stop system when Spurious IRQ detected.
+!          1 = kernel will ignore spurious IRQ's
+!
+! bit 7 -- 0 = kernel will allow another process (same user id or 0.n)
+!              to delete a process's alarm.
+!          1 = only the process that created an alarm can delete it.
+compatibility flag #2
+1,69,16,0
+! M$Compat2:  This is the systems cache configuration flags:
+!
+! bit 0 -- 0 = external instruction cache is NOT "snoopy".
+!          1 = external instruction cache is snoopy (or absent).
+!
+! bit 1 -- 0 = external data cache is NOT "snoopy".
+!          1 = external data cache is snoopy (or absent).
+!
+! bit 2 -- 0 = on-chip instruction cache is NOT "snoopy".
+!          1 = on-chip instruction cache is snoopy (or absent).
+!
+! bit 3 -- 0 = on-chip data cache is NOT "snoopy".
+!          1 = on-chip data cache is snoopy (or absent).
+!
+! bit 4 -- 0 = 68349: cache/sram bank 0 is sram.
+!          1 = 68349: cache/sram bank 0 is cache
+!
+! bit 5 -- 0 = 68349: cache/sram bank 1 is sram.
+!          1 = 68349: cache/sram bank 1 is cache
+!
+! bit 6 -- 0 = 68349: cache/sram bank 2 is sram.
+!          1 = 68349: cache/sram bank 2 is cache
+!
+! bit 7 -- 0 = 68349: cache/sram bank 3 is sram.
+!          1 = 68349: cache/sram bank 3 is cache
+!
+! NOTE: Bit 7 was previously defined as "disable data cache" flag
+!       for V2.X series of OS-9.  This flag is now obsolete.
+* this next field is the offset ptr to the "colored memory lists".
+* the current version of "moded" does not support "offset to
+* int list", so for now simply print the offset value (so that
+* the list can be enabled/disabled (crudely)
+offset to colored memory lists
+2,6a,16,0
+! M$MemList:  This field is the offset to the (optional) colored
+! memory lists.
+! The current version of moded does not support direct manipulation
+! of the actual list contents.
+irq stack size (longwords)
+2,6c,10,0
+! M$IRQStk:  This field contains the size (in LONGWORDS) of the kernel's
+! irq stack.  The value of this field must be 0, or >= 256 and <= $ffff.
+! If zero, the kernel uses a small default irq stack (not recommended).
+coldstart "chd" retry count
+2,6e,10,0
+! M$ColdTrys:  This is retry counter if the kernel's initial "chd" fails.
+reserved
+2,70,16,0
+! This field is currently reserved
+reserved
+2,72,16,0
+! This field is currently reserved
+offset to cache lists
+2,74,16,0
+! M$CacheList:  This field is the offset to the (optional) cache lists.
+! The cache lists define the caching mode for USER-state accesses
+! to regions of memory.  The cache list entries are over-rides to the
+! default modes setup by the system's SSM module.
+! The current version of moded does not support direct manipulation
+! of the actual list contents.
+IOMan module name
+6,76,0,0
+! M$IOMan:  This is the name of the system's I/O-system module (if any).
+! The default name is "IOMan".
+PreIO module list
+6,78,0,0
+! M$PreIO:  This is a list of customization modules (if any), that
+! are called PRIOR to calling the M$IOMan and M$Extens modules.
+! The entries placed in this list are typically those that must
+! be called BEFORE any I/O related activity is started.
+! A customization module is intended to be used to complement or change
+! the existing standard system calls used by OS-9.  These modules
+! will be searched for at startup, and if found will be executed in
+! system state.  Typically, the modules will be located in the boot
+! file.  The default name string to be searched is OS9PreIO.
+system configuration control
+2,7a,16,0
+! M$SysConf:  This is the system's configuration control.
+!
+! bit 0 -- 0 = system tables are expanded as needed
+!          1 = system table overflow results in an error.
+!              The default values for the tables are set in the
+!              Init module.
+!          NOTE: System table expansion only applies to the Development
+!                kernel.  For the ATOMIC kernel, table sizes are always
+!                fixed from the Init module values.
+!
+! bit 1 -- reserved.
+!
+! bit 2 -- 0 = CRC checking performed by F$VModul.
+!          1 = CRC checking disabled for F$VModul.  This disabling of
+!              CRC checking applies only to the ATOMIC kernel,
+!              and only for checks made after cold-start.
+!
+! bit 3 -- 0 = system-state time slicing allowed.
+!          1 = system-state time slicing disabled.
+!
+! bit 4 -- 0 = SSM module will build user-state protection tables, on
+!              a per-process basis.
+!          1 = SSM module will build 1 user-state page table (to allow
+!              access to all known memory) at cold-start.
+!          NOTE: this option is only applicable for the Development
+!                kernel.  The ATOMIC kernel case will always build
+!                a single user-state page table.
+!
+! bit 5 -- 0 = SSM module uses transparent translation for system-state.
+!          1 = SSM module will build page tables for system-state.
+!
+! bit 6 -- 0 = SSM default cache mode is write-through.
+!          1 = SSM default cache mode is copy-back.
+!
+! bit 7 -- 0 = SSM page size is 4K (68040/68060).
+!          1 = SSM page size is 8K (68040/68060).
+!
+! All other bits (15 - 8) are reserved.
+number of queued signals
+2,7c,10,0
+! M$NumSigs:  This field determines the maximum number of queued
+! signals per process.
+! Processes may individually change this value using the F$ExpTbl
+! system call.
+! NOTE: this field (and system call) is currently unimplemented.
+process descriptor stack size
+2,7e,10,0
+! M$PrcDescStack:  This field determines the size of the stack area
+! in a process descriptor.  This stack is used by the process when
+! it is performing system calls (eg I/O operations).  Systems that
+! have File Managers and/or Drivers that utilise the stack heavily
+! (eg drivers written in C) may need to increase this value.
+*
+*===============================================*
+* Field descriptions for SCF (Terminal) devices
+*===============================================*
+* 
+#15,0
+descriptor name
+5,c,0,1
+! This field contains the name that the descriptor will 
+! be known by when in memory.
+file manager name
+6,38,0,0
+! This is the name of the file manager associated with the device.
+device driver name
+6,3a,0,0
+! This is the name of the device driver associated with the device.
+port address
+4,30,16,0
+! This is the absolute physical address of the hardware controller.
+irq vector
+1,34,10,0
+! This is the irq vector that the device will assert.
+!
+! Auto-vectored interrupt devices will use vectors 25 - 31.
+! Vectored interrupt devices will use vectors 64 - 255.
+! 68070 on-chip peripherals can also use auto-vectors 57 - 63.
+irq level
+1,35,10,1
+! This is the device's hardware irq level.
+irq priority
+1,36,10,1
+! For devices that use the F$IRQ Polling system, this field is used
+! to establish the polling priority of the device when more than
+! one device shares the vector.
+! Priorities are from 0 (highest) to 255 (lowest).  A priority of 0
+! indicates that the device requires exclusive use of the vector.
+! For devices that use the F$FIRQ system, this field is ignored.
+! [NOTE also, an F$FIRQ device can co-exist on a vector with an
+!  F$IRQ (priority 0) device].
+device mode capabilities
+1,37,16,3
+! This byte is used to validity check a caller's access mode byte
+! in I$Create or I$Open calls.  If a bit is set, the device is
+! capable of performing the corresponding function.  The ISize_
+! bit is usually set, because it is usually handled by the file
+! manager or ignored.  If the Share_ bit (Single User bit) is set
+! here, the device will be non-sharable (this is useful for printers).
+!
+! In the following definitions, a bit set means that the device is
+! capable of the action specified:
+!
+! bit 0 -- read (Read_)
+! bit 1 -- write (Write_)
+! bit 2 -- execute (Exec_)
+! bit 3 -- reserved
+! bit 4 -- file append mode supported (Append_)
+! bit 5 -- creates with initial file size are supported (ISize_)
+! bit 6 -- single-user (non-sharable) (IShare_)
+! bit 7 -- directory (Dir_)
+device class
+1,48,16,0
+! PD_DTP:  This field defines the class of the device.
+! For SCF devices, this value is 0.
+upper case lock
+1,49,10,0
+! PD_UPC:  If this field is non-zero, all input or output characters
+! in the range "a...z" are made "A...Z".
+backspace option
+1,4a,10,1
+! PD_BSO:  If this field is zero when a backspace character is input,
+! SCF will echo PD_BSE (backspace echo character).  If this field is
+! non-zero, SCF will echo PD_BSE, SPACE, PD_BSE.
+delete line option
+1,4b,10,0
+! PD_DLO:  If this field is zero, SCF will delete by backspace-
+! erasing over the line.  If this field is non-zero, SCF will delete
+! by echoing a carriage return/line feed.
+echo flag
+1,4c,10,1
+! PD_EKO:  If this field is non-zero, then all input characters are
+! echoed, except undefined control characters are printed as ".".
+! If this field is zero, input characters are not echoed.
+automatic line feed flag
+1,4d,10,1
+! PD_ALF:  If this field is non-zero, then all carriage returns are
+! automatically followed by a line feed.
+end of line null count
+1,4e,10,0
+! PD_NUL:  This field is a count of the number of NULL padding
+! characters (always $00) to send after a CR/LF character.
+end of page pause flag
+1,4f,10,1
+! PD_PAU:  If this field is non-zero, an auto page pause will occur
+! upon reaching a full screen of output.  See PD_PAG for setting
+! the screen page length.
+page length
+1,50,10,1
+! PD_PAG:  This field contains the number of lines per screen page.
+backspace input character
+1,51,0,1
+! PD_BSP:  This field contains the input character that is recognized
+! as backspace.  See PD_BSE and PD_BSO also.
+delete line character
+1,52,0,1
+! PD_DEL:  This field contains the input character that is recognized
+! as the delete line function.  See also PD_DLO.
+end of record character
+1,53,16,1
+! PD_EOR:  This field contains the input character that is recognized
+! as the last character on each line entered (I$ReadLn).  An output
+! line is terminated (I$WritLn) when this character is sent.  Normally,
+! PD_EOR should be set to $0d (Carriage Return).  WARNING:  If it is
+! set to zero, SCF's ReadLn will NEVER terminate, unless an EOF occurs.
+end of file character
+1,54,16,1
+! PD_EOF:  This field defines the end of file character.  SCF will
+! return an end-of-file error on I$Read or I$ReadLn if this is the
+! first (and only) character input.  It can be disabled by setting
+! this field to a zero.  This character is usually $1b (Escape).
+reprint line character
+1,55,0,1
+! PD_RPR:  When this character is input, SCF (I$ReadLn) will reprint
+! the current input line.  A carriage return is also inserted in the
+! input buffer for PD_DUP.  This makes correcting typing errors
+! more convenient.
+duplicate line character
+1,56,0,1
+! PD_DUP:  If this character is input, SCF (I$ReadLn) will duplicate
+! whatever is in the input buffer through the first "PD_EOR" character.
+! Normally, this will be the previous line typed.
+pause character
+1,57,0,1
+! PD_PSC:  If this character is typed during output, output is
+! suspended before the next end-of-line.  This will also delete any
+! "type-ahead" input for I$ReadLn.
+keyboard interrupt character
+1,58,0,1
+! PD_INT:  If this character is input, a keyboard interrupt signal
+! is sent to the last user of the device.  It will terminate the
+! current I/O request (if any) with an error identical to the
+! keyboard interrupt signal code (Error #000:003).  PD_INT is
+! normally set to a control-C character.
+keyboard quit character
+1,59,0,1
+! PD_QUT:  When this character is input, a keyboard abort signal is
+! sent to the last user of the device.  It will terminate the current
+! I/O request (if any) with an error code identical to the keyboard
+! abort signal code (Error #000:002).  PD_QUT is normally set to
+! a control-E character.
+backspace output
+1,5a,0,1
+! PD_BSE:  This is the backspace character to echo when PD_BSP is
+! input.  See PD_BSP and PD_BSO.
+line overflow character
+1,5b,0,1
+! PD_OVF:  If I$ReadLn has satisfied its input byte count, SCF ignores
+! any further input characters until an end-of-line (PD_EOR) character
+! is received.  It echoes the PD_OVF character for each byte ignored.
+! PD_OVF is usually set to the terminal's bell character.
+parity code
+1,5c,16,1
+! PD_PAR:  This field defines the parity, stop bits and character
+! length as follows:
+!
+! bits 1 & 0 -- 00 = no parity
+!               01 = odd parity
+!               11 = even parity
+!
+! bits 3 & 2 -- 00 = 8 bits/character
+!               01 = 7 bits/character
+!               10 = 6 bits/character
+!               11 = 5 bits/character
+!
+! bits 5 & 4 -- 00 = 1 stop bit
+!               01 = 1 1/2 stop bits
+!               10 = 2 stop bits
+!
+! bits 7 & 6 -- reserved     
+adjustable baud rate
+1,5d,16,1
+! PD_BAU:  This field defines the baud rate of the terminal:
+!
+!   0 = 50 baud     8 = 1800 baud   10 = 38400 baud
+!   1 = 75 baud     9 = 2000 baud   11 = 56000 baud
+!   2 = 110 baud    A = 2400 baud   12 = 64000 baud
+!   3 = 134.5 baud  B = 3600 baud   13 = 31250 baud (MIDI)
+!   4 = 150 baud    C = 4800 baud   14 = reserved
+!   5 = 300 baud    D = 7200 baud   15 = 57600 baud
+!   6 = 600 baud    E = 9600 baud	16 = 115200 baud
+!   7 = 1200 baud   F = 19200 baud  FF = external
+output device name
+6,5e,0,0
+! PD_D2P:  SCF sends output to the device named in this string.
+! Input comes from the device named in the M$PDev field (i.e. the
+! device named as the descriptor name).  This permits two separate
+! devices (i.e. a keyboard and a video display) to be one logical
+! device.  Normally, PD_D2P refers to the name of the same device
+! descriptor it appears in.
+xon character
+1,60,0,1
+! PD_XON:  When this character is received, output from an SCF device
+! that has been stopped by a PD_XOFF (see below) can be resumed.
+xoff character
+1,61,0,1
+! PD_XOFF:  When this character is received, output from an SCF device
+! is immediately suspended until a PD_XON character is received.  This
+! is required for software handshaking for some devices.
+tab character
+1,62,0,1
+! PD_Tab:  In I$WritLn calls, SCF expands this character into spaces
+! to make tab stops at column intervals set by PD_Tabs.  NOTE:  SCF
+! does not know the effect of control characters on particular
+! terminals.  It can expand tabs incorrectly if they are used.
+tab column width
+1,63,10,4
+! PD_Tabs:  See PD_Tab
+*
+*=================================================================
+* start of device driver specific fields (i.e. DevCon section):
+*
+* NOTE:  these types of specific fields MUST appear at the end of
+*        the descriptor section definitions, due to the fact that
+*        once a "driver specific" section is recognized, Moded
+*        will consider all following fields to be specific to
+*        that driver.  This mode will remain in effect until
+*        either a new descriptor type field specification is
+*        recognized (line beginning with a "#"), or another
+*        driver specific field specification entry is found.
+*        The offset value specified in these fields is the
+*        offset from the start of the DevCon section of the
+*        descriptor, and NOT from the module start.
+*
+*=========================================================================
+* driver specific definitions for MC68681.  Driver name is SC68681.
+*=========================================================================
+*
+sc68681: global image offset
+2,00,10,0,sc68681
+! SC68681:  This is the offset pointer to a word in the OEM Global
+! Data area.  The word is used to hold the IMR and ACR images
+! (they are write-only on the device itself) of the device, so
+! that the driver for "one side" of the device can operate without
+! interfering with the "other side" driver.  Allocations within
+! the OEM Global Data area are usually made in the "systype.d"
+! file for the system, or the "sysglob.a" file.
+*
+*=========================================================================
+* driver specific definitions for MVME335 (MC68681).  Driver name is SC335.
+*=========================================================================
+*
+sc335: global image offset
+2,00,10,0,sc335
+! SC335:  This is the offset pointer to a word in the OEM Global
+! Data area.  The word is used to hold the IMR and ACR images
+! (they are write-only on the device itself) of the device, so
+! that the driver for "one side" of the device can operate without
+! interfering with the "other side" driver.  Allocations within
+! the OEM Global Data area are usually made in the "systype.d"
+! file for the system, or the "sysglob.a" file.
+*
+*=========================================================================
+* driver specific definitions for MVME165 (MC68681).  Driver name is SC165.
+*=========================================================================
+*
+sc165: global image offset
+2,00,10,0,sc165
+! SC165:  This is the offset pointer to a word in the OEM Global
+! Data area.  The word is used to hold the IMR and ACR images
+! (they are write-only on the device itself) of the device, so
+! that the driver for "one side" of the device can operate without
+! interfering with the "other side" driver.  Allocations within
+! the OEM Global Data area are usually made in the "systype.d"
+! file for the system, or the "sysglob.a" file.
+*
+*=========================================================================
+* driver specific definitions for MC68340 (MC68681).  Driver name is SC68340.
+*=========================================================================
+*
+sc68340: global image offset
+2,00,10,0,sc68340
+! SC68340:  This is the offset pointer to a word in the OEM Global
+! Data area.  The word is used to hold the IMR and ACR images
+! (they are write-only on the device itself) of the device, so
+! that the driver for "one side" of the device can operate without
+! interfering with the "other side" driver.  Allocations within
+! the OEM Global Data area are usually made in the "systype.d"
+! file for the system, or the "sysglob.a" file.
+*
+*=========================================================================
+* driver specific definitions for MC68341 (MC68681).  Driver name is SC68341.
+*=========================================================================
+*
+sc68341: global image offset
+2,00,10,0,sc68341
+! SC68341:  This is the offset pointer to a word in the OEM Global
+! Data area.  The word is used to hold the IMR and ACR images
+! (they are write-only on the device itself) of the device, so
+! that the driver for "one side" of the device can operate without
+! interfering with the "other side" driver.  Allocations within
+! the OEM Global Data area are usually made in the "systype.d"
+! file for the system, or the "sysglob.a" file.
+*
+*=========================================================================
+* driver specific definitions for MC68349 (MC68681).  Driver name is SC68349
+*=========================================================================
+*
+sc68349: global image offset
+2,00,10,0,sc68349
+! SC68349:  This is the offset pointer to a word in the OEM Global
+! Data area.  The word is used to hold the IMR and ACR images
+! (they are write-only on the device itself) of the device, so
+! that the driver for "one side" of the device can operate without
+! interfering with the "other side" driver.  Allocations within
+! the OEM Global Data area are usually made in the "systype.d"
+! file for the system, or the "sysglob.a" file.
+*
+* end of MC68681-style driver specific fields.
+*
+*============================================================
+* driver specific definitions for MC68230.  Driver is SCP68230.
+*============================================================
+*
+scp68230: port side flag
+1,00,10,0,scp68230
+! SCP68230:  This is the port side flag.  It specifies which
+! port on the 68230 will be used for data output:
+!   0 = port A
+!   1 = port B
+*
+* end of MC68230/SCP68230 driver specific fields.
+*
+*============================================================
+* driver specific definitions for MVME335/MC68230.  Driver is SCP335.
+*============================================================
+*
+scp335: port side flag
+1,00,10,0,scp335
+! SCP335:  This is the port side flag.  It specifies which
+! port of the MVME335's 68230 will be used for data output:
+! For the MVME335, this is always set to 0 (port A)
+*
+* end of MC68230/SCP335 driver specific fields.
+*
+*===========================================*
+* Field descriptions for RBF (Disk) devices
+*===========================================*
+*
+#15,1
+descriptor name
+5,c,0,0
+! This field contains the name that the descriptor will 
+! be known by when in memory.
+file manager name
+6,38,0,0
+! Name of the file manager used by this device.
+device driver name
+6,3a,0,0
+! Name of the device driver used by this device.
+port address
+4,30,16,0
+! This is the absolute physical address of the hardware controller.
+!
+! For the ramdisk, this indicates whether to use system memory or
+! not for the ramdisk.  If the address is $400 or less, the ramdisk
+! driver will request memory from the system free memory pool.  If
+! the address is greater than $400, then the address is taken to
+! be the absolute address of (non-system) memory that is to be used
+! for the ramdisk.
+irq vector
+1,34,10,0
+! This is the irq vector that the device will assert.
+!
+! Auto-vectored interrupt devices will use vectors 25 - 31.
+! Vectored interrupt devices will use vectors 64 - 255.
+! 68070 on-chip peripherals can also use auto-vectors 57 - 63.
+irq level
+1,35,10,1
+! This is the device's hardware irq level.
+irq priority
+1,36,10,1
+! For devices that use the F$IRQ Polling system, this field is used
+! to establish the polling priority of the device when more than
+! one device shares the vector.
+! Priorities are from 0 (highest) to 255 (lowest).  A priority of 0
+! indicates that the device requires exclusive use of the vector.
+! For devices that use the F$FIRQ system, this field is ignored.
+! [NOTE also, an F$FIRQ device can co-exist on a vector with an
+!  F$IRQ (priority 0) device].
+device mode capabilities
+1,37,16,3
+! This byte is used to validity check a caller's access mode byte
+! in I$Create or I$Open calls.  If a bit is set, the device is
+! capable of performing the corresponding function.  The ISize_
+! bit is usually set, because it is usually handled by the file
+! manager or ignored.  If the Share_ bit (Single User bit) is set
+! here, the device will be non-sharable (this is useful for printers).
+!
+! In the following definitions, a bit set means that the device is
+! capable of the action specified:
+!
+! bit 0 -- read (Read_)
+! bit 1 -- write (Write_)
+! bit 2 -- execute (Exec_)
+! bit 3 -- reserved
+! bit 4 -- file append mode supported (Append_)
+! bit 5 -- creates with initial file size are supported (ISize_)
+! bit 6 -- single-user (non-sharable) (IShare_)
+! bit 7 -- directory (Dir_)
+device class
+1,48,16,1
+! PD_DTP:  This field defines the class of the device.
+! For RBF devices, this value is 1.
+drive number
+1,49,10,0
+! PD_DRV:  This field is used to associate a one byte integer
+! with each drive that a controller will handle.  Each controller's
+! drive should be numbered 0 to n-1 (n = the maximum number of drives
+! the controller can handle).  This number also defines how
+! many drive tables are required by the driver and RBF.
+step rate
+1,4a,10,1
+! PD_STP:  (Floppy disks) This location contains a code that sets
+! the  head stepping rate that will be used with the drive.  The 
+! step rate should be set to the fastest value that the drive
+! is capable of to reduce access time.  Below are the values 
+! commonly used:
+!
+! Step Code        5" Disks         8" Disks
+!    0               30ms             15ms
+!    1               20ms             10ms
+!    2               12ms              6ms
+!    3                6ms              3ms
+!
+! For Hard Disks, the stepping rate is controller specific.
+device type
+1,4b,16,1
+! PD_TYP:  Disk device type. These parameters are format specific.
+! 
+! bit 7 = 0:  Floppy disk parameters described in bits 6 - 0:
+!         bit 0     -- 0 = 5 1/4" floppy  (pre-V2.4)
+!                      1 = 8" floppy      (pre-V2.4)
+!         bit 1 - 3 -- 0 = "pre-V2.4" descriptor, bit 0 describes type.
+!                   -- 1 = 8" physical size
+!                   -- 2 = 5 1/4" physical size
+!                   -- 3 = 3 1/2" physical size
+!                   -- 4 - 7 reserved
+!         bit 4     -- reserved
+!         bit 5     -- 0 = Standard OS-9 format (track 0 single density)
+!                      1 = Non-standard format  (track 0 double density)
+!         bit 6     -- reserved
+!
+! bit 7 = 1:  Hard disk parameters described in bits 6 - 0:
+!         bit 5 - 0 -- reserved
+!         bit 6     -- 0 = fixed hard disk
+!                   -- 1 = removable hard disk
+density
+1,4c,16,1
+! PD_DNS:  Density capabilities (Floppy disk only):
+!
+! bit 0     -- 0 = Single bit density (FM)
+!              1 = Double bit density (MFM)
+! bit 3 - 1 -- track density
+!              bit 1 = 1, double track density (96/135 tpi)
+!              bit 2 = 1, quad   track density (192 tpi)
+!              bit 3 = 1, octal  track density (384 tpi)
+! bit 7 - 4 -- reserved
+reserved
+1,4d,16,1
+! This field is currently reserved.
+number of cylinders
+2,4e,10,1
+! PD_CYL:  This is the number of cylinders (tracks) per disk.
+! If track offsets are used, this field should be set to
+! the number of disk cylinders minus the track offset value (PD_TOffs).
+! For "autosize" media, this field is generally unused (set to 0).
+number of heads/sides
+1,50,10,1
+! PD_SID:  This indicates the number of heads for a hard disk
+! (Heads) or the number of surfaces for a floppy disk (Sides).
+! For "autosize" media, this field is generally unused (set to 0).
+disk write verification
+1,51,10,1
+! PD_VFY:  0 = verify disk write.  1 = no verification
+! Write verify operations are generally performed on floppy
+! disks but not hards disks because of the lower soft error
+! rate of hard disks.
+default sectors/track
+2,52,10,16
+! PD_SCT:  This is the number of sectors per track for all
+! tracks except track 0, side 0.
+! For the ramdisk, this value represents the ramdisk size, in
+! 256-byte sectors.
+! For "autosize" media, this field is generally unused (set to 0).
+default sectors/track 0
+2,54,10,10
+! PD_T0S:  This is the number of sectors per track for track 0,
+! side 0.  This may be different than PD_SCT (depending on
+! specific disk format).
+! For "autosize" media, this field is generally unused (set to 0).
+segment allocation size
+2,56,10,8
+! PD_SAS:  This value specifies the default minimum number of
+! sectors to be allocated when a file is expanded.  For floppy
+! disks this value is usually 8, whilst for hard disks it is
+! usually 32.
+sector interleave factor
+1,58,10,3
+! PD_ILV:  Sectors are arranged on a disk in a certain sequential
+! order (1, 2, 3, etc. 1, 3, 5, etc.).  The interleave factor
+! determines the arrangement.  For example, if the interleave factor
+! is 2, the sectors would be arranged by 2's (1, 3, 5, etc.)
+! starting at the base sector (see PD_SOffs).
+dma transfer mode
+1,59,10,0
+! PD_TFM:  Direct Memory Access Transfer Mode.
+! This is hardware specific.  If available the byte can be set
+! for use of DMA mode.  DMA requires only a single interrupt for
+! each block of characters transferred in an I/O operation.
+! It is much faster than methods that interrupt for each character.
+track base offset
+1,5a,10,0
+! PD_TOffs:  This is the offset to the first accessible track.
+! Because Track 0 is often a different density, Track 0 is sometimes
+! not used as the base track.
+sector base offset
+1,5b,10,0
+! PD_SOffs:  This is the offset to the first accessible sector on
+! a track.  Sector 0 is sometimes not the base sector.
+sector size
+2,5c,10,256
+! PD_SSize:  This is the size of a sector, in bytes.
+! For drivers that support SS_VarSect (i.e. variable sector size
+! drivers), this field indicates the LOGICAL and PHYSICAL sector
+! size of the media.  For SCSI drives, a value of zero indicates
+! that the driver will use the drive's current sector size.
+!
+! For drivers that DO NOT support SS_VarSect, this field indicates
+! the media PHYSICAL size.  The LOGICAL sector size will be 256-bytes.
+control word
+2,5e,16,0
+! PD_Cntl:  This is the descriptor control word.
+!
+! bit 0 -- 0 = media is format enabled.
+!          1 = media is format protected.
+!
+! Normally, hard disks are format "protected" to prevent accidental
+! erasure.  When this is done, a "format enabled" version of the
+! descriptor is used to allow hard disk formatting.  When using
+! non-volatile ramdisks, this flag is set to prevent re-formatting
+! of the ramdisk.
+!
+! bit 1 -- 0 = driver/controller can perform single-sector i/o.
+!          1 = driver/controller can perform multi-sector i/o.
+!
+! If the controller and device driver can support multi-sector i/o
+! transfers, much faster disk operations can be achieved.
+!
+! bit 2 -- 0 = device does not have stable id.
+!          1 = device has stable id.
+!
+! This flag indicates that the media cannot be changed, or that the
+! driver can keep the media id updated when the media is changed.
+!
+! bit 3 -- 0 = device size determined from device descriptor.
+!          1 = device size determined by asking the drive itself.
+!
+! Media that supports "read capacity" to determine the media size
+! should set this bit.
+!
+! bit 4 -- 0 = device cannot format a single track
+!          1 = device can format a single track
+!
+! This flag signals whether the media can be formatted on a track
+! by track basis (e.g. disk repair utilities).
+!
+! bit 5 -- 0 = media is writable by RBF.
+!          1 = media is write-protected by RBF
+!
+! RBF will return E$WP errors on attempts to write to media with this
+! flag set.  This can be useful (for example) with ram-disks that
+! contain sensitive data.
+!
+! bit 6 -- 0 = device driver is NOT called with SS_FTL(FTL_DelBlk)
+!              when media space is deallocated.
+!          1 = device driver called with SS_FTL(FTL_DelBlk) when
+!              media space deallocated.
+!
+! When space on a Flash device is deallocated (e.g. file deleted)
+! then RBF needs to call the driver to allow it to perform any
+! housekeeping duties pertaining to the freeing of media space.
+! This flag is used as an efficiency mechanism so that RBF only
+! attempts to call the driver for media types that actually
+! require this funcionality.
+!
+! bit 7 -- 0 = device can be physically and logically formatted.
+!          1 = device can only be physically formatted.
+!
+! A physical-only formattable device typically refers to a disk drive
+! that will be used to hold multiple partitions (logical drives).
+! This type of device is normally only physically formatted once,
+! prior to placing the logical paritions on the device.  NOTE that
+! physically formatting a drive that contains active partitions will
+! usually result in the loss of ALL DATA ON ALL PARTITIONS on that
+! physical drive.
+!
+! bit 8 -- 0 = device is not a partition.
+!          1 = device is a partition.
+!
+! This flag indicates that the device is a logical partition on a
+! physical drive.  This flag, if set, allows the Format utility and
+! the disk driver to check whether a 'format media' command can be
+! issued to the physical drive, thus preventing accidental loss of
+! all data on all active partitions on the physical drive. 
+!
+! All other bits (15 - 9) are reserved
+number of tries (1=no retry)
+1,60,10,7
+! PD_Trys:  This field contains the number of tries the driver will
+! attempt before returning an error.  For format "enabled" descriptors,
+! this field should be set to 1 so that the controller will not
+! attempt to correct errors during format operations.
+scsi unit number of drive
+1,61,10,0
+! PD_LUN:  This field contains the (hardware dependant) logical unit
+! number of the drive.  For SCSI drives it represents the logical
+! drive number on the SCSI controller.
+write precompensation cylinder
+2,62,10,0
+! PD_WPC:  This field contains the cylinder where write
+! precompensation will begin.
+reduced write current cylinder
+2,64,10,0
+! PD_RWR:  This field contains the cylinder number for the start of
+! reduced write current.
+cylinder to park disk head
+2,66,10,0
+! PD_Park:  This field contains the cylinder at which to park the
+! disk head when the drive is shut down.
+logical sector offset
+4,68,16,0
+! PD_LSNOffs:  This field contains the logical sector number to add
+! when accessing partitioned drives.
+total cylinders on device
+2,6c,10,0
+! PD_TotCyls:  This field contains the actual number of cylinders
+! on a partitioned drive.
+scsi controller id
+1,6e,10,0
+! PD_CtrlrID:  This field contains the scsi id number of the
+! controller attached to the drive.
+data-transfer/rotation rate
+1,6f,16,0
+! PD_Rate:  This field contains the data-transfer rate and rotational
+! speed of the floppy media.  NOTE that this field is normally used
+! only when the physical size field (PD_TYP, bits 4 - 1) is non-zero.
+!
+! bits 3 - 0:  rotational speed
+!              0 = 300 rpm
+!              1 = 360 rpm
+!              2 = 600 rpm
+!              all other values are reserved
+! bits 7 - 4:  data transfer rate
+!              0 = 125K bits/sec
+!              1 = 250K bits/sec
+!              2 = 300K bits/sec
+!              3 = 500K bits/sec
+!              4 = 1M bits/sec
+!              5 = 2M bits/sec
+!              6 = 5M bits/sec
+!              all other values are reserved
+scsi options flags
+4,70,16,0
+! PD_ScsiOpt:  This field contains flags for use by SCSI drivers:
+!
+! bit 0 = 1:  controller supports "assert ATN".
+! bit 1 = 1:  target mode supported.
+! bit 2 = 1:  synchronous transfers supported.
+! bit 3 = 1:  enable SCSI parity checking
+! bit 4 = 1:  enable SCSI wide operation
+maximum transfer count
+4,74,16,0
+! PD_MaxCnt:  This field contains the maximum byte-count that the
+! driver can transfer in one call.
+partition size
+4,78,16,0
+! PD_PartSize:  This field contains the size of a partition in bytes.
+! Note that a size of zero indicates that paritioning is not active
+! (Control word Partition flag OFF) or that the partition size is
+! the 'remainder' of the disk (Control Word Partition flag ON).
+*
+*=================================================================
+* start of device driver specific fields (i.e. DevCon section):
+*
+* NOTE:  these types of specific fields MUST appear at the end of
+*        the descriptor section definitions, due to the fact that
+*        once a "driver specific" section is recognized, Moded
+*        will consider all following fields to be specific to
+*        that driver.  This mode will remain in effect until
+*        either a new descriptor type field specification is
+*        recognized (line beginning with a "#"), or another
+*        driver specific field specification entry is found.
+*        The offset value specified in these fields is the
+*        offset from the start of the DevCon section of the
+*        descriptor, and NOT from the module start.
+*
+*============================================================
+* driver specific definitions for RAM DISK driver.  Driver is Ram.
+*============================================================
+ram: ramdisk flags
+1,00,16,0,ram
+! ram:  This byte specifies ramdisk options:
+!
+! bit 0 = 0:  ramdisk size is determined from adding the sectors/track
+!             value with the sectors/track0 value, giving a maximum
+!             media size of 0x1fffe sectors (compat method).
+! bit 0 = 1:  ramdisk size is determined by concatenating the
+!             sectors/track value with the sectors/track0 value,
+!             giving a maximum media size of 0xffffffff sectors.
+!             The concatenation is performed as follows:
+!               (SctTrk0 << 16) + (SctTrk).
+!
+! All other bits are reserved.
+*
+*============================================================
+* driver specific definitions for MVME320:  Driver is RB320.
+*============================================================
+*
+rb320: post data gap (s/d)
+1,02,10,0,rb320
+! RB320:  This is the size of the post-data gap for single
+! density operation (applicable to floppy disk only).
+rb320: post data gap (d/d)
+1,03,10,0
+! RB320:  This is the size of the post-data gap for double
+! density operation (floppy disk).  Hard disks always run
+! double density.
+rb320: drive type
+1,04,10,0
+! RB320:  This is the "drive-type" parameter for the MVME320
+! controller, as follows:
+!
+!  0 -- IBM single-density, 8" floppy disk.
+!  1 -- IBM double-density, 8" floppy disk, or
+!           high-density 5 1/4" Amlyn cartridge-floppy.
+!  2 -- Hard disk format with ECC.
+!  3 -- Hard disk format with CRC.
+!  4 -- Single-density, 5 1/4" floppy disk.
+!  5 -- Double-density, 5 1/4" floppy disk.
+rb320: head settle time
+1,05,10,0
+! RB320:  This field contains the head-settle time in 500 uSec
+! increments.  If a non-zero head-settle time is specified, the
+! MVME320 assumes that a seek-complete is not available from the
+! drive.
+rb320: head load time
+1,06,10,0
+! RB320:  This field contains the head-load time in 500 uSec
+! increments.  For drives with a seek-complete signal (such as
+! hard disks and the Amlyn cartridge-floppy) this value must
+! always be set to zero.
+rb320: seek type
+1,07,10,0
+! RB320:  This field defines the type of seek positioning to
+! be performed, as follows:
+!
+!  0 -- normal single step seek
+!  1 -- accelerated seek (for ST506)
+!  2 -- buffered seek (for ST412)
+*
+* end of MVME320/RB320 driver specific fields.
+*
+*============================================================
+* driver specific definitions for MVME319:  Driver is RB319.
+*============================================================
+*
+rb319: controller ID code
+1,00,10,0,rb319
+! RB319:  This is the controller ID code:
+!            0 = XEBEC S1410 controller
+!            2 = ADAPTEC ACB 4000 controller
+rb319: ecc burst length
+1,01,10,0,rb319
+! RB319:  This is the ECC Burst Length byte count.  For the
+! XEBEC controller, this field is normally 11.  For the
+! ADAPTEC controller, this field is unused (set to 0).
+*
+* end of MVME319/RB319 driver specific fields
+*
+*============================================================
+* driver specific definitions for VME/10:  Driver is RBVME10
+*============================================================
+*
+vme/10: cylinder count
+2,02,10,0,rbvme10
+! RBVME10:  This field contains the cylinder count for the drive.
+vme/10: reduced write current
+2,04,10,0
+! RBVME10:  This field contains the starting cylinder for
+! reduced write current.  Currently, this field is unused.
+vme/10: write precompensation
+2,06,10,0
+! RBVME10:  This field contains the starting cylinder for
+! reduced write current.
+vme/10: ecc burst length
+1,08,10,0
+! RBVME10:  This field contains the ECC burst length parameter.
+! Currently, this field is unused.
+*
+* end of VME/10 / RBVME10 driver specific definitions
+*
+*============================================================
+* driver specific definitions for Atari ST:  Driver is STFD.
+*============================================================
+*
+atari:  f/d cache control
+1,00,10,0,stfd
+! STFD:  This field controls the size/enabling of the floppy
+! disk cache function.  If set to zero, no caching is done
+! by the driver.  If non-zero, the value specifies the size
+! of the caching ram, in 32K-byte increments.
+*
+* end of Atari/STFD driver specific functions.
+*
+*======================================*
+* Field descriptions for Pipe devices
+*======================================*
+* 
+#15,2
+descriptor name
+5,c,0,0
+! This field contains the name that the descriptor will be
+! known by when in memory.
+file manager name
+6,38,0,0
+! This is the name of the file manager associated with the device.
+device driver name
+6,3a,0,0
+! This is the name of the device driver associated with the device.
+port address
+4,30,16,0
+! This is the logical address of the pipe device.  Systems with
+! multiple pipe devices should set this field in each pipe
+! descriptor to a unique number.
+device mode capabilities
+1,37,16,3
+! This byte is used to validity check a caller's access mode byte
+! in I$Create or I$Open calls.  If a bit is set, the device is
+! capable of performing the corresponding function.  The ISize_
+! bit is usually set, because it is usually handled by the file
+! manager or ignored.  If the Share_ bit (Single User bit) is set
+! here, the device will be non-sharable (this is useful for printers).
+!
+! In the following definitions, a bit set means that the device is
+! capable of the action specified:
+!
+! bit 0 -- read (Read_)
+! bit 1 -- write (Write_)
+! bit 2 -- execute (Exec_)
+! bit 3 -- reserved
+! bit 4 -- file append mode supported (Append_)
+! bit 5 -- creates with initial file size are supported (ISize_)
+! bit 6 -- single-user (non-sharable) (IShare_)
+! bit 7 -- directory (Dir_)
+device class
+1,48,16,2
+! PD_DTP:  This field defines the class of the device.
+! For Pipe devices, this value is 2.
+reserved
+1,49,16,0
+! This field is currently reserved.
+pipe buffer size
+4,4a,16,0
+! This field contains the default size of the FIFO buffer used
+! by the pipe.  If no default size is specified and no size is
+! specified when creating the pipe, then PD_IOBuf (a 90-byte
+! buffer in the path descriptor) will be used.
+*
+*========================================================*
+* Field descriptions for SBF (Sequential Block) devices
+*========================================================*
+* 
+#15,3
+descriptor name
+5,c,0,0
+! This field contains the name that the descriptor will be
+! known by when in memory.
+file manager name
+6,38,0,0
+! This is the name of the file manager associated with the device.
+device driver name
+6,3a,0,0
+! This is the name of the device driver associated with the device.
+port address
+4,30,16,0
+! This is the absolute physical address of the hardware controller.
+irq vector
+1,34,10,0
+! This is the irq vector that the device will assert.
+!
+! Auto-vectored interrupt devices will use vectors 25 - 31.
+! Vectored interrupt devices will use vectors 64 - 255.
+! 68070 on-chip peripherals can also use auto-vectors 57 - 63.
+irq level
+1,35,10,1
+! This is the device's hardware irq level.
+irq priority
+1,36,10,1
+! For devices that use the F$IRQ Polling system, this field is used
+! to establish the polling priority of the device when more than
+! one device shares the vector.
+! Priorities are from 0 (highest) to 255 (lowest).  A priority of 0
+! indicates that the device requires exclusive use of the vector.
+! For devices that use the F$FIRQ system, this field is ignored.
+! [NOTE also, an F$FIRQ device can co-exist on a vector with an
+!  F$IRQ (priority 0) device].
+device mode capabilities
+1,37,16,3
+! This byte is used to validity check a caller's access mode byte
+! in I$Create or I$Open calls.  If a bit is set, the device is
+! capable of performing the corresponding function.  The ISize_
+! bit is usually set, because it is usually handled by the file
+! manager or ignored.  If the Share_ bit (Single User bit) is set
+! here, the device will be non-sharable (this is useful for printers).
+!
+! In the following definitions, a bit set means that the device is
+! capable of the action specified:
+!
+! bit 0 -- read (Read_)
+! bit 1 -- write (Write_)
+! bit 2 -- execute (Exec_)
+! bit 3 -- reserved
+! bit 4 -- reserved
+! bit 5 -- creates with initial file size are supported (ISize_)
+! bit 6 -- single-user (non-sharable) (IShare_)
+! bit 7 -- directory (Dir_)
+device class
+1,48,16,3
+! PD_DTP:  This field defines the class of the device.
+! For SBF devices, this value is 3.
+tape drive number
+1,49,10,0
+! PD_TDrv:  This field is used to associate a one byte integer
+! with each tape drive that a controller will handle. 
+! When using dedicated (e.g. non-SCSI bus) controllers, this field
+! defines both the LOGICAL and PHYSICAL drive number of the tape drive.
+! When using tape drives connected to SCSI controllers, this number
+! defines the LOGICAL number of the tape drive to the device driver.
+! The PHYSICAL controller ID and LUN are specified by the PD_ScsiID
+! and PD_ScsiLUN fields (see below).
+! Tape drives should be numbered 0 to n-1 (n = the maximum number of
+! drives the controller/driver can handle).
+! The maximum value of this number also defines how many drive tables
+! are required by the driver and SBF.
+reserved
+1,4a,16,0
+! PD_SBF:  This field is currently reserved.
+number of blocks/buffers
+1,4b,10,0
+! PD_NumBlk:  This field specifies the maximum number of buffers
+! to be allocated by SBF for use by the auxiliary process in
+! buffered I/O.  If this field is set to 0, unbuffered I/O
+! is specified.
+block size
+4,4c,10,0
+! PD_BlkSiz:  This field specifies the size of the buffer to be
+! allocated by SBF.  This buffer size is used when allocating
+! multiple buffers used in buffered I/O.
+driver process priority
+2,50,10,1
+! PD_Prior:  This is the priority at which SBF's auxiliary process
+! will run.  This value is used during initialization.  Changing
+! this value after initialization will have no effect.
+sbf capability flags
+1,52,16,0
+! PD_SBFFlags:  This field specifies the capabilities of the tape
+! controller used on the individual system.  The flag definitions
+! possible are:
+!
+! (f_rest_b)  bit 0 -- set = rewind on close flag
+! (f_offl_b)  bit 1 -- set = offline on close flag
+! (f_eras_b)  bit 2 -- set = erase to end of tape on close flag
+drive capability flags
+1,53,16,0
+! PD_DrivFlag:  This field is available to the driver, as required.
+dma mode
+2,54,16,0
+! PD_DMAMode:  Direct Memory Access Mode.
+! This is hardware specific.  If available the word can be set
+! for use of DMA mode.  DMA requires only a single interrupt for
+! each block of characters transferred in an I/O operation.
+! It is much faster than methods that interrupt for each character.
+scsi controller id
+1,56,10,0
+! PD_ScsiID:  This field specifies the SCSI ID of the controller
+! on the SCSI bus.  Controllers on the SCSI bus are addressed with
+! an ID from 0 - 7.
+scsi controller lun
+1,57,10,0
+! PD_ScsiLUN:  This field specifies the tape drive's LUN on the
+! SCSI Controller.
+scsi options flags
+4,58,16,0
+! PD_ScsiOpts:  This field contains flags for use by SCSI drivers:
+!
+! bit 0 = 1:  controller supports "assert ATN".
+! bit 1 = 1:  target mode supported.
+! bit 2 = 1:  synchronous transfers supported.
+! bit 3 = 1:  enable SCSI parity.
+! bit 4 = 1:  enable SCSI wide operation
+*
+*===============================================*
+* Field descriptions for NET (Network) devices
+*===============================================*
+* 
+#15,4
+descriptor name
+5,c,0,0
+! This field contains the name that the descriptor will be
+! known by when in memory.
+file manager name
+6,38,0,0
+! This is the name of the file manager associated with the device.
+device driver name
+6,3a,0,0
+! This is the name of the device driver associated with the device.
+port address
+4,30,16,0
+! This is the absolute physical address of the hardware controller.
+irq vector
+1,34,10,0
+! This is the irq vector that the device will assert.
+!
+! Auto-vectored interrupt devices will use vectors 25 - 31.
+! Vectored interrupt devices will use vectors 64 - 255.
+! 68070 on-chip peripherals can also use auto-vectors 57 - 63.
+irq level
+1,35,10,1
+! This is the device's hardware irq level.
+irq priority
+1,36,10,1
+! For devices that use the F$IRQ Polling system, this field is used
+! to establish the polling priority of the device when more than
+! one device shares the vector.
+! Priorities are from 0 (highest) to 255 (lowest).  A priority of 0
+! indicates that the device requires exclusive use of the vector.
+! For devices that use the F$FIRQ system, this field is ignored.
+! [NOTE also, an F$FIRQ device can co-exist on a vector with an
+!  F$IRQ (priority 0) device].
+device mode capabilities
+1,37,16,3
+! This byte is used to validity check a caller's access mode byte
+! in I$Create or I$Open calls.  If a bit is set, the device is
+! capable of performing the corresponding function.  The ISize_
+! bit is usually set, because it is usually handled by the file
+! manager or ignored.  If the Share_ bit (Single User bit) is set
+! here, the device will be non-sharable (this is useful for printers).
+!
+! In the following definitions, a bit set means that the device is
+! capable of the action specified:
+!
+! bit 0 -- read (Read_)
+! bit 1 -- write (Write_)
+! bit 2 -- execute (Exec_)
+! bit 3 -- reserved
+! bit 4 -- file append mode supported (Append_)
+! bit 5 -- creates with initial file size are supported (ISize_)
+! bit 6 -- single-user (non-sharable) (IShare_)
+! bit 7 -- directory (Dir_)
+device class
+1,48,16,4
+! PD_DTP:  This field defines the class of the device.
+! For NET devices, this value is 4.
+network hardware type
+1,49,16,0
+! PD_HdTyp:  This field describes the network hardware type.
+! If non-zero, the hardware is connected to a multi-station network
+! line.  The network file manager then expects a full network
+! pathlist:
+!
+!  /<network name>/<station name>/<full OS-9 pathlist>
+!
+! If set to zero, "point-to-point" networking is assumed.  The
+! network file manager then expects a simple network pathlist:
+!
+!  /<network name>/<full OS-9 pathlist>
+hardware broadcast flag
+1,4a,16,0
+! PD_BC:  If this field is set to -1 ($ff), hardware broadcasting
+! is available.  If not, set this field to 0.
+reserved
+1,4b,16,0
+! This field is currently reserved.
+default destination id
+2,4c,16,0
+! PD_Dest:  This field is used by the network file manager as the
+! default destination station/node ID.  It is copied to the path
+! descriptor at initialization.  When PD_HdTyp is non-zero (i.e.
+! multi-station networking), the network file manager updates the
+! corresponding field in the path descriptor for the destination
+! of each network message, while this field (in the path descriptor)
+! remains unchanged.  This field is not used when "point-to-point"
+! networking is specified.
+source id
+2,4e,16,0
+! PD_Src:  This is used by the network file manager as the source ID
+! for all outgoing messages.  If this field is set to -1 ($ffff), NFM
+! assumes the device driver for this device will set the actual/
+! working node ID in V_myID of the device driver's static storage.
+! NFM then updates this field in the path descriptor with the value
+! from V_myID, while this field remains unchanged.  This insures only
+! one source code for the device descriptor.  The device driver
+! determines the node ID by checking the actual hardware.
+hardware broadcast code
+2,50,16,0
+! PD_Broad:  This is solely used by the device driver.
+number of retries for NFM
+2,52,10,1
+! PD_RtyF:  Some networking hardware returns errors if a device is busy.
+! When NFM detects an E$DevBsy error (passed by the driver), it will
+! try to send the message over again.  This field's value, when
+! multiplied by the value of PD_Mul, specifies how many times it will
+! try to send a message before returning an error.  A value of "0"
+! specifies only one try.
+number of retries for driver
+2,54,10,1
+! PD_RtyD: Some networking hardware returns errors if a device is busy.
+! When the device driver detects an E$DevBsy error, it will try to send
+! the message over again.  This field's value, when multiplied by the
+! value of PD_Mul, specifies how many times it will try to send a
+! message before returning an error.  A value of "0" specifies only
+! one try.
+retry multiplier
+2,56,10,1
+! PD_Mul:  See PD_RtyF and PD_RtyD.
+hardware buffer address
+4,58,16,0
+! PD_HWB:  Some hardware uses a physical buffer for storage that is
+! different from its port address.  If so, the address should be placed
+! here.  This field is only used by the device driver.
+network parity code
+1,5c,16,1
+! PD_NPAR:  This field defines the parity, stop bits and character
+! length as follows:
+!
+! bits 1 & 0 -- 00 = no parity
+!               01 = odd parity
+!               11 = even parity
+!
+! bits 3 & 2 -- 00 = 8 bits/character
+!               01 = 7 bits/character
+!               10 = 6 bits/character
+!               11 = 5 bits/character
+!
+! bits 5 & 4 -- 00 = 1 stop bit
+!               01 = 1 1/2 stop bits
+!               10 = 2 stop bits
+!
+! bits 7 & 6 -- reserved
+!
+! Microware recommends using the same values as PD_PAR in the SCF
+! device descriptor.
+adjustable baud rate
+1,5d,16,1
+! PD_NBAU:  This field defines the baud rate of the node:
+!
+!   0 = 50 baud     8 = 1800 baud   10 = 38400 baud
+!   1 = 75 baud     9 = 2000 baud   11 = 56000 baud
+!   2 = 110 baud    A = 2400 baud   12 = 64000 baud
+!   3 = 134.5 baud  B = 3600 baud   13 = 31250 baud (MIDI)
+!   4 = 150 baud    C = 4800 baud   14 = 57600 baud
+!   5 = 300 baud    D = 7200 baud   15 = 115200 baud
+!   6 = 600 baud    E = 9600 baud
+!   7 = 1200 baud   F = 19200 baud  FF = external
+!
+! Microware recommends using the same values as PD_BAU in the SCF
+! device descriptor.
+max logical message capacity
+2,5e,10,256
+! This is the maximum packet size that the driver can support.
+! The maximum packet size for NFM must be 256 to 32767 bytes.
+! The determination of an individual network's maximum packet
+! size depends upon the hardware and driver.
+! The current limit for ARCNet is 507 bytes.
+*
+*==========================================================================*
+* Field descriptions for UCM (CD-RTOS User Communications Manager) devices
+*==========================================================================*
+* 
+#15,6
+descriptor name
+5,c,0,1
+! This field contains the name that the descriptor will 
+! be known by when in memory.
+file manager name
+6,38,0,0
+! This is the name of the file manager associated with the device.
+device driver name
+6,3a,0,0
+! This is the name of the device driver associated with the device.
+port address
+4,30,16,0
+! This is the absolute physical address of the hardware controller.
+irq vector
+1,34,10,0
+! This is the irq vector that the device will assert.
+!
+! Auto-vectored interrupt devices will use vectors 25 - 31.
+! Vectored interrupt devices will use vectors 64 - 255.
+! 68070 on-chip peripherals can also use auto-vectors 57 - 63.
+irq level
+1,35,10,1
+! This is the device's hardware irq level.
+irq priority
+1,36,10,1
+! For devices that use the F$IRQ Polling system, this field is used
+! to establish the polling priority of the device when more than
+! one device shares the vector.
+! Priorities are from 0 (highest) to 255 (lowest).  A priority of 0
+! indicates that the device requires exclusive use of the vector.
+! For devices that use the F$FIRQ system, this field is ignored.
+! [NOTE also, an F$FIRQ device can co-exist on a vector with an
+!  F$IRQ (priority 0) device].
+device mode capabilities
+1,37,16,3
+! This byte is used to validity check a caller's access mode byte
+! in I$Create or I$Open calls.  If a bit is set, the device is
+! capable of performing the corresponding function.  The ISize_
+! bit is usually set, because it is usually handled by the file
+! manager or ignored.  If the Share_ bit (Single User bit) is set
+! here, the device will be non-sharable (this is useful for printers).
+!
+! In the following definitions, a bit set means that the device is
+! capable of the action specified:
+!
+! bit 0 -- read (Read_)
+! bit 1 -- write (Write_)
+! bit 2 -- execute (Exec_)
+! bit 3 -- reserved
+! bit 4 -- reserved
+! bit 5 -- creates with initial file size are supported (ISize_)
+! bit 6 -- single-user (non-sharable) (IShare_)
+! bit 7 -- directory (Dir_)
+device class
+1,48,16,0
+! PD_DTP:  This field defines the class of the device.
+! For UCM devices, this value is $06.
+function class
+1,64,16,0
+! PD_FC:  This field defines the function class of the descriptor.
+! For each function required, a bit is set as follows:
+!
+! bit 0 -- keyboard
+! bit 1 -- pointer
+! bit 2 -- video
+! All other bits are reserved
+2nd device name
+6,66,0,0
+! PD_D2N:  This is the name of the secondary device.
+3rd device name
+6,68,0,0
+! PD_D3N:  This is the name of the third device.
+*
+*==========================================================================*
+* Field descriptions for SOCKET devices
+*==========================================================================*
+* 
+#15,7
+descriptor name
+5,c,0,1
+! This field contains the name that the descriptor will 
+! be known by when in memory.
+file manager name
+6,38,0,0
+! This is the name of the file manager associated with the device.
+device driver name
+6,3a,0,0
+! This is the name of the device driver associated with the device.
+port address
+4,30,16,0
+! This is the absolute physical address of the hardware controller.
+irq vector
+1,34,10,0
+! This is the irq vector that the device will assert.
+!
+! Auto-vectored interrupt devices will use vectors 25 - 31.
+! Vectored interrupt devices will use vectors 64 - 255.
+! 68070 on-chip peripherals can also use auto-vectors 57 - 63.
+irq level
+1,35,10,1
+! This is the device's hardware irq level.
+irq priority
+1,36,10,1
+! For devices that use the F$IRQ Polling system, this field is used
+! to establish the polling priority of the device when more than
+! one device shares the vector.
+! Priorities are from 0 (highest) to 255 (lowest).  A priority of 0
+! indicates that the device requires exclusive use of the vector.
+! For devices that use the F$FIRQ system, this field is ignored.
+! [NOTE also, an F$FIRQ device can co-exist on a vector with an
+!  F$IRQ (priority 0) device].
+device mode capabilities
+1,37,16,3
+! This byte is used to validity check a caller's access mode byte
+! in I$Create or I$Open calls.  If a bit is set, the device is
+! capable of performing the corresponding function.  The ISize_
+! bit is usually set, because it is usually handled by the file
+! manager or ignored.  If the Share_ bit (Single User bit) is set
+! here, the device will be non-sharable (this is useful for printers).
+!
+! In the following definitions, a bit set means that the device is
+! capable of the action specified:
+!
+! bit 0 -- read (Read_)
+! bit 1 -- write (Write_)
+! bit 2 -- execute (Exec_)
+! bit 3 -- reserved
+! bit 4 -- reserved
+! bit 5 -- creates with initial file size are supported (ISize_)
+! bit 6 -- single-user (non-sharable) (IShare_)
+! bit 7 -- directory (Dir_)
+device class
+1,48,16,0
+! PD_DTP:  This field defines the class of the device.
+! For SockMan devices, this value is 7.
+non-blocking I/O flag
+1,49,10,0
+! non blocking I/O flag, 0=block, 1=don't block
+socket type
+1,4a,10,1
+! socket type: 0 for ESP Socket 1 for ISP Socket
+stack size for socket
+4,52,10,2048,
+! stack size for the socket (in bytes)
+receive queue mbuf limit
+4,56,10,8192
+! The maximum amount of received data (in bytes) that may be held in
+! memory buffers(in bytes)
+send queue mbuf limit
+4,5a,10,8192
+! The maximum amount of transmit (in bytes) that may be held in
+! memory buffers(in bytes)
+timeout process init priority
+4,5e,10,128
+! The priority that the timeout process will run at, default is 128
+host name
+6,62,0,0
+! The internet name for the machine where the socket descriptor will reside
+device names
+6,64,0,0
+! device driver names, the first one should be /lo0 (loop-back driver)
+{ start of repeat
+Address Family
+2,68,10,0
+! Address Family (Protocol Family)
+!  0 = Unspecified
+!  1 = UNIX Address Family 
+!  2 = Internetwork Address Family (UDP, TCP, etc.)
+! 12 = Ethernet 2.0 Address Family
+Socket Type
+2,6a,10,0
+! Socket Type for this protocol
+!
+! 0 = domain protocol
+! 1 = stream socket
+! 2 = datagram socket
+! 3 = raw protocol interface socket
+Protocol Type
+2,6c,10,0
+! Protocol Type
+! 0 = Reserved for IP
+! 6 = TCP Protocol
+! 17 = User Datagram Protocol
+Socket Module Type
+2,6e,10,0
+! Socket Module Type
+!
+! 1 = Protocol module
+! 2 = Shared module
+! 3 = Filter module
+Protocol Name
+6,70,0,0
+! Name of the module used to implement protocol.
+} end of repeat
+*
+*=============================================================*
+* Field descriptions for GFM (Graphics File Manager) devices
+*=============================================================*
+*
+#15,11
+descriptor name
+5,c,0,1
+! This field contains the name that the descriptor will 
+! be known by when in memory.
+file manager name
+6,38,0,0
+! This is the name of the file manager associated with the device.
+device driver name
+6,3a,0,0
+! This is the name of the device driver associated with the device.
+port address
+4,30,16,0
+! This is the absolute physical address of the hardware controller.
+irq vector
+1,34,10,0
+! This is the irq vector that the device will assert.
+!
+! Auto-vectored interrupt devices will use vectors 25 - 31.
+! Vectored interrupt devices will use vectors 64 - 255.
+! 68070 on-chip peripherals can also use auto-vectors 57 - 63.
+irq level
+1,35,10,1
+! This is the device's hardware irq level.
+irq priority
+1,36,10,1
+! For devices that use the F$IRQ Polling system, this field is used
+! to establish the polling priority of the device when more than
+! one device shares the vector.
+! Priorities are from 0 (highest) to 255 (lowest).  A priority of 0
+! indicates that the device requires exclusive use of the vector.
+! For devices that use the F$FIRQ system, this field is ignored.
+! [NOTE also, an F$FIRQ device can co-exist on a vector with an
+!  F$IRQ (priority 0) device].
+device mode capabilities
+1,37,16,3
+! This byte is used to validity check a caller's access mode byte
+! in I$Create or I$Open calls.  If a bit is set, the device is
+! capable of performing the corresponding function.  The ISize_
+! bit is usually set, because it is usually handled by the file
+! manager or ignored.  If the Share_ bit (Single User bit) is set
+! here, the device will be non-sharable (this is useful for printers).
+!
+! In the following definitions, a bit set means that the device is
+! capable of the action specified:
+!
+! bit 0 -- read (Read_)
+! bit 1 -- write (Write_)
+! bit 2 -- execute (Exec_)
+! bit 3 -- reserved
+! bit 4 -- reserved
+! bit 5 -- creates with initial file size are supported (ISize_)
+! bit 6 -- single-user (non-sharable) (IShare_)
+! bit 7 -- directory (Dir_)
+device class
+1,48,16,0
+! PD_DTP:  This field defines the class of the device.
+! For GFM devices, this value is $0b.
+upper case lock
+1,49,10,0
+! PD_UPC:  If this field is non-zero, all input or output characters
+! in the range "a...z" are made "A...Z".
+backspace option
+1,4a,10,1
+! PD_BSO:  If this field is zero when a backspace character is input,
+! GFM will echo PD_BSE (backspace echo character).  If this field is
+! non-zero, GFM will echo PD_BSE, SPACE, PD_BSE.
+delete line option
+1,4b,10,0
+! PD_DLO:  If this field is zero, GFM will delete by backspace-
+! erasing over the line.  If this field is non-zero, GFM will delete
+! by echoing a carriage return/line feed.
+echo flag
+1,4c,10,1
+! PD_EKO:  If this field is non-zero, then all input characters are
+! echoed, except undefined control characters are printed as ".".
+! If this field is zero, input characters are not echoed.
+automatic line feed flag
+1,4d,10,1
+! PD_ALF:  If this field is non-zero, then all carriage returns are
+! automatically followed by a line feed.
+end of line null count
+1,4e,10,0
+! PD_NUL:  This field is a count of the number of NULL padding
+! characters (always $00) to send after a CR/LF character.
+end of page pause flag
+1,4f,10,1
+! PD_PAU:  If this field is non-zero, an auto page pause will occur
+! upon reaching a full screen of output.  See PD_PAG for setting
+! the screen page length.
+page length
+1,50,10,1
+! PD_PAG:  This field contains the number of lines per screen page.
+backspace input character
+1,51,0,1
+! PD_BSP:  This field contains the input character that is recognized
+! as backspace.  See PD_BSE and PD_BSO also.
+delete line character
+1,52,0,1
+! PD_DEL:  This field contains the input character that is recognized
+! as the delete line function.  See also PD_DLO.
+end of record character
+1,53,16,1
+! PD_EOR:  This field contains the input character that is recognized
+! as the last character on each line entered (I$ReadLn).  An output
+! line is terminated (I$WritLn) when this character is sent.  Normally,
+! PD_EOR should be set to $0d (Carriage Return).  WARNING:  If it is
+! set to zero, GFM's ReadLn will NEVER terminate, unless an EOF occurs.
+end of file character
+1,54,16,1
+! PD_EOF:  This field defines the end of file character.  GFM will
+! return an end-of-file error on I$Read or I$ReadLn if this is the
+! first (and only) character input.  It can be disabled by setting
+! this field to a zero.  This character is usually $1b (Escape).
+reprint line character
+1,55,0,1
+! PD_RPR:  When this character is input, GFM (I$ReadLn) will reprint
+! the current input line.  A carriage return is also inserted in the
+! input buffer for PD_DUP.  This makes correcting typing errors
+! more convenient.
+duplicate line character
+1,56,0,1
+! PD_DUP:  If this character is input, GFM (I$ReadLn) will duplicate
+! whatever is in the input buffer through the first "PD_EOR" character.
+! Normally, this will be the previous line typed.
+pause character
+1,57,0,1
+! PD_PSC:  If this character is typed during output, output is
+! suspended before the next end-of-line.  This will also delete any
+! "type-ahead" input for I$ReadLn.
+keyboard interrupt character
+1,58,0,1
+! PD_INT:  If this character is input, a keyboard interrupt signal
+! is sent to the last user of the device.  It will terminate the
+! current I/O request (if any) with an error identical to the
+! keyboard interrupt signal code (Error #000:003).  PD_INT is
+! normally set to a control-C character.
+keyboard quit character
+1,59,0,1
+! PD_QUT:  When this character is input, a keyboard abort signal is
+! sent to the last user of the device.  It will terminate the current
+! I/O request (if any) with an error code identical to the keyboard
+! abort signal code (Error #000:002).  PD_QUT is normally set to
+! a control-E character.
+backspace output
+1,5a,0,1
+! PD_BSE:  This is the backspace character to echo when PD_BSP is
+! input.  See PD_BSP and PD_BSO.
+line overflow character
+1,5b,0,1
+! PD_OVF:  If I$ReadLn has satisfied its input byte count, GFM ignores
+! any further input characters until an end-of-line (PD_EOR) character
+! is received.  It echoes the PD_OVF character for each byte ignored.
+! PD_OVF is usually set to the terminal's bell character.
+parity code
+1,5c,16,1
+! PD_PAR:  This field defines the parity, stop bits and character
+! length as follows:
+!
+! bits 1 & 0 -- 00 = no parity
+!               01 = odd parity
+!               11 = even parity
+!
+! bits 3 & 2 -- 00 = 8 bits/character
+!               01 = 7 bits/character
+!               10 = 6 bits/character
+!               11 = 5 bits/character
+!
+! bits 5 & 4 -- 00 = 1 stop bit
+!               01 = 1 1/2 stop bits
+!               10 = 2 stop bits
+!
+! bits 7 & 6 -- reserved     
+adjustable baud rate
+1,5d,16,1
+! PD_BAU:  This field defines the baud rate of the terminal:
+!
+!   0 = 50 baud     6 = 600 baud    C = 4800 baud
+!   1 = 75 baud     7 = 1200 baud   D = 7200 baud
+!   2 = 110 baud    8 = 1800 baud   E = 9600 baud
+!   3 = 134.5 baud  9 = 2000 baud   F = 19200 baud
+!   4 = 150 baud    A = 2400 baud  10 = 38400 baud
+!   5 = 300 baud    B = 3600 baud  FF = external
+output device name
+6,5e,0,0
+! PD_D2P:  GFM sends output to the device named in this string.
+! Input comes from the device named in the M$PDev field (i.e. the
+! device named as the descriptor name).  This permits two separate
+! devices (i.e. a keyboard and a video display) to be one logical
+! device.  Normally, PD_D2P refers to the name of the same device
+! descriptor it appears in.
+xon character
+1,60,0,1
+! PD_XON:  When this character is received, output from an GFM device
+! that has been stopped by a PD_XOFF (see below) can be resumed.
+xoff character
+1,61,0,1
+! PD_XOFF:  When this character is received, output from an GFM device
+! is immediately suspended until a PD_XON character is received.  This
+! is required for software handshaking for some devices.
+tab character
+1,62,0,1
+! PD_Tab:  In I$WritLn calls, GFM expands this character into spaces
+! to make tab stops at column intervals set by PD_Tabs.  NOTE:  GFM
+! does not know the effect of control characters on particular
+! terminals.  It can expand tabs incorrectly if they are used.
+tab column width
+1,63,10,4
+! PD_Tabs:  See PD_Tab
+2nd device name
+6,a8,0,0
+! PD_D2N:  This is the name of the secondary device.
+3rd device name
+6,aa,0,0
+! PD_D3N:  This is the name of the third device.
+4th device name
+6,ac,0,0
+! PD_D4N:  This is the name of the fourth device.
+CP Interval
+1,ae,16,0
+! PD_CPInterval:  This field defines the number of ticks between each
+! time that the cursor process is run.
+function class
+1,af,16,0
+! PD_FC:  This field defines the function class of the descriptor.
+! For each function required, a bit is set as follows:
+!
+! bit 0 -- keyboard
+! bit 1 -- pointer
+! bit 2 -- video
+! bit 3 -- audio
+! All other bits are reserved
+

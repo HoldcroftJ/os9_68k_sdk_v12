@@ -1,0 +1,6 @@
+#ifndef __CSETJMP
+#	define __CSETJMP
+
+#include <setjmp.h>
+
+#endif __CSETJMP

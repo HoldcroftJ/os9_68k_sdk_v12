@@ -1,0 +1,233 @@
+ nam sbglue
+ ttl glue code for sbf drivers in c
+
+* Copyright 1988, 1989, 1990, 1993 by Microware Systems Corporation
+* Reproduced Under License
+
+* This source code is the proprietary confidential property of
+* Microware Systems Corporation, and is provided to licensee
+* solely for documentation and educational purposes. Reproduction,
+* publication, or distribution in any form to any party other than
+* the licensee is strictly prohibited.
+
+
+********************
+* sbglue:  interface code for C language SBF drivers.
+*          This code provides the register interface
+*          between SBF and SBF-style Device Drivers
+*          that are written in C.
+*          This psect is the "root psect" for the final
+*          output module, thus it must be linked first.
+
+
+
+********************
+* Edition History:
+*
+* ed.    date.     reason.                                         who.
+* --  --------  -------------------------------------------------  ---
+* 00  88/09/??  original version.                                  srw
+* 01  88/09/20  history starts.                                    wwb
+* 02  89/02/20  removed ss_skip "bug fix" for 2.3 version utils.   wwb
+* 03  90/04/10  added save of path descriptor ptr for GetStat and  wwb
+*               PutStat (requires adding "pathdesc" to static).
+* 04  90/04/18  added initialization of a5 (=0) for Stack          wwb
+*               traceback of debuggers.  Updated calling
+*               conventions (from SBF, to Driver) for clarity.
+*               ---- OS-9/68K V2.4 released ----
+* 05  93/07/02  converted for UCC.                                 wwb
+*               ---- OS-9/68K V3.0 released ----
+*               ---- OS-9/68K V3.1 released ----
+
+********************
+*
+* sbglue - glue code for sbf drivers in c
+*
+
+ use defsfile
+
+Edition set 5 driver should change this by means of @_sysedit:
+
+Typ_Lang set (Drivr<<8)+Objct let's call it a driver
+Attr_Rev set ((ReEnt+SupStat)<<8)+0 attributes and revision
+ psect main,Typ_Lang,Attr_Rev,Edition,0,Entry
+
+********************
+*
+* The entry table
+*
+Entry dc.w Init
+ dc.w Read
+ dc.w Write
+ dc.w GetStat
+ dc.w PutStat
+ dc.w Term
+ dc.w 0 exception handler (0 = none)
+
+
+********************
+*
+* Init - initialize device driver
+*
+* SBF Conventions:
+*
+*    Passed:  (a1) = device descriptor ptr
+*             (a2) = static storage ptr
+*             (a4) = current process descriptor ptr
+*             (a6) = system global data ptr
+*
+*    Returns:  nothing
+*
+*    Error Return:  (cc) = carry set
+*                   d1.w = error code
+*
+* C Driver Conventions:
+*
+*    Call:     init (dd)  (dd = device descriptor ptr)
+*
+*    Returns:  d0.l = 0 (no error), else Error Code
+*
+Init: movem.l a0/a5/a6,-(a7) stack a0, a5, ,a6
+ lea init(pc),a0 address of the init routine
+ move.l a6,sys_stat(a2) initialize the systems globals ptr
+ move.l a2,stat(a2) initialize the static storage ptr
+InitTerm move.l a1,d0 pass the device descriptor
+ move.l a2,a6 set global storage ptr for C
+ bra.s calldriver
+
+
+********************
+*
+* Read/Write - read/write tape block(s)
+*
+* SBF Conventions:
+*
+*    Passed:  d0.l = buffer size
+*             (a0) = buffer ptr
+*             (a2) = static storage ptr
+*             (a3) = drive table ptr
+*             (a4) = current process descriptor ptr
+*             (a6) = system global data ptr
+*
+*    Returns:  nothing
+*
+*    Error Return:  (cc) = carry set
+*                   d1.w = error code
+*
+* C Driver Conventions:
+*
+*    Call:     read  (buffsize, buffaddr)
+*              write (buffsize, buffaddr)
+*
+*    Returns:  d0.l = Read:   block size read, else Error Code (* -1)
+*                     Write:  block size written, else Error Code (* -1)
+*
+Read: movem.l a0/a5/a6,-(a7) stack a0, a5, a6
+ move.l a0,d1 copy the buffer address
+ lea read(pc),a0 address of the read routine
+ReadWrite
+ move.l a2,a6 set global storage ptr for C
+ move.l a4,procdesc(a6) set process ptr
+ movea.w #0,a5 set top of stack (traceback)
+ jsr (a0)
+ move.l d0,d1 copy error code
+ tst.l d0 was there an error ?
+ bpl.s ReadEnd no, leave
+ muls #-1,d1 fix the error code
+ ori #Carry,ccr
+ReadEnd movem.l (a7)+,a0/a5/a6 restore a0, a5, a6
+ rts
+
+Write: movem.l a0/a5/a6,-(a7) stack a0, a5, a6
+ move.l a0,d1 copy the buffer address
+ lea write(pc),a0 address of the write routine
+ bra.s ReadWrite
+
+
+********************
+*
+* GetStat/PutStat - get/set device status
+*
+* SBF Conventions:
+*
+*    Passed:  d0.w = status call function code
+*             d2.l = argument count (if any)
+*             (a1) = path descriptor ptr
+*             (a2) = static storage ptr
+*             (a3) = drive table ptr
+*             (a4) = current process descriptor ptr
+*             (a6) = system global data ptr
+*
+*    Returns:  nothing
+*
+*    Error Return:  (cc) = carry set
+*                   d1.w = error code
+*
+* C Driver Conventions:
+*
+*    Call:     getstat (code, arg)
+*              setstat (code, arg)
+*
+*    Returns:  d0.l = 0 (no error), else Error Code
+*
+GetStat: movem.l a0/a5/a6,-(a7) stack a0, a5, a6
+ lea getstat(pc),a0 address of getstat routine
+ bra.s GetPut
+
+PutStat: movem.l a0/a5/a6,-(a7) stack a0, a5, a6
+ lea putstat(pc),a0 address of the setstat routine
+GetPut ext.l d0 make the code a long
+
+**>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+** Tape.l Library Fix:
+**
+** Edition 1 of the "_ss_skip" routine in "tape.l" only passes the
+** block count as a "word" value.  It should be a "long".
+** This "extend" fixes the problem, and should be removed when
+** the library routine is fixed.
+
+* ext.l d2 fix tape.l problem
+
+** end of fix.
+**<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+ move.l d2,d1 pass the argument
+ move.l a2,a6 set global storage ptr for C
+ move.l a1,pathdesc(a6) set path descriptor ptr
+ move.l a4,procdesc(a6) set process ptr
+calldriver movea.w #0,a5 set top of stack (traceback)
+ jsr (a0)
+ move.l d0,d1 copy error code
+ beq.s PutEnd leave if no error
+ ori #Carry,ccr set error flag
+PutEnd movem.l (a7)+,a0/a5/a6 restore a0, a5, a6
+ rts
+
+
+********************
+*
+* Term - terminate device driver
+*
+* SBF Conventions:
+*
+*    Passed:  (a1) = device descriptor ptr
+*             (a2) = static storage ptr
+*             (a4) = current process descriptor ptr
+*             (a6) = system global data ptr
+*
+*    Returns:  nothing
+*
+*    Error Return:  (cc) = carry set
+*                   d1.w = error code
+*
+* C Driver Conventions:
+*
+*    Call:     term (dd)  (dd = device descriptor ptr)
+*
+*    Returns:  d0.l = 0 (no error), else Error Code
+*
+Term: movem.l a0/a5/a6,-(a7) stack a0, a5, a6
+ lea term(pc),a0 address of the term routine
+ bra.s InitTerm
+
+ ends

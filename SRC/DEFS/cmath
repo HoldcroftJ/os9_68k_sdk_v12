@@ -1,0 +1,183 @@
+#ifndef __CMATH
+#	define __CMATH
+
+#include <math.h>
+
+// overloaded C++ float versions of C functions in <math.h>
+
+inline float abs(float x) 
+{	return static_cast<float>(fabs(static_cast<double>(x))); }
+
+inline float acos(float x)
+{	return static_cast<float>(acos(static_cast<double>(x))); }
+
+inline float atan(float x)
+{   return static_cast<float>(atan(static_cast<double>(x))); }
+
+inline float atan2(float x, float y)
+{   return static_cast<float>(atan2(static_cast<double>(x), static_cast<double>(y))); }
+
+inline float ceil(float x)
+{   return static_cast<float>(ceil(static_cast<double>(x))); }
+
+inline float cos(float x)
+{   return static_cast<float>(cos(static_cast<double>(x))); }
+
+inline float cosh(float x)
+{   return static_cast<float>(cosh(static_cast<double>(x))); }
+
+inline float exp(float x)
+{   return static_cast<float>(exp(static_cast<double>(x))); }
+
+inline float fabs(float x)
+{   return static_cast<float>(fabs(static_cast<double>(x))); }
+
+inline float floor(float x)
+{   return static_cast<float>(floor(static_cast<double>(x))); }
+
+inline float fmod(float x, float y)
+{   return static_cast<float>(fmod(static_cast<double>(x), static_cast<double>(y))); }
+
+inline float frexp(float x, int* exp)
+{   return static_cast<float>(frexp(static_cast<double>(x), exp)); }
+
+inline float ldexp(float x, int exp)
+{   return static_cast<float>(ldexp(static_cast<double>(x), exp)); }
+
+inline float log(float x)
+{   return static_cast<float>(log(static_cast<double>(x))); }
+
+inline float log10(float x)
+{   return static_cast<float>(log10(static_cast<double>(x))); }
+
+inline float modf(float x, float* y)
+{   
+	double y_arg = static_cast<double>(*y);  
+	float r_val = static_cast<float>(modf(static_cast<double>(x), &y_arg)); 
+	*y = static_cast<float>(y_arg);
+	return r_val;
+}
+
+inline float pow(float x, float y)
+{   return static_cast<float>(pow(static_cast<double>(x), static_cast<double>(y))); }
+
+
+inline float sin(float x)
+{   return static_cast<float>(sin(static_cast<double>(x))); }
+
+inline float sinh(float x)
+{   return static_cast<float>(sinh(static_cast<double>(x))); }
+
+inline float sqrt(float x)
+{   return static_cast<float>(sqrt(static_cast<double>(x))); }
+
+inline float tan(float x)
+{   return static_cast<float>(tan(static_cast<double>(x))); }
+
+inline float tanh(float x)
+{   return static_cast<float>(tanh(static_cast<double>(x))); }
+
+// Additional overloaded functions in the C++ standard (but not in <math.h>)
+
+inline double abs(double x)
+{	return fabs(x); }
+
+// fast integer version
+inline double pow(double x, int n)
+{
+    bool neg = n < 0;
+    double ret_val = 1.0;
+
+    if (neg) n = -n;
+    while (n > 0)
+        if (n & 01) { // odd
+            ret_val *= x;
+            n--;
+        } else { // even
+            x *= x;
+            n >>= 1;
+        }
+    if (neg)
+        return 1.0 / ret_val;
+    else
+        return ret_val;
+}
+
+// C++ long double overloaded versions of C functions in <math.h>
+
+inline long double abs(long double x)   
+{   return static_cast<long double>(abs(static_cast<double>(x))); }
+
+inline long double acos(long double x)
+{   return static_cast<long double>(acos(static_cast<double>(x))); }
+
+inline long double atan(long double x)
+{   return static_cast<long double>(atan(static_cast<double>(x))); }
+
+inline long double atan2(long double x, long double y)
+{   return static_cast<long double>(atan2(static_cast<double>(x), static_cast<double>(y))); }
+
+inline long double ceil(long double x)
+{   return static_cast<long double>(ceil(static_cast<double>(x))); }
+
+inline long double cos(long double x)
+{   return static_cast<long double>(cos(static_cast<double>(x))); }
+
+inline long double cosh(long double x)
+{   return static_cast<long double>(cosh(static_cast<double>(x))); }
+
+inline long double exp(long double x) 
+{   return static_cast<long double>(exp(static_cast<double>(x))); } 
+
+inline long double fabs(long double x)
+{   return static_cast<long double>(fabs(static_cast<double>(x))); }
+
+inline long double floor(long double x)
+{   return static_cast<long double>(floor(static_cast<double>(x))); }
+
+inline long double fmod(long double x, long double y)
+{   return static_cast<long double>(fmod(static_cast<double>(x), static_cast<double>(y))); }
+
+inline long double frexp(long double x, int* exp)
+{   return static_cast<long double>(frexp(static_cast<double>(x), exp)); }
+
+inline long double ldexp(long double x, int exp)
+{   return static_cast<long double>(ldexp(static_cast<double>(x), exp)); }
+
+inline long double log(long double x)
+{   return static_cast<long double>(log(static_cast<double>(x))); }
+
+inline long double log10(long double x)
+{   return static_cast<long double>(log10(static_cast<double>(x))); }
+
+inline long double modf(long double x, long double* y)
+{
+    double y_arg = static_cast<double>(*y);
+    long double r_val = static_cast<long double>(modf(static_cast<double>(x), &y_arg));
+    *y = static_cast<long double>(y_arg);
+    return r_val;
+}
+
+inline long double pow(long double x, long double y) 
+{   return static_cast<long double>(pow(static_cast<double>(x), static_cast<double>(y))); }
+
+inline long double pow(long double x, int n)
+{	return static_cast<long double>(pow(static_cast<double>(x), n)); }
+
+inline long double sin(long double x)
+{   return static_cast<long double>(sin(static_cast<double>(x))); }
+
+inline long double sinh(long double x)
+{   return static_cast<long double>(sinh(static_cast<double>(x))); }
+
+inline long double sqrt(long double x)
+{   return static_cast<long double>(sqrt(static_cast<double>(x))); }
+
+inline long double tan(long double x)
+{   return static_cast<long double>(tan(static_cast<double>(x))); }
+ 
+inline long double tanh(long double x)
+{   return static_cast<long double>(tanh(static_cast<double>(x))); }
+
+
+#endif /* __CMATH */

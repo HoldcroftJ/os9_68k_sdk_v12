@@ -1,0 +1,108 @@
+-t
+*****************************************************************************
+* Initial Startup sequence for networking using the Rommed Boot             *
+*                                                                           *
+* Lines that start with ** should be used as examples to set values         *
+*   appropriate for your network enviroment.  Lines currently not commented *
+*   out should not need to be customized for the initial startup of the     *
+*   target board.                                                           *
+*                                                                           *
+* Edit this file and if possible cut/paste each appropriate line onto the   *
+*   console command line to initially start the SPF/Lancom networking on    *
+*   the target board.                                                       *
+*                                                                           *
+* NOTE: Once a storage device is available, the inetdb3 can be saved to     *
+*       disk and simply reloaded via a startup file.                        *
+*                                                                           *
+*****************************************************************************
+*
+* Inititialize System MBuf system call
+*   NOTE: This is already done via init module in most cases.
+*   NOTE: Module not in ROM boot
+*
+-nx
+*mbinstall
+-x
+*
+* Create inetdb3 module
+* create <modname> <num-files> <size-1> <size-2> ... <size-n>
+* File Numbers
+*  1 /etc/hosts (aprox. 25 bytes per host)				400
+*  2 /etc/hosts.equiv (not used)						  0
+*  3 /etc/networks (aprox. 40 bytes per network)		160
+*  4 /etc/protocols (aprox. 25 bytes per protocol)		  0
+*  5 /etc/services (aprox. 25 bytes per service)		  0
+*  6 /etc/inetd.conf (aprox. 50 bytes per entry)		  0
+*  7 /etc/resolv.conf (aprox. 100 bytes)				100
+*  8 host config (not used)								  0
+*  9 host interfaces (aprox 200 bytes per interface)	400
+* 10 hostname (>= length of hostname + 1, recommended 65) 65
+* 11 static routes (aprox. 64 bytes per entry)			256
+*
+* Type ndbmod -? for help on parameters
+*
+ndbmod create inetdb3 11 400 0 160 0 0 0 100 0 400 65 256
+*
+* Initialize interface information
+*   Change "192.168.0.5"   to your system's IP address 
+*   Change "255.255.255.0" to your system's netmask
+*   Change "spie0" to the name of your ethernet device descriptor if different
+*
+**ndbmod interface add enet0 address 192.168.0.5 netmask 255.255.255.0 binding /spie0/enet
+*
+* Define domain and Addresses of DNS Servers
+*   Change "MyDomain.com" to your domain name
+*   Adjust addresses after "server" to match your DNS server's IP address
+*   Remove second server entry if not requred
+*
+**ndbmod resolve MyDomain.com server 192.168.0.32 server 192.168.0.254
+*
+* Set hostname
+*   Change "MyHostName" to the name of your system
+*
+**ndbmod hostname MyHostName
+*
+* Add locally defined Host names
+*   Not required if DNS available
+*   Room for approx 16 available
+*   Add IP addresses and Hostnames as desired.
+*
+**ndbmod host add 192.168.0.5 Hawk5
+**ndbmod host add 172.16.0.32 DNServe
+*
+* Add Default and other Routes
+*   Change 192.168.0.254 to the IP address of your default router
+*
+**ndbmod route add Default 192.168.0.254
+*
+* Start SoftStax networking
+*
+ipstart
+*
+* Start Routing deaemon  (Not in ROM Boot)
+*
+**routed <>>>/nil &
+*
+* Start services Daemon(s)
+* 
+*   Chd assumes /dd device (ramdisk) is part of Rom boot.
+*   Setup an execution directory (optional)
+*   Chx to the executiton directory (optional)
+*   inetd: use once login and password file is available in a SYS directory
+*   telnetd: with auto start of mshell (no login)
+*   ftpd: with no login authentication
+*
+chd /dd
+-nx
+makdir /dd/CMDS
+chx /dd/cmds
+-x
+*inetd <>>>/nil &
+telnetd -f=mshell <>>>/nil &
+ftpd -u <>>>/nil &
+*
+*   spfndpd: Start Hawk User state debugging daemon
+*   spfnppd: Start Hawk Profiling Daemon (Not in ROM Boot)
+*
+spfndpd <>>>/nil &
+*spfnppd <>>>/nil &

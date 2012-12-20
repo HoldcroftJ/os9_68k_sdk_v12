@@ -1,0 +1,70 @@
+/*
+ * Microware's <unistd.h> to support Rogue Wave's C++ Standard Libary
+ * This is not the same header file as the POSIX.1 <unistd.h>
+ * The namespace __unix is defined to avoid name clashes with unix.l
+ * functions. The C++ functions __unix::open, __unix::close, __unix::read, 
+ * __unix::write, __unix::lseek, __unix::chmod, __unix::access, __unix::chmod
+ * and __unix::stat work the same as their UNIX equivalents 
+ * (BSD & SYS V versions) as far as the RW code is concerned. The code in
+ * <fstream.cc> needs to be modified to use these functions instead of the
+ * default ::open, ::close, ::read, ::write and ::lseek (unix.l functions)
+ * which don't work as RW expects them to.
+ */
+
+#if     !defined(__CUNISTD)
+#define __CUNISTD
+
+#ifndef __cplusplus /* this file meant to be included as C++ only */
+#	error <cunistd> is a support header for the C++ standard lib
+#endif
+
+#include <cstddef>
+#include <sys/ctypes>		// for off_t, ssize_t, mode_t
+#include <cstdio>			// for remove()
+
+/* File descriptors for stdin, stdout and stderr */
+#define STDIN_FILENO    0
+#define STDOUT_FILENO   1
+#define STDERR_FILENO   2
+
+/* Constants for access() */
+#define R_OK 0x1  /* xxx1 -- test for read permissions */
+#define W_OK 0x2  /* xx1x -- test for write permissions */
+#define X_OK 0x4  /* x1xx -- test for execute/search permissions */
+#define F_OK 0x8  /* 1xxx -- test for existence of file */
+
+#if     !defined(SEEK_SET)
+#define SEEK_SET 0 /* set file offset to start + offset */
+#endif
+#if     !defined(SEEK_CUR)
+#define SEEK_CUR 1 /* set file offset to current + offset */
+#endif
+#if     !defined(SEEK_END)
+#define SEEK_END 2 /* set file offset to EOF + offset */
+#endif
+
+
+/* Function prototypes for functions used by C++ std library */
+/* These are C++ functions and don't clash with functions in unix.l */
+/* There are wrapped in namespace "unix" to prevent clashes with functions  */
+/* in unix.l (declared in <modes.h>) */
+
+
+
+namespace __unix { /* our own namespace */
+
+
+inline int 	unlink(const char* fname) { return remove(fname); }
+
+int 	access(const char*, int);
+int 	close(int);
+int 	open(const char*, int, ...);
+int 	creat(const char*, int);
+int 	read(int, void*, size_t);
+int 	write(int, const void*, size_t);
+off_t	lseek(int, off_t, int);
+int		chmod(const char*, mode_t);
+
+} /* namespace __unix */
+
+#endif  /* __CUNISTD */

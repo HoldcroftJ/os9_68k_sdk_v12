@@ -1,0 +1,44 @@
+
+*  Function:
+*		stoirq - select timeout interrupt service routine.
+*
+*  Synopsis:
+*		void stoirq()
+*
+*  Description:
+*		This is the CBOOT version of the interrupt service entry point.
+*	Note that this is boot time and the normal rules for interrupt entry
+*  are not in force.  
+*		The timer has been made more flexable for the cboot as there
+*   is a need for a general timer.
+stoirq:
+ movem.l d0-d1/a0,-(sp)
+ move.l ttimer(a6),d0 timer mode?
+  beq.s stosvc no
+ bsr stop_sto
+ move.l #1,ttimerdone(a6) flag timer expired
+  bra.s stoidn
+stosvc
+ lea.l sstorage(a6),a0 select timeout mode, get static storage pointer 
+ move.l a0,d0
+ bsr seltoirq call service routine
+stoidn
+ movem.l (sp)+,d0-d1/a0
+ addq.l #4,sp  remove vector number
+  rte
+
+*  This is the SIOP interrupt entry point for the CBOOT case.
+*
+*  Normal irq entry is not in force, and as such we must set pointers
+*  for the service routine.
+*
+*
+irqsvc:
+ movem.l d0-d1/a0,-(sp)
+ lea.l sstorage(a6),a0
+ move.l a0,d0
+  bsr irq
+ movem.l (sp)+,d0-d1/a0
+ addq.l #4,sp
+  rte
+

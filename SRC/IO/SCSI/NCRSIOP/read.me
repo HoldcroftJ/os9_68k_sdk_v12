@@ -1,0 +1,376 @@
+/*--------------------------------------------------------------------------,
+|                                                                           |
+|          Copyright 1997-2000 by Microware Systems Corporation             |
+|                            All Rights Reserved                            |
+|                          Reproduced Under License                         |
+|                                                                           |
+|  This software is confidential property of Microware Systems Corporation, |
+|  and is provided under license for internal development purposes only.    |
+|  Reproduction, publication, distribution, or creation of derivative works |
+|  in any form to any party other than the licensee is strictly prohibited, |
+|  unless expressly authorized in writing by Microware Systems Corporation. |
+|                                                                           |
+|---------------------------------------------------------------------------|
+|                                                                           |
+| Edition History:                                                          |
+| #   Date    Comments                                                By    |
+| -- -------- ------------------------------------------------------- ---   |
+| 01 97/06/24 Added edition history.                                  GbG   |
+|                <***** MVME2600/3600 Release ***********************>      |
+| 02 97/07/24 Added edition #59 release notes.                        GbG   |
+|             ---- OS-9000/SH3 V2.2.6 Released ----                         |
+|             ---- SCSI Common Sub-Component v1.0 Released ----             |
+| 03 06/01/00 Added edition #65 notes.                                GbG   |
+|             $$                    <RELEASE_INFO>                     $$   |
+`--------------------------------------------------------------------------*/
+
+===================== EDITION #56 Release notes ==========================
+
+			Symbios 53c8xx update.
+
+	Highlights:
+
+		* Wide support added
+		* Ultra FAST20 support added
+		* SCRIPTS RAM support ( able to run scripts from on chip RAM ) (1)
+		* Large FIFO enabled
+		* Increased burst rates to 128 where supported
+		* Special PCI cache features enabled (2)
+		* PCI IO Mode selectable (PCI I/O or PCI Memory ) (3)
+
+		(1) The SCRIPTS RAM support is currently only available on
+			OS9000 X86 based systems. Requires non translation
+			of PCI memory. To use SCRIPTS RAM support include
+			the "-dSCRIPTS_RAM" in the compile line when making
+			the driver. 
+
+		(2) Instruction prefetch is not enabled	by default. 
+			Maximun burst rate and large fifo's are enabled.
+
+		(3) By default the Microware Symbios driver will use the
+			PCI memory model to speed up transfers especially on
+			X86 platforms. In the PCI memory mode no in/out 
+			instructions are used. For the X86 platform this
+			removes the CPU releated waits added by the use
+			of "inc", "outc" ect. For the PowerPC systems 
+			the use the of the cpu.l library is not required
+			when in PCI memory mode. No "eieio" instructions
+			are required in this mode. If the user desires to
+			run the driver in PCI I/O mode the driver may be
+			recompiled with the "-dPCI_IO_MAPPED" flag.
+
+Pior to this release the following Symbios devices are supported:
+
+	Number of devices supported (2)
+
+	DEVICE			WIDE	ULTRA1	ULTRA2	FIFO_SIZE	BURST
+	----------------------------------------------------------
+	Symbios 53c810	N/A		N/A		N/A		64			16
+	Symbios	53c825	No		N/A		N/A		88			16
+
+This release adds the following:
+
+	Number of devices supported (12)
+
+	DEVICE				WIDE	ULTRA1	ULTRA2	FIFO_SIZE	BURST
+	-------------------------------------------------------------
+	Symbios 53c810		N/A		N/A		N/A		64			16
+	Symbios 53c810AP	N/A		N/A		N/A		64			16 (1)
+	Symbios 53c815		N/A		N/A		N/A		64			16 (1)
+	Symbios	53c820		Yes		N/A		N/A		88			16 (1)
+	Symbios	53c825		Yes		N/A		N/A		88			16
+	Symbios	53c825A		Yes		N/A		N/A		536			128
+	Symbios	53c875		Yes		YES		N/A		536			128
+	Diamond FirePort20	Yes		N/A		N/A		536			128 (825A)
+	Diamond FirePort40	Yes		YES		N/A		536			128 (875)
+
+	Symbios	53c860		Yes		YES		N/A		536			128 (1)
+	Symbios	53c885		Yes		YES		N/A		536			128 (1)
+	Symbios	53c895		Yes		YES		YES		536			128 (1,2)
+	Symbios	53c896		Yes		YES		YES		536			128 (1,2)
+
+	(1) Support is included but untested.
+
+	(2) Support for 895 and 896 is only available with out ULTRA
+	support. The 160Mhz clock will be enabled on a future release.
+	NOTE: The 895 and 896 is untested.
+
+
+	[Symbios 53C810] 
+	[Symbios 53C810A]
+	Device supports burst op code fetch
+	Device supports instruction prefetch
+	Device supports Cache Line Size and Cache Commands
+
+	[Symbios 53C810ALV] * same as 810
+	Device supports burst op code fetch
+	Device supports instruction prefetch
+	Device supports Cache Line Size and Cache Commands
+
+	[Symbios 53C815] 
+	Device supports burst op code fetch
+
+	[Symbios 53C825]
+	Device supports Wide SCSI data transfers
+	Device supports burst op code fetch
+
+	[Symbios 53C825A]
+	Device supports Wide SCSI data transfers
+	Device supports burst op code fetch
+	Device supports instruction prefetch
+	Device has Scripts RAM
+	Device supports Cache Line Size and Cache Commands
+
+	[Symbios 53C860] 
+	Device supports burst op code fetch
+	Device supports instruction prefetch
+	Device supports Cache Line Size and Cache Commands
+	Device supports Fast-20 transfers
+
+	[Symbios 53C875] 
+	Device supports Wide SCSI data transfers
+	Device supports burst op code fetch
+	Device supports instruction prefetch
+	Device has Scripts RAM
+	Device supports Cache Line Size and Cache Commands
+	Device supports Fast-20 transfers
+
+	[Symbios 53C885]
+	Device supports Wide SCSI data transfers
+	Device supports burst op code fetch
+	Device supports instruction prefetch
+	Device has Scripts RAM
+	Device supports Cache Line Size and Cache Commands
+	Device supports Fast-20 transfers
+	Device supports Clock Doubler
+
+	[Symbios 53C895]
+	Device supports Wide SCSI data transfers
+	Device supports burst op code fetch
+	Device supports instruction prefetch
+	Device has Scripts RAM
+	Device supports Cache Line Size and Cache Commands
+	Device supports Fast-20 transfers ( Not supported yet )
+	Device supports Clock Doubler ( Not supported yet )
+	Device supports Fast-40 transfers ( Not supported yet )
+
+	[Symbios 53C896] 
+	Device supports Wide SCSI data transfers
+	Device supports burst op code fetch
+	Device supports instruction prefetch
+	Device has Scripts RAM
+	Device supports Cache Line Size and Cache Commands
+	Device supports Fast-20 transfers ( Not supported yet )
+	Device supports Clock Doubler ( Not supported yet )
+	Device supports Fast-40 transfers ( Not supported yet )
+
+Using Ultra Fast20 and Wide support.
+	
+	Controller Dependancy:
+
+	For FAST20 support the controller must support FAST20.
+
+	Device Descriptors:
+
+	To use a device with disconnect, wide, synchronous data transfer,
+	and FAST20 Ultra the following should be added to the device 
+	decriptor entry in "systype.h". Be sure to re-make the descriptors.
+
+	#define SCSIOPTS SCSI_ATN|SCSI_SYNC|SCSI_WIDE|SCSI_ULTRA
+
+	Optionaly you may use EditMod to change the SCSIOPTS field. 
+	For SYNC and ATN the SCSIOPTS value is "5". 
+	
+	
+	For OS9000 the following defines are located in "rbf.h" and "sbf.h".
+
+	#define SCSI_ATN     0x01    /* attention supported -- drive supports
+	                              * SCSI attention and standard messageing.
+	                              * (required for disconnect support.)
+	                              */
+	
+	#define SCSI_PARITY  0x02	/* enable parity checking on data transfers.
+	                             * Drivers should set the up controllers to
+	                             * generate PARITY.  This flag indicates that
+	                             * parity should be checked on incomming data.
+	                             */
+
+	#define SCSI_SYNC    0x04   /* drive supports synchronous data transfer
+	                             * This would cause the driver to negotiate
+	                             * for synchronous transfers.
+	                             */
+	
+	#define SCSI_WIDE    0x08   /* drive may support SCSI-II "wide" bus
+	                             * (16 bit transfers.)  This would cause
+	                             * the driver to negotiate for wide bus
+	                             * transfers. ( implies ATN support )
+	                             */
+
+	#define SCSI_TARGET  0x10   /* This unit should function as a target
+	                             * device on the SCSI bus.  We currently
+	                             * have no drivers that can do this but...
+	                             */
+
+	#define SCSI_ULTRA	0x20	/* drive supports SCSI FAST20/40 protocol
+								 * This includes ULTRA1 and ULTRA2
+								 * support
+								*/
+							
+	#define SCSI_SLOW	0x40	/* Setting this bit forces maximun period
+								 * during synchronous transfers to 200ns
+								 * (5MBs). NOTE: SCSI_SYNC must also be
+								 * defined to use this flag.
+								*/
+
+	For OS9 the following defines are located in "rbf.h" and "sbf.h".
+
+	#define		SCSI_ATN		(1<<0)	/* assert ATN supported				*/
+	#define		SCSI_TARGET		(1<<1)	/* target mode supported			*/
+	#define		SCSI_SYNCHR		(1<<2)	/* synchronous transfers supported	*/
+	#define		SCSI_PARITY		(1<<3)	/* enable SCSI parity checking		*/
+	#define		SCSI_WIDE		(1<<4)	/* enable SCSI wide operation		*/
+	#define		SCSI_ULTRA		(1<<5)	/* enable SCSI ultra support        */
+	#define		SCSI_SLOW		(1<<6)	/* force max synchronous to 5MB     */
+
+
+===================== EDITION #59 Release notes ========================== 
+
+	Symbios 53c710 update.
+
+SAVE_STATE TO NOT USE DNAD REGISTER
+-----------------------------------
+
+	Changes in newer revisions of Symbios 710 parts have effected the
+way the "save_state" routine deals with the "save SCSI pointers"
+protocols. In pior versions of the 710 code the "dnad" register was used
+to do the adjustment. We can no longer depend on the state of the "dnad"
+register in the "phase mismatch" phase. The "save_state" function in
+"hw53c710.c" has been changed to use the DMA COUNT register instead.
+
+Special notes on Symbios sources:
+
+SGE ( SCSI GROSS ERROR )
+
+A SGE is possible on the 710 series pior to edition #59. This is due to
+the use of the "dnad" register in "save_state". No other causes are know
+at this time to invoke the SGE with current versions of the OS9 and
+OS9000 Symbios SCSI drivers.
+
+NOTE:
+
+At this time we do not recover from a SCSI GROSS ERROR.  And at this
+stage it is not safe to do so.  The only way to deal with a SCSI GROSS
+ERROR is to do a SCSI BUS RESET.  I have created driver changes "not in
+place" to deal will thread cleanup and sending "EOS_DIDC" up to the
+higher-level drivers.  In this case "rbvccs" and "RBF".  With the
+current versions of "rbvcss" and for that matter all high-level SCSI
+drivers, clean up is not possible without code changes.  This is far
+sweeping.  On the systems I tested I was able to corrupt the disk in
+such a recovery attempt.  So for now, IT IS BETTER TO HANG THEN DESTROY
+THE DISK. 
+
+What needs to change to fix this:
+
+The SCSI drivers currently will deal with DISK CHANGE on behalf of the
+drive when it is sent via a SCSI SENSE COMMAND "0x3". The err_dat field
+will hold the error message. This is not true of the driver sending the
+error message back as EOS_DIDC. There may be other issues especially with
+OS9000. For now it is a issue we will have to look at in the future.
+
+NOTE: The changes required are both for OS9 and OS9000.
+
+Also NOTE: This error will not occur with the fixed "edition #59 for
+OS9" and "edition #58 for OS9000" driver.
+
+Symbios has changed the way the chip works for the 710 core.
+
+
+Special notes on Symbios 710 sources (NOTE: OS9 MVME162/167/177 Specific):
+--------------------------------------------------------------------------
+
+Reasons for removal of the AUX TIMER.
+
+1.) The AUX TIMER was used because of a early bug reported by NCR in a
+errata dated November 15, 1991.  This was to fix a bug with early
+silicon that would not hang is a selection was made to a drive that did
+not exist.  Since these systems in use should be very small the only
+warning is that versions of the NCR chip pier to 1992 should be aware
+that accesses to now devices not in the system may not time-out.  Since
+this bug is old and systems with this bug are most likely not new
+development environments but working systems removal of the AUX TIMER
+was in order.  For one this makes the driver more portable for systems
+that do not have a free timer.  Also on the MVME1xxx series this frees
+the timer for the user. 
+
+2.) So what did the AUX TIMER do?
+
+ SCSI BUS TIMEOUT
+ ----------------
+
+	The main purpose of the AUX TIMER was used to replace the SCSI BUS
+TIMEOUT feature on the early revisions of the chip where the on 710 on
+chip time-out feature may not always work. 
+
+	What impact does this have on customers who may be using the early
+revisions of the chip.  Only one.  If the customer try's to access a
+drive that is not in the system.  It is possible that the SCSI BUS
+TIMEOUT will not occur.  Let me say this again: It is possible that the
+SCSI BUS TIMEOUT will not occur.  There is not effect on devices in use
+in the system.  For example, if the user is using SCSI ID=0 for the hard
+drive and the drive is connect the error will never happen.  If SCSI
+ID=1 is not in the system this revision of the chip "might" hang is
+access is tried. 
+
+DELAY
+-----
+
+The AUX TIMER was also used as a small delay when forcing a SCSI BUS
+RESET.  
+
+3.) What if a customer wants to use the AUX TIMER?
+
+This may be done. Use of the AUX TIMER should not be required. This
+being said the user still has the option to include the AUX TIMER code
+if desired. To use the AUX TIMER with the MVME162, MVME167 or MVME177
+the following changes are required. 
+
+	a.) The makefiles for MVME162, MVME167 and or MVME177 must include
+the "-dAUX_TIMER" define.
+
+	b.) The Symbios script also requires changes:
+
+		1.) If using the Symbios Scripts compiler:
+
+			source: v53c710.ss
+
+			Change this:
+			move ctest7 & TimeOn to ctest7
+			To this:
+			move ctest7 | NoTime to ctest7
+
+		2.) The above changes may be made to the Symbios scripts 
+			compiled code if desired:
+
+			source: v53c710.c
+
+			Change this:
+			7C1BEF00
+			To this:
+			7A1B1000
+
+Keep in mind that use of the AUX TIMER is not required nor is use of the
+AUX TIMER recommended.
+
+===================== EDITION #65 Release notes ========================== 
+
+ 53C895/896 clock setting in dev8xx.c
+
+ This enables Ultra2 Wide support with 160 Mhz. This has been tested
+ on a PEP VMP1 (8240) and PMC260 (NCR53c895) with an IBM DDRS-34560 LVDS
+ Harddisk. Datarate for a copy of 40 MB file was around 13.5 MB/sec.
+ Old SCSI 2 Harddisks are still running.
+ 31.05.00 KeiT
+
+
+
+

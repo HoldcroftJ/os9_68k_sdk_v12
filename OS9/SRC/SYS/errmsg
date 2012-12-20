@@ -1,0 +1,1021 @@
+000:001 Process has aborted
+000:002 (S$Abort signal)  Keyboard Quit (^E) typed
+000:003 (S$Intrpt signal) Keyboard Interrupt (^C) typed
+000:004 (S$HangUp signal) modem hangup
+
+000:032	(E_SIGABRT)  An abort signal was received.
+000:033	(E_SIGFPE)   An erroneous math operation signal was received.
+000:034	(E_SIGILL)   An illegal function image signal was received.
+000:035	(E_SIGSEGV)  A segment violation (bus error) signal was received.
+000:036	(E_SIGTERM)  A termination request signal was received.
+000:037	(E_SIGALRM)  An alarm time elapsed signal was received.
+000:038	(E_SIGPIPE)  A write to pipe with no readers signal was received.
+000:039	(E_SIGUSR1)  An user signal #1 was received.
+000:040	(E_SIGUSR2)  An user signal #2 was received.
+000:041	(E_SIGADDR)  An address error signal was received.
+000:042	(E_SIGCHK)   A chk instruction signal was received.
+000:043	(E_SIGTRAPV) A trapv instruction signal was received.
+000:044	(E_SIGPRIV)  A priveledge violation signal was received.
+000:045	(E_SIGTRACE) A trace exception signal was received.
+000:046	(E_SIG1010)  A line-A exception signal was received.
+000:047	(E_SIG1111)  A line-F exception signal was received.
+
+000:064 (E$IllFnc) Illegal function code (usually math).
+000:065 (E$FmtErr) ascii->numeric format conversion error (math)
+000:066 (E$NotNum) Number not found (math).
+000:067 (E$IllArg) Illegal argument (usually math).
+ UNIX Compatability mapping: EINVAL - invalid argument
+
+000:102 (E$BusErr) A bus trap error occurred.
+000:103 (E$AdrErr) An address trap error occurred.
+000:104 (E$IllIns) An illegal instruction exception occurred.
+000:105 (E$ZerDiv) An integer zero divide exception occurred.
+000:106 (E$Chk)    A "chk" or "chk2" instruction trap occurred.
+000:107 (E$TrapV)  A "trapv", "trapcc" or "ftrapcc" instruction occurred.
+000:108 (E$Violat) A privileged instruction violation occurred.
+000:109 (E$Trace)  An uninitialized Trace exception occurred.
+000:110 (E$1010)   A "1010" instruction exception occurred.
+000:111 (E$1111)   A "1111" instruction exception occurred.
+000:112 (E$Resrvd) An invalid exception occurred (#12).
+000:113 (E$CProto) Coprocessor protocol violation.
+000:114 (E$StkFmt) System stack frame format error.
+000:115 (E$UnIRQ)  An uninitialized interrupt occurred.
+000:116            An invalid exception occurred (#16).
+000:117            An invalid exception occurred (#17).
+000:118            An invalid exception occurred (#18).
+000:119            An invalid exception occurred (#19).
+000:120            An invalid exception occurred (#20).
+000:121            An invalid exception occurred (#21).
+000:122            An invalid exception occurred (#22).
+000:123            An invalid exception occurred (#23).
+000:124            Spurious Interrupt occurred.
+000:133 (E$Trap)   An uninitialized user TRAP (1-15) was executed.
+000:148 (E$FPUnordC) Floating Point unordered condition
+000:149 (E$FPInxact) Floating Point inexact result
+000:150 (E$FPDivZer) Floating Point divide by zero
+000:151 (E$FPUndrFl) Floating Point underflow
+000:152 (E$FPOprErr) Floating Point operand error
+000:153 (E$FPOverFl) Floating Point overflow
+000:154 (E$FPNotNum) Floating Point not a number
+000:155 (E$FPUnData) Floating Point unimplemented data type
+000:156 (E$MMUConf)  PMMU Configuration exception
+000:157 (E$MMUIlleg) PMMU Illegal Operation exception
+000:158 (E$MMUAcces) PMMU Access Level Violation exception
+000:159            An invalid exception occurred (#59)
+000:160 (E$UEA)    Unimplemented effective address (68060) exception  
+000:161 (E$UII)    Unimplemented integer instruction (68060) exception
+000:162            An invalid exception occurred (#62)
+000:163            An invalid exception occurred (#63)
+
+000:164 (E$Permit) No permission.
+ A user process has attempted something that may be done only
+ by a system "super user".
+ UNIX Compatability mapping: EACCESS - permission denied
+
+000:165 (E$Differ) The arguments to F$ChkNam do not match.
+
+000:166 (E$StkOvf) Stack overflow.
+ The process's system or user stack was about to overflow.  This error
+ typically results from one of the following conditions:
+  - the pattern string for F$ChkNam is too complex.
+  - the data area associated with a user exception handler (F$STrap)
+    is not part of the user's data area.  This can be caused by
+    specifying an invalid address or when the user's stack is nested
+    too deep (exceptions in the exception handler typically cause this).
+  - the user's signal handler is nested too deep (unmasking signals within
+    the signal handler typically causes this).
+
+000:167 (E$EvntID) Invalid or Illegal event ID number specified.
+000:168 (E$EvNF)   Event name not found.
+000:169 (E$EvBusy) The event is busy (and can't be deleted).
+000:170 (E$EvParm) Impossible event parameters supplied.
+000:171 (E$Damage) System data structures have been damaged.
+000:172 (E$BadRev) Module revision is incompatible with operating system.
+000:173 (E$PthLost) Path became lost because network node was down.
+000:174 (E$BadPart) Bad (disk) partition data, or no active partition.
+
+000:175 (E$Hardware) Hardware damage has been detected.
+ The hardware is not responding as expected, indicating that there may be
+ a hardware problem.  Device drivers can also return this error when they
+ encounter hardware revisions of the device that they do not support.
+
+000:176 (E$SectSize) Invalid sector size.
+ This error can result from one of the following conditions:
+  - the sector size specified (or implied) in the Device Descriptor does
+    not match the media's sector size.
+  - the Device Driver detected a sector size that is not supported.
+  - the sector size is not supported by RBF.  RBF supports sector sizes
+    that are binary multiples of 256 (eg 256, 512, 1024, etc), up to a
+    maximum of 32768.
+
+000:177 (E$BSig) Unexpected or Bad Signal
+
+000:200 (E$PthFul) The user's (or system) path table is full.
+ Usually this error occurs because a user program has tried to open
+ more than 32 I/O paths simultanuously.  It might also occur if the
+ system path table becomes full, and can't be expanded.
+
+000:201 (E$BPNum)  Bad Path Number.
+ An I/O request has been made with an invalid path number, or one
+ that is not currently open.
+ UNIX Compatability mapping: EBADF - bad file descriptor
+
+000:202 (E$Poll)   The system IRQ table is full.
+ To install another interrupt producing device, one must first be
+ removed.  The system's init module specifies the maximum number
+ of IRQ devices that may be installed.
+
+000:203 (E$BMode)  Bad I/O Mode.
+ An attempt has been made to perform I/O on a path incapable of
+ supporting it.  For example, writing to a path open for input.
+
+000:204 (E$DevOvf) The system's device table is full.
+ To install another device descriptor, one must first be removed.
+ The system "init" module may be changed to allow more devices.
+
+000:205 (E$BMID)   Bad Module ID.
+ An attempt has been made to load a module that does not have a
+ valid module header.
+
+000:206 (E$DirFul) The module directory is full.
+ No more modules may be loaded or created unless one is first unlinked.
+ OS-9 automatically expands the module directory when it becomes full.
+ This error occurrs when it is unable to do so.
+
+000:207 (E$MemFul) Memory Full.
+ This error is returned from the F$SRqMem service call when there isn't
+ enough system RAM to fulfill the request, or if a process has already
+ allocated the maximum number of blocks permitted by the system.
+
+000:208 (E$UnkSvc) Unknown Service Code
+ A OS-9 call specified an unknown or invalid service code, or a
+ getstat/setstat call was made with an unknown status code.
+
+000:209 (E$ModBsy) The module is busy.
+ An attempt has been made to use (ie: F$Link) a non-sharable module
+ that is already in use.  This includes non-sharable devices.
+
+000:210 (E$BPAddr) Bad page address.
+ The system has been given a buffer pointer or size which is invalid,
+ often because it references memory which has not been allocated to
+ the caller.  The system detects trouble when the buffer is returned
+ to free memory, or if it is used as the destination of a data transfer,
+ such as I$Read.
+ UNIX Compatability mapping: EFAULT - bad address
+
+000:211 (E$EOF)    The end of file has been reached.
+ UNIX Compatability mapping: EPIPE - broken pipe
+
+000:212 (E$VctBsy) IRQ Vector is busy.
+ A device has tried to install itself in the IRQ table to handle a vector
+ that has been claimed by another device.
+
+000:213 (E$NES)    Non-Existing Segment.
+
+000:214 (E$FNA)    File not accessible.
+ An attempt to open a file failed.  The file was found, but is inaccessible
+ in the requested mode.  Check the file's owner ID and access attributes.
+ UNIX Compatability mapping: EPERM - operation not permitted
+
+000:215 (E$BPNam)  Bad pathlist specified.
+ The pathlist specified is syntactically incorrect.
+
+000:216 (E$PNNF)   File not found.
+ The pathlist does not lead to any known file.
+ UNIX Compatability mapping: ENOENT - no such file or directory
+
+000:217 (E$SLF)    File segment list is full.
+ A file has become too fragmented to accomodate further growth.  This can
+ occur on a nearly full disk, or one whose free space has become scattered.
+ The simplest way to solve the problem is to copy the file, which should
+ move it into more contiguous areas.
+
+000:218 (E$CEF)    Tried to create a file that already exists.
+ UNIX Compatability mapping: EEXIST - file exists
+
+000:219 (E$IBA)    Illegal memory block specified.
+ The system was called to return memory, but was passed an invalid pointer
+ or block size.
+
+000:220 (E$HangUp) Telephone (modem) connection terminated.
+ This error is returned when an I/O operation is attempted on a path after
+ irrecoverable line problems have occurred, such as data carrier lost.  It
+ may be returned from network devices, if the network connection is lost.
+
+000:221 (E$MNF)    Module not found.
+ An F$Link call was made to a module not in memory.
+
+000:222 (E$NoClk)  No system clock.
+ A timed F$Sleep call has been requested, but the clock was not running.
+ The setime utility is used to start the system clock.
+
+000:223 (E$DelSP)  Deleting stack memory.
+ A process tried to return to the system the memory containing it's current
+ stack pointer.  Considered a suicide attempt.
+
+000:224 (E$IPrcID) Illegal process ID.
+ A system call was passed the process ID of a non-existant process, or one
+ that the user may not access.
+ UNIX Compatability mapping: ESRCH - no such process
+
+000:225 (E$Param)  Bad parameter.
+ A service request has been passed an illegal or impossible parameter.
+ UNIX Compatability mapping: EISDIR - is a directory
+ UNIX Compatability mapping: ENOTDIR - not a directory
+
+000:226 (E$NoChld) No children.
+ An F$Wait call was made with no child process active.
+ UNIX Compatability mapping: ECHILD - no child processes
+
+000:227 (E$ITrap)  Invalid trap number.
+ The user trap code specified to TLink is invalid or already in use.
+
+000:228 (E$PrcAbt) The process has been aborted.
+
+000:229 (E$PrcFul) Too many active processes.
+ The system's process table is full.  The OS-9 kernel automatically tries
+ to expand the process table, but returns this error it's unable to do so.
+
+000:230 (E$IForkP) Illegal Fork Parameter.  (not currently used)
+
+000:231 (E$KwnMod) Known Module.
+ A call was made to install a module that is already in memory.
+
+000:232 (E$BMCRC)  Bad module CRC.
+ A CRC calculation is performed on every module when it is installed in the
+ system module directory.  Only modules with a good CRC are accepted.  To
+ generate a valid CRC in a module that has been intentionally altered, use
+ the "fixmod" utility.
+
+000:233 (E$Signal)  Signal error.  (not currently used)
+
+000:234 (E$NEMod)  Non Executable Module.
+000:235 (E$BNam)   Bad Name.
+ This error is returned by the F$PrsNam system call if the name is
+ not syntactically correct.
+
+000:236 (E$BMHP)   Bad module header parity.
+000:237 (E$NoRAM)  No RAM Available.
+ A process has made an F$Mem request to expand its memory size (no longer
+ supported; use F$SRqMem).  This error may also be returned if there isn't
+ enough (contiguous) memory to process a fork request, or if a device
+ driver doesn't specify any static storage requirements.
+ UNIX Compatability mapping: ENOMEM - cannot allocate memory
+
+000:238 (E$DNE)    The directory is not empty.
+ The directory attribute of a file may not be removed unless the directory
+ is empty, to prevent accidental loss of disk space.
+
+000:239 (E$NoTask) No available Task number.
+ This error might be returned by an OS-9 system security module (SSM).
+
+000:240 (E$Unit)   Illegal Unit (drive) number.
+000:241 (E$Sect)   Bad disk sector number.
+000:242 (E$WP)     Media is write protected.
+000:243 (E$CRC)    Bad Module Cyclic Redundancy Check value.
+000:244 (E$Read)   Read Error.
+ UNIX Compatability mapping: EIO - I/O error
+
+000:245 (E$Write)  Write Error.
+000:246 (E$NotRdy) Device not ready.
+ UNIX Compatability mapping: ENXIO - device not configured
+ UNIX Compatability mapping: ENODEV - operation not supported by device
+
+000:247 (E$Seek)   Seek Error.
+000:248 (E$Full)   Media Full.
+000:249 (E$BTyp)   Bad Type (incompatible media).
+000:250 (E$DevBsy) Device Busy.
+ UNIX Compatability mapping: EBUSY - device busy
+
+000:251 (E$DIDC)   Disk ID change.
+ RBF copies the disk ID number (from sector zero) into the path descriptor
+ of each path when it is opened.  If this does not agree with the driver's
+ current disk ID, this error is returned.  The driver updates the current
+ disk ID only when sector zero is read; it is therefore possible to swap
+ disks without RBF noticing.  This check helps to prevent that possibility.
+
+000:252 (E$Lock)   Record is busy.
+ Normal record locking routines will wait forever for a record in use by
+ another user to become available.  However, RBF may be asked (via setstat)
+ to only wait for a finite amount of time.  If the time expires before the
+ record becomes free, this error is returned.
+
+000:253 (E$Share)  Non-sharable file/device is busy.
+ A common way to get this error is to try to delete a file that is currently
+ open.  Any time a file or device is open for non-sharable access, further
+ attempts to open it cause this error.
+
+000:254 (E$DeadLk) I/O Deadlock error.
+ This error is returned if two (or more) processes are waiting for each
+ other to release I/O resources before they can proceed.
+
+000:255 (E$Format) Device is format protected.
+ This error occurs when an attempt is made to format a disk that has been
+ format protected.  A bit in the device descriptor may be changed to allow
+ the device to be formatted.  Formatting is usually inhibitted on hard disks
+ to prevent accidental erasure.
+
+001:000 (ERANGE) ANSI C - number out of range.
+
+001:001 (EDOM) ANSI C - number not in mathematical domain of function
+
+006:000 (E$IllPrm) Illegal parameter.
+ An illegal parameter was passed to a function.
+
+006:001 (E$IdFull) Identifier (ID) table full.
+ An ID table could not be expanded any further.
+
+006:002 (E$BadSiz) Bad size error.
+
+006:003 (E$RgFull) Region definition full (overflow).
+ Region is too complex.
+
+006:004 (E$UnID) Unallocated identifer number
+ An attempt was made to use an ID number for an object (drawmap, action
+ region, etc.) that was not allocated.
+
+006:005 (E$NullRg) Null region.
+ An attempt was made to use a null region.
+
+006:006 (E$BadMod) Bad drawmap/pattern mode.
+ An illegal mode was passed to create a drawmap or pattern.
+
+006:007 (E$NoFont) No active font.
+ No font was activated when an attempt to output text was made.
+
+006:008 (E$NoDM) No drawmap.
+ No character output drawmap is available when an _os_write of _os_writeln
+ is attempted.
+
+006:009 (E$NoPlay) No audio play in progress.
+ An attempt was made to stop an audio play when none was in progress.
+
+006:010 (E$Abort) Audio record/play has been aborted.
+ An sm_off() call has been done to abort the play or record that was in
+ progress.
+
+006:011 (E$QFull) Audio queue is full.
+ An attempt was made to output more soundmaps than the driver queue can
+ handle.
+
+006:012 (E$Busy) Audio processor is busy.
+
+006:100 (E_RES_NOSLOT) No free slot is left in the resource table.
+ res_load() returns this error when no more resource modules can be loaded
+ for this application.
+
+006:101 (E_RES_BADSLOT) The specified resource module ID is not a valid slot
+ in the resource table. res_set() and res_free() return this error if the
+ resource module ID does not correspond to a valid resource module.
+
+006:102 (E_RES_NOSHARE) The resource is not sharable.
+ res_get() returns this error if the resource is non-sharable.
+
+006:103 (E_RES_NOTYPE) The type of the resource is bad.
+ This error is returned if the specified type is not found in the resource map.
+
+006:104 (E_RES_NORES) The ID of a resource is bad.
+ This error is returned if the specified resource ID is not found in the resource map.
+
+006:110 (E_REQ_NOITEMS) There are no items specified for the request.
+ req_create() returns this error if the rq_numits field is zero.
+
+006:111 (E_REQ_BADITEM) The item number is out of range.
+ This error is returned if a specified item number is greater than the number
+ of items in a request.
+
+006:112 (E_REQ_BADCOLS) The number of columns is out of range.
+ req_create() returns this error if the rq_numcols field is zero.
+
+006:113 (E_REQ_BADPTR) The item array pointer is bad.
+ req_create() returns this error if the rq_choices pointer is not initialized
+ correctly.
+
+006:114 (E_REQ_NOCREATE) Request could not be created.
+ req_creat() returns this error if the request could not be created. Other
+ functions may return it if an attempt is made to use a non-created request.
+
+006:115 (E_REQ_TIMEOUT) A modal request has timed out.
+ req_make() returns this error if the time-out value is reached before you
+ make a selection in the request.
+
+006:116 (E_REQ_NOSEL) No selection was made for a modal request.
+ req_make() returns this error if you clicked outside of the request or on a
+ disabled item, thus making no selection.
+
+006:117 (E_REQ_DEFID) Bad definition function ID.
+ This error is returned if the rq_type field is not correctly initialized.
+
+006:118 (E_REQ_DEFACT) Bad definition action code.
+ This error is returned if the definition function is called with an invalid
+ action parameter.
+
+006:119 (E_REQ_STATE) Bad item state value.
+ This error is returned if the REQ_A_ISTATE action of the standard definition
+ function is called with an invalid item state value.
+
+006:120 (E_REQ_BADRECT) The request rectangle is bad.
+ req_create() returns this error if the rq_rect structure is not initialized
+ correctly.
+
+006:130 (E_CNT_BHVID) Bad standard behavior ID.
+ This error is returned if the cnt_bhv field is not correctly initialized, of
+ if a bad bhv parameter is passed to cntl_bhv().
+
+006:131 (E_CNT_DEFID) Bad standard definition ID.
+ This error is returned if the cnt_def field is not correctly initialized, of
+ if a bad def parameter is passed to cntl_def().
+
+006:132 (E_CNT_DEFACT) Bad action for definition function.
+ This error is returned if a bad action parameter is passed to cntl_def().
+
+006:133 (E_CNT_BHVACT) Bad action for behavior function.
+ This error is returned if a bad action parameter is passed to cntl_bhv().
+
+006:134 (E_CNT_STATE) Bad control state.
+ This error is returned if a bad state parameter is passed to cntl_state(), or
+ when a bad value is found in the cnt_state field.
+
+006:135 (E_CNT_PART) Bad control part code.
+ The definition function of standard controls returns this error if you
+ attempt to draw a bad part of a control.
+
+006:136 (E_CNT_FLAGS) Bad flags.
+ cntl_create() returns this error if the cnt_flags field is not correctly
+ initialized.
+
+006:137 (E_CNT_MINMAX) Bad min, max or value.
+ cntl_create() returns this error if the cnt_min, cnt_max and cnt_value fields
+ are not correctly ordered.
+ The order must be: cnt_min <= cnt_value <= cnt_max.
+
+006:138 (E_CNT_TYPE) Bad Type of control.
+
+006:140 (E_CLIP_DEV) Cannot find the clipboard device in preferences.
+ This error is returned when an attempt is made to load or save the clipboard
+ from a writable media and the device name is not found in the preferences.
+
+006:141 (E_CLIP_FULL) The clipboard is full.
+ This error is returned when an attempt is made to write too many types in the
+ clipboard.
+
+006:142 (E_CLIP_TYPE) Type not represented in clipboard.
+ clip_getptr() returns this error when the requested type is not in the
+ clipboard.
+
+006:143 (E_CLIP_ACC) Clipboard not opened for the requested access.
+ This error occurs if an attempt is made to write the clipboard which was
+ opened for read access.
+
+006:144 (E_CLIP_CNT) Type offset is greater than the type count.
+ clip_type() returns this error if the type index is out of range of the
+ available types.
+
+006:145 (E_CLIP_OPEN) Clipboard is not currently opened.
+ This error is returned when an access is made to the clipboard before opening
+ it.
+
+006:146 (E_CLIP_INIT) Clipboard is not initialized.
+ This error is returned if the clipboard is accessed before it is linked by
+ the program.
+
+006:147 (E_CLIP_CLOSE) Clipboard is not currently closed.
+ clip_unlink() returns this error if the clipboard was not closed before
+ trying to unlink it.
+
+006:148 (E_CLIP_RW) Can't rewrite, the type is not in the clipboard.
+ clip_rewrite() returns this error if the type was not previously allocated
+ with the clip_write() function.
+
+006:150 (E_HNDLR_UNKNOWN) The handler is unknown.
+ hndlr_delete() returns this error if the handler specified is not known.
+
+006:155 (E_ATABL_NOENTRY) No Entry Found.
+ atbl_delassoc() returns this error when an attempt is made to delete an
+ association that does not exist.
+
+006:160 (E_BOX_TABLE) Line Table Overflow.
+ The specified linetab array is too small to store the offsets of each line
+ start.
+
+006:161 (E_BOX_COUNT) Text Too Long (Maximum is 65535).
+ The maximum number of characters is 65535. This restriction is due to the
+ fact that line start offsets are coded on short integers.
+
+006:162 (E_BOX_TYPE) Bad Type or Type Not Implemented.
+
+006:163 (E_BOX_MAXL) Attempt to draw a line too long.
+ The maximum number of characters allowed in a line is 1023.
+
+006:164 (E_BOX_NOTAB) Need A Line Table.
+ If BOX_F_USETAB is set in the type parameter, you must specify the linetab
+ and size parameters.
+
+006:165 (E_BOX_NOFONT) Font Not Set In The Drawmap.
+ The appropriate font(s) should have been activated in the output drawmap.
+
+006:166 (E_BOX_RECT) Bad Rectangle.
+ The specified rectangle is incorrect.
+
+006:180 (E_INIT_VARERROR) Global Variable Error.
+ An illegal global variable ID was passed to gsl_get() or gsl_set().
+
+006:185 (E_INTER_NOMOD) No Preference Module.
+ This error is returned if no preference module wasblinked before using any
+ intl_xxx() function.
+
+006:186 (E_INTER_ILLARG) Illegal Argument
+ A bad argument was passed to an internationalization function.
+
+006:190 (E_OVL_BADRECT) Bad Rectangle for Overlay.
+ The rectangle passed is illegal. For example, ex <= sx or ey <= sy.
+
+006:191 (E_OVL_NOTTOP) The Overlay is not the top of the stack.
+ ovl_close() returns this error if an attempt is made to close an overlay
+ which is not the top of the overlay stack.
+
+006:192 (E_OVL_UNKNOWN) Unknown Overlay.
+ An attempt was made to access an overlay which was not created.
+
+006:200 (E_IND_DEFID) Bad Definition ID.
+ This error is returned if the ind_type field is not correctly initialized or
+ a bad def parameter is passed to ind_def().
+
+006:201 (E_IND_DEFACT) Bad Definition Action.
+ This error is returned by a defintion function if a bad action parameter is
+ passed to it.
+
+006:202 (E_IND_MINMAX) Bad min, max or value.
+ This error is returned if the ind_min or ind_max values are not initialized
+ correctly or whenever you attempt to set the value of the indicator out of
+ the min/max range.
+
+006:203 (E_IND_BADCOORDS) Bad Coordinates.
+ ind_create() returns this error if the coordinates given for the indicator
+ are not good.
+
+006:204 (E_IND_NOCREATE) Indicator Not Created.
+ This error is returned when an attempt is made to use an indicator which was
+ not properly created via ind_create().
+
+006:205 (E_IND_BADFLAGS) Bad Flags.
+ ind_create() returns this error when two or more mutually exclusive flags are
+ set.
+
+006:206 (E_IND_BADPTR) Bad Pointer.
+ This error is returned if a bad (NULL) pointer is found where an initialized
+ pointer should be found.
+
+007:001 (EWOULDBLOCK)  I/O operation would block
+ or (E_IFF_RONLY) This path is read-only.
+ UNIX Compatability mapping: EAGAIN - resource temporarily unavailable
+007:002 (EINPROGRESS)  I/O operation now in progress
+ or (E_IFF_WONLY) This path is write-only.
+007:003 (EALREADY)     operation already in progress
+ or (E_IFF_ACTFORM) There is no FORM active.
+ UNIX Compatability mapping: EINTR - interrupted system call
+007:004 (EDESTADDRREQ) destination address required
+ or (E_IFF_READER) Wrong reader for this type of FORM.
+007:005 (EMSGSIZE)     message too long
+ or (E_IFF_NOTIFF) Not an IFF file.
+007:006 (EPROTOTYPE)   protocol wrong type for socket
+ or (E_IFF_BADPARM) Bad parameters.
+007:007 (ENOPROTOOPT)  bad protocol option
+ or (E_IFF_BADCAT) Bad CAT id (for iff_open).
+007:008 (EPROTONOSUPPORT) protocol not supported
+ or (E_IFF_SIZE_UNKNOWN) Can not skip, size is unknown.
+007:009 (ESOCKNOSUPPORT) socket type not supported
+ or (E_IFF_NOT_DATA) Not to the data yet.
+007:010 (EOPNOTSUPP)   operation unsupported on socket
+ or (E_IFF_PIPE_SEEK) Attempt to seek back in a pipe.
+007:011 (EPFNOSUPPORT) protocol family not supported
+ or (E_IFF_BADCHUNKSIZE) Fixed size chunk was not the correct size. Could
+ indicate wrong version of reader.
+007:012 (EAFNOSUPPORT) addr family unsupported by protocol
+ or (E_IFF_FPNOTNUM) Can not make floating point conversion.
+
+007:013 (EADDRINUSE)   address already in use
+007:014 (EADDRNOTAVAIL) can't assign requested address
+007:015 (ENETDOWN)     network is down
+007:016 (ENETUNREACH)  network is unreachable
+007:017 (ENETRESET)    network lost connection on reset
+007:018 (ECONNABORTED) software caused connection abort
+007:019 (ECONNRESET)   connection reset by peer
+007:020 (ENOBUFS)      no buffer space available
+007:021 (EISCONN)      socket is already connected
+007:022 (ENOTCONN)     socket is not connected
+007:023 (ESHUTDOWN)    can't send after socket shutdown
+007:024 (ETOOMANYREFS) too many references
+007:025 (ETIMEDOUT)    connection timed out
+007:026 (ECONNREFUSED) connection refused by target
+007:027 (EBUFTOOSMALL) buffer too small for F$MBuf operation
+007:028 (ESMODEXISTS)  socket module already attached
+007:029 (ENOTSOCK)     path is not a socket
+007:030 (EHOSTUNREACH) No route to host
+007:031 (EHOSTDOWN)    Host is down
+
+008:001 (EOS_LNKDWN) Line down or layer 1 error on attach.
+ Check to make sure the line is plugged in.
+
+008:002 (EOS_CONN)  Connection error - connection not made.
+ An error occurred when the connection to the call was trying to
+ be made.  Possibilities include maximum number of connections have
+ already been made or the connection requested is not possible.
+
+008:003 (EOS_RXTHREAD) Receive thread incoming packet handler error.
+ There may be something in the received packet that the receive thread
+ process cannot identify.  It may be due to a non-existant SAPI or TEI.
+ Or the driver has sent an incorrect receive packet to the receive thread.
+
+008:004 (EOS_ME) Management entity error.
+ There is an error with the management entity.  This could be due to
+ a packet that cannot be interpreted by the management entity software
+ or requests to the management entity are not understood or cannot
+ be carried out.
+
+008:005 (EOS_SAPI) Unrecognized Service Access Point (SAPI).
+ The SAPI of the virtual unit or incoming message from the network
+ is not legal.
+
+008:006 (EOS_TEI) Terminal Endpoint Identifier (TEI) error.
+ The TEI of the virtual unit, TEI list,  or incoming message from
+ the network is not valid.
+
+008:007 (EOS_MAX_TEI) Maximum number Terminal Endpoints in use.
+ A request has been made to open a new virtual unit, but the number of
+ TEIs currently open is already at the maximum.  This restriction is
+ placed on the system by the network.
+
+008:008 (EOS_TSTATE) Illegal Layer 2 state.
+ The number of the TEI state in the virtual unit is not a legal TEI
+ state at layer 2.  Valid TEI states are 1-8.  Any other states are illegal.
+
+008:009 (EOS_TEI_DENIED) Terminal endpoint (TEI) initialization denied.
+ The network has denied the TEI request made by the File Manager
+ when opening a path to the device.
+
+008:010 (EOS_PRIMITIVE) Unrecognized primitive.
+ A primitive has been sent to the layer 3 part of the file manager
+ that is not understood or is an incorrect primitive for the state
+ that the call is currently in for layer 3.
+
+008:011 (EOS_L2IN) Layer 2 error on incoming message.
+ A message has come into the layer 2 part of the file manager that
+ cannot be interpreted.  This may be due to a message that is not
+ understandable, or a message that cannot be acted upon due to the
+ state of the layer 2 state machine.
+
+008:012 (EOS_PEER_BUSY) Peer receiver (far end) busy condition.
+ Far end has indicated that it is busy and no more data should be
+ sent until the far end is able to take more.  This is analogous
+ to XOn/XOff protocol in serial communications.
+
+008:013 (EOS_K) Maximum number of outstanding messages exceeded.
+ The maximum number of outstanding frames (K) have been sent without
+ acknowledgement by the far end.  For the D channel and other reliable
+ data links, this error indicates re-initialization of layer 2 is needed.
+
+008:014 (EOS_MAXCREF) Maximum number of call references in use.
+ The maximum number of call references are already in use.  The path must
+ wait until a call hangs up before trying again.
+
+008:015 (EOS_CREF) Call reference doesn't exist.
+ This error usually occurs when a non-existant call reference is
+ referenced by the path.
+
+008:016 (EOS_CALLPROG) Call progress state error.
+ An error occurred with the call progress state machine of layer 3.
+ Either an inappropriate action for the state is requested, or
+ the call progress number does not correspond to a legal layer 3 state.
+
+008:017 (EOS_RCVR) Receiver assignment/removal error.
+ An error occurred when trying to assign or remove a path from being a
+ receiver.  This error usually occurs when trying to assign when there
+ is already a path with the same layer 3 parameters assigned on the
+ same virtual unit.
+
+008:018 (EOS_REQDENIED) Request denied by far end.
+ The far end has rejected the request being made.
+
+008:019 (EOS_RXSTART)  SPF receive thread failed to start
+008:020 (EOS_NOSTACK)  Last driver on path's stack
+008:021 (EOS_BTMSTK)   Attempt to pop last driver in stack
+008:022 (EOS_NPBNULL)  Notify parameter is null on asynchronous call
+008:023 (EOS_PPS_NOTFND) Per path static storage not found
+008:024 (EOS_STKFULL)  Path's stack array is full
+008:025 (EOS_MBNOTINST) Sysmbuf is not installed
+008:026 (EOS_TMRNTFND) Timer not found
+008:027 (EOS_GETIME)   Get time error
+008:028 (EOS_TIMERINT) Timer interrupt?
+008:029 (EOS_RXMB_NODEVENTRY) No device entry in mbuf
+008:030 (EOS_PGM_TBLBSY) PSI/SI table is in use
+008:031 (EOS_PGM_TBLOVF) Too many tables being read
+008:032 (EOS_PGM_TBLNFND) Table not found in list of tables being read
+008:033 (EOS_PGM_NFND) Program not found
+008:034 (EOS_PGM_NOPLAY) No program currently playing
+008:035 (EOS_NODNDRVR) No down driver
+
+008:040 (EOS_RXMB_ERR) Receive mbuf contains errors
+008:192 (EOS_WANAPI_BASE) WAN API error
+008:224 (EOS_GENDRVR_BASE) Custom 3rd party driver error codes
+008:256 (EOS_IEEE1394_BASE) IEEE 1394 error
+
+010:001 (EOS_MAUI_BADACK) Bad acknowledgement
+ A bad acknowledgment was received from the MAUI process. The MAUI
+ process may be confused or the protocol module may not be able to
+ support the request being made. You may need to re-start the MAUI
+ process or confirm that the protocol module supports the request being
+ made. See MAUI Porting Guide for information about a specific protocol
+ module.
+
+010:002 (EOS_MAUI_BADCODEMETH) Bad coding method
+ A bad coding method was specified. The coding method you specified is
+ not defined by GFX_CM or is not valid for the operation you are
+ attempting.
+
+010:003 (EOS_MAUI_BADCOLORTYPE) Bad color type
+ The color type you specified is not a valid type, or is not supported
+ for the operation you attempted.
+
+010:004 (EOS_MAUI_BADCOMPATLEVEL) Bad compatibility level
+ The compatibility level reported by a MAUI component is not
+ legal. This indicates an implementation error in the component being
+ asked to report its compatibility level. See the supplier of this
+ component (driver or protocol module) to remedy the problem.
+
+010:005 (EOS_MAUI_BADDEFCHAR) Bad default character
+ The glyph corresponding to the default character for a font is not
+ present in the font.
+
+010:006 (EOS_MAUI_BADDIMEN) Bad dimension
+ The dimension (see GFX_DIMEN) you specified is 0 or is out of range
+ for the operation you are attempting.
+
+010:007 (EOS_MAUI_BADFRAME) Bad frame
+ The frame specified for an animation object is not valid for the
+ sprite currently assigned to the animation object.
+
+010:008 (EOS_MAUI_BADID) Bad ID
+ The ID you specified is 0, or is not a valid ID for the operation you
+ are attempting.
+
+010:009 (EOS_MAUI_BADLINESIZE) Bad line size
+ The line size specified for a drawmap (see GFX_DMAP) is not a legal
+ value.
+
+010:010 (EOS_MAUI_BADMBC) Bad multi-byte char
+ An error was received trying to parse a multi-byte string. See the
+ ANSI C Specification for information on proper formatting of
+ multi-byte strings.
+
+010:011 (EOS_MAUI_BADPOS) Bad position
+ The position (see GFX_POS) you specified is out of range for the
+ operation you are attempting.
+
+010:012 (EOS_MAUI_BADPTR) Bad pointer
+ The pointer value you specified is NULL, or is not valid for the
+ operation you are attempting.
+
+010:013 (EOS_MAUI_BADRANGE) Bad range
+ The range specified is not legal. For example, you may have specified
+ a minimum value that was larger than the maximum value.
+
+010:014 (EOS_MAUI_BADSHADE) Bad shade
+ The shade you specified has not been created yet. Use
+ mem_create_shade() to create the shade. The shade MEM_DEF_SHADE is
+ automatically created when you initialize the Shaded Memory API.
+
+010:015 (EOS_MAUI_BADSIZE) Bad size
+ The size you specified is 0, or is not valid for the operation you are
+ attempting.
+
+010:016 (EOS_MAUI_BADVALUE) Bad value
+ The value for an enumerated type is not legal. You should only use
+ names defined for the enumerated type.
+
+010:017 (EOS_MAUI_BUSY) Busy - try later
+ The resource you are attempting to use is already in use and is not
+ sharable.
+
+010:018 (EOS_MAUI_CANTDISPLAY) Can't display pixmem
+ The drawmap you specified cannot be displayed by the specified
+ graphics device. This is usually caused by trying to display a drawmap
+ whose coding method is not supported by the hardware. See
+ gfx_get_dev_cap() for information about supported coding methods.
+
+010:019 (EOS_MAUI_DAMAGE) Data structures damaged
+ MAUI has detected that its data structures are damaged. This problem
+ is usually caused by the use of un-initialized or improperly
+ initialized pointers.
+
+010:020 (EOS_MAUI_DEFINED) Already defined
+ You are attempting to define something that has already been
+ defined. For example you may be trying to create a shade that already
+ exists.
+
+010:021 (EOS_MAUI_DMAPTOOSMALL) Drawmap is too small
+ The drawmap you specified is too small for the viewport you are trying
+ to put it in. Normally the drawmap must be large enough to fill the
+ viewport.
+
+010:022 (EOS_MAUI_INCOMPATCM) Incompatible coding method
+ The coding methods specified for the operation are not compatible. For
+ example, blt_copy_block() requires source and destination drawmaps
+ that have the same pixel depth.
+
+010:023 (EOS_MAUI_INTERNAL) Internal error
+ MAUI has detected an internal error. Please report the incident to
+ Microware Customer Service. See the Preface of this manual for contact
+ information.
+
+010:024 (EOS_MAUI_INUSE) Still in use
+ The resource you are trying to destroy is still being used. You must
+ stop using it before you can destroy it. This error code may also be
+ returned in cases where the resource you are trying to modify cannot
+ be modified because it is already in use.
+
+010:025 (EOS_MAUI_ISINIT) Is initialized
+ The maui_init() function has already been called. This function should
+ only be called once.
+
+010:026 (EOS_MAUI_ISRESERVED) Is reserved
+ The resource you are attempting to reserve is already reserved by
+ someone else.
+
+010:027 (EOS_MAUI_MASKED) Message type is masked
+ You are attempting to write a message to a mailbox, but the mailbox is
+ currently configured to reject messages of this type. See
+ msg_set_mask() for information on setting the message mask for the
+ mailbox.
+
+010:028 (EOS_MAUI_MBOXFULL) Mailbox is full
+ The mailbox you are attempting to write to is currently full. You
+ should wait (using _os_sleep()) to allow the reader time to read a
+ message from the mailbox, then attempt the write operation again.
+
+010:029 (EOS_MAUI_MISSINGFEP) Missing FEP in driver
+ The driver is missing the fast-entry-point necessary to perform the
+ operation you are attempting. This is usually due to an old
+ driver. See your supplier about upgrading your driver.
+
+010:030 (EOS_MAUI_NOCALLBACK) No callback function
+ You called msg_dispatch() with a message that did not contain a
+ callback function pointer. See MSG_COMMON for the layout of the common
+ section of all messages.
+
+010:031 (EOS_MAUI_NODMAP) No drawmap
+ A drawmap has not been assigned to the viewport. You must assign a
+ drawmap to this viewport before attempting this operation.
+
+010:032 (EOS_MAUI_NODSTDMAP) No destination drawmap
+ No destination drawmap has been specified for the context object you
+ are trying to draw or copy to.
+
+010:033 (EOS_MAUI_NOEXPTABLE) No expansion table
+ No expansion table has been specified for the context object, but you
+ are using a mixing mode that requires it. See BLT_MIX for information
+ about settings used by different mixing modes.
+
+010:034 (EOS_MAUI_NOFONT) No font
+ No font has been assigned to the text context object, but you are
+ trying to draw text with this context object. You must first assign a
+ font to the text object.
+
+010:035 (EOS_MAUI_NOHWSUPPORT) No hardware support
+ The hardware does not support the operation you are attempting.
+
+010:036 (EOS_MAUI_NOINIT) Not initialized
+ The API function you called requires the API to be initialized
+ first. Either call maui_init() to initialize all MAUI APIs or call the
+ initialization function for the API you are trying to use.
+
+010:037 (EOS_MAUI_NOMASKDMAP) No mask drawmap
+ No mask drawmap has been specified for the context object you are
+ trying to draw with, and the drawing operation you requested requires
+ a mask drawmap.
+
+010:038 (EOS_MAUI_NOMAUIP) No MAUI process
+ The MAUI Input Process was not found. This is detected during
+ inp_init() when it tries to link to the MAUI process command mailbox
+ (mp_mbox). You must start mauip before running MAUI applications that
+ require pointer or key symbol input. This is usually done at system
+ start-up.
+
+010:039 (EOS_MAUI_NOPIXMEM) No pixel memory
+ No pixel memory has been assigned to the drawmap, but the operation
+ you attempted requires it. Assign pixel memory to the drawmap (call
+ gfx_set_dmap_pixmem()) and attempt the operation again.
+
+010:040 (EOS_MAUI_NOPMOD) No protocol module
+ The specified protocol module could not be found. The protocol module
+ must already be loaded in memory.
+
+010:041 (EOS_MAUI_NOSPRITE) No sprite
+ No sprite has been assigned to the animation object, but you are
+ trying to display the object. You must first assign a sprite to the
+ animation object.
+
+010:042 (EOS_MAUI_NOSRCDMAP) No source drawmap
+ No source drawmap has been specified for the context object you are
+ trying to draw with, and the drawing operation you requested requires
+ a source drawmap.
+
+010:043 (EOS_MAUI_NOTALIGNED) Not aligned
+ The lines of the pixel memory within a drawmap are not properly
+ aligned. They should be padded such that the line size is a multiple
+ of GFX_LINE_PAD bytes.
+
+010:044 (EOS_MAUI_NOTFOUND) Not found
+ The object you specified was not found. The object may not exist at
+ all, or may exist in a different list.
+
+010:045 (EOS_MAUI_NOTIMPLEMENTED) Feature not implemented
+ The feature you are attempting to use has not been implemented
+ yet. All sources of this error have been noted in the respective
+ function reference pages.
+
+010:046 (EOS_MAUI_NOTPENDING) Not pending
+ The asynchronous operation you are attempting to release is not
+ pending. You either never requested the asynchronous operation, or it
+ already occurred.
+
+010:047 (EOS_MAUI_NOTRESERVED) Is not reserved
+ The resource you are attempting to release has not been reserved.
+
+010:048 (EOS_MAUI_SIGNAL) Wait aborted by signal
+ A signal caused the operation being performed to abort.
+
+010:049 (EOS_MAUI_TOOCOMPLEX) Too complex
+ The operation being requested is too complex for the hardware to
+ support. For example, you will receive this error if you try to create
+ a viewport stack that is too complex for the graphics device.
+
+010:050 (EOS_MAUI_TOOLONG) Too long
+ The specified string is too long. See the respective reference page
+ for information about the maximum length allowed.
+
+010:051 (EOS_MAUI_CANTRESIZE) Cannot resize
+ The size of the specified object cannot be changed at this time.
+
+010:052 (EOS_MAUI_NOPALETTE) No palette specified
+ A palette has not been specified, but one is required by the specified
+ operation.
+
+010:053 (EOS_MAUI_BADNUMCHAN) Bad number of channels
+ The number of channels specified is not valid.
+
+010:054 (EOS_MAUI_NOTBUSY) Not busy
+ The specified device is not busy.
+
+010:055 (EOS_MAUI_NOTPAUSED) Not paused
+ The specified device is not paused.
+
+010:056 (EOS_MAUI_ABORT) Aborted
+ The operation was aborted prematurely.
+
+010:057 (EOS_MAUI_TOOOLD) Too old
+ The feature you requested is not present because you are using a MAUI
+ component that is too old. You need to update the necessary MAUI
+ component to obtain this feature.
+
+010:058 (EOS_MAUI_INCOMPATVER) Incompatible versions
+ An incompatibility exists between two MAUI components. This
+ incompatibility cannot be overcome. You must update the necessary MAUI
+ component.
+
+010:059 (EOS_MAUI_NOTALLOWED) Operation not allowed
+ The operation you attempted is not allowed.
+
+010:060 (EOS_MAUI_NOTOWNER) Not the owner
+ This process is not the owner of the object being modified. Only the
+ owner can make this change.
+
+010:061 (EOS_MAUI_DISABLED) Feature disabled
+ The feature you are trying to use has been disabled in this version of
+ MAUI. You need a more full-featured version of MAUI to obtain this
+ function.
+
+010:062 (EOS_MAUI_NOTRAP) MAUI trap not found
+ The MAUI trap module was not found. You need to load the MAUI trap
+ module or link with the library version.
+
+010:063 (EOS_MAUI_DEVNOTFOUND) Device not found
+ The specified device was not found.
+
+010:064 (EOS_MAUI_CMAPFULL) Colormap full
+ The colormap is full. The color (or cells) you are requesting can not
+ be allocated because there are no more free entries in the colormap.
+
+010:065 (EOS_MAUI_PAUSED) Paused
+ The operation you are trying to pause is already paused.
+
+010:066 (EOS_MAUI_BADRATE) Bad rate
+ The data rate you specified is not valid.
+
+010:067 (EOS_MAUI_NODVSUPPORT) No driver support
+ The operation you requested requires support by the device driver and
+ the driver (and/or hardware) you are using does not support it.
+
+010:068 (EOS_MAUI_NOTVISIBLE) Not visible
+ The object you referenced is not currently visible. This operation is
+ only allowed if the object is visible.

@@ -1,0 +1,9 @@
+ nam T4
+ ttl 68000 T4 device descriptor module
+ use defsfile
+
+ use "scfdesc.a"
+
+ T4
+ ends
+

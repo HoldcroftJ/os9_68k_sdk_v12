@@ -1,0 +1,143 @@
+; MDMCBX.INF; Revision 1: April 1996
+;
+; compiled by Jeff Bonin 1996
+;
+; portions of .INF file copyright Microsoft Corp 1993-1995
+; This file may be freely distributed and modified as
+; long there is no charge for the file.  
+; *** This file only explains the installation of this
+; driver file and does NOT _fully_ explain how to set up
+; a SLIP connection on the net. 
+
+; You need to have the following correctly installed:
+; 1) Dial-up networking with TCP/IP
+
+; 2) If you plan to run a SLIP connection, you need to
+;    have the SLIP drivers installed. These are located 
+;    under admin\dscript in the distribution
+;    directory on the Windows 95 CD.  You can also find 
+;    these and installation instructions at 
+;    http://www.windows95.com ; Instructions:
+
+; 1) Copy this file to a safe place (on a floppy or; somewhere on your hard drive); 
+
+; 2) Go to the control panel and click "Modems" 
+
+; 3) Click the Add...  button 
+
+; 4) In the next window, check the "don't detect..."
+;    box and then click the "Next>" button.
+
+; 5) Click on "Have disk" and in the next dialog box enter
+;    in the path to the file that you copied in step one
+;    (don't include the file name, only the path)
+
+; 6) Click on "Hawk Null Modem SLIP Connection"
+
+; 7) Click on the "Next>" button.
+
+; 8) Click on the port where your direct connection is and
+;    then click on the "Next>" button.    
+
+; 9) Windows will think for a little bit and prepare the
+;    driver.  After it is done, click the "Finish"
+;    button.  The title of the modem should appear in the
+;    next window.
+
+; 10) Click "Close"
+
+; 11) Go into Dial-Up Networking and make a new
+;     connection.
+
+; 12) When the dialog box comes up select the Hawk Null Modem SLIP Connection
+;     as your modem and click configure
+; 13) Set the Maximum Speed to the speed of your SLIP connection.
+
+; 14) Click on the "Connection" tab
+
+; 15) Change the "Cancel the call if not connected" to 2 seconds.
+
+; 16) Click on the "Advanced..." button.
+
+; 17) Turn off "Use Flow Control".  Click "OK".
+
+; 18) Click "OK" again to dismiss the Configure dialog.
+
+; 19) Click the "Next>" button to continue the creation of you new connection.
+
+; 20) Enter a number for the telephone number.  Enter any number here.
+
+; 21) Click on "Next>" to continue.  Click on "Finish".
+
+; 22) With the right mouse button, click on your new connection in the Dial-Up
+;     Networking window.  Select "Properties" from the pop-up menu.
+
+; 23) In the "Type of Dial-up Server" list-box, select CSLIP.
+
+; 24) Turn off the "Log on to Network" option.  Click "OK" when finished.
+
+;OPTIONAL:
+
+; 25) Click on the TCP/IP Settings button.
+;	If you will always be using the same IP address for your PC during a 
+;	SLIP connection, you can enter the IP address in the top box.
+;	Otherwise, you will be prompted each time you use this connection for
+; 	the IP address to assign to your PC. (It will remember the last one
+;	you use...)
+
+
+[Version]
+Signature="$CHICAGO"
+Class=Modem
+Provider=%MWAR%
+
+[Manufacturer]
+%Mfg%=MWAR
+
+[MWAR]
+%NullModem% = NullModem, UNIMODEM105DA558
+
+[NullModem]
+AddReg=All, Common, NullModemReg, EXTERNAL
+
+[All]
+HKR,,FriendlyDriver,,Unimodem.vxd
+HKR,,DevLoader,,*VCOMM
+HKR,,PortSubClass,1,02
+HKR,,ConfigDialog,,modemui.dll
+HKR,,EnumPropPages,,"modemui.dll,EnumPropPages"
+
+[EXTERNAL]
+HKR,, DeviceType, 1, 01
+
+[Common]
+; Hayes standard init/monitor/answer mechanisms.  Override if different for a specific modem/manufacture
+HKR, Init, 1,, "None" 
+HKR, Monitor, 1,, ""
+HKR, Monitor, 2,, ""
+HKR, Answer, 1,, "None"
+HKR, Hangup, 1,, ""
+HKR,, Reset,, "None"    ; slam in a reset before closing
+HKR, Settings, Prefix,, ""
+HKR, Settings, Terminator,, "<cr>"
+HKR, Settings, DialPrefix,, ""
+HKR, Settings, DialSuffix,, ""
+HKR, Settings, CallSetupFailTimer,, ""
+HKR, Settings, InactivityTimeout,, ""
+
+[NullModemReg] ; Null-Modem from mdmhayes.inf
+HKR, Init, 1,, "None"
+HKR, Init, 2,, "NoResponse"
+HKR, Monitor, 1,, "None"
+HKR, Answer, 1,, "CLIENTSERVER"
+HKR, Answer, 2,, "NoResponse"
+HKR, Settings, DialPrefix,, "CLIENT"
+HKR,, Properties, 1, 00,00,00,00, ff,00,00,00, ff,00,00,00, 00,00,00,00, 00,00,00,00, 00,00,00,00, 00,c2,01,00, 00,c2,01,00
+HKR, Responses, "CLIENT",       1, 08, 00, 00, 00, 00, 00, 00,00,00,00 ; Server side - the client is requesting a connection
+HKR, Responses, "<h00>CLIENT",  1, 08, 00, 00, 00, 00, 00, 00,00,00,00 ; Server side - the client is requesting a connection
+HKR, Responses, "CLIENTSERVER", 1, 02, 00, 00, 00, 00, 00, 00,00,00,00 ; Client side - the server has acknowledged and the connection is completed
+
+[Strings]
+MWAR = "Microware Systems Corp"
+Mfg = "Microware Systems"
+NullModem = "Hawk Null Modem SLIP Connection"

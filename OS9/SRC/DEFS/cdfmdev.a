@@ -1,0 +1,75 @@
+*****************************************************************************
+*                                                                           *
+*              Copyright 1998 by Microware Systems Corporation              *
+*                            All Rights Reserved                            *
+*                          Reproduced Under License                         *
+*                                                                           *
+*  This software is confidential property of Microware Systems Corporation, *
+*  and is provided under license for internal development purposes only.    *
+*  Reproduction, publication, modification, distribution, or creation of    *
+*  derivative works in any form to any party other than the Licensee is     *
+*  strictly prohibited, unless expressly provided for under the terms of a  *
+*  mutually executed written license agreement for this software between    *
+*  the end-user and Microware Systems Corporation, or otherwise expressly   *
+*  authorized in writing by Microware Systems Corporation.  Licensee shall  *
+*  reproduce this copyright notice exactly as provided herein on any copies *
+*  of the software that Licensee is authorized to distribute.               *
+*                                                                           *
+*****************************************************************************
+*                                                                           *
+* Edition History:                                                          *
+* #   Date     Comments                                                By   *
+* --- -------- ------------------------------------------------------- ---- *
+*  01 98/07/15 Added edition history.                                  wwb  *
+*				---- OS-9/68K V3.1 Release ----								*
+*             $$                    <RELEASE_INFO>                     $$   *
+*****************************************************************************
+ 
+********************************
+* CDFM Static storage requirements
+*   Required in static storage of all CDFM device drivers
+
+* org V_USER reserve system required
+*	do.b 1 number of cd drives (V_NDRV)
+*V_NAP:	do.b 1 number of audio processors
+* do.b 6 reserved
+*DRVBEG: equ . beginning of drive tables (defined in rbfdev.a)
+
+* Global storage for disc drive tables.
+ org 0
+V_LastPos:	do.l 1 last seek position
+V_PTSiz:	do.l 1 path table size
+V_PTAdd:	do.l 1 path table address
+V_CHILD:	do.w 1 child process number (for emulator)
+V_PLAY:		do.l 1 ptr to path descriptor of next play
+V_DIRCT:	do.l 1 direction of head movement
+V_DSize:	do.l 1 size of cdi disc
+V_ChanMask:	do.l 1 channel mask
+V_APMask:	do.l 1 audio channel mask
+V_PlayFlag:	do.b 1 play in progress flag
+V_Paused:	do.b 1 drive paused flag
+V_BFctr:	do.b 1 blocking factor
+V_IRQlv:	do.b 1 device IRQ level
+V_ROMFlag:	do.b 1 cdrom disc flag
+V_PTValid:	do.b 1 path table valid flag
+
+V_SoundMap:	do.l 1 pointer to current playing soundmap descriptor
+V_ASigPrc:	do.w 1 process id for audio signal
+V_AudOff:	do.b 1 flag for turning off audio
+V_AudPlay:	do.b 1 flag for soundmap output
+
+V_ErFlags:	do.b 1 error handling flags
+* Begin change for cdfm ed. 82
+* do.b 3 reserved space
+			do.b 1 reserved space
+V_SMPath:   do.w 1 user path number of path that started current soundmap
+* End change for cdfm ed. 82
+V_DirSect:	do.l 1 directory sector buffer address
+V_DirSectNum: do.l 1 directory sector number
+			do.b 20
+CDRVMEM: equ .
+
+
+* V_ErFlags bit assignments:
+Err_Data_Bt:	equ 0 xxxxxxx1 error data was found in the sector	
+Err_XFer_Bt:	equ 1 xxxxxx1x error data is ready to be transfered

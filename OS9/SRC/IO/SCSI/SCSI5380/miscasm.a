@@ -1,0 +1,32 @@
+
+*
+* int mask_irq(mask) - mask interrupts to level of scsi device
+*
+
+* WARNING - THIS IS 68xxx SPECIFIC CODE
+* Note also that stack is kept long-aligned.
+*
+
+mask_irq:
+ link a5,#0
+ movem.l d0/d1,-(sp) make space and save d1
+ moveq.l #0,d1 sweep reg
+ move.w sr,d1 get current sr
+ andi.w #IntMask,d1 isolate current interrupt mask bits
+ move.l d1,0(sp) return current irq level in d0
+ move.w sr,d1 copy current sr (again)
+ andi.w #IntEnab,d1 clear current irq flags
+ or.w d0,d1 add in desired irq mask level 
+ move.w d1,sr mask interrupts
+ movem.l (sp)+,d0/d1 return original mask
+ unlk a5
+ rts
+
+* a short delay, (settle and hold times....) *
+short_delay:
+ movem.l d0-d1,-(sp)
+ nop
+ movem.l (sp)+,d0-d1
+ rts
+
+

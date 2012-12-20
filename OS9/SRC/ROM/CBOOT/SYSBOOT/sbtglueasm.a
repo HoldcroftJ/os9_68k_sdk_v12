@@ -1,0 +1,192 @@
+
+* Copyright 1993, 1996 by Microware Systems Corporation.
+* All Rights Reserved
+* Reproduced Under License
+
+*   This source code is the proprietary confidential property of
+* Microware Systems Corporation, and is provided to the licensee
+* for documentation and educational purposes only.  Reproduction,
+* publication, or any form of distribution to any party other than
+* the licensee is strictly prohibited.
+
+*****************************************************************************
+*                                                                           *
+* Edition History:                                                          *
+* #   Date    Comments                                                By    *
+* -- -------- ------------------------------------------------------- ---   *
+* 01 96/08/14 History started.                                        ats   *
+* 02 96/08/14 Corrected size of global data area allocated.           ats   *
+*             NOTE: It's unclear why this allocation should be done         *
+*                   here (probably because of time factors which            *
+*                   prevented a proper design) instead of just using        *
+*                   the globals allocated by boot.a. But since we're        *
+*                   uncertain what other things might be impacted,          *
+*                   we're just taking a safe approach. Notice the           *
+*                   wierd RBGSYNC test to determine if data has been        *
+*                   initialiazed yet.                                       *
+* 03 96/08/15 Corrected position independent pc-relative calculation. ats   *
+*             ---- OS-9/68K V3.0.3 released ----                            *
+*             ---- OS-9/68K V3.1 released ----                              *
+*****************************************************************************
+
+ use defsfile
+
+*---------------------------!
+* Boot.a offset definitions	!
+*--------------------------*/
+ org 0
+B_Reset		do.b 4
+B_InChar	do.b 4
+B_OutChr	do.b 4
+B_Extract	do.b 4
+B_Debug		do.b 4
+B_OutHex	do.b 4
+B_Out1Hex	do.b 4
+B_Out2Hex	do.b 4
+B_Out4Hex	do.b 4
+B_InChChek	do.b 4
+
+SysBoot:
+ movea.l a6,a2				/* get the end of the system ROM list in a2	*/
+ movea.l #MemList-*-8,a6	/* calculate 32 bit pc relative address		*/
+ move.l (pc,a6.l),a6		/* get what would be ROMBUG's global pointer*/
+ cmpi.l #RBGSYNC,rombug(a6) /* if sync code is present, it is rombug   */
+ bne NoRomBug				/* if no, is old (or no) debugger			*/
+ movea.l a7,a0				/* copy the "boot.a" stack pointer to a0	*/
+ bsr GoSysBoot				/* pass parameters to static storage and	*/
+*							/* call 'C' language "sys_boot" function	*/
+ tst.l d0					/* any errors?								*/
+ bne.s RBErrExit			/* if yes, hit the error exit				*/
+
+ movea.l (a7)+,a3			/* get the return address (to "boot.a")		*/
+ move.l bootsize(a6),-(a7)	/* save the boot file size on the stack		*/
+ movea.l bootram(a6),a0		/* get the pointer to the bootfile			*/
+ move.l a0,-(a7)			/* return it to "boot.a" on the stack		*/
+ move.l freememlist(a6),a4	/* return the free memory list pointer		*/
+ movea.l endrommap(a6),a6	/* restore the original a6 register 		*/
+ moveq.l #0,d1				/* no errors here!							*/
+ jmp (a3)					/* return to caller (boot.a)				*/
+
+RBErrExit move.l d0,d1		/* copy the error to d1						*/
+ ori #Carry,sr				/* set the carry (error) flag				*/
+ rts						/* return to caller (boot.a)				*/
+
+NoRomBug: movea.l a2,a6		/* restore the original a6					*/
+ move.l #dsize+IntrptStk,d0	/* get size of RAM to allocate				*/
+ jsr B_Extract(a1)			/* call Extract to get it					*/
+ bcc.s DoSB					/* if no error, occurred, go do sysboot		*/
+ rts						/* exit if an error occurred in allocation	*/
+ 
+DoSB movea.l a2,a0			/* copy data pointer to a0					*/
+ move.l d0,d1				/* copy data size to d1						*/
+ lsr.l #2,d1				/* divide it by four for longword clearing	*/
+ subq.l #1,d1				/* form "dbra" counter						*/
+ClrData move.l #0,(a0)+		/* clear a longword							*/
+ dbra d1,ClrData			/* loop until we're done, dammit			*/
+ movea.l a7,a0				/* save the "boot.a" stack pointer in a0	*/
+ lea.l dsize+IntrptStk(a2),a7	/* set the sysboot stack pointer		*/
+ move.l a0,-(a7)			/* save the "boot.a" stack pointer			*/
+ exg.l a2,a6				/* set sysboot global ptr to start of data	*/
+* 							/* get the end of the system ROM list in a2	*/
+ move.l d0,sysb_dsize(a6)	/* save sysboot data size for memory return	*/
+ move.l a6,d0				/* pass memory area pointer in d0			*/
+ move.l RelFctr(a5),d1		/* pass relocation factor from boot.a		*/
+ bsr initdata				/* call 'C' language "initdata" function	*/
+ bsr.s GoSysBoot			/* pass parameters to static storage and	*/
+*							/* call 'C' language "sys_boot" function	*/
+ movea.l (a7),a7			/* restore "boot.a" stack pointer			*/
+ movea.l (a7)+,a3			/* get the return address (to "boot.a")		*/
+ tst.l d0					/* any errors?								*/
+ bne.s NoRBErrExit			/* if yes, hit the error exit				*/
+
+ move.l bootsize(a6),-(a7)	/* save the boot file size on the stack		*/
+ movea.l bootram(a6),a0		/* get the pointer to the bootfile			*/
+ move.l a0,-(a7)			/* return it to "boot.a" on the stack		*/
+ moveq.l #0,d1				/* no errors here!							*/
+ bra.s Exit
+
+NoRBErrExit move.l d0,d1	/* copy the error to d1						*/
+ ori #Carry,sr				/* set the carry (error) flag				*/
+ 
+Exit move sr,-(a7)			/* save condition codes						*/
+ move.l d1,-(a7)			/* save error code (if any)					*/
+ move.l sysb_dsize(a6),d0	/* get size of RAM to be returned			*/
+ move.l a6,d1				/* get pointer to RAM to be returned		*/
+ movea.l endrommap(a6),a2	/* get the original a6 register (in a2)		*/
+ bsr insert					/* return "sysboot" data memory to system	*/
+ movea.l d0,a4				/* return updated free memory list pointer	*/
+ movea.l a2,a6				/* restore the original a6					*/
+ move.l (a7)+,d1			/* retrieve the error register				*/
+ move (a7)+,sr				/* retrieve condition codes					*/
+ jmp (a3)					/* return to caller (boot.a)				*/
+
+
+*---------------------------------------------------------------------------!
+* GoSysBoot: copy parameters passed in registers from "boot.a" to static	!
+*			 storage as accessed by the boot system, and then transfer		!
+*			 control to "sys_boot".											!
+*            NOTE: a0 = "boot.a"'s stack pointer							!
+*			       a2 = the "boot.a" "system globals" pointer				!
+*--------------------------------------------------------------------------*/
+GoSysBoot:
+ lea.l 4(a0),a0				/* calculate a pointer to the system ROM	*/
+*							/* list using "boot.a"'s stack pointer		*/
+ move.l a6,sysb_gptr(a6)	/* save a pointer to my own globals			*/
+ move.l a0,sysrommap(a6)	/* pass the system ROM list pointer			*/
+ move.l a2,endrommap(a6)	/* pass pointer to the end of the ROM list	*/
+* 							/* NOTE: This is also the ORIGINAL a6		*/
+ move.l a1,bootjmp(a6)		/* pass the boot ROM entry pointer			*/
+ move.l a3,portaddr(a6)		/* pass the port address					*/
+ move.l a4,freememlist(a6)	/* pass the free memory list pointer		*/
+ move.l a5,exjmptab(a6)		/* pass the exception jump table pointer	*/
+ movea.l #ChunkSiz-*-8,a0	/* calculate 32 bit pc relative address		*/
+ move.l (pc,a0.l),chunksize(a6) /* pass the memory chunk size			*/
+ move a6,usp				/* save the globals!!						*/
+ bsr sysboot				/* call "sysboot.c"							*/
+ move.l bootjmp(a6),a1		/* restore the boot ROM entry pointer		*/
+ move.l exjmptab(a6),a5		/* restore the exception jump table pointer	*/
+ rts
+
+*-----------------------------------------------------------------------!
+* aboot_glue: Transfer control to an assembly language boot function	!
+* C syntax: aboot_glue(funcaddr)										!
+*----------------------------------------------------------------------*/
+aboot_glue:
+ movem.l d1/a0-a1/a3-a5,-(a7)
+ move.l d0,d1				/* copy the assembler function's address to d1	*/
+ move.l bootjmp(a6),a1		/* get boot ROM jump table entry pointer		*/
+ move.l portaddr(a6),a3		/* get the port address							*/
+ move.l exjmptab(a6),a5		/* get the exception jump table pointer			*/
+ lea.l -$100(a7),a7			/* get 256 bytes on stack for memlist buffer	*/
+ move.l a7,d0				/* get the memlist snapshot buffer address		*/
+ bsr savememlist			/* save the memory list							*/
+ bsr flipmemlist			/* invert the memory list for old "Extract"		*/
+ move.l freememlist(a6),a4	/* get the free memory list pointer 			*/
+ move.l a6,-(a7)			/* save the "sysboot" static storage pointer	*/
+ move.l endrommap(a6),a6	/* get the original global data pointer			*/
+ addq.l #4,d1				/* bump pointer to asm function past sync code	*/
+ movea.l d1,a0				/* copy it to a0								*/
+ jsr (a0)					/* call assembler boot function					*/
+ bcs.s ABErrExit			/* if error occurred, go to error exit			*/
+ addq.l #4,a7				/* discard the bootram address off the stack	*/
+*							/* (don't worry, it's also in a0)				*/
+ move.l (a7)+,d0			/* get bootfile size off the stack				*/
+ move.l (a7)+,a6			/* restore "sysboot's" statics ptr off stack	*/
+ move.l a0,bootram(a6)		/* save the bootram pointer						*/
+ move.l d0,bootsize(a6)		/* save the boot file size						*/
+ move.l a4,freememlist(a6)	/* return updated free memory list pointer		*/
+ bsr fixmemlist				/* put updated memory list in sysboot format	*/
+ lea.l $100(a7),a7			/* dump the memlist buffer off the stack		*/
+ moveq.l #0,d0				/* flag no errors								*/
+ movem.l (a7)+,d1/a0-a1/a3-a5	/* restore the registers					*/
+ rts						/* return to caller								*/
+ 
+ABErrExit: move.l (a7)+,a6	/* restore "sysboot's" statics pointer off stack*/
+ move.l a7,d0				/* get the memlist snapshot buffer address		*/
+ bsr restmemlist			/* restore the memory list						*/
+ lea.l $100(a7),a7			/* dump the memlist buffer off the stack		*/
+ moveq.l #0,d0				/* clear the error register						*/
+ move.w d1,d0				/* copy the error to d0 for return to "sysboot"	*/
+ movem.l (a7)+,d1/a0-a1/a3-a5	/* restore the registers					*/
+ rts						/* return to caller								*/
+

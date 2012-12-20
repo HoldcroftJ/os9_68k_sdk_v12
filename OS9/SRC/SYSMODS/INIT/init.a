@@ -1,0 +1,482 @@
+ nam Init: OS-9 Configuration Module
+
+*****************************************************************************
+*                                                                           *
+*              Copyright 1998 by Microware Systems Corporation              *
+*                            All Rights Reserved                            *
+*                          Reproduced Under License                         *
+*                                                                           *
+*  This software is confidential property of Microware Systems Corporation, *
+*  and is provided under license for internal development purposes only.    *
+*  Reproduction, publication, modification, distribution, or creation of    *
+*  derivative works in any form to any party other than the Licensee is     *
+*  strictly prohibited, unless expressly provided for under the terms of a  *
+*  mutually executed written license agreement for this software between    *
+*  the end-user and Microware Systems Corporation, or otherwise expressly   *
+*  authorized in writing by Microware Systems Corporation.  Licensee shall  *
+*  reproduce this copyright notice exactly as provided herein on any copies *
+*  of the software that Licensee is authorized to distribute.               *
+*                                                                           *
+*****************************************************************************
+
+********************************
+* Edition History
+*  #   Date		Comments                                                 by
+* -- -------- ---------------------------------------------------------- ---
+* 00 12-01-83 Initial test version developed.                            rfd
+* 01 01-20-84 Added code to process startup file.                        rfd
+* 02 11-01-84 Changed names and added new information.                   rfd
+* 03 12-20-84 Changed slice value from 1 to 2.                           rfd
+* 04 06-21-85 Minor changes for V1.2.                                    rfd
+*				---- OS-9/68k V1.2 Release ----
+* 05 08-23-85 Added entries for M$BlkSiz and M$MinBlk.                   rfd
+* 06 01-31-86 Removed M$BlkSiz and M$MinBlk.                             rfd
+*             Added SysParam string.                                     rfd
+* 07 09-11-86 changed names to 2.0.                                      rfd
+* 08 09-25-86 Added M$Compat byte for smoothing port problems.           rfd
+* 09 10-03-86 Made OS9Rev string configurable by systype.                rfd
+*				---- OS-9/68k V2.0 Release ----
+* 10 05-11-87 Removed SPU & UsrAct; added ifdef Extens.                  rfd
+* 11 05-26-87 Added Compat bit definitions.                              rfd
+*				---- OS-9/68k V2.1 Release ----
+* 12 10-21-87 Updated for 2.2 release.                                   rfd
+*				---- OS-9/68k V2.2 Release ----
+* 13 04-28-88 Added memlist definitions.                                 rfd
+* 14 06-13-88 Changed memlist table format.                              rfd
+* 15 07-18-88 Added IP_ID.                                               rfd
+* 16 08-19-88 Remove obsolete memory definitions.                        rfd
+* 17 10-06-88 Added ZapMem compat bit definition.                        rfd
+* 18 11-02-88 Added IRQ stack size word.                                 rfd
+* 19 03-18-89 Added _INITMOD definition and comments.                    wwb
+* 20 03-31-89 Added NoClock definition.                                  rfd
+*				---- OS-9/68k V2.3 Release ----
+* 21 03-06-90 Added Compat2 and its definitions (caching).               wwb
+* 22 06-25-90 Updated for 2.4 release.                                   wwb
+*				---- CD-RTOS V1.1 Release ----
+*				---- OS-9/68k V2.4 Release ----
+* 23 03-11-91 Updated Edition for 68040 release.                         wwb
+*				---- OS-9/68k V2.4 68040 Release ----
+* 24 07-26-91 Updated Edition for V2.4.3 release.                        wwb
+*               ---- OS-9/68k V2.4.3 Release ----
+* 25 11-14-91 Added CacheType support.                                   wwb
+* 26 11-15-91 Added alignment macros for ed25 (thanks lac).              wwb
+* 27 11-25-91 Fixed mixup in serialized/not-serialized cache modes.      wwb
+* 28 01-03-92 Moved CacheList offset to final position.                  wwb
+*				---- OS-9/68k V2.4.4 Release ----
+* 29 07-15-92 Added Spurious IRQ definition to Compat byte.              wwb
+*				---- OS-9/68k V2.4.5 Release ----
+* 30 08-04-92 Added IOMan, Pre-P2 support.                               wwb
+*             Started mods for V3.0 series, by adding:                   wwb
+*              - NoTblExp, NumSigs, RunRAM....
+* 31 10-03-92 Added process descriptor stack size field.                 wwb
+* 32 10-07-92 Added CRC disable definition to SysConf.                   wwb
+* 33 11-23-92 Adjusted identifiers to reflect V2.5-style release.        wwb
+* 34 11-24-92 renamed PreP2 to PreIO.                                    wwb
+* 35 12-09-92 prepared for release.                                      wwb
+*				---- OS-9/68000 V2.5 (Discovery Pak) Release ----
+* 36 01-29-93 Reworked (implemented) M$MDirSz field, added new           wwb
+*             reserved fields, added Event Table size default, removed
+*             obolete references (SlowIRQ, DDIO).
+* 37 02-08-93 Added PrivAlm flag to Compat.                              wwb
+* 38 02-22-93 Added SSM_NoProt, SSM_SysPT and SysTSDis to SysConf.       wwb
+* 39 03-12-93 Added "unimplemented" note for NumSigs.                    wwb
+*             Updated information to reflect V3.0 release.               wwb
+* 40 09-17-93 Added 68349 cache enable defs.                             wwb
+* 41 09-28-93 Removed RunRAM flag (obsoleted by romcode).                wwb
+*               ---- OS-9/68K V3.0 Release ----
+*				>>>>>>>>>>  init.a  Rev 1.26
+* 42 07-27-94 skipped (68060 work in progress).                          wwb
+* 43 07-27-94 Added NoMOVES to Compat (replaces obsolete SlowIRQ).       wwb
+*               ---- OS-9/68K V3.0.1 Release ----
+*				<<<<<<<<<<  init.a  Rev 1.25.1.0
+* 42 05-25-94 started mods for 68060 support.                            wwb
+*				==========
+* 44 06-29-94 merged 68060 branch back into mainline.                    wwb
+* 45 01-26-95 touchup OS9Rev string so that VX.X.N is generated.         wwb
+* 46 02-11-95 updated to revision V3.0.2.                                wwb
+*				---- OS-9/68K V3.0.2 Beta Release ----
+*				---- OS-9/68K V3.0.2 Beta_2 Release ----
+*				---- OS-9/68K V3.0.2 Release ----
+* 47 03-12-96 removed (old) comments that Path and Procs counts must be  wwb
+*             divisible by 64.
+* 48 07-10-96 updated revision to V3.0.3.                                wwb
+*				---- OS-9/68K V3.0.3 Release ----
+* 49 07-15-98 added SSM configuration, new copyright info.               wwb
+* 50 11-16-98 updated version ID to V3.1.                                wwb
+*				---- OS-9/68K V3.1 Release ----
+* 51 09-14-00 updated version ID to V3.2								 mgh
+*				---- OS-9/68K V3.2 Release ----
+*             $$                    <RELEASE_INFO>                     $$   *
+*
+Edition equ 51 current edition number
+
+
+Typ_Lang set (Systm<<8)+0
+Attr_Rev set (ReEnt<<8)+0
+
+ psect init,Typ_Lang,Attr_Rev,Edition,0,0
+
+* Configuration constants (default; changable in "systype.d" file)
+*
+* Constants that use VALUES (e.g. CPUTyp set 68020) may appear anywhere
+* in the "systype.d" file.
+* Constants that use LABELS (e.g. Compat set ZapMem) MUST appear OUTSIDE
+* the CONFIG macro and must be conditionalized such that they are
+* only invoked when this file (init.a) is being assembled.
+* If they are placed inside the CONFIG macro, then the over-ride will not
+* take effect.
+* If they are placed outside the macro and not conditionalized then
+* "illegal external reference" errors will result when making other files.
+* The label _INITMOD provides the mechanism to ensure that the desired
+* operations will result.
+*
+* example systype.d setup:
+*
+* CONFIG macro
+*   <body of macro>
+*  endm
+*  Slice set 10
+*  ifdef _INITMOD
+* Compat set ZapMem patternize memory
+*  endc
+*
+
+* flag reading init module (so that local labels can be over-ridden)
+_INITMOD equ 1 flag reading init module
+
+CPUTyp	set 68000	cpu type (68008/68000/68010/etc.)
+Level	set 1		OS-9 Level One
+Vers	set 3		Version 3.2.0
+Revis	set 2
+Edit	set 0		Edition
+IP_ID	set 0		interprocessor identification code
+Site	set 0		installation site code
+MDirSz	set 64		initial module directory count
+PollSz	set 32		IRQ polling table size (fixed)
+DevCnt	set 32		device table size (fixed)
+Procs	set 64		initial process table size
+Paths	set 64		initial path table size
+Slice	set 2		ticks per time slice
+SysPri	set 128		initial system priority
+MinPty	set 0		initial system minimum executable priority
+MaxAge	set 0		initial system maximum natural age limit
+MaxMem	set 0		top of RAM (unused)
+Events	set 32		initial event table size
+Compat	set 0		version smoothing byte
+Config	set 0		system configuration default
+StackSz	set 1024	IRQ Stack Size in bytes (must be 1k <= StackSz < 256k)
+ColdRetrys set 0	number of retries for coldstart's "chd" before failing
+* NOTE: NumSigs is currently unimplemented
+NumSigs	set 16		default queued signal maximum
+PrcDescStack set 1500	default stack size in process descriptor
+
+
+********************
+* Compat flag bit definitions
+*
+NoMOVES		equ 1<<0	xxxxxxx1 no CPU-Space MOVES read (ker32c)
+NoStop		equ 1<<1	xxxxxx1x don't use 'stop' instruction
+NoGhost		equ 1<<2	xxxxx1xx don't retain Ghost/Sticky memory modules
+NoBurst		equ 1<<3	xxxx1xxx don't enable 68030 cache burst mode
+ZapMem		equ 1<<4	xxx1xxxx wipe out memory that is allocated/freed
+NoClock 	equ 1<<5	xx1xxxxx don't start system clock during coldstart
+SpurIRQ 	equ 1<<6    x1xxxxxx ignore spurious IRQs
+PrivAlm		equ 1<<7	1xxxxxxx only alarm creator (process) can delete alarm.
+
+
+********************
+* Compat2 flag bit definitions
+* (these are reserved for cache control considerations)
+*
+ExtC_I		equ 1<<0	xxxxxxx1 external instruction cache is coherent
+ExtC_D		equ 1<<1	xxxxxx1x external data cache is coherent
+OnC_I		equ 1<<2	xxxxx1xx on-chip instruction cache is coherent
+OnC_D		equ 1<<3	xxxx1xxx on-chip data cache is coherent
+CBank0_En	equ 1<<4	xxx1xxxx 68349: enable cache/sram bank 0 as cache
+CBank1_En	equ 1<<5	xx1xxxxx 68349: enable cache/sram bank 1 as cache
+CBank2_En	equ 1<<6	x1xxxxxx 68349: enable cache/sram bank 2 as cache
+CBank3_En	equ 1<<7	1xxxxxxx 68349: enable cache/sram bank 3 as cache
+
+
+********************
+* System Configuration (SysConf) flag bit definitions
+*
+* These definitions control various options for the system
+*
+
+* NoTblExp prevents the kernel from performing dynamic table expansions
+* (e.g. # of events).  The values for these tables are specified in the Init
+* module, and tables of those sizes are allocated at system startup.
+* When this flag is set, those tables are not expanded (if requested to).
+*
+* This flag affects the Development kernel only - the Atomic kernel
+* never does table expansion.
+*
+NoTblExp	equ 1<<0	xxxxxxxx xxxxxxx1 system table expansion disabled
+
+* bit 1 is reserved.
+
+* CRCDis is valid for the Atomic Kernel only.  This flag disables CRC checking
+* when modules are loaded (but not during system startup).
+*
+CRCDis		equ 1<<2	xxxxxxxx xxxxx1xx disable CRC check for F$VModul
+
+* SysTSDis will disable system-state time-slicing for the system.  It
+* is provided primarily to allow operation of system-state code that
+* expects to be non-preemptable.
+*
+SysTSDis	equ 1<<3	xxxxxxxx xxxx1xxx disable system-state time-slicing
+
+* SSM_NoProt is only applicable for Development kernel: SSM will build
+* a "full-system" page table for User-State at cold-start, all user
+* processes will have access to all memory (ala ATOMIC kernel)
+*
+SSM_NoProt	equ 1<<4	xxxxxxxx xxx1xxxx (SSM) user-state no protection
+
+* enabling system-state page tables disables the default translations
+* for system-state using DTT0, and uses page table entries instead.
+* This uses more system memory (and slightly slower translation) but
+* gives fine (page) control over cache modes.
+*
+SSM_SysPT	equ 1<<5	xxxxxxxx xx1xxxxx (SSM) sys-state page tables
+
+* This flag sets the default cache mode for system-state to be copy-back
+* instead of the default write-through (SSM).
+*
+SSM_CMode	equ 1<<6	xxxxxxxx x1xxxxxx (SSM) copy-back in system-state
+
+* this option is effective for the 68040 and 68060 SSM's only.
+* the default page-size is 4K (for Microware SSM modules)
+*
+SSM_Page8K	equ 1<<7	xxxxxxxx 1xxxxxxx (SSM) use 8K page tables
+
+
+
+********************
+* SSM(MMU) Page Cache Mode definitions for CacheList entries
+*
+* These definitions control the cache mode associated with page table
+* entries set up by SSM.  These entries are used to over-ride
+* the default (typically write-through) cache mode used for all
+* pages by SSM.  Normally, page table entries are only built for
+* USER-state processes/requests, but these entries will also apply
+* to SYSTEM-state when system-state page tables are enabled.
+*
+* Note that the options available are dependant upon the caching
+* modes supported by the MPU/MMU in use.
+*
+CM_WrtProt equ 1<<2 page is write-protected
+CM_CI equ 1<<6 cache inhibit bit (68851/68030/68040/68060)
+CM_NotSer equ 1<<5 not-serialized access (for cache inhibited) (68040/68060)
+CM_CB equ 1<<5 copy-back (for cache enabled) (68040/68060)
+
+WritProt equ CM_WrtProt write-protected page (not usually useful)
+
+* 68040/68060 definitions for setting cache modes in Init module's
+* cache list entries.
+*
+WrtThru equ 0 cache enabled, write-through (also 68020/030 cache enabled)
+CopyBack equ CM_CB cache enabled, copy-back
+CISer equ CM_CI cache inhibited, serialized access
+CINotSer equ CM_CI+CM_NotSer cache inhibited, not-serialized access
+
+
+ use defsfile (any above definitions may be overridden in defsfile)
+
+* Memory list definitions
+MemType macro
+ dc.w \1,\2,\3,\4>>4	type, priority, access, search block size
+ dc.l \5,\6				low, high limits (where it appears on local address bus)
+ dc.w \7,0				offset to description string (zero if none), reserved
+ dc.l \8,0,0			address translation adjustment (for DMA, etc.), reserved
+ ifne \#-8  must have exactly eight arguments
+   fail wrong number of arguments to MemType macro
+ endc
+ endm
+
+* Cache Mode Memory list definitions
+*
+CacheType macro
+ dc.l \1,\2   start and end address (+1) of region
+ dc.w 0       reserved
+ dc.w \3      cache modes for region
+ dc.l 0       reserved
+ ifne \#-3 must have exactly three arguments
+ fail wrong number of arguments to CacheType macro
+ endc
+ endm
+
+* Alignment macros (for optimization)
+*
+CPUALIGN macro
+ ifeq (CPUTyp-68040)*(CPUTyp-68060)
+* force LINE alignment
+ ifne (*-ConfigBody)&15
+ rept 16-((*-ConfigBody)&15)
+ dc.b 0
+ endr
+ endc
+ else others just need LONG-WORD
+ ifne (*-ConfigBody)&3
+ rept 4-((*-ConfigBody)&3)
+ dc.b 0
+ endr
+ endc
+ endc CPUTyp (68040 or 68060)
+ endm
+
+
+* Configuration module body
+*
+ConfigBody equ *
+ dc.l MaxMem (unused)
+ dc.w PollSz IRQ polling table 
+ dc.w DevCnt device table size
+ dc.w Procs initial number of processes
+ dc.w Paths initial number off paths
+ dc.w SysParam parameter string for first executable module
+ dc.w SysStart first executable module name offset
+ dc.w SysDev system default device name offset
+ dc.w ConsolNm standard I/O pathlist name offset
+ dc.w Extens Customization module name offset
+ dc.w ClockNm clock module name offset
+ dc.w Slice number of ticks per time slice
+ dc.w IP_ID interprocessor identification
+ dc.l Site installation site code
+ dc.w MainFram installation name offset
+ dc.l CPUTyp specific 68000 family processor in use
+ dc.b Level,Vers,Revis,Edit OS-9 Level
+ dc.w OS9Rev OS-9 revision string offset
+ dc.w SysPri initial system priority
+ dc.w MinPty initial system minimum executable priority
+ dc.w MaxAge maximum system natural age limit
+ dc.w MDirSz module directory count
+ dc.w 0 reserved
+ dc.w Events initial event table size (number of entries)
+ dc.b Compat version change smooth byte
+ dc.b Compat2 cache control configuration
+ dc.w MemList memory definitions
+ dc.w StackSz/4 IRQ stack size (in longwords)
+ dc.w ColdRetrys coldstart's "chd" retry count
+ dc.w 0,0 reserved (MWKK)
+ dc.w CacheList SSM(MMU) cache mode over-ride list
+ dc.w IOMan IOMan module name
+ dc.w PreIO "PreIO" module list (called before IOMan/Extens modules)
+ dc.w Config system configuration control
+ dc.w NumSigs maximum number of queued signals
+ dc.w PrcDescStack stack size in process descriptor
+ dc.w 0,0,0,0,0,0,0,0 reserved
+ dc.w 0,0,0,0,0,0,0,0 reserved
+ dc.w 0,0,0,0,0,0,0,0 reserved
+ dc.w 0,0,0,0,0,0,0,0 reserved
+
+
+* Configuration name strings
+*
+OS9Rev dc.b "OS-9/68K V",Vers+'0',".",Revis+'0'
+ ifne Edit
+ dc.b ".",Edit+'0'
+ endc
+ dc.b 0
+
+* The remaining names are defined in the "systype.d" macro
+*
+ CONFIG 
+
+* default Extension module name lists (these are usually defined in
+* the system's systype.d file).
+* The calling sequence for Extension modules is:
+*   1. PreIO module(s)
+*   2. IOMan module(s)
+*   3. Extens (aka P2) module(s)
+*
+ ifndef Extens
+Extens dc.b "OS9P2",0 default P2 extension module list
+ endc
+
+ ifndef IOMan
+IOMan dc.b "IOMan",0 default IOMan module name
+ endc
+ 
+ ifndef PreIO
+PreIO dc.b "OS9PreIO",0 default "PreIO" module list
+* (these modules are called BEFORE the IOMan and Extens lists)
+ endc
+
+ ifndef MemList
+MemList	equ 0
+ endc
+
+ ifndef CacheList
+CacheList equ 0
+ endc
+
+* define default caching modes (CPUTyp and system specific)
+* NOTE:  the following rules should be applied in determining
+*        the "coherency" of a cache and setting up the Compat2
+*        cache function flags:
+*
+*         - if the cache does not exits, then it is always coherent.
+*         - the on-chip cache coherency is not changable, except
+*           for the 68040.  If a 68040 system is used with
+*           bus-snooping disabled, then that fact should be registered
+*           by the user defining the label NoSnoop040 in their local
+*           "systype.d" file.
+*         - the coherency of external caches is indicated by the
+*           SnoopExt definition.  If the external caches are
+*           coherent or non-existant, then the label SnoopExt
+*           should be defined in "systype.d".
+*         - the kernel will disable data caching when calling a file
+*           manager, unless the "NoDataDis" label is defined.
+*           Disabling data caching is required for systems that have
+*           drivers that use dma and don't perform any explicit data
+*           cache flushing.  If your system does NOT use dma drivers,
+*           or the drivers care for the cache, then the NoDataDis
+*           label should be defined in "systype.d".
+*
+ ifndef Compat2
+
+ ifndef ExtCache
+ ifdef SnoopExt
+* external caches are coherent or absent
+ExtCache equ ExtC_I!ExtC_D
+ else
+ExtCache equ 0 external caches are NOT snoopy (compat)
+ endc SnoopExt
+ endc ExtCache
+
+ ifeq (CPUTyp-68060)
+ ifdef NoSnoop060
+Compat2 set ExtCache on-chip caches are NOT snoopy
+ else
+Compat2 set ExtCache!OnC_I!OnC_D 68060 on-chip caches are snoopy
+ endc NoSnoop060
+ else
+ ifeq (CPUTyp-68040)
+ ifdef NoSnoop040
+Compat2 set ExtCache 68040 on-chip caches are NOT snoopy
+ else
+Compat2 set ExtCache!OnC_I!OnC_D 68040 on-chip caches are snoopy
+ endc NoSnoop040
+ else
+ ifeq (CPUTyp-68030)
+Compat2 set ExtCache 68030 on-chip caches are NOT snoopy
+ else
+ ifeq (CPUTyp-68020)
+Compat2 set ExtCache!OnC_D 68020 i-cache is NOT snoopy
+ else
+ ifeq (CPUTyp-68349)
+* 68349 - enable all cache banks, no on-chip data cache,
+* on-chip i-cache is NOT snoopy.
+Compat2 set (CBank0_En+CBank1_En+CBank2_En+CBank3_En)+ExtCache+OnC_D
+ else
+Compat2 set ExtCache+OnC_I+OnC_D non-020/030/040 have no on-chip caches
+ endc 68349
+ endc 68020
+ endc 68030
+ endc 68040
+ endc 68060
+
+ endc Compat2
+
+ ends

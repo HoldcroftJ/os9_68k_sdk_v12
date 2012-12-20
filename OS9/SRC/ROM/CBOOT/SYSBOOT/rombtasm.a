@@ -1,0 +1,64 @@
+
+* Copyright 1993, 1997 by Microware Systems Corporation.
+* All Rights Reserved
+* Reproduced Under License
+
+*   This source code is the proprietary confidential property of
+* Microware Systems Corporation, and is provided to the licensee
+* for documentation and educational purposes only.  Reproduction,
+* publication, or any form of distribution to any party other than
+* the licensee is strictly prohibited.
+
+
+*******************
+* bus_trap_rom:  return from exception
+*
+bus_trap_rom:
+ movea.l mpuptr(a6),a5 get ptr to MPUType (a5 trashed anyway)
+ tst.l (a5) is this a 68000/008 ?			* was incorrect size (
+ beq.s btrom_000 ..yes; branch on
+ move.w 4(sp),sr get back the pre-exception SR (68010 or better)
+ bra.s bus_trap_rom_can_break continue on
+
+btrom_000 move.w 12(sp),sr get back the pre-exception SR (68000/008)
+
+* cannot put a break point at the above label in rom,
+*   (chicken/egg syndrome). 
+bus_trap_rom_can_break:
+ link a5,#0
+ movem.l #regimage!1,-(sp)
+ move.l modptr(a6),d4
+ add.l chunksize(a6),d4
+ move.l chunksize(a6),d0
+ neg.l d0
+ and.l d0,d4
+ sub.l modptr(a6),d4
+ move.l d4,sizer(a6)
+ moveq.l #1,d1
+ lea gp_btrap(a6),a0
+ move.l a0,d0
+ bsr longjmp Note: never returns from this subroutine
+ movem.l -12(a5),#regimage
+ unlk a5
+ rts
+
+regimage equ 0x00000112
+
+
+******************
+* checkquiet:  check for "quiet mode" booting
+*
+checkquiet: move.l a0,-(a7) save reg
+ move.l crystalptr(a6),a0 get ptr to boot method flags
+ move.l (a0),d0 get the flags
+ btst.l #B_Quiet,d0 request for quiet booting?
+ bne.s isquiet ..yes; return non-zero status
+ moveq.l #0,d0 else, return "not quiet"
+ bra.s chkquiet99 exit
+
+isquiet moveq.l #1,d0 return "quiet boot" status
+
+chkquiet99 movea.l (a7)+,a0 restore reg
+ rts
+
+ 

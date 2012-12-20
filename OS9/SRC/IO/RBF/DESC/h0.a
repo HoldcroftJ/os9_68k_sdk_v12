@@ -1,0 +1,8 @@
+ nam H0 Device Descriptor
+ use defsfile
+
+ use "rbfdesc.a"
+
+DrvNum set 0
+ DiskH0
+ ends

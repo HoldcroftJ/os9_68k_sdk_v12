@@ -1,0 +1,59 @@
+**********************************************************************
+MAUI Input Device API demo code
+**********************************************************************
+What this demo does:
+  - The demo looks in the CDB for the first device of type 
+    CDB_TYPE_REMOTE.
+      1. If a pointer input device is found:
+        a. Messages will be displayed to standard error when the cursor
+           position is changed or buttons are selected.
+        b. To terminate the program, select both buttons simultaneously
+           or press control-c on the console (where you started inp) to
+           send a signal 3 to the application.
+
+      2. If a key input device is found:
+        a. Messages will be displayed to standard error for each key 
+           selected.
+        b. To terminate the program, press control-c on the console
+           (where you started inp) to send a signal 3 to the
+           application.
+
+**********************************************************************
+System requirements:
+  - A working MAUI environment is assumed.
+  - The demo requires that maui_inp is in memory and running.
+ 
+**********************************************************************
+Directories: 
+  - Source code 
+      $MWOS/SRC/MAUI/DEMOS/INP
+        
+**********************************************************************
+To make this demo:
+  - From the source file directory type:
+      % os9make
+ 
+**********************************************************************
+Operation:
+  - The process 'maui_inp' must be running in the background. To
+    verify that it is use the os9000 command 'procs'. If it is not
+    present run it before starting the demo. e.g.
+
+      $ maui_inp <>>>/nil &
+ 
+  - This demo can run with no command line options. To run simply
+    type the demo name. The shell prompt will return after the demo
+    ends.
+
+      $ inp
+
+    This will search for the first input device in the CDB.
+
+  - This demo can also explicitly name an input device. For instance:
+
+      $ inp -i=/t1/mp_msptr
+
+    This attempts to read a serial mouse connected to serial port /t1.
+
+**********************************************************************
+ 

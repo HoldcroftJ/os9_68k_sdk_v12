@@ -1,0 +1,39 @@
+-t -np
+*
+*   OS-9/68000 - Version 3.1  (Enhanced OS-9 for 68k V1.0)
+*   Copyright 1998 by Microware Systems Corporation
+*
+*   SYS/startup system startup file executed by sysgo
+*   NOTE: sysgo runs this file from the disk's root directory
+*
+*   The commands in this file are highly system dependent and should
+*   be modified by the user.
+*
+*
+* start system clock
+*
+setime <>>>/term                    ;* (manual) start system clock
+*setime -s                          ;* (battery-backed clock) start system clock
+*
+* Load and Iniz devices
+*
+*iniz dd                            ;* initialize system default device
+*iniz h0 d0                         ;* initialize system disk devices
+*iniz t1 t2 t3                      ;* Initialize system Serial devices
+*diskcache -e -t=1024k /h0          ;* start RBF disk caching
+*load -z=SYS/loadfile               ;* load commonly used modules
+*SYS/init.ramdisk >>>/nil ^120 &    ;* initialize ram disk  (in background)
+*
+* Start SPF Networking
+*
+*SYS/startspf                       ;* start up SPF networking 
+*SYS/startnfs.spf                   ;* start up SPF version of NFS
+*
+* Console has Mshell running on it from sysgo
+* Start tsmon on other ports
+*
+*tsmon -dp /t1 /t2 /t3 <>>>/nil &   ;* start time-sharing monitor on terminals
+*
+* List Message of the Day for Console user
+*
+list SYS/motd

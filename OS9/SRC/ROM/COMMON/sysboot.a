@@ -1,0 +1,239 @@
+ nam Dummy System boot 
+ ttl substitute for sysboot call
+
+* Copyright 1987, 1988, 1990, 1991, 1993, 1997 by Microware Systems Corporation
+* Reproduced Under License
+
+* This source code is the proprietary confidential property of
+* Microware Systems Corporation, and is provided to licensee
+* solely for documentation and educational purposes. Reproduction,
+* publication, or distribution in any form to any party other than
+* the licensee is strictly prohibited.
+
+
+********************
+* Edition History
+*
+* Ed.   Date.    Reason                                           Who
+* --  --------  ------------------------------------------------- ---
+* 01  87/05/19  history starts...                                 wwb
+*                ---- OS-9/68K V2.1 Release ---- 
+*                ---- OS-9/68K V2.2 Release ---- 
+* 02  88/10/20  made bus-trap handler cpu independant.            wwb
+*                ---- OS-9/68K V2.3 Release ---- 
+*                ---- CD-RTOS V1.1 Release ----
+* 03  90/09/05  made bus error handler restore pre-exception SR   wwb
+*               so that Trace bits are maintained.
+*                ---- OS-9/68K V2.4 Release ---- 
+* 04  91/07/02  fixed restoration of SR when 68000/008.           wwb
+*                ---- OS-9/68K V2.4.3 Release ---- 
+* 05  93/01/07  fixed reference to MPUType (was byte, now long -  wwb
+*               thanks ats)
+* 06  93/01/12  Added digit count during diskboot address entry   ats
+*               and check for null input to reprompt.
+*                ---- OS-9/68K V3.0 Release ----
+* 07  97/08/15  Added support for fastboot functionality.         wwb
+*     97/10/22  Updated for final boot option defs.               wwb
+*                ---- OS-9/68K V3.1 Release ----
+*
+Edition set 7
+
+
+ use defsfile
+
+ 
+ page
+
+********************************
+* This psect will substitute for a diskboot or a system boot from
+* any other type of device.  It allows debugging of downloaded
+* code which will do actual system boot.  It will also work with
+* ROM based systems to find the kernel module, then set up for
+* the call to system startup.
+
+
+ psect sysboot_a,0,0,Edition,0,0
+
+
+* Strings
+
+Adr_Strg dc.b "Assuming you are testing a boot loader,",$D
+         dc.b "please enter it's entry address: $",0
+Bad_Strg dc.b $D,"Bad data entered",$D,0
+KerFnd   dc.b "Found OS-9 kernel module at $",0
+KerNam   dc.b "Kernel",0
+NoKerFnd dc.b "NO OS-9 kernel found.",$D,0
+ page
+
+****************************************
+* SysBoot:
+*
+*    Does a search through the ROM list on the stack
+*    If it finds a module with good header parity
+*    and the module's name is "kernel" then it
+*    returns that address to the caller in a0
+*    If not then it assumes the caller wants to test
+*    a downloaded diskboot.
+*
+* Usage:
+*        d0 = free usage           (a0) = module ptr
+*        d1 = free usage           (a1) = name ptr
+*        d2 = parity accumulator   (a2) = memory ptr
+*        d3 = mod size or word (2) (a3) = ROM "stack" ptr
+*        d4 = cur ROM size left    (a5) = exception jump table (boot globals) ptr
+*        d7 = stack reference ptr
+ align
+
+SysBoot: lea.l 4(a7),a0 get ROM stack pointer
+ movem.l d0-d5/d7/a1-a3,-(a7) save registers
+ move.l sp,d7 copy stack ptr
+ moveq.l #4,d5 assume 68010 or better CPU
+ tst.l MPUType(a5) good guess ?
+ bne.s SysBoot10 ..yes; continue
+ moveq.l #12,d5 get SR offset for 68000
+SysBoot10 movea.l a0,a3 set a3 as ROM "stack" pointer
+ lea Bus_Trap(pc),a0 get bus trap handler for the search
+ move.l a0,6(a5) set it in jump table
+ bra.s FKernl80 enter find kernel loop
+
+* Search ROM list for kernel module
+*
+FKernl10 movea.l (a3)+,a2 get ptr to ROM beginning
+ move.l (a3)+,d4 get size of ROM
+FKernl20 moveq #2,d3
+ cmpi.w #M$ID12,(a2) could it be module?
+ bne.s FKernl70 branch if not
+ cmp.l M$Size(a2),d4 would it fit in ROM?
+ blo.s FKernl70 branch if not
+
+* Check module header parity
+*
+ movea.l a2,a0 get module pointer
+ moveq #M$Parity,d1 get format zero byte count
+ asr.w #1,d1 make word count
+ moveq #-1,d2 init parity
+FKernl50 move.w (a0)+,d0 get next header word
+ eor.w d0,d2 accumulate it
+ dbra d1,FKernl50 loop through header bytes
+ bne.s FKernl70 if bad parity try next word
+ move.l M$Size(a2),d3 get module size
+ movea.l a2,a0 get module pointer
+ adda.l M$Name(a0),a0 form name pointer
+ lea KerNam(pc),a1 get kernel name pointer
+FKernl55 move.b (a0)+,d0 get module name byte
+ beq.s FKernl60 branch if end of name
+ move.b (a1)+,d1 get Kernel name byte
+ eor.b d0,d1
+ andi.b #^($20),d1 does char match case?
+ beq.s FKernl55 if so check till end of name
+ bra.s FKernl70 else try next module
+
+FKernl60 tst.b (a1) at end of kernel name?
+ beq.s FoundIt branch if so
+FKernl70 adda.l d3,a2 move ptr
+ sub.l d3,d4 entire ROM searched?
+ bhi.s FKernl20 repeat if not
+FKernl80 cmpa.l a6,a3 end of ROM list?
+ blo.s FKernl10 search next ROM if not
+ lea BadExcpt(pc),a0 get exception error routine
+ move.l a0,6(a5) reset Bus Error exception
+ lea.l NoKerFnd(pc),a0 get pointer to kernel not found string
+ bsr PrintStr print it
+ bra.s DiskBoot no kernel found treat as diskboot
+
+FoundIt lea BadExcpt(pc),a0 get exception error routine
+ move.l a0,6(a5) reset Bus Error exception
+ move.l Crystal(a5),d0 get system startup method
+ btst.l #B_Quiet,d0 suppress info messages?
+ bne.s FoundIt50 ..yes; skip them
+ lea KerFnd(pc),a0 get pointer to kernel found string
+ bsr PrintStr go print it
+ move.l a2,d0 get module address for print
+ bsr Out4Hex print it
+ bsr PrintCR add carriage return
+FoundIt50 movea.l a2,a0 get kernel pointer
+ movem.l (a7)+,d0-d5/d7/a1-a3 restore registers
+ rts
+
+Bus_Trap move.w (sp,d5.w),sr restore pre-exception SR (mainly for Trace flags).
+ move.l d7,sp reset stack frame
+ move.l a2,d3 get module pointer
+ move.l ChunkSiz(pc),d0 get chunk size
+ add.l d0,d3 bump pointer by chunksize
+ subq.l #1,d0 subtract one from chunksize
+ not.l d0 make chunksize mask
+ and.l d0,d3 make even chunksize boundary
+ sub.l a2,d3 get size to next ROM address
+ bra.s FKernl70 reenter search loop
+
+
+****************************************
+*
+* The routines below are called to enter and debug downloaded
+* system boot code, such as a diskboot.
+
+DiskBoot lea Adr_Strg(pc),a0 get string pointer
+ bsr PrintStr print it
+ moveq.l #0,d3 clear badflag
+ moveq.l #0,d2 clear register
+ moveq.l #0,d1 clear digit count
+ bsr.s Get4Hex get the input address
+ tst.l d1 any digits entered?
+ beq.s DiskBoot if not ask again
+ tst.l d3 is it bad hex?
+ beq.s DBoot40 bra if not
+ lea Bad_Strg(pc),a0
+ bsr PrintStr print it
+ bra.s DiskBoot try again
+
+DBoot40 movea.l d2,a0 get entry address
+ movem.l (a7)+,d0-d4/d7/a1-a3 restore regs
+ jmp (a0) call diskboot
+
+
+****************************************
+* Get Hex Input routines
+*
+* These routines all use d2.l as the ouput buffer
+* Before calling these routines it must be clear
+*
+Get4Hex bsr.s Get2Hex
+ bcs.s GetHex90 if error don't read more
+Get2Hex bsr.s Get1Hex
+ bcs.s GetHex90 branch if error
+Get1Hex bsr.s GetHex
+ bcs.s GetHex90 skip out if error
+GetHex bsr InChar get a character (will be upcase)
+ bsr.s ConvHex convert it to a nibble
+ bcs.s GetHex90 exit if error
+ lsl.l #4,d2 shift previous results up one nibble making room for new
+ add.l d0,d2 add in new nibble
+GetHex90 rts
+
+ConvHex cmpi.b #$D,d0 is it carriage return?
+ bne.s CnvHex20 branch if not
+ moveq.l #0,d3 clear error flag
+ bra.s HexErr50 exit with carry set
+CnvHex20 subi.b #$30,d0 ascii hex minus '0'
+ blt.s HexError return carry set if bad number
+ cmpi.b #9,d0 is it now digit?
+ ble.s HexDone exit if ok
+ subq.b #7,d0 make hex a-f into binary digit
+ cmpi.b #$A,d0 valid hex?
+ blt.s HexError bad number tell caller
+ cmpi.b #$F,d0 valid hex?
+ bgt.s HexError bad input return error
+HexDone andi.l #$f,d0 return only lowest nibble non-zero
+ addq.l #1,d1 increment digit count
+ moveq.l #0,d3 clear error flag and carry
+ rts
+
+HexError moveq.l #$ff,d3 set error flag
+
+HexErr50 ori.b #Carry,ccr return with carry set
+ rts
+
+ ends
+
+* end of file
+

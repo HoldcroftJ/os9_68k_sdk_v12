@@ -1,0 +1,1124 @@
+ nam sc68901
+ ttl mk68901 multfunction chip
+
+* Copyright 1985, 1986, 1987, 1989, 1990, 1991, 1992, 1993 by
+* Microware Systems Corporation
+* Reproduced Under License
+
+* This source code is the proprietary confidential property of
+* Microware Systems Corporation, and is provided to licensee
+* solely for documentation and educational purposes. Reproduction,
+* publication, or distribution in any form to any party other than
+* the licensee is strictly prohibited.
+******************************************************************
+* Edition History
+*
+* #   date      Comments                                              by
+* -- -------- ------------------------------------------------------- ---
+* 00 85-07-??  Written                                                YAS
+* 00 85-10-01  Debugged and updated.                                  SMS
+* 01 86-10-02  Updated init routines so that stops/parity/etc.        wwb
+*              correctly set up.  Also made IRQ init ensure that the
+*              vector is modulo 16. Added VME133 conditional case to
+*              XTAL for baud rate setups.
+* 02 86-10-08  Made all branches short when possible                  wwb
+* 03 86-10-08  Modified irq servicing to save regs for release 2.0.   wwb
+*              Also fixed errors in Init when F$IRQ errors occur.
+* 04 86-10-13  Modified SS.SSig and SS.Relea code parts to save/check wwb
+*              system path number.
+* 05 86-10-17  Changed special XTAL case for VME133 to be CPUType     wwb
+* 06 86-10-28  Added exception handler offset entry                   wwb
+* 07 86-11-04  Added 'ifndef' to define VME133                        wwb
+*               ---- OS-9/68K V2.0 Release ---- 
+* 08 86-12-18  Added code for Heurikon V20 implementation             djl
+* 09 87-02-23  Fixed conditional bug from ed.8                        wwb
+* 10 87-03-23  Changed module attr to Supervisor State process        wwb
+* 11 87/06/01  changed "pea" instructions to correct syntax           wwb
+*               ---- OS-9/68K V2.1 Release ---- 
+* 12 87/10/09  added conditionals for VME 134                         djl
+*               ---- OS-9/68K V2.2 Release ---- 
+* 13 89/02/07  modified "use mk68901.d" statement so that the defs    wwb
+*              file is searched for in the directory of source file.
+* 14 89/02/20  changed init to fix overrun problem on startup         jal
+* 15 89/02/21  added conditionals for FORCE CPU37 (merged by jal)     srw
+* 16 89/02/28  fixed bugs in "Config"; cleared out old bug comments   jal
+* 17 89/03/17  added BW_68901 equate & moved mk68901.d to ../defs     srw
+* 18 89/04/07  added and debugged "SWEI_68901" conditionals           jal
+*               ---- OS-9/68K V2.3 Release ---- 
+* 19 89/05/25  rationalized Terminate routine and Init routine's      wwb
+*              error exiting. Fixed lockup after terminate
+* 20 89/07/14  fixed label in init for FORCE CPU37 (ed.19 bug);       kse
+*              made dynamic baud rate change work correctly (see
+*              DoConfig).
+* 21 90/03/05  changed signal test for 2.4 release                    Rwb
+*               ---- OS-9/68K V2.4 released ----
+*               >>>>>>>>>>  sc68901.a  Rev 1.4
+* 22 91/08/26  Fixed test of MaxBaud.                                 wwb
+* 23 91/10/07  Made SWEI mode preserve vector # (in case of non-      wwb
+*              autovectors).
+*              Fixed some ori size operations on ccr/sr to suppress   wwb
+*              extraneous warning (new assembler).
+* 24 91/11/27  Made Init routine call DoConfig directly.              wwb
+*               <<<<<<<<<<  sc68901.a  Rev 1.0.1.0
+*121 91/08/30  Added KANJI condition								  zoo
+*               ---- OS-9/68K V2.4J released ----
+*               ==========
+* 25 92/02/24  Merged ed121 into mainstream.                          wwb
+* 26 92/02/24  Added OS9svc usage.                                    wwb
+*               ---- OS-9/68K V2.4.4 released ----
+* 27 93/02/25  Modified IRQMask code for MSP support.                 wwb
+* 28 93/07/01  reworked use pathlists for MWOS structure.             wwb
+* 29 93/10/25  Fixed bad vector mask in ed#23 MfpInit (oops :-).	  ats
+*              ---- OS-9/68k V3.0 released ----
+*              ---- OS-9/68k V3.1 released ----
+*
+Edition equ 29
+
+Typ_Lang set (Drivr<<8)+Objct
+Attr_Rev set ((ReEnt+SupStat)<<8)+0 Attributes and Revision
+
+ psect VME123Mfp,Typ_Lang,Attr_Rev,Edition,0,MfpEnt
+
+ use defsfile
+ use <os9svc.m>
+ 
+
+*****************************************************************
+* IMPORTANT NOTE: The label "SWEI_68901" determines whether this
+*       chip uses software end of interrupt mode.  If software
+*       end of interrupt mode is to be used "SWEI_68901" must be
+*       defined in your "systype.d" file!!!
+*
+
+********************
+* Conditional assembly setups
+*
+ ifndef VME133
+VME133 equ 133 default value for VME133 cpu
+ endc
+ ifndef HKV20
+HKV20 equ 20 heurikon V20 cpu
+ endc
+
+ ifndef VME134
+VME134 equ 134
+ endc
+
+ ifndef BW_68901
+BW_68901 set 2 default value for register offset
+ endc
+
+ use <mk68901.d>
+
+IERA_On equ IERA_XB enable Irq transmitter
+IERA_Off equ ^IERA_XB disable O interrupt
+TCCR_Off equ $07 stop timer_C
+RSR_Err equ RSR_OE!RSR_PE!RSR_FE RSR error mask
+TSR_Err equ TSR_UE TSR error mask
+Signbit set 7
+InpSiz set 80 input buffer size
+OutSiz set 140 output buffer size
+Low_Cnt set 10 # of bytes to restart receive data
+MaxBuff equ InpSiz-10 Send XOFF when buffer contains this many
+MinBuff equ 10 Send XON when buffer contains this few
+
+
+******************************************************
+* Static storage offsets
+ vsect
+InFill ds.l 1 input buffer next-in ptr
+InEmpty ds.l 1 input buffer next-out ptr
+InEnd ds.l 1 end of input buffer
+InCount ds.w 1 # of chars in input buffer
+OutFill ds.l 1 output buffer next-in ptr
+OutEmpty ds.l 1 output buffer next-out ptr
+OutEnd ds.l 1 output buffer end of buffer pointer
+OutCount ds.w 1 # of chars in output buffer
+IRQMask ds.w 1 Interrupt mask word
+InHalt ds.b 1 input halted flag (non-zero if XON has been Sent)
+OutHalt ds.b 1 output IRQ's disabled when non-Zero
+SigPrc ds.w 1 Process to signal
+ ds.w 1 signal code
+ ds.w 1 associated system path number
+Otpt_On ds.b 1 Value to enable acia output IRQs
+Otpt_Off ds.b 1 Value to disable acia output IRQs
+Cur_Baud ds.b 1 Current baud rate value (PD_BAU image)
+Cur_Parity ds.b 1 Current parity value (PD_PAR image)
+InpBuf ds.b InpSiz input buffer
+OutBuf ds.b OutSiz output buffer
+ ends
+
+******************************************************
+* OutHalt bit numbers (causes of disabled output IRQ)
+*
+H_XOFF equ 0 V_XOFF has been received; awaiting V_XON
+H_Empty equ 1 output buffer is empty
+
+********************
+* Module header
+*
+MfpEnt
+ ifndef	KANJI
+ dc.w Init
+ dc.w Read
+ dc.w Write
+ dc.w GetStat
+ dc.w PutStat
+ dc.w TrmNat
+ else
+ dc.w K_Init
+ dc.w K_Read
+ dc.w K_Write
+ dc.w K_GetStt
+ dc.w K_PutStt
+ dc.w K_TrmNat
+ endc KANJI
+ dc.w 0 reserved for exception handler entry
+ 
+************************************************
+* Initialize
+* Passed: (a1) = device descriptor address
+*         (a2) = static storage address
+*
+Init:
+ movea.l V_PORT(a2),a3 I/O port address
+ bsr.s InitSS
+ bsr.s MfpInit
+ move.b PD_PAR-PD_OPT+M$DTyp(a1),d0 get parity byte
+ move.b PD_BAU-PD_OPT+M$DTyp(a1),d1 get baud_rate
+ bsr DoConfig force device initialization
+ bcs.s InitErEx
+ bsr IRQInit
+ bcs.s InitErEx
+ bsr MfpInit2
+InitNmEx moveq.l #0,d1
+InitErEx rts
+
+******************************************
+* Init Static Storage
+* Passed: (a1) = device descriptor address
+*         (a2) = static storage address
+*         (a3) = I/O port address
+*
+InitSS:
+ move.b #(1<<H_Empty),OutHalt(a2) output IRQ's disabled; buffer empty
+ lea.l InpBuf(a2),a0 init buffer pointers
+ move.l a0,InFill(a2) where to put next char
+ move.l a0,InEmpty(a2) where to take next char
+ lea.l InpSiz(a0),a0 figure size of buffer
+ move.l a0,InEnd(a2) mark end of input buffer
+ lea.l OutBuf(a2),a0 point to start of output buf
+ move.l a0,OutFill(a2) init output buff pointers
+ move.l a0,OutEmpty(a2)
+ lea.l OutSiz(a0),a0 figure size of out buff
+ move.l a0,OutEnd(a2) mark end of output buffer
+
+* form interrupt mask value.
+* NOTE: the IRQMasking is always performed "outside" of the Interrupt
+* Service context, thus move.w IRQMask(a2),sr is ok, as there will not
+* be an accidental stack switch.
+*
+ move.b M$IRQLvl(a1),d1 get irq level
+ asl.w #8,d1 shift into priority
+ move.w sr,d0 get sr (for stack/trace flags)
+ andi.w #IntEnab,d0 clear irq masks
+ or.w d0,d1 form "current stack, irqs masked to this level" value
+ move.w d1,IRQMask(a2) save for future use
+
+ moveq.l #0,d1 clear carry
+ rts
+
+*********************************************
+* Init Mfp
+* Passed: (a1) = device descriptor address
+*         (a2) = static storage address
+*         (a3) = I/O port address
+*
+MfpInit:
+ move.b M$Vector(a1),d0 get vector # from desc.
+ ifdef SWEI_68901
+ bset.l #VR_S_b,d0 set software end-of-interrupt mode
+ else
+ bclr.l #VR_S_b,d0 ensure not software end-of-interrupt
+ endc SWEI_68901
+ andi.b #^(%111),d0 bits 2-0 not used
+ move.b d0,Prt_VR(a3) set vector/irq mode
+ 
+*
+* turn off the receiver, transmitter, and error
+* interrupts without effecting gpips or timers
+*
+ move.b #^(IMRA_XE!IMRA_XB!IMRA_RE!IMRA_RB),d0
+ move.b #0,Prt_RSR(a3) turn off the receiver
+ move.b #0,Prt_TSR(a3) turn off the transmitter
+ and.b d0,Prt_IERA(a3) 
+ and.b d0,Prt_IMRA(a3)
+ and.b d0,Prt_IPRA(a3) clear any pending interrupts
+ tst.b Prt_RSR(a3) explicitly clear the overrun error flag
+ ifdef CPU37
+*
+* stop timer C
+*
+ move.b #0,Prt_TCDR(a3) stop timer
+ endc CPU37
+MfpInitNX rts
+
+************************************************
+* MfpInit2: enable all IRQs but mask xmtr irqs 
+*           and clear any error conditions
+*
+MfpInit2:
+ move.w sr,d1 save current sr
+ move.w IRQMask(a2),sr mask irqs
+*
+* enable xmtr and reciever
+*
+ move.b #TSR_XE,Prt_TSR(a3) turn on transmitter
+ move.b #RSR_RE,Prt_RSR(a3) turn on receiver
+ ori.b #IERA_RB|IERA_XB,Prt_IERA(a3) enable transmit and reciever irq
+ ori.b #IMRA_RB,Prt_IMRA(a3) unmask reciever irq
+ move.w d1,sr restore sr
+ rts
+
+***********************************************
+* Mfp Configuration
+* Passed: (a1) = device descriptor address
+*         (a2) = static storage address
+*         (a3) = I/O port address
+*         (d0.b) = parity byte (PD_PAR)
+*         (d1.b) = baud_rate code (PD_BAU)
+*
+* the format of PD_PAR is: the format of PD_BAU is:
+*
+* 7,6 = reserved        00 = 50 baud
+* 5,4 = 00: 1 stop      01 = 75 baud
+*       01: 1.5 stop    02 = 110 baud
+*       10: 2 stop      03 = 134.5 baud
+*       11: illegal     04 = 150 baud
+* 3,2 = 00: 8 bits      05 = 300 baud
+*       01: 7 bits		06 = 600 baud
+*       10: 6 bits      07 = 1200 baud
+*       11: 5 bits      08 = 1800 baud
+* 1,0 = 00: no parity   09 = 2000 baud
+*       01: odd parity  0A = 2400 baud
+*       10: illegal     0B = 3600 baud
+*       11: even parity 0C = 4800 baud
+*                       0D = 7200 baud
+*                       0E = 9600 baud
+*                       0F = 19200 baud
+*                       FF = external
+Config:
+ cmp.b Cur_Baud(a2),d1 any baud rate change?
+ bne.s DoConfig if yes, go do configuration
+ cmp.b Cur_Parity(a2),d0 else, any parity change?
+ beq ConfigNX if no, exit with no error
+DoConfig: movem.l a0/a3/d2-d4,-(a7) save the registers
+ movea.l V_PORT(a2),a3 get the I/O port address
+*
+* Initialize UCR
+*
+ move.b #UCR_d16,d3 set XTAL/16
+*
+* set up stop bits
+*
+ moveq.l #0,d2 clear reg
+ move.b d0,d2 copy PD_PAR
+ lsr.b #4,d2 move across 4
+ andi.b #$03,d2 isolate stop bits
+ cmpi.b #2,d2 legal value ?
+ bhi.s ConfigErr ..no; exit with error
+ lea.l SBconst(pc),a0 point at stop bit table
+ or.b (a0,d2.w),d3 get pattern for mfp
+*
+* set up parity
+*
+ moveq.l #0,d2 clear working reg
+ move.b d0,d2 copy PD_PAR values
+ andi.b #3,d2 isolate parity bits
+ cmpi.b #2,d2 legal value ?
+ beq.s ConfigErr ..no; exit with error
+ lea.l PTconst(pc),a0 point at parity table
+ or.b (a0,d2.w),d3 add mfp parity pattern to d3
+*
+* set up word length
+*
+ moveq.l #0,d2 clear work register
+ move.b d0,d2 get PD_PAR value
+ lsr.b #2,d2 move word length bits across
+ and.b #3,d2 keep word length only
+ lea.l WLconst(pc),a0 point at word length table
+ or.b (a0,d2.w),d3 add mfp word length pattern to d3
+*
+* At this point, d3 = UCR stuff value
+*
+* set up baud rate
+*
+ moveq.l #0,d2
+ move.b d1,d2
+ cmpi.b #MaxBaud-1,d2 legal baud value ?
+ bhi.s ConfigErr ..no; exit
+ lsl.w #1,d2 adjust index for two byte table
+ lea.l BRconst(pc),a0 point at the baud rate table
+ adda.w d2,a0 point at desired entry
+ move.b 1(a0),d4 get the timer control value
+ beq.s ConfigErr ..if not legal, exit with error
+*
+* Set up the hardware
+*
+ move.b (a0),Prt_TCDR(a3) set timer C data register
+ ifeq CPUType-HKV20
+ move.b (a0),Prt_TDDR(a3) set timer D data register
+ endc
+ ifeq CPUType-HKV20 
+ move.b d4,Prt_TCCR(a3) set value for port C and D
+ else
+ move.b Prt_TCCR(a3),d2 read port C control reg
+ andi.b #7,d2 mask timer C control bits
+ or.b d4,d2 set up timer control for requested baud rate
+ move.b d2,Prt_TCCR(a3) set port C control
+ endc
+ move.b d3,Prt_UCR(a3) stuff value into control register
+* 
+* normal exit
+*
+ movem.l (a7)+,a0/a3/d2-d4 retrieve registers
+ move.b d0,Cur_Parity(a2) update the current parity value
+ move.b d1,Cur_Baud(a2) update the current baud rate value
+ConfigNX 
+ moveq.l #0,d1 clear carry
+ rts
+*
+* error exit
+*
+ConfigErr
+ movem.l (a7)+,a0/a3/d2-d4 retrieve registers
+ move.w #E$BMode,d1 return "bad-mode" error
+ ori.b #Carry,ccr set carry
+ rts
+*
+* stop bits constant table
+*
+SBconst
+ dc.b UCR_SB0 0 1 stop bit
+ dc.b UCR_SB1 1 1 1/2 stop bits
+ dc.b UCR_SB1!UCR_SB0 2 2 stop bits
+ dc.b $00 3 error
+* 
+* parity constant table
+*
+PTconst
+ dc.b $00 0 no parity
+ dc.b UCR_PON 1 odd parity
+ dc.b $00 2 error
+ dc.b UCR_PON!UCR_PEV 3 even parity
+*
+* word length constant table
+*
+WLconst
+ dc.b 0 8 bits/character
+ dc.b UCR_WL0 1 7 bits/character
+ dc.b UCR_WL1 2 6 bits/character
+ dc.b UCR_WL0!UCR_WL1 3 5 bits/character
+*
+* baud rate constant table
+*
+BRconst
+ ifeq (CPUType-VME133)*(CPUType-VME134)
+* VME133/VME134 baud rate table for XTAL=1.23 MHz
+*
+* note: an entry of zero for the rate indicates that the
+* rate is not available
+*
+ dc.b 192,TCCR_C0	0 50.0
+ dc.b 128,TCCR_C0	1 75.0
+ dc.b 87,TCCR_C0	2 110.0
+ dc.b 71,TCCR_C0	3 134.5
+ dc.b 64,TCCR_C0	4 150.0
+ dc.b 32,TCCR_C0	5 300.0
+ dc.b 16,TCCR_C0	6 600.0
+ dc.b 8,TCCR_C0		7 1200.0
+ dc.b 0,0			8 1800.0
+ dc.b 0,0			9 2000.0
+ dc.b 4,TCCR_C0		A 2400.0
+ dc.b 0,0 			B 3600.0
+ dc.b 2,TCCR_C0		C 4800.0
+ dc.b 0,0			D 7200.0
+ dc.b 1,TCCR_C0		E 9600.0
+ dc.b 0,0			F 19200.0
+ else
+ ifdef CPU37
+ dc.b 0,0					0 50.0
+ dc.b 0,0					1 75.0
+ dc.b 16,TCCR_C0!TCCR_C2	2 110.0
+ dc.b 0,0					3 134.5
+ dc.b 0,0					4 150.0
+ dc.b 6,TCCR_C0!TCCR_C2     5 300.0
+ dc.b 3,TCCR_C0!TCCR_C2     6 600.0
+ dc.b 6,TCCR_C0!TCCR_C1     7 1200.0
+ dc.b 0,0					8 1800.0
+ dc.b 0,0					9 2000.0
+ dc.b 3,TCCR_C0!TCCR_C1     A 2400.0
+ dc.b 0,0					B 3600.0
+ dc.b 6,TCCR_C0             C 4800.0
+ dc.b 0,0					D 7200.0
+ dc.b 3,TCCR_C0             E 9600.0
+ dc.b 0,0					F 19200.0
+ else
+
+ ifne XTAL
+* 
+* for XTAL = 3.125 MHz
+*
+ dc.b 122,TCCR_C1!TCCR_C0 0 50.0 .06%
+ dc.b 130,TCCR_C1 1 75.0 .16%
+ dc.b 222,TCCR_C0 2 110.0 -.02%
+ dc.b 182,TCCR_C0 3 134.5 -.27%
+ dc.b 163,TCCR_C0 4 150.0 -.15%
+ dc.b 081,TCCR_C0 5 300.0 .47%
+ dc.b 041,TCCR_C0 6 600.0 -.76%
+ dc.b 020,TCCR_C0 7 1200.0 1.73%
+ dc.b 014,TCCR_C0 8 1800.0 -3.12%
+ dc.b 012,TCCR_C0 9 2000.0 1.73%
+ dc.b 010,TCCR_C0 A 2400.0 1.73%
+ dc.b 007,TCCR_C0 B 3600.0 -3.12%
+ dc.b 005,TCCR_C0 C 4800.0 1.73%
+ dc.b 003,TCCR_C0 D 7200.0 13.03%
+ dc.b 001,TCCR_C1 E 9600.0 1.73%
+ dc.b 001,TCCR_C0 F 19200.0 27.16%
+ 
+ else
+*
+* for XTAL = 2.5 MHz
+*
+ ifeq CPUType-HKV20
+ dc.b 156,TCCR_C1!TDCR_C1 0 50.0 .16%
+ dc.b 104,TCCR_C1!TDCR_C1 1 75.0 .16%
+ dc.b 071,TCCR_C1!TDCR_C1 2 110.0 .03%
+ dc.b 145,TCCR_C0!TDCR_C0 3 134.5 .15%
+ dc.b 130,TCCR_C0!TDCR_C0 4 150.0 .16%
+ dc.b 065,TCCR_C0!TDCR_C0 5 300.0 .16%
+ dc.b 013,TCCR_C1!TDCR_C0 6 600.0 .16%
+ dc.b 016,TCCR_C0!TDCR_C0 7 1200.0 1.73%
+ dc.b 011,TCCR_C0!TDCR_C0 8 1800.0 -1.36%
+ dc.b 010,TCCR_C0!TDCR_C0 9 2000.0 -2.34%
+ dc.b 008,TCCR_C0!TDCR_C0 A 2400.0 1.73%
+ dc.b 005,TCCR_C0!TDCR_C0 B 3600.0 8.51%
+ dc.b 004,TCCR_C0!TDCR_C0 C 4800.0 1.73%
+ dc.b 001,TCCR_C1!TDCR_C1 D 7200.0 8.51%
+ dc.b 002,TCCR_C0!TDCR_C0 E 9600.0 1.73%
+ dc.b 001,TCCR_C0!TDCR_C0 F 19200.0 1.73%
+ else
+ dc.b 156,TCCR_C1 0 50.0 .16%
+ dc.b 104,TCCR_C1 1 75.0 .16%
+ dc.b 071,TCCR_C1 2 110.0 .03%
+ dc.b 145,TCCR_C0 3 134.5 .15%
+ dc.b 130,TCCR_C0 4 150.0 .16%
+ dc.b 065,TCCR_C0 5 300.0 .16%
+ dc.b 013,TCCR_C1 6 600.0 .16%
+ dc.b 016,TCCR_C0 7 1200.0 1.73%
+ dc.b 011,TCCR_C0 8 1800.0 -1.36%
+ dc.b 010,TCCR_C0 9 2000.0 -2.34%
+ dc.b 008,TCCR_C0 A 2400.0 1.73%
+ dc.b 005,TCCR_C0 B 3600.0 8.51%
+ dc.b 004,TCCR_C0 C 4800.0 1.73%
+ dc.b 001,TCCR_C1 D 7200.0 8.51%
+ dc.b 002,TCCR_C0 E 9600.0 1.73%
+ dc.b 001,TCCR_C0 F 19200.0 1.73%
+ endc HKV20
+ endc CPU37
+ endc XTAL
+ endc CPUType=VME133
+MaxBaud equ (*-BRconst)/2
+
+**********************************************
+* Init IRQ
+* Passed: (a1) = device descriptor address
+*         (a2) = static storage address
+*         (a3) = I/O port address
+
+IRQInit:
+*
+* initialize IRQ for Receive Buffer full
+*
+ move.b M$Vector(a1),d0 get vector #
+ ifdef CPU37
+*
+* The FORCE CPU37 board requires that the 68155 interrupt controller
+* supplies the ONE interrupt vector for this device
+*
+ move.b M$Prior(a1),d1 get the priority
+ lea.l IRQMain(pc),a0 point at input irq routine
+ os9 F$IRQ add input irq's to system
+ bcs.s IRQInitEX ..exit if error
+ else
+ move.b d0,d1 copy vector
+ andi.b #$0F,d1 is it a modulo 16 value ?
+ bne.s IRQModerr ..no; then we have confusion
+ ori.b #Chnl_RB,d0 form receiver irq vector value
+ move.b M$Prior(a1),d1 get the priority
+ lea.l IRQIn(pc),a0 point at input irq routine
+ os9 F$IRQ add input irq's to system
+ bcs.s IRQInitEX ..exit if error
+*
+* initialize IRQ for Xmit Buffer empty
+*
+ move.b M$Vector(a1),d0 get vector #
+ ori.b #Chnl_XB,d0 form transmitter irq vector value
+ move.b M$Prior(a1),d1 get priority
+ lea.l IRQOut(pc),a0 point at output irq routine
+ os9 F$IRQ add output irq's to system
+ bcs.s IRQInitEX  ..exit if error
+ endc CPU37
+
+ moveq.l #0,d1 return no error
+IRQInitEX: rts
+*
+* return error for vector basing error
+*
+IRQModerr move.w #E$BMode,d1 return "bad-mode" error
+ ori.b #Carry,ccr set carry
+ rts
+
+*********************************************
+* Read: Return one byte of input from the Mfp
+* Passed: (a1) = Path Descriptor
+*         (a2) = Static Storage address
+*         (a4) = current process descriptor
+*         (a6) = system global ptr
+* Returns: (d0.b) = input char
+*          (cc) = carry set, (d1.w) = error code if error
+*
+Read00 move.w V_BUSY(a2),V_WAKE(a2) arrange wake up signal
+ move.w d6,sr restore sr
+ bsr MfpSleep
+Read:
+ tst.b InHalt(a2) is input halted?
+ ble.s Read_a branch if not
+ cmpi.w #MinBuff,InCount(a2) buffer mostly emptied?
+ bhi.s Read_a ..No; continue
+ move.b V_XON(a2),d1 get X-ON char
+ movea.l V_PORT(a2),a3 get port address
+ move.w sr,d6 save current IRQ status
+ move.w IRQMask(a2),sr mask IRQs
+ btst #TSR_BE_b,Prt_TSR(a3) transmit buffer empty?
+ beq.s Read10 no, signal XON ready to send
+ clr.b InHalt(a2) clean up XOFF flag
+ move.b d1,Prt_UDR(a3) transmit XON character
+ bra.s Read20 continue
+
+Read10 ori.b #Sign,d1 set Sign bit
+ move.b d1,InHalt(a2) flag input resume
+ ori.b #IERA_On,Prt_IMRA(a3) enable output IRQs
+Read20 move.w d6,sr restore sr
+
+Read_a tst.w SigPrc(a2) a process waiting for device?
+ bne.s ErrNtRdy ..Yes; return dormant terminal error
+ move.w sr,d6 save current IRQ status
+ move.w IRQMask(a2),sr mask IRQs
+ tst.w InCount(a2) any data?
+ beq.s Read00 branch if not
+ move.w d6,sr restore sr
+ movea.l InEmpty(a2),a0 point to next char
+ move.b (a0)+,d0 get character
+ subq.w #1,InCount(a2) dec buffer size by one
+ cmpa.l InEnd(a2),a0 at end of buffer?
+ blo.s Read_b branch if not
+ lea InpBuf(a2),a0 point to start of buffer
+Read_b move.l a0,InEmpty(a2) update buffer pointer
+ move.b V_ERR(a2),PD_ERR(a1) copy I/O status to PD
+ beq.s Read90 return if no error
+ clr.b V_ERR(a2)
+ move.w #E$Read,d1 signal read error
+ ori.b #Carry,ccr return Carry set
+Read90 rts
+
+ErrNtRdy move.w #E$NotRdy,d1
+ ori.b #Carry,ccr return Carry set
+ rts
+
+********************************
+* Write
+* Output one character to Mpcc
+* Passed: (d0.b) = char to write
+*         (a1) = Path Descriptor
+*         (a2) = Static Storage address
+*         (a4) = current process descriptor ptr
+*         (a6) = system global data ptr
+* Returns: none
+* Destroys: d2,a0,a1,a3
+*
+Write00 move.w V_BUSY(a2),V_WAKE(a2) arrange wake up signal
+ move.w d6,sr restore sr
+ bsr.s MfpSleep sleep a bit
+Write:
+ move.w sr,d6 save current IRQ status
+ move.w IRQMask(a2),sr mask IRQs
+ move.w OutCount(a2),d2 any data in output buffer?
+ bne.s Write05 branch if so
+ btst #H_XOFF,OutHalt(a2) halted for x-off?
+ bne.s Write05 branch if so
+ movea.l V_PORT(a2),a3 point to output port
+ btst #TSR_BE_b,Prt_TSR(a3) transmit buffer empty?
+ bne.s Write90 branch if so
+ ori.b #IERA_On,Prt_IMRA(a3) enble irqs buf is filling fast
+Write05 cmpi.w #OutSiz,d2 room for more data?
+ bhs.s Write00
+ addq.w #1,OutCount(a2) increment byte count
+ movea.l OutFill(a2),a0 point to next char location
+ move.b d0,(a0)+ store char and inc pointer
+ cmpa.l OutEnd(a2),a0 end of buffer?
+ blo.s Write10 branch if not
+ lea OutBuf(a2),a0 point to start of buffer
+Write10 move.l a0,OutFill(a2) update buffer pointer
+ bclr.b #H_Empty,OutHalt(a2) clear output buffer empty flag
+Write80 move.w d6,sr restore sr
+ moveq.l #0,d1 clear carry
+ rts
+
+Write90 move.b d0,Prt_UDR(a3) put data 
+ move.w d6,sr restore sr
+ moveq.l #0,d1 clear carry
+ rts
+
+
+*******************************************
+* MfpSleep: Sleep until interrupt occurs
+* Passed: (a2) = driver global storage
+*         (a4) = current process descriptor ptr
+* Destroys: possibly PC
+*
+MfpSleep:
+ movem.l d0/a0,-(a7) save regs
+ moveq.l #0,d0 sleep indefinately
+ OS9svc F$Sleep wait (works only with sleep(0))
+ move.w P$Signal(a4),d1 signal present?
+ beq.s MfpSlpNX ..no; return
+ cmpi.w #S$Deadly,d1 Deadly signal?
+ blo.s MfpSlpEX ..yes; return error
+*
+* normal exit
+*
+MfpSlpNX btst #Condemn,P$State(a4) has process died?
+ bne.s MfpSlpEX ..Yes; return error
+ movem.l (a7)+,d0/a0
+ rts
+*
+* error exit
+*
+MfpSlpEX lea 12(a7),a7 Exit to caller's caller
+ ori.b #Carry,ccr return Carry set
+ rts
+
+*********************************************
+* Getstat: Get Mfp Status
+* Passed: (d0.w) = Status Code
+*         (a1.l) = Path Descriptor
+*         (a2.l) = Static Storage address
+*
+GetStat:
+ cmpi.w #SS_Ready,d0 Ready status?
+ beq.s GetStat10
+ cmpi.w #SS_Opt,d0 get options call ?
+ beq.s GetStat20
+ cmpi.w #SS_EOF,d0 End of file?
+ beq.s GetStatNX if yes, exit w/no error
+
+ move.w #E$UnkSvc,d1 Unknown service code
+ bra.s GetStatEX
+*
+* ready status
+*
+GetStat10 movea.l PD_RGS(a1),a0 get caller's register stack
+ clr.w R$d1(a0) sweep reg
+ move.w InCount(a2),R$d1+2(a0) return input char count to caller
+ bne.s GetStatNX
+ move.w #E$NotRdy,d1
+ bra.s GetStatEX
+*
+* update path descriptor for currently active baud, parity
+*
+GetStat20 move.b Cur_Baud(a2),PD_BAU(a1) set currently active baud rate
+ move.b Cur_Parity(a2),PD_PAR(a1) set currently active comms mode
+*
+* normal exit
+*
+GetStatNX moveq.l #0,d1
+ rts
+*
+* error exit
+*
+GetStatEX ori.b #Carry,ccr set Carry
+ rts
+
+*****************************************
+* Putstat: Put Mfp Status
+* Passed: (d0.w) = Status Code
+*         (a1.l) = Path Descriptor
+*         (a2.l) = Static Storage address
+*
+PutStat:
+ cmpi.w #SS_SSig,d0 signal process when ready?
+ beq.s PutStat10
+ cmpi.w #SS_Relea,d0 Release Device?
+ beq.s PutStat20
+*
+* If call is SS_Open or SS_Opt,
+* check if baud/parity/etc.. needs update
+*
+ cmpi.w #SS_Open,d0 
+ beq.s PutStat30
+ cmpi.w #SS_Opt,d0
+ beq.s PutStat30
+
+ move.w #E$UnkSvc,d1 Unknown service code
+ bra.s PutStatEX
+*
+* signal process when ready?
+*
+PutStat10 tst.w SigPrc(a2) somebody already waiting?
+ beq.s PutStat11 no; continue
+
+ move.w #E$NotRdy,d1 yes; return busy error
+ bra.s PutStatEX
+
+PutStat11 move.w PD_CPR(a1),d0 get caller's process ID
+ movea.l PD_RGS(a1),a0 get caller's register ptr
+ move.w R$d2+2(a0),d1 get signal code
+ move.w sr,d6 save IRQ status
+ move.w IRQMask(a2),sr disable IRQs
+ tst.w InCount(a2) any Data available?
+ bne.s PutStat12 yes, signal Data ready
+ move.w d0,SigPrc(a2) save process ID
+ move.w d1,SigPrc+2(a2) save the desired signal code
+ move.w PD_PD(a1),SigPrc+4(a2) set associated system path #
+ movea.l V_PORT(a2),a3 get port address
+ ori.b #IERA_On,Prt_IMRA(a3)
+ move.w d6,sr unmask IRQs
+ bra.s PutStatNX
+
+PutStat12 move.w d6,sr restore IRQ status
+ os9 F$Send send signal
+ bra.s PutStatNX
+*
+* Release Device?
+*
+PutStat20 move.w SigPrc(a2),d0 get process to signal
+ cmp.w PD_CPR(a1),d0 current process waiting for data?
+ bne.s PutStatNX ..no; just return
+ move.w PD_PD(a1),d0 get the associated path #
+ cmp.w SigPrc+4(a2),d0 is it the correct path ?
+ bne.s PutStatNX ..no; just return
+ clr.w SigPrc(a2) clear down signalling process
+ bra.s PutStatNX
+*
+* Check for dynamic configuration change
+*
+PutStat30
+ move.b PD_PAR(a1),d0 get parity byte
+ move.b PD_BAU(a1),d1 get baud_rate
+ bsr Config
+ bcs.s PutStatEX
+PutStatNX moveq.l #0,d1 return no error
+ rts
+
+PutStatEX ori.b #Carry,ccr
+ rts
+
+ pag
+***************************************************
+* Subroutine TrmNat: Terminate Mfp processing
+* Passed: (a1.l) = device descriptor pointer
+*         (a2.l) = static storage
+*         (a4.l) = current process descriptor ptr
+* Returns: none
+*
+* Enter here if we have to wait for buffer to empty.
+*
+TRMN00 move.w V_BUSY(a2),V_WAKE(a2) arrange wake up signal
+ move.w d6,sr restore sr
+ pea TrmNat(pc) return to TrmNat in case of signal
+ bsr MfpSleep wait for I/O activity
+ lea 4(a7),a7 toss (signal) return address
+
+TrmNat:
+ move.w P$ID(a4),d0 get process id
+ move.w d0,V_BUSY(a2) set it in static
+ move.w d0,V_LPRC(a2)
+ move.w sr,d6 save current IRQ status
+ move.w IRQMask(a2),sr mask IRQs
+ tst.w OutCount(a2) any data?
+ bne.s TRMN00 ..yes; wait for data to go
+ move.w d6,sr restore sr
+ 
+ movea.l V_PORT(a2),a3 get port address
+
+del1
+ btst #TSR_BE_b,Prt_TSR(a3) wait for buffer empty ( allows last char. out )
+ bne.s Trmit
+ moveq.l #1,d0 give up time to system
+ os9 F$Sleep
+ bra.s del1
+
+Trmit
+ clr.b Prt_TSR(a3) stop transmitter
+Trmitloop
+ btst.b #TSR_ET_b,Prt_TSR(a3) look to see if character gone
+ bne.s Trmit2 character has left, now continue
+ moveq.l #1,d0 character still there, wait a bit
+ os9 F$Sleep
+ bra.s Trmitloop loop until it is gone.
+
+Trmit2
+ move.w sr,d6 save current IRQ status
+ move.w IRQMask(a2),sr mask IRQs
+ move.b #^(IMRA_XE!IMRA_XB!IMRA_RE!IMRA_RB),d0
+ clr.b Prt_RSR(a3) stop receive
+ and.b d0,Prt_IERA(a3)
+ and.b d0,Prt_IPRA(a3)
+ and.b d0,Prt_ISRA(a3)
+ and.b d0,Prt_IMRA(a3)
+* andi.b #TCCR_Off,Prt_TCCR(a3) stop timer_C
+ move.w d6,sr restore sr
+ move.b M$Vector(a1),d0 get vector #
+ suba.l a0,a0 remove device from polling table
+
+ ifdef CPU37
+ os9 F$IRQ remove device from polling table
+ rts return status
+ else
+*
+* remove IRQ for Receive Buffer full
+*
+ andi.b #$f0,d0 strip low bits of vector
+ ori.b #Chnl_RB,d0 form RX vector
+ os9 F$IRQ remove receiver interrupt entry (ignore error)
+*
+* remove IRQ for Xmit Buffer empty
+*
+ move.b M$Vector(a1),d0 get vector #
+ andi.b #$f0,d0 strip low bits of vector
+ ori.b #Chnl_XB,d0 form TX vector
+ os9 F$IRQ remove transmitter interrupt entry (ignore errors)
+ endc CPU37
+ moveq.l #0,d1 return no error
+ rts
+
+ pag
+ ifdef CPU37
+************************************************
+* IRQMain: Decides if TBE or RBF interrupt and 
+*          branches to the proper routine
+* Passed: (a2) = Static Storage addr
+*         (a3) = pointer to port
+*
+IRQMain: move.b Prt_IPRA(a3),d0 get the interrupt pending register
+ btst #IPRA_XB_b,d0 look for transmit IRQ
+ bne IRQOut if yes, service the transmitter interrupt
+ bra IRQIn else, service the receiver interrupt
+ endc CPU37
+
+******************************************************
+* IRQ_XB
+* Process interrupt from Xmit Buffer empty
+* Passed:
+* (a2.l) = Static Storage addr
+* (a3.l) =  pointer to port
+* Returns: cc=carry set if false interrupt
+*
+* OS-9/68000 V2.0 Release comments:
+* The kernel only preserves d0,d1,a0,a2,a3 and a6.
+* All other registers used must be preserved by the driver.
+
+ ifdef SWEI_68901
+IRQOut:
+ bsr.s _IRQOut
+ bcs.s _IRQOutEx error exit
+ move.b #$FB,Prt_IPRA(a3) clear interrupt pending
+ move.b #$FB,Prt_ISRA(a3) clear interrupt in service
+_IRQOutEx rts
+_IRQOut: equ *
+ else
+IRQOut:
+ endc SWEI_68901
+ movem.l d2/a1,-(a7) save regs
+ btst.b #TSR_BE_b,Prt_TSR(a3)
+ beq InErExit
+IRQCont
+ move.b InHalt(a2),d0 send X-ON or X-OFF?
+ bpl.s OutI_a branch if not
+ bclr.l #SignBit,d0 clear Sign bit
+ move.b d0,Prt_UDR(a3) send character
+ move.b V_XON(a2),d1 get X-ON value
+ eor.b d1,d0 get Zero if X-ON
+ move.b d0,InHalt(a2) mark it sent
+ tst.b OutHalt(a2) is output halted?
+ bne.s OutIRQ3 branch if so
+ movem.l (a7)+,d2/a1 restore regs
+ rts
+
+OutI_a move.w OutCount(a2),d2 any Data in buffer?
+ beq.s OutIRQ2 branch if not
+ tst.b OutHalt(a2) is output halted?
+ bne.s OutIRQ3 branch if so
+ subq.w #1,d2 taking one char
+ movea.l OutEmpty(a2),a1 get pointer to next char
+ move.b (a1)+,Prt_UDR(a3) put Data in acia
+ cmpa.l OutEnd(a2),a1 end of buffer?
+ blo.s OutI_1 branch if not
+ lea OutBuf(a2),a1 point to start
+OutI_1 move.l a1,OutEmpty(a2) update pointer
+ move.w d2,OutCount(a2) update char count
+ cmpi.w #Low_Cnt,d2 ready for more data?
+ bhi.s Wake90 exit if not
+ tst.w d2 output buffer empty?
+ bne.s WakeUp just wake up if not
+OutIRQ2 bset.b #H_Empty,OutHalt(a2) flag halted; buffer empty
+OutIRQ3 andi.b #IERA_Off,Prt_IMRA(a3) disable output IRQs
+ 
+WakeUp moveq.l #S$Wake,d1 Wake up signal
+ move.w V_WAKE(a2),d0 Owner waiting?
+ beq.s Wake90 ..no; return
+ clr.w V_WAKE(a2)
+ bsr.s SendSig signal process
+ bra.s Wake90 leave
+SendSig OS9svc F$Send
+ moveq.l #0,d1
+ rts
+
+Wake90
+ movem.l (a7)+,d2/a1 restore regs
+ rts
+
+********************************
+* InIRQ
+* Mpcc input interrupt service
+* passed (a2) = Static Storage address
+* (a3) = port address
+* OS-9/68000 V2.0 Release comments:
+* The kernel only preserves d0,d1,a0,a2,a3 and a6.
+* All other registers used must be preserved by the driver.
+*
+ ifdef SWEI_68901
+IRQIn:
+ bsr.s _IRQIn
+ bcs.s _IRQInEx error exit
+ move.b #$EF,Prt_IPRA(a3) clear interrupt pending
+ move.b #$EF,Prt_ISRA(a3) clear interrupt in service
+_IRQInEx rts
+_IRQIn: equ *
+ else
+IRQIn:
+ endc SWEI_68901
+ movem.l d2/a1,-(a7) save regs
+ btst #RSR_BF_b,Prt_RSR(a3)
+ beq InErExit not us get out
+IRQIn00 move.b InHalt(a2),d1 XON or XOFF waiting to be sent?
+ bpl.s InIRQ.a handle input IRQ if not
+ btst #TSR_BE_b,Prt_TSR(a3) transmit buffer empty?
+ beq.s InIRQ.a handle input IRQ if not
+ bclr.l #SignBit,d1 clear Sign bit
+ move.b d1,Prt_UDR(a3) send character
+ move.b V_XON(a2),d2 get X-ON value
+ eor.b d2,d1 get Zero if X-ON
+ move.b d1,InHalt(a2) mark it sent
+
+InIRQ.a 
+ move.b Prt_RSR(a3),d1 get error status
+ andi.b #RSR_Err,d1 any errors?
+ beq.s InIRQ.b branch if not
+ or.b d1,V_ERR(a2) update cumulative errors
+InIRQ.b 
+ move.b Prt_UDR(a3),d0 get char
+ beq.s InIRQ1 ..NULL, impossible ctl chr
+ cmp.b V_INTR(a2),d0 keyboard Interrupt?
+ beq InAbort ..Yes
+ cmp.b V_QUIT(a2),d0 keyboard Quit?
+ beq InQuit ..Yes
+ cmp.b V_PCHR(a2),d0 keyboard Pause?
+ beq InPause ..Yes
+ cmp.b V_XON(a2),d0 X-ON continue?
+ beq InXON ..Yes
+ cmp.b V_XOFF(a2),d0 X-OFF Immediate Pause request?
+ beq InXOFF ..Yes
+
+InIRQ1 movea.l InFill(a2),a1 point to current char
+ move.b d0,(a1)+ put Data in buffer
+ addq.w #1,InCount(a2) count character
+ cmpi.w #InpSiz,InCount(a2) buffer full?
+ bls.s InIRQ10 branch if not
+ subq.w #1,InCount(a2) uncount character
+ ori.b #RSR_OE,V_ERR(a2) or in error
+ bra WakeUp exit with error
+
+InIRQ10 cmp.l InEnd(a2),a1 end of buffer?
+ blo.s InIRQ30 branch if not
+ lea InpBuf(a2),a1 point to start of buffer
+InIRQ30 move.l a1,InFill(a2) update next in pointer
+ move.w SigPrc(a2),d0 any process to notify?
+ beq.s InIRQ4 ..no
+ move.w SigPrc+2(a2),d1 get signal code
+ clr.w SigPrc(a2) disable signal sending
+ bsr SendSig signal controlling process
+ bra.s InExit and exit
+
+InIRQ4 move.b V_XOFF(a2),d0 get X-OFF char
+ beq.s InIRQ9 branch if not enabled
+ cmpi.w #MaxBuff,InCount(a2) is buffer almost full?
+ blo.s InIRQ9 bra if not
+ move.b InHalt(a2),d1 have we sent XOFF?
+ bne.s InIRQ9 yes then don't send it again
+ bclr.l #SignBit,d0 insure Sign clear
+ move.b d0,V_XOFF(a2)
+ ori.b #Sign,d0 set Sign bit
+ move.b d0,InHalt(a2) flag input halt
+ ori.b #IERA_On,Prt_IMRA(a3) enable out
+InIRQ9 btst #RSR_BF_b,Prt_RSR(a3) any more data?
+ beq WakeUp exit if not
+ bra IRQIn00 go get it if so
+InExit
+ movem.l (a7)+,d2/a1 restore regs
+ rts
+ page
+
+********************************
+* Control character routines
+
+InPause tst.l V_DEV2(a2) any echo device?
+ beq InIRQ1 buffer char and exit if not
+ movea.l V_DEV2(a2),a1 get echo device static ptr
+ move.b d0,V_PAUS(a1) request pause
+ bra InIRQ1 buffer char and exit
+
+InAbort moveq.l #S$Intrpt,d1 keyboard INTERRUPT signal
+ bra.s InQuit10
+
+InQuit moveq.l #S$Abort,d1 Abort signal
+InQuit10 move.l d0,-(a7) save input char
+ move.w V_LPRC(a2),d0 last process ID
+ beq.s InQuit90 ..none; exit
+ clr.w V_WAKE(a2)
+ bsr SendSig send signal
+InQuit90 move.l (a7)+,d0 restore input char
+ bra InIRQ1 buffer char, exit
+
+InXON bclr.b #H_XOFF,OutHalt(a2) enable output
+ tst.b OutHalt(a2) still halted (buffer empty)?
+ bne.s InXExit exit if so
+ ori.b #IERA_On,Prt_IMRA(a3) enable output IRQs
+ btst #TSR_BE_b,Prt_TSR(a3) output buffer empty?
+ beq.s InXExit exit if not
+ movem.l (a7)+,d2/a1 restore regs
+ bra IRQOut start output if so
+
+InXOFF
+ bset.b #H_XOFF,OutHalt(a2) flag output restricted
+InXExit moveq.l #0,d1 clear carry
+ movem.l (a7)+,d2/a1 restore regs
+ rts
+
+InErExit ori.b #Carry,ccr
+ movem.l (a7)+,d2/a1 restore regs
+ rts
+
+ ends
+

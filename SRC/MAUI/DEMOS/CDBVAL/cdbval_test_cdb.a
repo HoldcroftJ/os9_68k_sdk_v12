@@ -1,0 +1,197 @@
+*****************************************************************************
+*
+* Filename: cdbval_test_cdb.a
+*  Purpose: A test CDB module for verifying the cdbval utility.
+*
+*****************************************************************************
+*                                                                           *
+*           Copyright 2001 - 2001 by Microware Systems Corporation          *
+*                            All Rights Reserved                            *
+*                          Reproduced Under License                         *
+*                                                                           *
+*                                                                           *
+* This software is confidential property of Microware Systems Corporation,  *
+* and is provided under license for internal development purposes only.     *
+* Reproduction, publication, modification, distribution, or creation of     *
+* derivative works in any form to any party other than the Licensee is      *
+* strictly prohibited, unless expressly provided for under the terms of a   *
+* mutually executed written license agreement for this software between the *
+* end-user and Microware Systems Corporation, or otherwise expressly        *
+* authorized in writing by Microware Systems Corporation. Licensee shall    *
+* reproduce this copyright notice exactly as provided herein on any copies  *
+* of the software that Licensee is authorized to distribute.                *
+****************************************************************************/
+*
+* The purpose of the CDB module is to generate each error and warning that
+* the cdbval utility has.
+*
+* Each entry will cause a perticular err/warning to be generated, some
+* entries may cause multiple error/warnings to be generated because one
+* error can cause the parser to become confused.
+*
+* For each "DDR error" or "DDR warning" specified in this CDB source code
+* there is a comment in the cdbval source code indicating the error/warning
+* message that will be generated.
+*
+* If new error/warning checks are added to cdbval, additional DDR entries
+* should be added to this file to test them.
+****************************************************************************/
+
+  psect cdb,(5<<8)+1,0x8000,200,0,entry
+
+  org 0
+
+entry:
+
+*
+* Entry  1; DDR Error 1
+  dc.b "10:/unregistered_device_type:",13
+
+*
+* Entry  2; DDR Error 2 and error 3
+  dc.b "9;",13
+
+*
+* Entry  3; DDR Error 3
+  dc.b "3:/gfx",13
+
+*
+* Entry  4; DDR Error 4
+  dc.b "3:/gfx2:AI=\"MAUI\"",13
+
+*
+* Entry  5; 127 chars long (no error)
+*                          1         2         3         4         5         6         7         8         9         10        11        12
+*               123 45678 90123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567
+  dc.b "3:/gfx3:AI=\"MAUI\":RE#45678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456:",13
+
+*
+* Entry  6; 128 chars long (no error)
+*                          1         2         3         4         5         6         7         8         9         10        11        12
+*               123 45678 901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678
+  dc.b "3:/gfx4:AI=\"MAUI\":RE#456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567:",13
+
+*
+* Entry  7; Error 5, 129 chars long
+*                          1         2         3         4         5         6         7         8         9         10        11        12        13
+*               123 45678 9012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789
+  dc.b "3:/gfx5:AI=\"MAUI\":RE#4567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678:",13
+
+*
+* Entry  8; Error 5, 130 chars long
+*                          1         2         3         4         5         6         7         8         9         10        11        12        13
+*               123 45678 90123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
+  dc.b "3:/gfx5:AI=\"MAUI\":RE#45678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789:",13
+
+*
+* Entry  9; Error 7
+  dc.b "3:/gfx6:",13
+
+*
+* Entry 10; Warning 1
+  dc.b "3:/gfx7:AI=\"MAUI\":AI=\"MAUI\":",13
+
+*
+* Entry 11; Error 8
+  dc.b "9:/pipe:",13
+
+*
+* Entry 12; Error 9
+  dc.b "9 :/pipe1:",13
+
+*
+* Entry 13; Error 10
+  dc.b "9:pipe2:",13
+
+*
+* Entry 14; 79 chars long (no error)
+*                  1         2         3         4         5         6         7
+*         1234567890123456789012345678901234567890123456789012345678901234567890123456789
+  dc.b "9:/pipe67890123456789012345678901234567890123456789012345678901234567890123456789:",13
+
+*
+* Entry 15; 80 chars long (no error)
+*                  1         2         3         4         5         6         7         8
+*         12345678901234567890123456789012345678901234567890123456789012345678901234567890
+  dc.b "9:/pipe678901234567890123456789012345678901234567890123456789012345678901234567890:",13
+
+*
+* Entry 16; Error 11, 81 chars long
+*                  1         2         3         4         5         6         7         8
+*         123456789012345678901234567890123456789012345678901234567890123456789012345678901
+  dc.b "9:/pipe6789012345678901234567890123456789012345678901234567890123456789012345678901:",13
+
+*
+* Entry 17; Error 12
+  dc.b "3:/gfx8:AI=\"MAUI\":Xx:X4:4X:",13
+
+*
+* Entry 18; Error 13
+  dc.b "3:/gfx9:AI=\"MAUI\"::",13
+
+*
+* Entry 19; Error 14
+  dc.b "3:/gfx10:AI=\"MAUI\":A:ABC:",13
+
+*
+* Entry 20; Warning 2
+  dc.b "9:/pipe3:XX:",13
+
+*
+* Entry 21; Error 15
+  dc.b "9:/pipe4:XX",13
+
+*
+* Entry 22; Error 16
+  dc.b "3:/gfx10:AI#\"MAUI\":",13
+
+*
+* Entry 23; Error 17
+  dc.b "3:/gfx10:AI=\"MAUI\":RE=1024:",13
+
+*
+* Entry 24; Error 18
+  dc.b "3:/gfx10:AI=\"MAUI\":GR=1024,1024:",13
+
+*
+* Entry 25; Error 19
+  dc.b "3:/gfx10:AI=MAUI\":",13
+
+*
+* Entry 26; Error 20
+  dc.b "3:/gfx10:AI=\"MAUI\":GR#1,2,3:",13
+
+*
+* Entry 27; Error 21
+  dc.b "3:/gfx10:AI=\"MAUI\":RE#1,2:",13
+
+*
+* Entry 28; Error 22
+  dc.b "3:/gfx10:AI=\"MAUI\":RE#1.2:",13
+
+*
+* Entry 29; Error 23
+  dc.b "3:/gfx10:AI=\"MAUI\":GR#1:",13
+
+*
+* Entry 30; Error 24
+  dc.b "3:/gfx10:AI=\"MAUI:",13
+
+*
+* Entry 31; Error 25
+  dc.b "3:/gfx10:AI=\"abcd\":",13
+
+*
+* Entry 32; Error 26
+  dc.b "0:sYs:",13
+
+*
+* Entry 33, Error 6. This must be at the end because if it occured in the
+* middle of the DDR entries, the parser would consider the next DDR entry
+* to be a part of the current DDR entry.
+  dc.b "9:/pipe:"
+
+*
+  dc.b 0
+
+  ends

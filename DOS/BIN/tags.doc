@@ -1,0 +1,1127 @@
+
+/----------------------------------------------------------------------------\
+|                                                                            |
+|                          Tags Generator V2.4                               |
+|                                                                            |
+|          A TAGS generator for Assembly and C/C++ and written in C          |
+|                     Dedicated to the Public Domain                         |
+|                                                                            |
+|                              J. Kercheval                                  |
+|                                                                            |
+\----------------------------------------------------------------------------/
+
+Document $Id: //Sources/TAGS/tags.txt#2 $
+
+Program Description:
+
+    This utility implements a tags generator for assembly and C/C++
+code.  This module has been written for and is designed around the
+80x86 platform but is written with platform specific code as isolated
+as possible.
+
+	Binaries for NT console mode, Win32 GUI, Win16 GUI and DOS are
+included in this distribution.  All binaries will produce identical
+output and have identical command line options.  The only real
+difference in them is the method for status output and the target
+systems themselves.  At this time only the Intel systems are
+supported for the NT binaries.  There should be no problem running
+the DOS command line binary under non-Intel platforms (though you
+will need to use V2.01 of the binaries or make them yourself).
+
+    Tags are informative lines stored (usually) within an ascii file
+and specify three things.  First a tag contains a token or an
+identifier which is a definition or declaration within the source
+code, second a tag contains the file name where that particular token
+is defined and third a typical tag will have an offset into the file
+where the token is defined (for example a character offset or a line
+number).  Occasionally a tag will be generated for an environment
+which likes the actual line which is the definition (GNU Emacs and
+Epsilon for example) specified instead of a file offset. This type of
+tag is sometimes used and is supported by this generator since, while
+it is possible for more than one line in a file to be the same and be
+VERY different in context, it has an advantage in that if your source
+module changes, the tag will probably still be found.
+
+    The resulting tag file is intended to be used by an extensible
+editor or browser to traverse (possibly) widely placed code during
+planning, creation, maintenance and modification of medium and large
+projects.
+
+    The tags file is used as an index into source definitions.  The
+typical implementation allows the user to place the cursor on the
+token to be found, start a macro (usually bound to a key) and have
+the editor place the cursor at the location which that token is
+defined.  This makes code traversal very simple.  If in addition, the
+macro implements a history, then moving around code becomes very
+similar to using a hypertext system.
+
+    This generator has been designed to be used within a project make
+file and has a large number of options designed to make the task of
+generating and maintaining a tags file as simple and fast as
+possible.  There are three good methods for generating tags out of a
+makefile and each method is best for particular situations.  The
+examples below use OPUS make scripts as makefile code samples.
+
+    1)  The first method is to generate a new tag file every time the
+        executable is generated.  This method is the simplest to
+        implement and is good for small and very small projects.
+
+        This would be accomplished with either a list file or a macro
+        within the makefile.  For example:
+
+            MYEXE: tags
+
+            TAGS:
+                tags -tdefault.tag $(TAGFLAGS) $(SRCS)
+
+        or
+
+            MYEXE: tags
+
+            TAGS:
+                tags -tdefault.tag $(TAGFLAGS) @project.lst
+
+        This would result in all source files in the project being
+        tagged every time the executable was generated.
+
+
+    2)  The second method is to generate the new tag list for every
+        file that is processed at the time that it is processed.
+        This method has an advantage in that it will only update
+        those files which have changed at each invocation of make and
+        it will update every file at the time it successfully
+        compiles.  Disadvantages which become a real problem for
+        medium to large projects is that targets may share include
+        files and thus these include files would be parsed several
+        times and there is large overhead when merging the new tags
+        into the old tag file which is incurred for every target file
+        rather than just once at the end of the make.  An example of
+        the way to implement this method in the makefile is given
+        below:
+
+            .c.obj
+                $(CC) $(CFLAGS) -o $@
+                @echo $< > file.lst
+                !for filename in $**
+                    @echo $(filename) >> file.lst
+                !end
+                tags -tdefault.tag $(TAGFLAGS) @file.lst
+
+
+    3)  The third is to accumulate filenames within a temporary
+        file and to use that file as a LISTFILE on the tags command
+        line and to execute the tags executable when the project
+        executable is linked.  This method is very good overall
+        because no file will be tagged until the end of the make
+        (which means you do not have calling and merging overhead to
+        worry about) and no file is tagged more than once during a
+        make.  This method will also be the fastest over time because
+        of the incremental nature of the tagging (notice that the
+        list file is deleted after tags is run so that files are
+        accumulated until the make succeeds and is then purged for
+        the next source change and make cycle).  This method suffers
+        in that tags are not generated until a successful make has
+        occurred and causes problems when large changes are underway
+        (this is usually not a major problem).  An example is given
+        below:
+
+            .c.obj:
+                $(CC) $(CFLAGS) -o $@
+                @echo $< >> file.lst
+                !for filename in $**
+                    @echo $(filename) >> file.lst
+                !end
+
+            MYEXE: $(OBJ)
+                $(LINK) $**, $@;
+                tags -tdefault.tag $(TAGFLAGS) @file.lst
+                del file.lst
+
+
+    Several make file utilities have features which make tags a little
+easier to implement within the make process and below are suggestions
+for optimizing your environment using OPUS make and PolyMake.
+
+    1)  Use directives to force your make facility to release as much
+        memory as possible for the tags executable.  Tags may take up
+        quite a bit of core for large projects during the sort phase.
+        Within OPUS make this is accomplished by placing the
+        directive after the target and before the colon, for
+        instance:
+
+            TAGS .MISER: $(SRCS)
+                tags -tdefault.tag $(TAGFLAGS) $**
+
+        PolyMake has a separate directive which takes a list of
+        executables which are to be given more memory, as an example:
+
+            .MEMSWAP cl link tags
+
+        Doing this will help with tight memory situations and is
+		generally only needed for 16 bit operating environments.
+
+    2)  Use response files to overcome the limitations of the DOS
+        command line or with large numbers of files.  Normally you
+        will want to generate a response file automatically in the
+        makefile.  An example of doing this is shown in the examples
+        above in the sections dealing with tagging methods.  Note
+        that you may not place options within the response file.
+        Only comments and filenames are allowed within the response
+        files used by this utility.  Manual creation of response
+        files are suggested because of the additional control allowed
+        over the the files placed in the response file.  For example,
+        it is simple to change the response file generator to exclude
+        all *.h files (or some other file to be filtered) from the
+        response file.
+
+            OPUS make will automatically create response files for
+        specified executables and pass a response file on the
+        utilities command line after prepending a '@'.  For example,
+        the directive below would place all input files into a
+        temporary file and passes the command line to the tags
+        executable as "tags @mkXXXXXX.rsp".
+
+            .RESPONSE_LINK tags
+
+        The response file created will contain all the command line
+        for that particular utility, so that if you are specifying a
+        tag file or detailing tagging or need to use any switches for
+        tags then you need to manually generate a response file (this
+        is not a major undertaking).
+
+            PolyMake uses a concept called a local input file to
+        allow the semi-automatic creation of response files.
+
+
+    3)  Use built in dependency macros to create the new file list to
+        tag.  In the example above I used the $** macro which expands
+        to all dependency files for the current target.  If your
+        environment is such that you have generated a complete tag
+        file then you could use the dependency macro $? instead of
+        $**.  This will create a list of only those dependency files
+        which have actually been changed or are newer than the
+        target.  This method assumes that you never delete your tag
+        file (without generating a new tag file from a batch file or
+        by some other equivalent method).  If you did delete your tag
+        file then even if you removed all your object files and
+        recompiled, you would probably not get all source files
+        tagged correctly (especially include files used by only one
+        module which have not changed).  Use of the $? macro is not
+        recommended unless your development environment is very
+        stable or very large.
+
+
+    Included here are macros for Brief and Quick Edit to use the
+MicroSoft Error format tags generated by this utility.  While these
+are poor substitutes for built in support, they are good examples of
+reasonable ways to do this for extensible editors.
+
+    One nice thing which falls out of this code is a very well done
+sort routine which is UNIX compatible, highly portable and one of the
+fastest I have seen (UNIX, VMS, Ultrix, MSDOS, etc.).  This utility
+is not automatically made using the included makefile but the target
+for making the utility is in the makefile for those interested.
+
+------------------------------------------------------------------------------
+
+Usage: TAGS {[OPTIONS] [FILENAME]}
+
+Options Syntax:
+
+    -h, -?
+
+        Obtain a detailed help screen directed to standard output.  In a
+        pinch this will do as a manual if redirected to a file.
+
+    @LISTFILE
+
+        Use LISTFILE as a "response" file.  This file is a list of
+        input filenames.  This file lists filenames (with or without
+        wildcards) one at a time.  The Win32 GUI and NT Console
+        binaries support long file names and thus must be seperated
+        by newlines.  If any long file names contains spaces at the
+        beginning or end of the filename then the filename must be
+        quoted using the double quote character ('"').  If you build
+        the 16 bit binaries (which just support FAT), the filenames
+        may be separated by '+', ',', ';' or by whitespace.  Comments
+        are allowed within the LISTFILE and are delimited by placing
+        a colon ':' before the comment.  Comments are allowed on any
+        line and must be the first non black character on the line.
+
+
+    -x{EXCLUDEFILE|@LISTFILE}
+
+        Excludes the files specified by EXCLUDEFILE or excludes all
+        files listed in LISTFILE using the same syntax described
+        above.
+
+
+    -tTAGFILE
+
+		Add new generated tags to TAGFILE.  This file may or may not
+		exist.  All tags from TAGFILE which were derived from files
+		currently being parsed will be removed during the merge
+		phase.  This tagfile is assumed to be in one of this
+		utilities output formats.  If sorting is specified then new
+		tags will be merged in correct order with current case
+		sensitivity, otherwise tags will be placed at the beginning
+		of the new resulting tag file (this will result in quicker
+		responses during tag searches while editing).  if -m or -s
+		are used this switch is ignored (all output is to stdout).
+		The behavior regarding existing files is determined by the
+		case of the switch as follows:
+
+            -t (lower case) creates and outputs to a file overwriting
+               any currently existing file
+            -T (upper case) merges all output to the tagfile if
+               there is an already existing file
+
+	-pCOMPILEFILE
+
+		Convert output tag file (specified by -t) into a compiled
+		file suitable for use with Codewright.  The output flag (-t)
+		and the codewright output format flags (-oc) must be
+		specified for this flag, otherwise it is ignored.
+
+    -lLOGFILE
+
+        Output all activity to LOGFILE.  The log file will be created
+        in a LISTFILE format (ie. suitable as input using the
+        @LISTFILE syntax).  The behavior regarding existing files is
+        determined by the case of the switch as follows:
+
+            -l (lower case) creates and outputs to a file overwriting
+               any currently existing file
+            -L (upper case) appends all output to the logfile if
+               there is an already existing file
+
+
+    -o[options]
+
+        This switch is used to determine the output format to the
+        output stream.  [options] may be one of the following:
+
+         e  Epsilon (>= V6.0) tag format
+
+            ( tokenString {tab} fileName {tab} characterOffset {tab} line )
+
+            This format is used by the Epsilon editor (V6.x)
+            created by Lugaru Software and specifies the token
+            identifier, the file name (including full path, normally),
+            the character offset of the beginning character (starting
+            at character 0) and the line which that offset is located on.
+
+         5  Epsilon (<= V5.03) tag format
+
+            ( tokenString;fileName;characterOffset )
+
+            This format is used by the Epsilon editor (V4.x and V5.x)
+            created by Lugaru Software and specifies the token
+            identifier, the file name (including full path, normally)
+            and the character offset of the beginning character
+            (starting at character 0).
+
+         g  GNU tag format
+
+            ( tokenString {tab} fileName {tab} /$line^/ )
+
+            This format is used by GNU's EMACS editor, originally
+            written by Richard Stallman and widely used in the UNIX
+            community.  This is also the format created by its
+            companion utility "ctags" which does very simple function
+            header tagging.
+
+         s  Space-Delimited format
+
+            ( tokenString fileName lineNumber )
+
+            This format is the simplest format available and requires
+            very little parsing and is very simple to import into
+            foreign formats (ie. database formats, etc.).
+
+         m  MicroSoft Error format
+
+            ( tokenString fileName(lineNumber) )
+
+            This format has an advantage in that it has been around
+            for quite some time and a fair amount of effort has been
+            expended to parse this format and move to the location in
+            the source specified during compilation stages.  Many
+            macros may be modified to use this type of tag format
+            with very minor changes.
+
+		 c  Codewright tag format
+
+			( tokenString FileName(lineNumber) tokenType )
+
+			This format is a minor variant of the Microsoft format
+			but is generally used in conjunction with a compiled
+			database file format (see -p above).  This is the format
+			used by Premia's Codewright editor.
+
+    -a[options]
+
+        This switch is used to specify the types of tokens for which
+        tags are generated for tagging of assembly files.  All token
+        types are tagged as the default ( -afdlmsu ).  Source modules
+        are expected in 80x86 assembly using MASM/TASM syntax.  The
+        location of the -a switch on the command line is important.
+        All files (and files found in LISTFILEs) will be tagged using
+        assembly tagging (and the options specified on that switch)
+        until another -a or -c switch is found.  Order is not
+        important for the options to this switch.
+
+         f  procedure labels
+
+            ( token proc )( proc token )
+
+            This is a mnemonic for function (which has nothing to do
+            with a procedure call in assembly, but does well for
+            frail human memory.  This option specifies tagging of the
+            "proc" keyword.
+
+         d  definition labels
+
+            ( token equ const )( token db declaration )
+
+            This option specifies tagging of defines and definition
+            labels such as the tokens "equ", "db", "dq", "dw", "df",
+            etc.
+
+         l  local labels
+
+            ( token label )( label token )( token: )
+
+            This option specifies tagging of local labels (labels of
+            local file duration).  This includes the keyword "label"
+            as well as the shorter ':' notation.
+
+         m  macro labels
+
+            ( token macro )( macro token )
+
+            This option specifies tagging of defined macros using the
+            keyword "macro".
+
+         s  struc labels
+
+            ( token struc )( struc token )
+
+            This option specifies tagging of structure definitions
+            defined using the keyword "struc".
+
+         u  union labels
+
+            ( token union )( union token )
+
+            This option specifies tagging of union definitions
+            defined using the keyword "union".
+
+
+    -c[options]
+
+        This switch is used to detail the token types to tag in C and
+        C++ source files.  All token types are tagged by default
+        ( -cdmstekuvcfpxi ).  Source files are expected in standard
+        ANSI 2.0 C/C++ syntax.  The location of the -c switch on the
+        command line is important.  All files (and files found in
+        LISTFILEs) will be tagged using C tagging (and the options
+        specified on that switch) until another -a or -c switch is
+        found.  Order is not important for the options to this
+        switch.
+
+
+         d  defines
+
+            ( #define token statement )
+
+            This option specifies that defines are to be tagged
+            (preprocessor defines).  This does not include macros
+            which are an extended use of the #define preprocessor
+            directive.
+
+         m  macro labels
+
+            ( #define token() statement )
+
+            This option specifies tagging of macros defined via use
+            of the preprocessor #define directive.
+
+         s  struct globals
+
+            ( struct token {} )
+
+            This option specifies tagging of structures defined via
+            use of the "struct" keyword and implicitly defined within
+            C++ syntax variations.
+
+         t  typedef globals
+
+            ( typedef declaration token, token, ... )
+
+            This option specifies tagging of identifiers defined via
+            use if the "typedef" keyword.
+
+         e  enum globals
+
+            ( enum token {} )
+
+            This option specifies tagging of enumerations defined via
+            use of the "enum" keyword.
+
+         k  enum konstants
+
+            ( enum { token, token, token, ...} )
+
+            Note the cute spelling if constants with a 'k' so that I
+            can justify the assignment of this letter.  This option
+            specifies tagging of enumeration constants within
+            declared enumerations.
+
+         u  union globals
+
+            ( union token {} )
+
+            This option specifies tagging of unions defined via use
+            of the "union" keyword.
+
+         v  global variable
+
+            ( declaration token, token = {}, token, ... )
+
+            This option specifies tagging of global variable
+            declarations.
+
+         c  global class
+
+            ( class token: {} )
+
+            This option specifies tagging of class definitions
+            specified via use of the "class" keyword.
+
+         f  function definitions
+
+            ( token() declaration {} )
+
+            This option specifies tagging of function declarations.
+
+         p  prototypes
+
+            ( token(); )
+
+            This option specifies tagging of prototypes.
+
+         x  extern defines
+
+            ( extern declaration )
+			( extern "C" declaration )
+			( extern "C" { declaration; declaration; ... } )
+
+            This option will specify that tags which have the extern
+            storage class are to be output.  The x option is a
+            modifier and will only be effective when other options
+            are used (ie.  -cpx must be specified to obtain extern
+            prototypes, -cx alone yields nothing).  Note also that
+            the -cx modifier has no effect for function, define and
+            macro tags which are tagged only according only to the f,
+            d and m options respectively.  This modifier may be
+            placed anywhere within the options list.
+
+         i  static declarations
+
+            ( static declaration )
+
+            This option will specify that tags which have internal
+            static storage class are to be output.  The i option is
+            a modifier and will only be effective when other options
+            are used (ie.  -cvi must be specified to obtain static
+            variable declarations, -ci alone yields nothing).  Note
+            also that the -ci modifier has no effect for define and
+            macro tags which are tagged only according only to the d
+            and m options respectively.  This modifier may be placed
+            anywhere within the options list.
+
+
+	-d
+
+		This flag specifies that all input listfiles and exclude
+		response files should be deleted once parsed.  This allows an
+		automated list file generation which is cleaned up by the
+		tags package.  See description of LISTFILE below.
+
+
+    -j
+
+        This is the junk filter switch to allow the filtering of of
+        functions and declarations which are overloaded operators in
+        C++.  For example, if the junk filters are enabled then the
+        declaration "inline myType operator+(MyType m1, MyType m2);"
+        would not be tagged for "+" which is normally a standard C
+        delimiter token and operator.  The junk filter if enabled will
+        filter all standard C delimiters from the output.
+
+
+    -q
+
+        This is the quiet switch and will suppress normal status
+        output to stderr and program version information.
+
+
+    -r
+
+        This switch will suppress the default output of the full file
+        path name and will specify the use of relative pathnames in
+        the generated output.
+
+
+    -n
+
+        This switch will suppress sorting of the tag output (Often
+        used in conjunction with GNU or Epsilon style tags)
+
+
+    -i
+
+        This switch specifies the use of a case sensitive sort
+        (Normally a case insensitive sort is used).  I know, the
+        character 'i' is normally used for switching to a case
+        insensitive behavior, things are tough all over, you'll learn
+        to live with it.
+
+
+The following two switches convert the tags package to stdout sort
+filters.  This among other things means that they are not available
+in the Win16 and Win32 GUI binaries.
+
+    -m
+
+        This option specifies a merge sort of the existing files
+        which are parsed as a result of the command line.  All of
+        these files are assumed to be sorted in the current style.
+        Note that this switch results only in the merge of the input
+        files (no tagging is done).  Output is to stdout only (-t is
+        ignored) when using this switch.  Only available in DOS and
+		NT console mode binaries.
+
+
+    -s
+
+        This options specifies that all input files are to be sorted
+        only.  All files are assumed to be in an unsorted state.
+        Note that this switch results only in sorting of the input
+        files (no tagging is done).  Output is to stdout only (-t is
+        ignored) when using this switch.  Only available in DOS and
+		NT console mode binaries.
+
+------------------------------------------------------------------------------
+
+Notes:
+
+    The TMP or TEMP environment variable is used for temporary files.
+
+    The default for tags is to use C style tagging, the Epsilon tag
+file format, to sort the output before finally placing it in the
+output file (or stdout if -t is not used) and to be verbose and log
+activity to stderr.
+
+      Each file specified on the command line or within a LISTFILE
+will be tagged only once regardless of the number of times it appears
+on the command line (This includes LISTFILEs as well as filenames and
+the files listed within LISTFILEs).
+
+      All of the switches may be specified anywhere on the command
+line and with the exception of the style switches (-a, -c) are not
+position dependent.  The style switches are active only for input
+files which fall after them on the command line (or in a LISTFILE
+specified after the switch).This allows the specification of
+different tagging styles and types on a file by file basis.
+
+      Input file specifications allow the use of *IX shell style
+expressions.  This allows input filenames such as "*", "*t?*.c" and
+"*[e-gxyz]*".  Note that "*" in this case is completely equivalent to
+"*.*" in normal DOS usage. The use of "*." will obtain files without
+extensions.
+
+      This utility performs a CRC validation on itself to prevent
+corruption and viral infection from outside influences.  Modification
+of this file in any way will result in a failure of the internal CRC
+check.  On CRC failure the program will exit with a warning message.
+
+
+------------------------------------------------------------------------------
+
+Modification History:
+
+Wed, 12/02/1998 23:09:13
+
+This is V2.4
+
+Correct bug dealing with compressed files.
+Correct bug dealing with Codewright tag files.
+
+									jbk
+
+Tue, 12/02/1997 21:08:14
+
+This is V2.3
+
+Correct parsing of filenames with double byte characters.
+Correct use of fscanf() within compile.c.  Use of %d changes in Win32
+	since int is now 32 bits, %hd must be used to fill a WORD.
+
+									jbk
+
+Sun, 09/21/1997 11:48:20
+
+This is V2.2
+
+Correct assumption that argv contained fully qualified pathname in
+	NT.  Not true, use GetModuleFilename().
+Correct minor ASM tagging symbol output errors for Premia's
+	Codewright editor format.
+Support long file names for 32 bit builds (especially within list
+	files).  Now all things within a quote are treated as a single
+	item.  This, as a side effect, means dropping support for most
+	response file formats using characters such as '+', ',', or ';'
+    (in 32 bit builds) and changing comment support to using the
+    colon (:) and restricting comments to be full line only (the :
+    must be the first non blank character at the start of the line).  
+Update this document a bit.
+
+									jbk
+
+Mon, 10/02/1995 23:48:27
+
+This is V2.01
+
+Corrected a stack overflow problem with DOS binary
+Corrected a resource leak on Win32 and NT binary
+Use case insensitive matches for all binaries to prevent strange problems
+	on NT console and Win32 platforms (previously handled in wildfile code 
+	for DOS	and Win16 binaries)
+Define MSDOS for dos compiles
+Corrected a problem in tempname (sort.c) for Win32 and NT console binaries
+Disable -m and -s for Win16 and Win32 GUI binaries.
+
+									jbk
+
+Tue, 08/29/1995 01:11:01
+
+This is V2.00
+
+Added C++ bug fixes and enhancements (in part by Dan McMullen).
+Added output formats supported by Premia's Codewright editor (-p, -oc).
+Added -d (deletion of input listfiles).
+Removed default compilation of the sort module into sort.exe.
+Added Win16 and Win32 platforms (Windows GUI versions).
+
+									jbk
+
+Sun, 08/20/1995 16:09:31
+
+This is V1.9
+
+Merged changes by Bradley M. Small for compilation on Borland's compiler.
+Merged bug fixes by Eduardo Subelman
+Merged bug fixes by Mike Albert
+Junk filter is now off by default
+Merged fixes and enhancements by Dan McMullen
+
+
+									jbk
+
+05-10-92
+
+This is V1.8
+
+Fixed a newly introduced bug in define parsing with the line
+continuation character.  Fixed an error state if continuation
+character found within a define and not at the end.  Added the -j
+switch to disable the junk filter for those overloading standard
+delimiters in C++ (ie. operator+).  Fixed a problem with enumeration
+constants (the last would be skipped unless followed by a comma).
+
+									jbk
+
+03-30-92
+
+This is V1.7
+
+Fixed a number of C parsing bugs, including a problem with the C++
+extern "C" {...} statement and a number of small annoyances with
+preprocessor directives again.
+
+Support was added for V6.0 of Epsilon for the new tag file format.
+The previous format is available via the -o5 output switch.  In
+addition, the first line (the tag header) of the output tag file
+specified via the -t switch is dealt with correctly (while using the
+-oe switch).
+
+									jbk
+
+11-12-91
+
+This is V1.6
+
+Added a junk filter for the C parser to eradicate unwanted tokens
+which were normally delimiters but were being tagged due to syntactic
+nuisances introduced through the twisted use of preprocessor
+directives and 'soft' syntax errors such as a ';' at the end of a
+procedure.  Added the -? switch as a common synonym for -h.
+
+                                    jbk
+
+10/07/91
+
+This is V1.5
+
+The moment you post something, you (or normally, someone else) finds
+a bug to let you know what a peon you really are.  V1.4 had problems
+with extended enumeration constants and syntactic vagaries regarding
+enum declarations.
+
+                                    jbk
+
+10/04/91
+
+This is V1.4
+
+A bug was fixed in assembly tagging (local labels using ':' were
+being tagged when defines were enabled regardless of -al flag).
+Exclude file parsing (-x flag) was added.  Support for tagging of
+enumeration constants and internal static declarations (-ck -ci) was
+added.  Improved support of LISTFILES, now the list file may be in
+the form of a response file and filenames may be separated by '+',
+',', ';' or whitespace (comments delimited by '#' are still
+supported).
+
+                                    jbk
+
+10/01/91
+
+This is V1.3
+
+A bug was fixed in cleanup code executed on Ctrl-C, Break, file
+error, or memory allocation error.  In V1.2, one of these errors
+normally resulted in some lost chains in the file structure but only
+manifested on a failure condition.
+
+                                    jbk
+
+9/30/91
+
+This is V1.2
+
+This code is dedicated to the Public Domain, this means you may use
+this code for any purpose and for any reason and without any
+warranty, suitability to task, etc.  Public Domain also means that
+you may not place your own Copyright on this code.  Do not claim it
+to be your work.  Portions of this are under GNU CopyLeft (read the
+GNU.DOC file included in this distribution).  In particular the sort
+module (sort.c std.h) are under both GNU CopyLeft and individual
+Copyright.  If you need to be rid of CopyLeft to use this utility you
+will have to roll your own (or obtain another public domain) sort
+engine.
+
+If you do use this and then make changes, bug fixes, or better still,
+add a new language parser (PASCAL, FORTRAN, BASIC come to mind right
+off the top) or create a macro for a particular editor to deal with
+tag files, then please route these changes to me and I will
+incorporate these changes and repost the package.
+
+The intent of this utility and the release of its source to the
+Public Domain is in the interest of high quality programming and code
+generation.  Quality is designed in at the earliest stages and must
+be maintained by the use of high quality development and maintenance
+tools.  If professionals doing good work devote some talent and time
+to projects such as this and other projects then the programming
+community as a whole benefits (enough evangelism).
+
+
+                                    jbk
+
+------------------------------------------------------------------------------
+
+Authors:
+
+    J. Kercheval
+		kercheval@bigfoot.com
+        johnk@wrq.com
+
+        Overview and Architecture
+        C Module:
+        ASM Module:
+        Shell:
+        Arglist:
+        *IX wildcard:
+        Match:
+        Flags:
+        Tag IO (Format, styles and merge):
+        Modifications to Sort module to allow use as separate module
+            and some subtle bug fixes.  Context diff in SORT.DIF
+
+    Mike Haertel
+        Free Software Foundation
+
+        Original Sort Module:
+
+
+    Kevin Dean
+        Fairview Mall P.O. Box 55074
+        1800 Sheppard Avenue East
+        Willowdale, Ontario
+        CANADA    M2J 5B9
+
+        CRC Validation Module:
+
+
+Contributors:
+
+    Leonid Kokin
+        leok@wrq.com
+
+        Brief macro:
+
+	Bradley M. Small
+		313 Holt Ave
+		Greensboro, NC 27405
+		(919)272-6431
+
+		QuickEdit macro: Submitted - Thu, 03-04-1993  10:27:25
+		Borland Compiler modifications.
+
+	Eduardo Subelman
+		subelman@elvis.tti.com
+
+		Bug fixes: Submitted - Tue, 7 Dec 93 20:08:56 PST
+
+	Mike Albert
+		[70325,1134]
+
+		Bug fixes: Submitted - 18-May-95 21:13:18
+		Bug fixes: Submitted - Tuesday, May 30, 1995 5:24 PM
+		Bug fixes: Submitted - 04-Aug-95 20:08:09
+		Bug fixes: Submitted - Tuesday, August 15, 1995 7:49 PM
+
+	Dan McMullen
+		9061 East Road
+		Redwood Valley, CA  95470
+		707.485.0267
+		dan@palace.ign.island.com
+
+		Bug Fixes and C++ enhancements: Submitted - Jan 04 1993
+
+	Premia Corporation
+		[70673,2627]
+
+		1075 NW Murray Blvd.
+		Suite 268
+		(503) 641-6000
+
+		Codewright output format (tags and compiled database).
+		Initial work for Windows binaries (GUI).
+
+	larryh@tpi.com
+
+		Bug fixes: Submitted - Thursday, November 19, 1998
+
+
+Thanks:
+
+    Shane Hartman
+        ksh@ai.mit.edu
+    Eric Halpern
+        erich@wrq.com
+    Tad Marshall
+        tad@wrq.com
+
+        Beta testing and usability editing for distribution
+
+------------------------------------------------------------------------------
+
+Caveats:
+
+    1) Long lines will cause the buffer count output by the epsilon
+       tags format to be incorrect for ASM files.  A long line is
+       defined as one over 255 characters in length.  Line counts and
+       line outputs will maintain correct behavior (ie. effects only
+       Epsilon style output).  Long lines may also cause a mistag.
+
+    2) Long tokens in excess of 4K in length will cause the buffer
+       count in the C token parser to be incorrect.  Line counts and
+       line outputs will maintain correct behavior (ie. effects only
+       Epsilon style output).  These large tokens may also cause a
+       mistag.
+
+------------------------------------------------------------------------------
+
+Known Bugs:
+
+    1) Use of unbalanced quotes in comments within _asm code blocks could
+        cause the parser to miss a close brace.  For instance
+
+            _asm {
+                mov ax,cx   ; blah
+                sub ax,1    ; blah, blah
+                call __foo  ; an unbalanced quote here " will cause chaos
+            }
+
+        will produce a situation where the parser merrily chugs along until
+        it finds another double quote and this will propagate until another
+        unbalanced double quote is found.  Both of these cases will most
+        likely result in the loss of all tagging information for the current
+        file after the point at which the offending code was found.
+        _asm code blocks are generally bad due to asm syntax problems
+        in C files.  Another good way to cause a problem is a single
+        quote or a # sign after a paren in a comment.  For example
+
+            _asm {
+                mov ax,cx   ; blah
+                sub ax,1    ; blah, blah
+                call __foo  ; an unbalanced quote after paren (don't)
+            }
+
+		will cause a paren close miss and result in mistag of the
+        rest of the file and
+
+            _asm {
+                mov ax,cx   ; blah
+                sub ax,1    ; blah, blah
+                call __foo  ; a preprocessor symbol after a paren (#2)
+            }
+
+		will cause a miss since the parser will chuck all code to the
+        end of the line after a preprocessor symbol.
+
+
+	2) Use of unbalanced open braces, brackets or parens within
+        #ifdef block may cause the remainder of the file to be
+        incorrectly tagged.  This is because of the algorithm in use
+        which is trying to tag all symbols within the file, even
+        those within #if, #else, #elif, #endif blocks.  For example
+
+			#ifdef FOO
+				function() {
+			#else
+				function(param_list) {
+			#endif
+
+					code block
+
+				}
+
+		will result in all taggable items after the first brace to be
+        ignored in the file.  If instead it was
+
+			#ifdef FOO
+				function() {
+			#else
+				function(param_list) {
+			#endif
+
+					code block
+
+			#ifdef FOO
+				}
+			#else
+				}
+			#endif
+
+		or better
+
+			#ifdef FOO
+				function()
+			#else
+				function(param_list)
+			#endif
+				{
+
+					code block
+
+				}
+
+		the parser would have no problem.  This may alleviated by a
+        possible future change to allow preprocessor parsing only in
+        a particular section.  Parsing only the first section would
+        be simple.  Parsing based upon defines and include files
+        would be a bit more difficult.  For now I believe the best
+        method is to convert any #ifdef blocks such as that described
+        above to a cleaner implementation.
+
+	3) The distinction between a variable declaration and a prototype
+        is not syntactically clear without using sophisticated
+        parsing techniques.  This parser will do the right thing in
+        most cases but fall down in rare cases.  For example
+
+			extern int  MitFromID ( XID,unsigned short *,char ** ),
+				MitRemoveCookie ( unsigned short,char * );
+
+        is a comma delimited prototype list.  This list will be
+        mistagged as ** and * respectively.  The parser will detect
+        this as a comma delimited variable declaration list (keying
+        off the comma).  Other problems may occur in rare situations
+        with ambiguous paren placement.
+
+	4) Tokenization of the operator () is not handled correctly when
+		in use.  It is handled correctly after the operator keyword
+		when the () operator is the first operator after the keyword
+		and thus is tagged.  In normal situations this should cause
+		no side effects.
+
+	5) Structures and unions are simple C++ classes.  They are not
+		parsed as classes but as simple C elements.
+
+	6) Templated structures, unions and classes are not tagged.  This
+		is because the parser does not have the preprocessing
+		information available to it for the declaration.  Note that
+		the class members are tagged, it is just the class name
+		(which is source code indeterminate) which is not tagged.
+
+	7) All files are opened for line input translation.  The parser
+		assumes \n\r within each line.  If the source file has only
+		\n or only \r then the line offset internal information will
+		be wrong and the line in the GNU and Epsilon output formats
+		may output only the end of the line (or get the wrong line
+		entirely).  This is not a problem for line numbers or
+		character offsets, just for internal line offsets in output.
+
+------------------------------------------------------------------------------
+
+Implementation:
+
+The file MANIFEST.DOC describes the files in this distribution.
+
+This project was developed using the MicroSoft C Compilers with
+elements compiled previously under TC, TC++ and BC++.  A port to
+other compilers should not be difficult.  The sort module has been
+compiled using many different UNIX compilers and the code is under
+GNU CopyLeft.  All of the other source files and documentation files
+are dedicated to the Public Domain.
+
+If you port this to another compiler, place the changes in #ifdef'd
+code blocks or create a context sensitive diff file and send it on to
+me.  I will then incorporate the changes and make sure that these
+changes get circulated in a new release.
+
+
+Questions?  Comments?  Accolades?  Insults?  Send them to me and I'll
+see what I can do.  I hope you find good use for this utility and
+code.
+
+                                    jbk
+
+
+Here is a copy of the current file_id.diz.
+
+(v2.4) Tags - Tags Generator w/ Source
+This is a tags file generator for C/C++ and
+Assembly code.  Tags are locations within
+source code which define a code object and
+are used to simplify code traversal of
+medium and large projects.  Binaries for NT 
+console mode and Win32 GUI are included in
+this distribution.
+Dedicated to the Public Domain.  
+John Kercheval, kercheval@bigfoot.com
+
+

@@ -1,0 +1,23 @@
+#if     !defined(_SYS_TYPES_H)
+#define _SYS_TYPES_H
+
+#if     !defined(_SSIZE_T)
+#define _SSIZE_T signed long
+typedef _SSIZE_T ssize_t;
+#undef _SSIZE_T
+#endif
+
+typedef unsigned long	mode_t;         /* file attributes */
+typedef	signed long		off_t;			/* file size */	
+#endif  /* _SYS_TYPES_H */
+
+
+
+
+
+
+
+
+
+
+

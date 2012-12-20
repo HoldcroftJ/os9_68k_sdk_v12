@@ -1,0 +1,32 @@
+**********************************************************************
+MAUI Fast Draw demo code
+**********************************************************************
+What this demo does:
+  -  Draws blocks of random size and random color in a random 
+     location on the screen for about 15 seconds.
+
+**********************************************************************
+System requirements:
+  - A working MAUI environment is assumed.
+  - The demo requires that gfx is in memory.
+  - The demo requires that mfm is in memory.
+ 
+*********************************************************************
+Directories: 
+  - Source code 
+      $MWOS/SRC/MAUI/DEMOS/FDRAW
+        
+*********************************************************************
+To make this demo:
+  - From the source file directory type:
+      % os9make
+ 
+*********************************************************************
+Operation: 
+  - This demo has no command line options. To run simply type the
+    demo name. The shell prompt will return after the demo ends.
+     
+      $ fdraw
+ 
+*********************************************************************
+ 

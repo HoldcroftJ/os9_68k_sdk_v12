@@ -1,0 +1,911 @@
+#ifndef __STD_ITERATOR__
+#define __STD_ITERATOR__
+
+/***************************************************************************
+ *
+ * iterator - iterator declarations for the Standard Library
+ *
+ * $Id: iterator,v 1.70 1996/09/27 08:02:52 smithey Exp $
+ *
+ ***************************************************************************
+ *
+ * Copyright (c) 1994
+ * Hewlett-Packard Company
+ *
+ * Permission to use, copy, modify, distribute and sell this software
+ * and its documentation for any purpose is hereby granted without fee,
+ * provided that the above copyright notice appear in all copies and
+ * that both that copyright notice and this permission notice appear
+ * in supporting documentation.  Hewlett-Packard Company makes no
+ * representations about the suitability of this software for any
+ * purpose.  It is provided "as is" without express or implied warranty.
+ *
+ *
+ ***************************************************************************
+ *
+ * (c) Copyright 1994-1996 Rogue Wave Software, Inc.
+ * ALL RIGHTS RESERVED
+ *
+ * The software and information contained herein are proprietary to, and
+ * comprise valuable trade secrets of, Rogue Wave Software, Inc., which
+ * intends to preserve as trade secrets such software and information.
+ * This software is furnished pursuant to a written license agreement and
+ * may be used, copied, transmitted, and stored only in accordance with
+ * the terms of such license and with the inclusion of the above copyright
+ * notice.  This software and information or any other copies thereof may
+ * not be provided or otherwise made available to any other person.
+ *
+ * Notwithstanding any other lease or license that may pertain to, or
+ * accompany the delivery of, this computer software and information, the
+ * rights of the Government regarding its use, reproduction and disclosure
+ * are as set forth in Section 52.227-19 of the FARS Computer
+ * Software-Restricted Rights clause.
+ * 
+ * Use, duplication, or disclosure by the Government is subject to
+ * restrictions as set forth in subparagraph (c)(1)(ii) of the Rights in
+ * Technical Data and Computer Software clause at DFARS 252.227-7013.
+ * Contractor/Manufacturer is Rogue Wave Software, Inc.,
+ * P.O. Box 2328, Corvallis, Oregon 97339.
+ *
+ * This computer software and information is distributed with "restricted
+ * rights."  Use, duplication or disclosure is subject to restrictions as
+ * set forth in NASA FAR SUP 18-52.227-79 (April 1985) "Commercial
+ * Computer Software-Restricted Rights (April 1985)."  If the Clause at
+ * 18-52.227-74 "Rights in Data General" is specified in the contract,
+ * then the "Alternate III" clause applies.
+ *
+ **************************************************************************/
+
+#include <stdcomp.h>
+
+#ifndef _RWSTD_NO_NEW_HEADER
+#include <cstddef>
+#else
+#include <stddef.h>
+#endif
+
+#ifndef _RWSTD_HEADER_REQUIRES_HPP
+#include <functional>
+#else
+#include <functional.hpp>
+#endif
+
+#ifdef _RWSTD_NO_BASE_CLASS_MATCH
+#define _RWSTD_VALUE_TYPE(a) value_type(*(a))
+#else
+#define _RWSTD_VALUE_TYPE(a) value_type(a)
+#endif
+
+#ifndef _RWSTD_NO_NAMESPACE
+namespace std {
+#endif
+
+//
+// Standard iterator tags.
+//
+  
+struct input_iterator_tag
+{
+    input_iterator_tag() {;}
+};
+
+struct output_iterator_tag
+{
+    output_iterator_tag() {;}
+};
+
+struct forward_iterator_tag : public input_iterator_tag
+{
+    forward_iterator_tag() {;}
+};
+
+struct bidirectional_iterator_tag : public forward_iterator_tag
+{
+    bidirectional_iterator_tag() {;}
+};
+
+struct random_access_iterator_tag : public bidirectional_iterator_tag
+{
+    random_access_iterator_tag() {;}
+};
+
+
+//
+// Basic iterators.
+//
+
+//
+// Note that _RWSTD_SIMPLE_DEFAULT(x)
+// will expand to: ' = x', or nothing,
+// depending on your compiler's capabilities and/or
+// flag settings (see stdcomp.h).
+//
+template <class Category, class T,  
+          class Distance _RWSTD_SIMPLE_DEFAULT(ptrdiff_t)>
+struct iterator
+{
+   typedef T value_type;
+   typedef Distance distance_type;
+   typedef Category iterator_category;
+};
+
+#ifndef _RWSTD_NO_CLASS_PARTIAL_SPEC
+
+template <class Iterator> struct iterator_traits
+{
+   typedef _TYPENAME Iterator::value_type value_type;
+   typedef _TYPENAME Iterator::distance_type distance_type;
+   typedef _TYPENAME Iterator::iterator_category iterator_category;
+};
+template <class T> struct iterator_traits<T*>
+{
+   typedef T value_type;
+   typedef ptrdiff_t distance_type;
+   typedef random_access_iterator_tag iterator_category;
+};
+
+template <class ForwardIterator>
+iterator_traits<ForwardIterator>::distance_type
+inline void distance (ForwardIterator first, ForwardIterator last)
+{
+    iterator_traits<ForwardIterator>::distance_type n = 0;
+    __distance(first, last, n, 
+               iterator_traits<ForwardIterator>::iterator_category);
+    return n;
+}
+
+template <class ForwardIterator, class Distance>
+inline void advance (ForwardIterator& i, Distance n)
+{
+    __advance(i, n, iterator_traits<ForwardIterator>::iterator_category);
+}
+
+#endif /* _RWSTD_NO_CLASS_PARTIAL_SPEC */
+
+
+
+template <class T > 
+struct input_iterator : public iterator<input_iterator_tag,T,ptrdiff_t>
+{
+#ifdef _RWSTD_NO_BASE_CLASS_MATCH
+    T* operator* () { return _RWSTD_STATIC_CAST(T*,0); } 
+#endif
+};
+
+struct output_iterator : public iterator<output_iterator_tag,void,void>
+{
+    typedef output_iterator_tag iterator_category;
+};
+
+template <class T, class Distance _RWSTD_SIMPLE_DEFAULT(ptrdiff_t) > 
+struct forward_iterator : public iterator<forward_iterator_tag,T,Distance>
+{
+#ifdef _RWSTD_NO_BASE_CLASS_MATCH
+    T* operator* () { return _RWSTD_STATIC_CAST(T*,0); } 
+#endif
+};
+
+template <class T, class Distance _RWSTD_SIMPLE_DEFAULT(ptrdiff_t)> 
+struct bidirectional_iterator : public iterator<bidirectional_iterator_tag,T,Distance>
+{
+#ifdef _RWSTD_NO_BASE_CLASS_MATCH
+    T* operator* () { return _RWSTD_STATIC_CAST(T*,0); } 
+#endif
+};
+
+template <class T, class Distance _RWSTD_SIMPLE_DEFAULT(ptrdiff_t)> 
+struct random_access_iterator : public iterator<random_access_iterator_tag,T,Distance>
+{
+#ifdef _RWSTD_NO_BASE_CLASS_MATCH
+    T* operator* () { return _RWSTD_STATIC_CAST(T*,0); } 
+#endif
+};
+
+
+//
+// Iterator category.
+//
+
+template <class T>
+inline input_iterator_tag 
+iterator_category (const input_iterator<T>&)
+{
+    return input_iterator_tag();
+}
+
+inline output_iterator_tag iterator_category (const output_iterator&)
+{
+    return output_iterator_tag();
+}
+
+template <class T, class Distance> 
+inline forward_iterator_tag
+iterator_category (const forward_iterator<T, Distance>&)
+{
+    return forward_iterator_tag();
+}
+
+template <class T, class Distance>
+inline bidirectional_iterator_tag
+iterator_category (const bidirectional_iterator<T, Distance>&)
+{
+    return bidirectional_iterator_tag();
+}
+
+template <class T, class Distance> 
+inline random_access_iterator_tag
+iterator_category (const random_access_iterator<T, Distance>&)
+{
+    return random_access_iterator_tag();
+}
+
+
+template <class T>
+inline random_access_iterator_tag iterator_category (const T*)
+{
+    return random_access_iterator_tag();
+}
+
+//
+// Value type.
+//
+
+#ifndef _RWSTD_NO_BASE_CLASS_MATCH
+template <class T> 
+inline T* value_type (const input_iterator<T>&)
+{
+  return _RWSTD_STATIC_CAST(T*,0);
+}
+
+template <class T, class Distance> 
+inline T* value_type (const forward_iterator<T, Distance>&)
+{
+  return _RWSTD_STATIC_CAST(T*,0);
+}
+
+template <class T, class Distance> 
+inline T* value_type (const bidirectional_iterator<T, Distance>&)
+{
+  return _RWSTD_STATIC_CAST(T*,0);
+}
+
+template <class T, class Distance> 
+inline T* value_type (const random_access_iterator<T, Distance>&)
+{
+  return _RWSTD_STATIC_CAST(T*,0);
+}
+
+template <class T>
+inline T* value_type (const T*)
+{
+  return _RWSTD_STATIC_CAST(T*,0);
+}
+#else
+template <class T>
+inline T* value_type (const T) 
+{
+  return _RWSTD_STATIC_CAST(T*,0);
+}
+#endif
+
+//
+// Distance type.
+//
+
+#ifndef _RWSTD_NO_BASE_CLASS_MATCH
+template <class T, class Distance> 
+inline Distance* distance_type (const forward_iterator<T, Distance>&)
+{
+  return _RWSTD_STATIC_CAST(Distance*,0);
+}
+
+template <class T, class Distance> 
+inline Distance* 
+distance_type (const bidirectional_iterator<T, Distance>&)
+{
+  return _RWSTD_STATIC_CAST(Distance*,0);
+}
+
+template <class T, class Distance>
+inline Distance* 
+distance_type (const random_access_iterator<T, Distance>&)
+{
+  return _RWSTD_STATIC_CAST(Distance*,0);
+}
+
+template <class T>
+inline ptrdiff_t* distance_type (const T*)
+{ 
+  return _RWSTD_STATIC_CAST(ptrdiff_t*,0);
+}
+#else
+template <class T>
+inline ptrdiff_t* distance_type (const T)  
+{ 
+  return _RWSTD_STATIC_CAST(ptrdiff_t*,0);
+}
+#endif
+
+//
+// Iterator operations.
+//
+
+template <class InputIterator, class Distance>
+void __advance (InputIterator& i, Distance n, input_iterator_tag);
+
+template <class ForwardIterator, class Distance>
+void __advance (ForwardIterator& i, Distance n, forward_iterator_tag);
+
+template <class BidirectionalIterator, class Distance>
+void __advance (BidirectionalIterator& i, Distance n, 
+                bidirectional_iterator_tag);
+
+template <class InputIterator, class Distance>
+void __distance (InputIterator first, InputIterator last, Distance& n, 
+                 input_iterator_tag);
+
+template <class ForwardIterator, class Distance>
+void __distance (ForwardIterator first, ForwardIterator last, Distance& n, 
+                 forward_iterator_tag);
+
+template <class BidirectionalIterator, class Distance>
+void __distance (BidirectionalIterator first, BidirectionalIterator last, 
+                 Distance& n, bidirectional_iterator_tag);
+
+template <class RandomAccessIterator, class Distance>
+inline void __distance (RandomAccessIterator first, RandomAccessIterator last, 
+                        Distance& n, random_access_iterator_tag)
+{
+    n = last - first;
+}
+
+#ifdef _RWSTD_NO_CLASS_PARTIAL_SPEC
+template <class ForwardIterator, class Distance>
+inline void distance (ForwardIterator first, ForwardIterator last, Distance& n)
+{
+#ifndef _RWSTD_NO_BASE_CLASS_MATCH
+    __distance(first, last, n, iterator_category(first));
+#else
+    __distance(first, last, n, input_iterator_tag());
+#endif
+}
+#endif /* _RWSTD_NO_CLASS_PARTIAL_SPEC */
+
+
+template <class RandomAccessIterator, class Distance>
+inline void __advance (RandomAccessIterator& i, Distance n, 
+                       random_access_iterator_tag)
+{
+    i += n;
+}
+
+
+#ifdef _RWSTD_NO_CLASS_PARTIAL_SPEC
+template <class ForwardIterator, class Distance>
+inline void advance (ForwardIterator& i, Distance n)
+{
+#ifndef _RWSTD_NO_BASE_CLASS_MATCH
+    __advance(i, n, iterator_category(i));
+#else
+    __advance(i, n, input_iterator_tag());
+#endif
+}
+#endif /* _RWSTD_NO_CLASS_PARTIAL_SPEC */
+
+//
+// Reverse bidirectional iterator.
+//
+
+    //
+    // Forward declarations.
+    //
+
+#ifdef _RWSTD_NO_UNDEFINED_FRIEND
+template <class BidirectionalIterator, class T, class Reference,
+          class Pointer, class Distance> class reverse_bidirectional_iterator;
+
+template <class BidirectionalIterator, class T, class Reference,
+          class Pointer, class Distance>
+inline bool operator== (
+      const reverse_bidirectional_iterator<BidirectionalIterator, T, Reference,
+                                           Pointer, Distance>& x, 
+      const reverse_bidirectional_iterator<BidirectionalIterator, T, Reference,
+                                           Pointer, Distance>& y);
+#endif
+
+#ifndef _RWSTD_NO_COMPLEX_DEFAULT_TEMPLATES
+#ifndef _RWSTD_NO_CLASS_PARTIAL_SPEC
+template <class BidirectionalIterator, 
+          class T = iterator_traits<BidirectionalIterator>::value_type, 
+          class Reference = T&,
+          class Pointer = T*, class Distance = ptrdiff_t> 
+#else
+template <class BidirectionalIterator, class T, class Reference = T&,
+          class Pointer = T*, class Distance = ptrdiff_t>
+#endif /* _RWSTD_NO_CLASS_PARTIAL_SPEC */
+#else
+template <class BidirectionalIterator, class T, class Reference, 
+          class Pointer, class Distance> 
+#endif /* _RWSTD_NO_COMPLEX_DEFAULT_TEMPLATES */
+
+//
+// Reference = T& 
+// Distance  = ptrdiff_t
+// Pointer   = T*
+//
+class reverse_bidirectional_iterator
+    : public bidirectional_iterator<T,Distance>
+{
+    typedef reverse_bidirectional_iterator<BidirectionalIterator, T, Reference,
+                                           Pointer, Distance> self;
+    friend bool operator== (const self& x, const self& y);
+
+  protected:
+
+    BidirectionalIterator current;
+
+  public:
+
+    typedef BidirectionalIterator iter_type;
+    typedef T value_type;
+    typedef Reference reference_type;
+    typedef Pointer pointer_type;
+    typedef Distance distance_type;
+
+    reverse_bidirectional_iterator() {}
+    _EXPLICIT reverse_bidirectional_iterator (BidirectionalIterator x)
+        : current(x) {}
+    BidirectionalIterator base() const { return current; }
+    Reference operator* () const
+    {
+        BidirectionalIterator tmp = current; return *--tmp;
+    }
+    #ifndef _RWSTD_NO_NONCLASS_ARROW_RETURN
+    Pointer operator->() const { return &(operator*()); }
+    #endif
+
+    self& operator++ ()    { --current; return *this;                 }
+    self  operator++ (int) { self tmp = *this; --current; return tmp; }
+    self& operator-- ()    { ++current; return *this;                 }
+    self  operator-- (int) { self tmp = *this; ++current; return tmp; }
+};
+
+template <class BidirectionalIterator, class T, class Reference,
+          class Pointer, class Distance>
+inline bool operator== (
+    const reverse_bidirectional_iterator<BidirectionalIterator, T, Reference,
+                                         Pointer, Distance>& x, 
+    const reverse_bidirectional_iterator<BidirectionalIterator, T, Reference,
+                                         Pointer, Distance>& y)
+{
+    return x.current == y.current;
+}
+
+#if !defined(_RWSTD_NO_NAMESPACE) || !defined(_RWSTD_NO_PART_SPEC_OVERLOAD)
+template <class BidirectionalIterator, class T, class Reference,
+          class Pointer, class Distance>
+inline bool operator!= (
+    const reverse_bidirectional_iterator<BidirectionalIterator, T, Reference,
+                                         Pointer, Distance>& x, 
+    const reverse_bidirectional_iterator<BidirectionalIterator, T, Reference,
+                                         Pointer, Distance>& y)
+{
+    return !(x == y);
+}
+#endif
+
+//
+// Reverse iterator.								 
+//
+
+    //
+    // Forward Declarations.
+    //
+#ifdef _RWSTD_NO_UNDEFINED_FRIEND
+template <class RandomAccessIterator, class T, class Reference,
+          class Pointer, class Distance>  class reverse_iterator;
+
+template <class RandomAccessIterator, class T, class Reference, class Pointer, class Distance>
+inline bool operator== (const reverse_iterator<RandomAccessIterator, T,
+                 Reference, Pointer, Distance>& x, 
+                 const reverse_iterator<RandomAccessIterator, T,
+                 Reference, Pointer, Distance>& y);
+
+template <class RandomAccessIterator, class T, class Reference, class Pointer, class Distance>
+inline bool operator< (const reverse_iterator<RandomAccessIterator, T,
+                Reference, Pointer, Distance>& x, 
+                const reverse_iterator<RandomAccessIterator, T,
+                Reference, Pointer, Distance>& y);
+
+template <class RandomAccessIterator, class T, class Reference, class Pointer, class Distance>
+inline Distance operator- (const reverse_iterator<RandomAccessIterator, T,
+                    Reference, Pointer, Distance>& x, 
+                    const reverse_iterator<RandomAccessIterator, T,
+                    Reference, Pointer, Distance>& y);
+
+template <class RandomAccessIterator, class T, class Reference, class Pointer, class Distance>
+inline reverse_iterator<RandomAccessIterator, T, Reference, Pointer, Distance> 
+operator+ (Distance n,
+      const reverse_iterator<RandomAccessIterator, T, Reference, Pointer, Distance>& x);
+#endif
+
+#ifndef _RWSTD_NO_COMPLEX_DEFAULT_TEMPLATES
+#ifndef _RWSTD_NO_CLASS_PARTIAL_SPEC
+template <class RandomAccessIterator, 
+          class T = iterator_traits<RandomAccessIterator>::value_type, 
+          class Reference = T&,
+          class Pointer = T*, class Distance = ptrdiff_t> 
+#else
+template <class RandomAccessIterator, class T, class Reference = T&,
+          class Pointer = T*, class Distance = ptrdiff_t>
+#endif /* _RWSTD_NO_CLASS_PARTIAL_SPEC */
+#else
+template <class RandomAccessIterator, class T, class Reference,
+          class Pointer, class Distance> 
+#endif /* _RWSTD_NO_COMPLEX_DEFAULT_TEMPLATES */
+
+//
+// Reference = T&
+// Distance  = ptrdiff_t
+// Pointer   = T*
+//
+class reverse_iterator : public random_access_iterator<T, Distance>
+{
+    typedef reverse_iterator<RandomAccessIterator,T,Reference,Pointer,Distance> self;
+
+    friend bool operator==    (const self& x, const self& y);
+    friend bool operator<     (const self& x, const self& y);
+    friend Distance operator- (const self& x, const self& y);
+    friend self operator+     (Distance n, const self& x);
+	
+  protected:
+
+    RandomAccessIterator current;
+
+  public:
+
+    typedef RandomAccessIterator iter_type;
+    typedef T value_type;
+    typedef Reference reference_type;
+    typedef Pointer pointer_type;
+    typedef Distance distance_type;
+
+    reverse_iterator() {}
+    _EXPLICIT reverse_iterator (RandomAccessIterator x) : current(x) {}
+    RandomAccessIterator base () const { return current; }
+    Reference operator* () const 
+    { RandomAccessIterator tmp = current; return *--tmp; }
+    #ifndef _RWSTD_NO_NONCLASS_ARROW_RETURN
+    Pointer operator->() const { return &(operator*()); }
+    #endif
+
+    self& operator++ ()    { --current; return *this;                 }
+    self  operator++ (int) { self tmp = *this; --current; return tmp; }
+    self& operator-- ()    { ++current; return *this;                 }
+    self  operator-- (int) { self tmp = *this; ++current; return tmp; }
+
+    self  operator+  (Distance n) const { self tmp(current - n); return tmp; }
+    self& operator+= (Distance n)       { current -= n; return *this;        }
+    self  operator-  (Distance n) const { self tmp(current + n); return tmp; }
+    self& operator-= (Distance n)       { current += n; return *this;        }
+
+    Reference operator[] (Distance n) const { return *(*this + n); }
+};
+
+template <class RandomAccessIterator, class T, class Reference, class Pointer, class Distance>
+inline bool operator== (const reverse_iterator<RandomAccessIterator, T,
+                        Reference, Pointer, Distance>& x, 
+                        const reverse_iterator<RandomAccessIterator, T,
+                        Reference, Pointer, Distance>& y)
+{
+    return x.current == y.current;
+}
+
+template <class RandomAccessIterator, class T, class Reference, class Pointer, class Distance>
+inline bool operator< (const reverse_iterator<RandomAccessIterator, T,
+                       Reference, Pointer, Distance>& x,
+                       const reverse_iterator<RandomAccessIterator, T,
+                       Reference, Pointer, Distance>& y)
+{
+    return y.current < x.current;
+}
+
+#if !defined(_RWSTD_NO_NAMESPACE) || !defined(_RWSTD_NO_PART_SPEC_OVERLOAD)
+template <class RandomAccessIterator, class T, class Reference, class Pointer, class Distance>
+inline bool operator!= (const reverse_iterator<RandomAccessIterator, T,
+                        Reference, Pointer, Distance>& x, 
+                        const reverse_iterator<RandomAccessIterator, T,
+                        Reference, Pointer, Distance>& y)
+{
+    return !(x == y);
+}
+
+template <class RandomAccessIterator, class T, class Reference, class Pointer, class Distance>
+inline bool operator> (const reverse_iterator<RandomAccessIterator, T,
+                       Reference, Pointer, Distance>& x,
+                       const reverse_iterator<RandomAccessIterator, T,
+                       Reference, Pointer, Distance>& y)
+{
+    return y < x;
+}
+
+template <class RandomAccessIterator, class T, class Reference, class Pointer, class Distance>
+inline bool operator<= (const reverse_iterator<RandomAccessIterator, T,
+                       Reference, Pointer, Distance>& x,
+                       const reverse_iterator<RandomAccessIterator, T,
+                       Reference, Pointer, Distance>& y)
+{
+    return !(y < x);
+}
+
+template <class RandomAccessIterator, class T, class Reference, class Pointer, class Distance>
+inline bool operator>= (const reverse_iterator<RandomAccessIterator, T,
+                       Reference, Pointer, Distance>& x,
+                       const reverse_iterator<RandomAccessIterator, T,
+                       Reference, Pointer, Distance>& y)
+{
+    return !(x < y);
+}
+#endif
+
+template <class RandomAccessIterator, class T, class Reference, class Pointer, class Distance>
+inline Distance operator- (const reverse_iterator<RandomAccessIterator, T,
+                           Reference, Pointer, Distance>& x, 
+                           const reverse_iterator<RandomAccessIterator, T,
+                           Reference, Pointer, Distance>& y)
+{
+    return y.current - x.current;
+}
+
+template <class RandomAccessIterator, class T, class Reference, class Pointer, class Distance>
+inline reverse_iterator<RandomAccessIterator, T, Reference, Pointer, Distance> 
+operator+ (Distance n, const reverse_iterator<RandomAccessIterator, T,
+           Reference, Pointer, Distance>& x)
+{
+    return reverse_iterator<RandomAccessIterator, T, Reference, Pointer, Distance>
+    (x.current - n);
+}
+
+//
+// Back insert iterator.
+//
+
+template <class Container>
+class back_insert_iterator : public output_iterator 
+{
+  protected:
+
+    Container& container;
+
+  public:
+    typedef Container container_type;
+    typedef _TYPENAME Container::value_type value_type;
+
+    _EXPLICIT back_insert_iterator (Container& x) : container(x) {}
+    back_insert_iterator<Container>&
+    operator= (const _TYPENAME Container::value_type& value)
+    {
+        container.push_back(value); return *this;
+    }
+    back_insert_iterator<Container>& operator*  ()    { return *this; }
+    back_insert_iterator<Container>& operator++ ()    { return *this; }
+    back_insert_iterator<Container> operator++ (int) { return *this; }
+};
+
+template <class Container>
+inline back_insert_iterator<Container> back_inserter (Container& x)
+{
+    return back_insert_iterator<Container>(x);
+}
+
+//
+// Front insert iterator.
+//
+
+template <class Container>
+class front_insert_iterator : public output_iterator 
+{
+  protected:
+
+    Container& container;
+
+  public:
+    typedef Container container_type;
+    typedef _TYPENAME Container::value_type value_type;
+
+    _EXPLICIT front_insert_iterator (Container& x) : container(x) {}
+    front_insert_iterator<Container>&
+    operator= (const _TYPENAME Container::value_type& value)
+    { 
+        container.push_front(value); return *this;
+    }
+    front_insert_iterator<Container>& operator*  ()    { return *this; }
+    front_insert_iterator<Container>& operator++ ()    { return *this; }
+    front_insert_iterator<Container> operator++ (int) { return *this; }
+};
+
+template <class Container>
+inline front_insert_iterator<Container> front_inserter (Container& x)
+{
+    return front_insert_iterator<Container>(x);
+}
+
+//
+// Insert iterator.
+//
+
+template <class Container>
+class insert_iterator : public output_iterator 
+{
+  private:
+    _TYPENAME Container::iterator iter;
+
+  protected:
+    Container&                   container;
+
+  public:
+    typedef Container container_type;
+    typedef _TYPENAME Container::value_type value_type;
+
+    insert_iterator (Container& x, _TYPENAME Container::iterator i)
+        : container(x), iter(i) {}
+    insert_iterator<Container>&
+    operator= (const _TYPENAME Container::value_type& value)
+    { 
+        iter = container.insert(iter, value); ++iter; return *this;
+    }
+    insert_iterator<Container>& operator*  ()    { return *this; }
+    insert_iterator<Container>& operator++ ()    { return *this; }
+    insert_iterator<Container>& operator++ (int) { return *this; }
+};
+
+template <class Container, class Iterator>
+inline insert_iterator<Container> inserter (Container& x, Iterator i)
+{
+    _TYPENAME Container::iterator c(i);
+    insert_iterator<Container> tmp(x, c);
+    return tmp;
+}
+
+#ifndef _RW_STD_IOSTREAM
+#include <iostream.h>
+
+template <class T> class char_traits;
+class char_traits<char>;
+class char_traits<wchar_t>;
+
+//
+// Stream iterators.
+//
+
+#ifdef _RWSTD_NO_UNDEFINED_FRIEND
+template <class T, class charT, class traits, class Distance>
+class istream_iterator;
+
+template <class T, class charT, class traits, class Distance>
+bool operator== (const istream_iterator<T, charT,traits,Distance>& x,
+                 const istream_iterator<T, charT,traits,Distance>& y);
+#endif
+
+#ifndef _RWSTD_NO_COMPLEX_DEFAULT_TEMPLATES
+template <class T, class charT, 
+          class traits = char_traits<charT>, 
+          class Distance = ptrdiff_t> 
+#else
+template <class T, class charT, class traits, class Distance>
+#endif
+class istream_iterator : public iterator<input_iterator_tag,T,void>
+{
+  friend bool operator== (const istream_iterator<T, charT,traits,Distance>& x,
+                          const istream_iterator<T, charT,traits,Distance>& y);
+protected:
+
+    istream* stream;
+    T        value;
+    bool     end_marker;
+
+    void read ()
+    {
+        end_marker = (*stream) ? true : false;
+        if (end_marker) *stream >> value;
+        end_marker = (*stream) ? true : false;
+    }
+public:
+    typedef T value_type;
+    typedef charT char_type;
+    typedef traits traits_type;
+    typedef istream istream_type;
+
+    istream_iterator () : stream(&cin), end_marker(false) {}
+    istream_iterator (istream& s) : stream(&s) { read(); }
+    istream_iterator ( const istream_iterator<T,charT,traits,Distance>& x )
+    :stream(x.stream) , value(x.value) , end_marker(x.end_marker)
+    { }
+    const T& operator* () const { return value; }
+    #ifndef _RWSTD_NO_NONCLASS_ARROW_RETURN
+    const T* operator->() const { return &value; }
+    #endif
+    istream_iterator<T, charT,traits,Distance>& operator++ ()
+    { 
+        read(); return *this;
+    }
+    istream_iterator<T, charT,traits,Distance> operator++ (int)
+    {
+        istream_iterator<T, charT,traits,Distance> tmp = *this; 
+        read(); 
+        return tmp;
+    }
+};
+
+template <class T, class charT, class traits, class Distance>
+inline bool operator== (const istream_iterator<T, charT,traits,Distance>& x,
+                        const istream_iterator<T, charT,traits,Distance>& y)
+{
+    return x.stream == y.stream && x.end_marker == y.end_marker ||
+           x.end_marker == false && y.end_marker == false;
+}
+
+#if !defined(_RWSTD_NO_NAMESPACE) || !defined(_RWSTD_NO_PART_SPEC_OVERLOAD)
+template <class T, class charT, class traits, class Distance>
+inline bool operator!= (const istream_iterator<T, charT,traits,Distance>& x,
+                        const istream_iterator<T, charT,traits,Distance>& y)
+{
+    return !(x == y);
+}
+#endif
+
+#ifndef _RWSTD_NO_COMPLEX_DEFAULT_TEMPLATES
+template <class T, class charT, 
+          class traits = char_traits<charT> >
+#else
+template <class T, class charT, class traits>
+#endif
+class ostream_iterator : public output_iterator
+{
+protected:
+
+    ostream* stream;
+    const char*    str;
+
+public:
+    typedef T value_type;
+    typedef charT char_type;
+    typedef traits traits_type;
+    typedef ostream istream_type;
+
+    ostream_iterator (ostream& s) : stream(&s), str(0) { ; }
+    ostream_iterator (ostream& s,const char* c) 
+      : stream(&s), str((char *)c)  { ; }
+    ostream_iterator ( const ostream_iterator<T,charT,traits>& x )
+      :stream(x.stream) , str(x.str)
+    { ; }
+    ostream_iterator<T,charT,traits>& operator= (const T& value)
+    { 
+        *stream << value;
+        if (str) *stream << str;
+        return *this;
+    }
+    ostream_iterator<T,charT,traits>& operator*  ()    { return *this; }
+    ostream_iterator<T,charT,traits>& operator++ ()    { return *this; } 
+    ostream_iterator<T,charT,traits>& operator++ (int) { return *this; }
+};
+
+
+#endif /* _RW_STD_IOSTREAM */
+
+
+#ifndef _RWSTD_NO_NAMESPACE
+}
+#endif
+
+#ifdef _RWSTD_COMPILE_INSTANTIATE
+#include <iterator.cc>
+#endif
+
+#endif /* __STD_ITERATOR__ */
+
+
+
+
+
+

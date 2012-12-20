@@ -1,0 +1,6 @@
+#ifndef __CLOCALE
+#	define __CLOCALE
+
+#include <locale.h>
+
+#endif __CLOCALE

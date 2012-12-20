@@ -1,0 +1,129 @@
+ ttl Device Descriptor for SCF serial device
+
+* Copyright 1983, 1984, 1985, 1988, 1991, 1992, 1996 by
+* Microware Systems Corporation.
+* Reproduced Under License.
+
+* This source code is the proprietary confidential property of
+* Microware Systems Corporation, and is provided to licensee
+* solely for documentation and educational purposes. Reproduction,
+* publication, or distribution in any form to any party other
+* than the licensee is prohibited.
+
+********************************
+* Edition History
+*  #   date    comments                                         by
+* -- -------- ------------------------------------------------- ---
+* 00 09-28-83 Converted to 68000 from 6809 source               rfd
+* 00 04-06-84 Added use of TrmDrNam macro for driver name       WGP
+* 01 10-12-84 Added IRQ Level & resesrved bytes.                rfd
+* 02 10-24-84 Changed to "use" file format.                     rfd
+* 03 11-05-84 Inserted macro for descriptor generation.         rfd
+* 04 06-27-85 Added mode byte.									rfd
+*              ---- OS-9/68K V2.1 Release ---- 
+*              ---- OS-9/68K V2.2 Release ---- 
+* 05 05-05-88 fixed DevCon generation (was always 0 before).    wwb
+*              ---- OS-9/68K V2.3 Release ---- 
+*              ---- OS-9/68K V2.4 Release ---- 
+*105 08-30-91 Added KANJI condition								zoo
+*              ---- OS-9/68K V2.4J Release ---- 
+* 06 02-24-92 Merged ed105 into mainstream.                     wwb
+*              ---- OS-9/68k V3.0 released ----
+* 07 07-10-96 Added Append_ to default Mode byte.				wwb
+*              ---- OS-9/68k V3.0.3 released ----
+*              ---- OS-9/68k V3.1 released ----
+*
+Edition equ 7 current edition number
+
+TypeLang set (Devic<<8)+0
+Attr_Rev set (ReEnt<<8)+0
+ psect ScfDesc,TypeLang,Attr_Rev,Edition,0,0
+
+ dc.l Port port address
+ dc.b Vector auto-vector trap assignment
+ dc.b IRQLevel IRQ hardware interrupt level
+ dc.b Priority irq polling priority
+ dc.b Mode Device mode capabilities
+ dc.w FileMgr file manager name offset
+ dc.w DevDrv device driver name offset
+ dc.w DevCon device constants offset
+ dc.w 0,0,0,0 reserved
+ dc.w OptSiz option byte count
+
+* Default Parameters
+Options
+*                                       default
+*       name    function                value
+*     -------- --------------------     -------
+ dc.b DT_SCF   device type              SCF
+ dc.b upclock  upcase lock              OFF
+ dc.b bsb      backspace=BS,SP,BS       ON
+ dc.b linedel  line del/bsp line        OFF
+ dc.b autoecho full duplex              ON
+ dc.b autolf   auto line feed           ON
+ dc.b eolnulls null count               0
+ dc.b pagpause end of page pause        OFF
+ dc.b pagsize  lines per page           24
+ dc.b C$Bsp    backspace char           ^H
+ dc.b C$Del    delete line char         ^X
+ dc.b C$CR     end of record char       <return>
+ dc.b C$EOF    end of file char         ESC
+ dc.b C$Rprt   reprint line char        ^D
+ dc.b C$Rpet   dup last line char       ^A
+ dc.b C$Paus   pause char               ^W
+ dc.b C$Intr   Keyboard Interrupt char  ^C
+ dc.b C$Quit   Keyboard Quit char       ^E
+ dc.b C$Bsp    backspace echo char      ^H
+ dc.b C$Bell   line overflow char       ^G
+ dc.b Parity   stop bits and parity     none
+ dc.b BaudRate bits/char and baud rate  none
+ dc.w EchoNam  offset of echo device    none
+ dc.b C$XOn    Transmit Enable char     ^Q
+ dc.b C$XOff   Transmit Disable char    ^S
+ dc.b C$Tab    tab character            ^I
+ dc.b tabsize  tab column size          4
+ ifdef	KANJI
+ dc.w Kin		Kin    ESC-sequence offset
+ dc.w Kout		Kout   ESC-sequence offset
+ dc.w Kinit		Kinit  ESC-sequence offset
+ dc.w Kreset	Kreset ESC-sequence offset
+ endc	KANJI
+OptSiz equ *-Options
+
+FileMgr dc.b "Scf",0  file manager
+
+* Macro to generate main features of device descriptor
+SCFDesc macro
+ ifne \#-7 must have exactly seven arguments
+ FAIL SCFDesc: must specify all 7 arguments
+ endc
+
+Port     equ \1 Port address
+Vector   equ \2 autovector number
+IRQLevel equ \3 hardware interrupt level 
+Priority equ \4 polling priority
+Parity   equ \5 parity, stop bits
+BaudRate equ \6 baud rate
+DevDrv   dc.b "\7",0 driver module name
+EchoNam equ bname echo device descriptor (self)
+
+ ifdef	KANJI
+ ifndef Kinit
+Kinit	set	0	default values
+ endc
+ ifndef Kreset
+Kreset	set	0
+ endc
+ ifndef Kin
+Kin		set	0
+ endc
+ ifndef Kout
+Kout	set	0
+ endc
+ endc	KANJI
+
+ endm
+
+* default device capabilities (SCF ignores ISize_ and Append_)
+*
+Mode set ISize_+Append_+Updat_ default device mode capabilities

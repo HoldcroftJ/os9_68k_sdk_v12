@@ -1,0 +1,459 @@
+#ifndef __STD_OSTREAM__
+#define __STD_OSTREAM__
+
+/***************************************************************************
+ *
+ * ostream - Declarations for the Standard Library ostream classes
+ *
+ * $Id: ostream,v 1.74 1996/09/24 18:59:20 smithey Exp $
+ *
+ ***************************************************************************
+ *
+ * (c) Copyright 1994-1996 Rogue Wave Software, Inc.
+ * ALL RIGHTS RESERVED
+ *
+ * The software and information contained herein are proprietary to, and
+ * comprise valuable trade secrets of, Rogue Wave Software, Inc., which
+ * intends to preserve as trade secrets such software and information.
+ * This software is furnished pursuant to a written license agreement and
+ * may be used, copied, transmitted, and stored only in accordance with
+ * the terms of such license and with the inclusion of the above copyright
+ * notice.  This software and information or any other copies thereof may
+ * not be provided or otherwise made available to any other person.
+ *
+ * Notwithstanding any other lease or license that may pertain to, or
+ * accompany the delivery of, this computer software and information, the
+ * rights of the Government regarding its use, reproduction and disclosure
+ * are as set forth in Section 52.227-19 of the FARS Computer
+ * Software-Restricted Rights clause.
+ * 
+ * Use, duplication, or disclosure by the Government is subject to
+ * restrictions as set forth in subparagraph (c)(1)(ii) of the Rights in
+ * Technical Data and Computer Software clause at DFARS 252.227-7013.
+ * Contractor/Manufacturer is Rogue Wave Software, Inc.,
+ * P.O. Box 2328, Corvallis, Oregon 97339.
+ *
+ * This computer software and information is distributed with "restricted
+ * rights."  Use, duplication or disclosure is subject to restrictions as
+ * set forth in NASA FAR SUP 18-52.227-79 (April 1985) "Commercial
+ * Computer Software-Restricted Rights (April 1985)."  If the Clause at
+ * 18-52.227-74 "Rights in Data General" is specified in the contract,
+ * then the "Alternate III" clause applies.
+ *
+ **************************************************************************/
+
+#ifndef __STD_RWCOMPILER_H__ 
+#include <stdcomp.h>
+#endif
+
+#include <ios>
+#include <streambuf>
+
+#ifndef _RWSTD_NO_NAMESPACE
+namespace std {
+#endif
+
+extern ostream _RWSTDExport cout;
+extern ostream _RWSTDExport cerr;
+
+#ifndef _RWSTD_NO_WIDE_CHAR
+extern wostream _RWSTDExport wcout;
+extern wostream _RWSTDExport wcerr;
+#endif
+
+template<class charT, class traits>
+class _RWSTDExportTemplate basic_ostream : virtual public basic_ios<charT, traits> {
+
+  public:
+
+      // for simplicity
+    typedef basic_ostream<charT, traits>           ostream_type;
+    typedef basic_ios<charT, traits>               ios_type;
+
+    typedef traits                                 traits_type;
+    typedef charT                                  char_type;
+
+    typedef _TYPENAME traits::int_type              int_type;
+    typedef _TYPENAME traits::pos_type              pos_type;
+    typedef _TYPENAME traits::off_type              off_type;
+
+    _EXPLICIT basic_ostream(basic_streambuf<charT, traits> *sb);
+    virtual ~basic_ostream();
+
+    class sentry {
+                  public:
+
+                    inline _EXPLICIT
+                       sentry(basic_ostream<charT,traits>& stream)
+                       : stream_(stream)                  
+  {  
+			
+                      
+    #ifdef _RWSTD_MULTI_THREAD
+     #ifndef _RWSTD_NO_EXCEPTIONS
+      try {
+     #endif
+      if ( stream.rdbuf() )
+       {
+         _RWSTDGuard* tmp = new _RWSTDGuard(stream.rdbuf()->buffer_mutex_);
+         if ( tmp )
+          stream.ostream_sentry_guard = tmp;
+         else
+          stream.ostream_sentry_guard = 0;
+       }
+    #endif
+
+    if (stream.tie()) 
+     stream.tie()->flush();
+
+      if ( stream.is_synch() )
+      {
+        #ifndef _RWSTD_NO_WIDE_CHAR
+         if ( (((void *)&stream)==((void *)&cout)) || 
+              (((void *)&stream)==((void *)&wcout)) )
+        #else
+         if ( ((void *)&stream)==((void *)&cout) )
+        #endif
+         {
+            fflush(stdout);
+         }
+
+        #ifndef _RWSTD_NO_WIDE_CHAR
+         if ( (((void *)&stream)==((void *)&cerr)) || 
+              (((void *)&stream)==((void *)&wcerr)) ) 
+        #else
+         if ( ((void *)&stream)==((void *)&cerr) )
+        #endif
+         {
+            fflush(stderr);
+         }
+       }
+
+    if ( stream.rdbuf() )
+     {
+       if ( stream.rdbuf()->which_open_mode( ) & ios_base::app )
+        stream.rdbuf()->pubseekoff(0,ios_base::end,ios_base::out);
+     }
+
+     ok_ = stream.good(); 
+
+     if ( !ok_ ) stream.setstate(ios_base::badbit);
+
+     #ifdef _RWSTD_MULTI_THREAD
+      #ifndef _RWSTD_NO_EXCEPTIONS
+       }
+       
+      catch(...)
+       {
+         if ( stream.ostream_sentry_guard )
+          {
+            delete stream.ostream_sentry_guard;
+            stream.ostream_sentry_guard = 0;
+            throw;
+           }
+         }
+       #endif
+      #endif
+
+   }
+
+                    ~sentry() {
+                      if( stream_.flags() & ios_base::unitbuf)
+                       {
+                    	if ( stream_.rdbuf()->pubsync() == -1 )
+                            stream_.setstate(ios_base::badbit);
+                       }
+
+                    if ( stream_.is_synch() )
+                     {
+                      #ifndef _RWSTD_NO_WIDE_CHAR
+                       if ( (((void *)&stream_)==((void *)&cout)) || 
+                            (((void *)&stream_)==((void *)&wcout))||
+                            (((void *)&stream_)==((void *)&cerr)) || 
+                            (((void *)&stream_)==((void *)&wcerr)) ) 
+                      #else
+                       if ( (((void *)&stream_)==((void *)&cout)) ||
+                            (((void *)&stream_)==((void *)&cerr)) ) 
+                      #endif
+                       {
+                         if ( stream_.rdbuf()->pubsync() == -1 )
+                          stream_.setstate(ios_base::badbit);
+                       }
+                      }
+
+                      #ifdef _RWSTD_MULTI_THREAD
+                       if ( stream_.ostream_sentry_guard )
+                        {
+                          delete stream_.ostream_sentry_guard;
+                          stream_.ostream_sentry_guard = 0;
+                        }
+                      #endif
+                    }
+
+                    operator bool () { return ok_; }
+
+                    private:
+
+                     basic_ostream<charT,traits>& stream_;
+                     bool ok_;
+                 };
+
+    ostream_type& operator<<(ostream_type& (*pf)(ostream_type&));
+
+    ostream_type& operator<<(ios_base& (*pf)(ios_base&));
+    ostream_type& operator<<(ios_type& (*pf)(ios_type&));
+
+#ifndef _RWSTD_NO_BOOL
+    ostream_type& operator<<(bool n);
+#endif
+    ostream_type& operator<<(short n);
+    ostream_type& operator<<(unsigned short n);
+    ostream_type& operator<<(int n);
+    ostream_type& operator<<(unsigned int n);
+    ostream_type& operator<<(long n);
+    ostream_type& operator<<(unsigned long n);
+    ostream_type& operator<<(float f);
+    ostream_type& operator<<(double f);
+    ostream_type& operator<<(long double f); 
+
+    ostream_type& operator<<(void *p);
+   
+    ostream_type& operator<<(basic_streambuf<char_type, traits>& sb);
+    ostream_type& operator<<(basic_streambuf<char_type, traits> *sb);
+
+    ostream_type& put(char_type c);
+
+    ostream_type& write(const char_type *s, streamsize n);
+
+    ostream_type& flush();
+
+    ostream_type& seekp(pos_type );
+    ostream_type& seekp(off_type , ios_base::seekdir );
+    pos_type tellp();
+    
+    #ifdef _RWSTD_MULTI_THREAD
+     _RWSTDGuard *ostream_sentry_guard;
+    #endif
+
+  protected:
+
+   basic_ostream();
+ 
+};
+
+//
+// ostream_iterator
+//
+
+template <class T, class charT, class traits>
+class _RWSTDExportTemplate ostream_iterator : public output_iterator
+{
+protected:
+
+    basic_ostream<charT,traits>* stream;
+    const charT*    str;
+
+public:
+    typedef T value_type;
+    typedef charT char_type;
+    typedef traits traits_type;
+    typedef basic_ostream<charT,traits> ostream_type;
+
+    ostream_iterator (basic_ostream<charT,traits>& s) 
+      : stream(&s),str(0) 
+    { ; }
+    ostream_iterator (basic_ostream<charT,traits>& s,const charT* c) 
+      : stream(&s), str((charT *)c)  
+    { ; }
+    ostream_iterator ( const ostream_iterator<T,charT,traits>& x )
+      : stream(x.stream) , str(x.str)
+    { ; }
+    ostream_iterator<T,charT,traits>& operator= (const T& value)
+    { 
+        *stream << value;
+        if (str) *stream << str;
+        return *this;
+    }
+    ostream_iterator<T,charT,traits>& operator*  ()    { return *this; }
+    ostream_iterator<T,charT,traits>& operator++ ()    { return *this; } 
+    ostream_iterator<T,charT,traits>& operator++ (int) { return *this; }
+};
+
+
+#ifndef _RWSTD_NO_COMPLEX_DEFAULT_TEMPLATES
+typedef basic_ostream<char>                           ostream;
+#else
+typedef basic_ostream<char, char_traits<char> >        ostream;
+#endif
+ 
+#ifndef _RWSTD_NO_WIDE_CHAR
+#ifndef _RWSTD_NO_COMPLEX_DEFAULT_TEMPLATES
+typedef basic_ostream<wchar_t>                        wostream;
+#else
+typedef basic_ostream<wchar_t, char_traits<wchar_t> >  wostream;
+#endif
+#endif
+
+// charT and charT* insertors
+
+template<class charT, class traits>
+basic_ostream<charT, traits>& _RWSTDExportTemplate operator<< ( basic_ostream<charT, traits>&, 
+                                           charT );
+
+#ifndef _RWSTD_NO_OVERLOAD_OF_TEMPLATE_FUNCTION
+
+template<class charT, class traits>
+basic_ostream<charT, traits>& _RWSTDExportTemplate operator<< ( basic_ostream<charT, traits>&, 
+                                           char );
+
+#ifndef _RWSTD_NO_FUNC_PARTIAL_SPEC
+template <class traits>
+basic_ostream<char, traits>& _RWSTDExportTemplate operator<< ( basic_ostream<char, traits>&, 
+                                          char );
+#else
+ostream& operator<< ( ostream&, char );
+#endif
+#endif
+
+
+template<class charT, class traits>
+basic_ostream<charT, traits>& _RWSTDExportTemplate operator<< ( basic_ostream<charT, traits>&, 
+                                           const charT* );
+
+#ifndef _RWSTD_NO_OVERLOAD_OF_TEMPLATE_FUNCTION
+
+template<class charT, class traits>
+basic_ostream<charT, traits>& _RWSTDExportTemplate operator<< ( basic_ostream<charT, traits>&, 
+                                           const char* );
+
+#ifndef _RWSTD_NO_FUNC_PARTIAL_SPEC
+template <class traits>
+basic_ostream<char, traits>& _RWSTDExportTemplate operator<< ( basic_ostream<char, traits>&, 
+                                          const char* );
+#else
+ostream& _RWSTDExport operator<< ( ostream&, const char* );
+#endif
+#endif
+
+
+// signed and unsigned insertors
+
+#ifndef _RWSTD_NO_SIGNED_CHAR_IN_STREAMS
+template <class traits>
+basic_ostream<char, traits>& _RWSTDExportTemplate operator<< ( basic_ostream<char, traits>&, 
+                                          unsigned char );
+
+template <class traits>
+basic_ostream<char, traits>& _RWSTDExportTemplate operator<< ( basic_ostream<char, traits>&, 
+                                          signed char );
+
+template <class traits>
+basic_ostream<char, traits>& _RWSTDExportTemplate operator<< ( basic_ostream<char, traits>&,
+                                          const unsigned char* );
+
+template <class traits>
+basic_ostream<char, traits>& _RWSTDExportTemplate operator<< ( basic_ostream<char, traits>&,
+                                          const signed char* );
+#endif
+
+// String insertors
+
+template<class charT, class traits, class Allocator>
+basic_ostream<charT,traits>&
+_RWSTDExportTemplate operator<< ( basic_ostream<charT,traits>& os,
+              const basic_string<charT,traits,Allocator>& str);
+
+
+extern ostream _RWSTDExport cout;
+extern ostream _RWSTDExport cerr;
+extern ostream _RWSTDExport clog;
+
+// declare a couple of standard manipulators
+// global functions
+
+
+#ifdef _MSC_VER
+
+struct endl_type { };
+struct ends_type { };
+struct flush_type { };
+
+extern endl_type _RWSTDExport endl;
+extern ends_type _RWSTDExport ends;
+extern flush_type _RWSTDExport flush;
+
+template<class charT, class traits>
+inline basic_ostream<charT, traits>&
+operator<<(basic_ostream<charT, traits>& os, endl_type)
+{
+  os.put( charT('\n') );
+  os.flush(); 
+
+  return os;
+}
+
+template<class charT, class traits>
+inline basic_ostream<charT, traits>&
+operator<<(basic_ostream<charT, traits>& os, ends_type)
+{
+  os.put( charT(0) );
+  os.flush(); 
+
+  return os;
+}
+
+template<class charT, class traits>
+inline basic_ostream<charT, traits>&
+operator<<(basic_ostream<charT, traits>& os, flush_type)
+{
+  os.flush();
+
+  return os;
+}
+
+#else
+
+template<class charT, class traits>
+inline basic_ostream<charT, traits>&
+endl(basic_ostream<charT, traits>& os)
+{
+  os.put( charT('\n') );
+  os.flush(); 
+
+  return os;
+}
+
+
+template<class charT, class traits>
+inline basic_ostream<charT, traits>&
+ends(basic_ostream<charT, traits>& os)
+{
+  os.put( charT(0) );
+
+  return os;
+}
+
+
+template<class charT, class traits>
+inline basic_ostream<charT, traits>&
+flush(basic_ostream<charT, traits>& os)
+{
+  os.flush();
+
+  return os;
+}
+ 
+#endif // __MSC_VER
+  
+#ifndef _RWSTD_NO_NAMESPACE
+}
+#endif
+
+#ifdef _RWSTD_COMPILE_INSTANTIATE
+#include <ostream.cc>
+#endif
+
+
+
+#endif /* __OSTREAM__ */
+

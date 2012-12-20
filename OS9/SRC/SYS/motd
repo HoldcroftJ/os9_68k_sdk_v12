@@ -1,0 +1,17 @@
+*                ******  WELCOME TO OS-9/68000 V3.1  ******                 *
+*                                                                           *
+*     Thank you for selecting Microware's OS-9/68000 Operating  System.     *
+*     We recommend that you familiarize  yourself  with  OS-9  and  its     *
+*     commands by reading "Using OS-9" and the Release notes for this       *
+*     version  of  the  operating system.                                   *
+*                                                                           *
+*     To  start  with,  attempt just a few simple commands by typing in     *
+*     the following lines:                                                  *
+*                                                                           *
+*          dir                        (listing of current directory)        *
+*          dir -x                     (listing of OS-9/68000 utilities)     *
+*          procs -e                   (status of all processes)             *
+*                                                                           *
+*     These are just two of the utilities supplied with OS-9.  The OS-9     *
+*     utilities are fully explained in the "Using OS-9".                    *
+*

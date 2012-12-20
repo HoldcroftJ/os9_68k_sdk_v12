@@ -1,0 +1,10 @@
+ nam H6 Device Descriptor
+ use defsfile
+
+ use "rbfdesc.a"
+
+DrvNum set 6
+ DiskH6
+Control set Control&(^FmtDsabl) disk is formattable
+Trys set 1
+ ends

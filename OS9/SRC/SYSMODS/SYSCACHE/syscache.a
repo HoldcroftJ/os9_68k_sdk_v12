@@ -1,0 +1,694 @@
+ nam SysCache
+ ttl OS-9/68000 Cache Control Module
+
+*****************************************************************************
+*                                                                           *
+*              Copyright 1998 by Microware Systems Corporation              *
+*                            All Rights Reserved                            *
+*                          Reproduced Under License                         *
+*                                                                           *
+*  This software is confidential property of Microware Systems Corporation, *
+*  and is provided under license for internal development purposes only.    *
+*  Reproduction, publication, modification, distribution, or creation of    *
+*  derivative works in any form to any party other than the Licensee is     *
+*  strictly prohibited, unless expressly provided for under the terms of a  *
+*  mutually executed written license agreement for this software between    *
+*  the end-user and Microware Systems Corporation, or otherwise expressly   *
+*  authorized in writing by Microware Systems Corporation.  Licensee shall  *
+*  reproduce this copyright notice exactly as provided herein on any copies *
+*  of the software that Licensee is authorized to distribute.               *
+*                                                                           *
+*****************************************************************************
+* Edition History
+*  #   date   Comments                                          by
+* -- -------- ------------------------------------------------- ---
+* 01 88/06/03 initial version (moved from "user.a")				wwb
+* 02 88/06/24 added 68030 code, updated for D_CachMode.			wwb
+* 03 88/06/28 added smart cache control code.					wwb
+* 04 88/07/11 updated for F$CCtl always being Extens defined.	wwb
+* 05 88/07/12 merged "cache.d" defs into this file.				wwb
+* 06 88/07/13 updated to guarantee that mode passed to user		wwb
+*             macro is precise.
+* 07 88/07/14 efficiency pass, added User/System State modes.	wwb
+* 08 88/07/22 made init routine enable the caches.				wwb
+* 09 88/08/10 fixed conditional problem (no code changes).		wwb
+* 10 88/08/11 absorbed into standard kernel 020/030 release.	rfd
+*              ---- OS-9/68K V2.3 Release ---- 
+*              ---- CD-RTOS V1.1 Release ----
+*              ---- OS-9/68K V2.4 Release ---- 
+* 11 91/01/30 added 68040 support.                              wwb
+* 12 91/01/31 added cinva code to Init routine, added DATABUG   wwb
+*             conditionals for data-caching problem.
+* 13 91/02/18 moved 040 macros into 68040.m.					wwb
+*              ---- OS-9/68K V2.4 68040 Release ---- 
+* 14 91/07/26 removed reliance on "68040.m" file (new '040 asm) wwb
+*              ---- OS-9/68K V2.4.3 Release ---- 
+* 15 92/02/13 added "nop's" after pushing.						wwb
+* 16 93/03/31 removed ERRATA040 conditionals (but not the		wwb
+*             code) - always needed for old mask support.
+*             made sure that stack always long-aligned.			wwb
+* 17 93/09/15 added 68349 support.								wwb
+*    93/09/21 updated for correct data book info, now uses		wwb
+*             cache349.d defs.
+*    93/09/23 debugged 68349 case.								wwb
+* 18 93/09/27 reworked for cache349.d->cic349.d.				wwb
+*              ---- OS-9/68k V3.0 Release ----
+* 19 94/10/04 initial 68060 version.							wwb
+* 20 95/01/16 added branch cache enable, more 68060 defs.		wwb
+* 21 95/01/18 bra cache now tracks i-cache enable, store		wwb
+*             buffer tracks d-cache.
+* 22 95/01/20 fixed typo from ed.21.							wwb
+* 23 95/02/11 added V3.0.2 release comments, cleaned up.		wwb
+*				---- OS-9/68K V3.0.2 Beta Release ----
+*				---- OS-9/68K V3.0.2 Beta_2 Release ----
+*				---- OS-9/68K V3.0.2 Release ----
+* 24 97/08/21 updated for "fastboot" functionality.				wwb
+* 25 98/09/08 Added new copyright info.							wwb
+*				---- OS-9/68K V3.1 Release ----
+*    $$                    <RELEASE_INFO>                     $$   *
+*
+Edition equ 25 current edition number
+
+
+********************
+* SysCache:
+*
+* This module provides the cache control functions for OS9/68K.
+* It contains the F$CCtl system call, as well as providing
+* a method (via the SYSCACHE macro) to control EXTERNAL cache
+* hardware.
+*
+* If the user requires use of the on-chip cache(s) for 68020/030/040/349
+* systems or if the system has EXTERNAL caching hardware, then this
+* module should be included in the system's bootstrap file.  The
+* "Init" module's "Extens" module list should then be updated to
+* include this module.
+*
+
+
+********************
+* Module Header
+*
+
+Typ_Lang set (Systm<<8)+Objct system module, object code
+Attr_Rev set ((ReEnt+SupStat)<<8)+0 supervisor state, sharable
+
+ psect SysCache,Typ_Lang,Attr_Rev,Edition,0,Init
+
+ use defsfile
+
+
+********************
+* these conditionals allow this file to be used for
+* "external hardware cache" systems.  In these cases
+* this file will "live" in the SYSCACHE directory.
+
+ ifdef CPUTyp
+* enforce compatibility with old style files
+* (used for "external cache" systems).
+ ifeq CPUTyp-68020
+MPU020 set 1 define the label
+ endc 68020
+ ifeq CPUTyp-68030
+MPU030 set 1 define the label
+ endc 68030
+ ifeq CPUTyp-68040
+MPU040 set 1 define the label
+ endc 68040
+ ifeq CPUTyp-68060
+MPU060 set 1 define the label
+ endc 68060
+ ifeq CPUTyp-68349
+MPU349 set 1 define the label
+ endc 68349
+ endc CPUTyp
+
+* now, collect the labels and define whether mpu
+* has a CACR register and/or DATA cache.
+*
+
+ ifdef MPU020
+MPU020.030 set 1
+MPU.CACR set 1 mpu has a cacr
+ endc
+ ifdef MPU030
+MPU020.030 set 1
+MPU.CACR set 1 mpu has a cacr
+MPU.DATA set 1 mpu has a data cache
+ endc
+ ifdef MPU040
+MPU.CACR set 1 mpu has a cacr
+MPU.DATA set 1 mpu has a data cache
+MPU.COPYBACK set 1 mpu can run in copyback mode
+ endc
+ ifdef MPU060
+MPU.CACR set 1 mpu has a cacr
+MPU.DATA set 1 mpu has a data cache
+MPU.BRA set 1 mpu has a branch cache
+MPU.COPYBACK set 1 mpu can run in copyback mode
+MPU.STOREB set 1 mpu has write store buffer
+ endc
+
+ ifndef SYSCACHE
+SYSCACHE macro
+* default "non-external hardware" cache control
+* external h/w systems will define SYSCACHE via the "syscache.m"
+* macro.  This macro should be included via "defsfile"
+ endm
+ endc SYSCACHE
+
+
+ ifdef MPU020.030
+********************
+* 68020/68030 Cache Control Register definitions
+*
+
+* bit numbers
+
+b_ei equ 0 enable instruction cache
+b_fi equ 1 freeze instruction cache
+b_cei equ 2 clear instruction cache entry
+b_ci equ 3 clear instruction cache
+b_ibe equ 4 instruction cache burst enable
+b_ed equ 8 enable data cache
+b_fd equ 9 freeze data cache
+b_ced equ 10 clear data cache entry
+b_cd equ 11 clear data cache
+b_dbe equ 12 data cache burst enable
+b_wa equ 13 data cache write-allocate
+
+CachEnab equ 1<<b_ei enable instruction cache
+CachFrz	equ 1<<b_fi freeze instruction cache
+CachEntClr equ 1<<b_cei clear entry in instruction cache
+CachClr	equ 1<<b_ci clear instruction cache
+CachBurst equ 1<<b_ibe enable instruction cache burst operation
+DCachEnab equ 1<<b_ed enable data cache
+DCachFrz equ 1<<b_fd freeze data cache
+DCachEntClr equ 1<<b_ced clear entry in data cache
+DCachClr equ 1<<b_cd clear data cache
+DCachBurst equ 1<<b_dbe enable data cache burst operation
+DCachWA	equ 1<<b_wa data cache "write-allocate" mode
+
+ ifdef MPU020
+CachOn equ CachEnab default "cache-on" mode for 68020
+ else (68030)
+CachOn equ CachEnab!DCachEnab!DCachWA default "cache-on" mode for 68030
+ endc MPU020
+ endc MPU020.030
+
+ ifdef MPU040
+********************
+* 68040 Cache Control Register definitions
+*
+b_ei equ 15 enable instruction cache
+b_ed equ 31 enable data cache
+
+CachEnab equ 1<<b_ei enable instruction cache
+DCachEnab equ 1<<b_ed enable data cache
+
+ ifdef DATABUG
+CachOn equ CachEnab default "cache-on" mode for 68040
+ else
+CachOn equ CachEnab!DCachEnab default "cache-on" mode for 68040
+ endc DATABUG
+ endc MPU040
+
+
+ ifdef MPU060
+********************
+* 68060 Cache Control Register definitions
+*
+
+* data cache
+*
+b_edc equ 31 enable data cache
+b_nad equ 30 no allocate mode
+b_esb equ 29 enable store buffer
+b_dpi equ 28 disable CPUSH invalidation
+b_foc equ 27 1/2 cache mode
+
+* branch prediction cache
+*
+b_ebc equ 23 enable branch cache
+b_cabc equ 22 clear all entries in branch cache
+b_cubc equ 21 clear all user-state entries in branch cache
+
+* instruction cache
+*
+b_eic equ 15 enable instruction cache
+b_nai equ 14 no allocate mode
+b_fic equ 13 1/2 cache mode
+
+DCachEnab equ 1<<b_edc enable data cache
+DNoAlloc equ 1<<b_nai no allocate mode (d-cache)
+DStoreB equ 1<<b_esb enable store buffer
+DNoInval equ 1<<b_dpi disable CPUSH invalidate
+DHalf equ 1<<b_foc 1/2 cache mode
+
+BCachEnab equ 1<<b_ebc enable branch cache
+BClrAll equ 1<<b_cabc clear all branch cache entries
+BClrUsr equ 1<<b_cubc clear all user-state branch cache entries
+
+CachEnab equ 1<<b_eic enable instruction cache
+NoAlloc equ 1<<b_nai no aloocate mode
+Half equ 1<<b_fic 1/2 cache mode
+
+CachOn equ CachEnab!DStoreB!BCachEnab!DCachEnab default "cache-on" mode for 68060
+ endc MPU060
+
+
+ ifdef MPU349
+********************
+* 68349 Cache Control Definitions
+*
+
+* collect generic CIC (68349) defs
+*
+ use <cic349.d>
+
+INVall equ INV3+INV2+INV1+INV0 invalidate all banks
+
+MDall equ MD3+MD2+MD1+MD0 mode = sram mode, all banks
+
+ endc MPU349
+
+ pag
+********************
+* Entry Point
+*
+* Passed:  (a3) = vsect data ptr
+*          (a6) = system global data ptr
+*          (a7) = (system) stack ptr
+*
+* Returns:  nothing
+*
+* Error Return:  d1.w = error code
+*                (cc) = carry set
+*
+* Destroys:  only d1 and cc may be modified.
+*
+Init: movem.l d2/a1,-(a7) save regs
+ lea.l SvcTbl(pc),a1 get address of service table
+ OS9 F$SSvc install F$CCtl system call
+ bcs.s InitExit ..exit if error
+
+* global cache mode being non-zero indicates bootroms enabled caching
+*
+ move.l D_CachMode(a6),d2 save status of bootrom cache enabling
+
+ ifdef MPU.CACR
+* system MPU has a CACR
+*
+ ifdef MPU030 (68030)
+
+ move.l #CachOn,d0 get 68030 default cacr mode
+ btst.b #B_NoBurst,D_Compat(a6) user disabled cache bursting ?
+ bne.s Init10 ..yes; got the correct value
+ ori.l #DCachBurst+CachBurst,d0 add burst mode control
+Init10 move.l d0,D_CachMode(a6) set cacr mode
+
+ else (68020 or 68040 or 68060)
+
+ move.l #CachOn,D_CachMode(a6) set cacr mode
+
+ endc MPU030
+ 
+ else (non-CACR processor)
+* system mpu does not have a CACR
+*
+ ifdef MPU349
+
+* NOTE: there could be a test here to check that D_MBAR is valid
+* (i.e. non-zero).  D_MBAR contains the Module Base Address
+* and is used to locate the Cache MCR in F$CCtl code.
+* However, it is possible that the address of the module could be
+* 0, so leave test out [Note: D_MBAR is valid from V3.0, and is
+* only used on CPU32-family versions of the kernel].
+*
+ moveq.l #0,d0 sweep register
+ move.b D_Compat2(a6),d0 get cache enable settings
+ andi.b #$f0,d0 mask off non (68349) applicable flags
+ lsr.l #4-b_MD0,d0 move to correct position
+ moveq.l #MDall,d1 presume all banks are SRAM mode
+ eor.w d0,d1 set desired banks into cache mode
+ bset.l #b_ENAB,d1 ensure that enable flag on
+ move.l d1,D_CachMode(a6) set MDx image into globals
+ 
+ endc MPU349
+ 
+ endc MPU.CACR
+
+ clr.l D_DisInst(a6) set instruction disable off
+ clr.l D_DisData(a6) set data disable off
+ tst.l d2 was caching enabled by bootroms?
+ bne.s Init50 ..yes; then don't erase current entries
+
+ ifdef MPU.COPYBACK
+
+ ifdef MPU040
+
+ nop required for coincident table walk (old mask issue)
+
+ endc MPU040
+
+ cinva bc wipe possible dirty data before calling enable/flush
+
+ endc MPU.COPYBACK
+
+ ifdef DATABUG
+
+ move.l #flinst+eninst,d0 enable/flush caches
+
+ else
+
+ move.l #fldata+flinst+endata+eninst,d0 enable/flush caches
+
+ endc DATABUG
+
+ bra.s Init70 continue
+
+* when caches were enabled by bootroms, perform "default" enables
+* so that CACR and D_CachMode are in agreement, and that system
+* runs with correct cache modes (bootrom enabling may not have been optimal)
+*
+Init50 move.l #eninst+endata,d0 just do enabling 
+
+Init70 bsr.s SysCCtl call routine
+ moveq.l #0,d1 ignore errors (sorry)
+
+InitExit: movem.l (a7)+,d2/a1 restore regs (retain Carry)
+ rts return status
+
+SvcTbl: equ *
+ dc.w F$CCtl,UsrCCtl-*-4 cache control (user state)
+ dc.w F$CCtl+SysTrap,SysCCtl-*-4 cache control (system state)
+ dc.w -1 table end
+
+ pag
+********************
+* CachCtl:  control hardware cache(s) for system.
+*           (F$CCtl service call).
+*
+* Passed:  d0.l = cache control action (SysCCtl entry)
+*          (a4) = current process descriptor (UsrCCtl entry)
+*          (a5) = caller's register stack ptr (UsrCCtl entry)
+*                 R$d0(a5) = cache control action
+*          (a6) = system global data ptr
+*
+* Returns:  nothing
+*
+* Error Return:  (cc) = Carry set if error
+*                d1.w = error code
+*
+* Destroys:  May only destroy d0, d1 and ccr
+*
+
+* F$CCtl in User State
+
+UsrCCtl: move.l R$d0(a5),d0 get user parameter
+ move.l d0,d1 copy it
+ andi.l #-1-(fldata+flinst),d1 flush request ?
+ beq.s CachCtl ..yes;  continue
+ tst.w P$User(a4) super group caller ?
+ beq.s SysCCtl ..yes; test all known modes
+
+* return error for disallowed modes
+
+CachErr: move.w #E$Param,d1 error: bad parameter
+ ori.b #Carry,ccr abort
+ rts
+
+SysCCtl: move.l d0,d1 copy passed parameter
+ andi.l #-1-(eninst+disinst+flinst+endata+disdata+fldata),d1 mask off knowns
+ bne.s CachErr ..return error if unsupported modes
+
+* cache control common code
+
+CachCtl: equ *
+
+ ifdef MPU349
+ 
+ movem.l d0/d2/a0,-(a7) make sr space and save regs
+ 
+ else
+
+ subq.l #4,a7 make space for sr save (keep stack long-aligned)
+ 
+ endc MPU349
+
+ move.w sr,0(a7) save current sr
+ ori.w #IntMask,sr mask to level 7 (sorry)
+
+ ifdef MPU349
+
+ moveq.l #0,d1 sweep reg 
+ movea.l D_MBAR(a6),a0 get address of module block
+ move.l CICMCR(a0),d1 get current MCR settings
+
+ else
+
+ move.l D_CachMode(a6),d1 get global cache mode
+ 
+ endc MPU349
+ 
+ endc MPU.CACR
+
+ tst.l d0 "null" parameter passed ?
+ bne.s CCtl50 ..no, go check for specific operations
+
+* here:  d0.l = 0 --> if cache(n) enabled, flush it, else do nothing
+
+ tst.l D_DisInst(a6) instruction caching off ?
+ bne.s CCtl20 ..yes; don't flush it
+ bset.l #b_flinst,d0 indicate instruction flush req'd
+CCtl20 tst.l D_DisData(a6) data cache disabled ?
+ bne.s CCtl22 ..yes; don't flush it
+ bset.l #b_fldata,d0 indicate data flush req'd
+CCtl22 tst.l d0 anything useful ?
+ beq CCtlExit ..no; exit quickly
+ bra.s CCtl58 ..yes; skip enable/disable tests
+
+* decode specific functions
+
+CCtl50 bclr.l #b_eninst,d0 enable instruction cache ?
+ beq.s CCtl52 ..no; skip enabling
+ subq.l #1,D_DisInst(a6) adjust disable depth
+ beq.s CCtl50a became enabled, enable it
+ bcc.s CCtl54 ..still disabled, branch on
+ addq.l #1,D_DisInst(a6) was enabled, so maintain limit
+CCtl50a bset.l #b_eninst,d0 flag instruction cache enabling
+
+ ifdef MPU.CACR
+
+ ifdef MPU.BRA
+
+ ori.l #CachEnab+BCachEnab,d1 enable i-cache and b-cache
+
+ else
+
+ ori.l #CachEnab,d1 enable instruction cache
+
+ endc MPU.BRA
+
+ else
+ 
+ ifdef MPU349
+
+* force MDx and ENAB bits to enable desired cache banks
+*
+ move.b D_CachMode+3(a6),d1 enable active i-caches
+ 
+ endc MPU349
+ 
+ endc MPU.CACR
+
+ bra.s CCtl54
+
+CCtl52 bclr.l #b_disinst,d0 disable instruction cache ?
+ beq.s CCtl54 ..no; skip on
+ addq.l #1,D_DisInst(a6) count disable depth
+ bcc.s CCtl52a ..branch if not at maximum level
+ subq.l #1,D_DisInst(a6) retain maximum disable depth
+CCtl52a bset.l #b_disinst,d0 flag instruction cache disabling
+
+ ifdef MPU.CACR
+
+ ifdef MPU.BRA
+
+ andi.l #^(CachEnab+BCachEnab),d1 disable i-cache and b-cache
+
+ else
+
+ andi.l #^CachEnab,d1 disable active cache banks
+
+ endc MPU.BRA
+
+ else
+ 
+ ifdef MPU349
+
+ move.b #MDall+ENAB,d1 force all banks to SRAM mode
+ 
+ endc MPU349
+ 
+ endc MPU.CACR
+
+CCtl54 bclr.l #b_endata,d0 enable data cache ?
+ beq.s CCtl56 ..no; skip enable
+ subq.l #1,D_DisData(a6) adjust disable depth
+ beq.s CCtl54a became enabled, enable it
+ bcc.s CCtl58 ..still disabled, branch on
+ addq.l #1,D_DisData(a6) was enabled, so maintain limit
+CCtl54a bset.l #b_endata,d0 flag data cache enabling
+
+ ifdef MPU.DATA
+
+ ifdef MPU.STOREB
+
+ ori.l #DCachEnab+DStoreB,d1 enable d-cache and store buffer
+
+ else
+
+ ori.l #DCachEnab,d1 enable data cache
+
+ endc MPU.STOREB
+
+ endc MPU.DATA
+
+ bra.s CCtl58
+
+CCtl56 bclr.l #b_disdata,d0 disable data cache ?
+ beq.s CCtl58 ..no; skip disable
+ addq.l #1,D_DisData(a6) count disable depth
+ bcc.s CCtl56a ..branch if not at maximum level
+ subq.l #1,D_DisData(a6) retain maximum disable depth
+CCtl56a bset.l #b_disdata,d0 flag data cache disabling
+
+ ifdef MPU.DATA
+
+ ifdef MPU.STOREB
+
+ andi.l #^(DCachEnab+DStoreB),d1 disable d-cache and store buffer
+
+ else
+
+ andi.l #^DCachEnab,d1 disable data cache
+
+ endc MPU.STOREB
+
+ endc MPU.DATA
+
+* check for flush cache requests
+
+CCtl58 equ *
+
+ ifdef MPU349
+* don't update D_CachMode: it contains a static image of the active
+* banks only.....
+
+ else
+
+ move.l d1,D_CachMode(a6) update global cache mode
+ 
+ endc MPU349
+
+ tst.l d0 anything useful going on ?
+ beq CCtlExit ..no; exit quickly
+
+ ifdef MPU.CACR
+
+ btst.l #b_flinst,d0 flush instruction cache ?
+ beq.s CCtl60 ..no; got correct code
+
+ ifdef MPU.COPYBACK
+
+ ifdef MPU040
+
+ nop required for coincident table walk (old mask issue)
+
+ endc MPU040
+
+ cpusha ic flush instruction cache
+ nop allow all pending writes to complete (mute point for i-cache)
+
+ else
+
+ ori.w #CachClr,d1 flush instruction cache
+
+ endc MPU.COPYBACK
+ 
+ else
+
+ ifdef MPU349
+
+ moveq.l #0,d2 sweep reg
+ move.b d1,d2 copy current MDx settings
+ eori.b #MDall+ENAB,d2 make INVx mask
+ lsl.l #b_INV0-b_MD0,d2 move to correct position
+ or.l d2,d1 add INVx settings
+ 
+ endc MPU349
+ 
+ endc MPU.CACR
+
+CCtl60 equ *
+
+ ifdef MPU.DATA
+
+ btst.l #b_fldata,d0 flush data cache ?
+ beq.s CCtl62 ..no; got correct code
+
+ ifdef MPU.COPYBACK
+
+ ifdef MPU040
+
+ nop required for coincident table walk (old mask issue)
+
+ endc MPU040
+
+ cpusha dc flush data cache
+ nop allow all pending writes to complete
+
+ else
+
+ ori.w #DCachClr,d1 flush data cache
+
+ endc MPU.COPYBACK
+
+CCtl62 equ *
+
+ endc MPU.DATA
+
+ ifdef MPU.CACR
+
+ movec d1,cacr set on-chip cache mode
+ 
+ else
+ 
+ ifdef MPU349
+ 
+ move.l d1,CICMCR(a0) update cache banks
+ 
+ endc MPU349
+
+ endc MPU.CACR
+
+* external hardware cache control
+* Passed:  d0.l = cache control operations that are requested
+*                 and allowed.
+
+ExtCache: SYSCACHE perform external h/w cache manipulation
+
+CCtlExit: move.w 0(a7),sr restore sr (irq masks)
+ addq.l #4,a7 toss scratch
+ 
+ ifdef MPU349
+ 
+ movem.l (a7)+,d2/a0 restore regs
+ 
+ endc MPU349
+
+ moveq.l #0,d1 no error 
+ rts return (carry clear)
+
+ ends

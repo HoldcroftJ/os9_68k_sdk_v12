@@ -1,0 +1,536 @@
+ nam scpio117
+ ttl parallel interface driver for VME117 printer port
+
+
+* Copyright 1987, 1990, 1991, 1992, 1993 by Microware Systems Corporation
+* Reproduced Under License
+
+* This source code is the proprietary confidential property of
+* Microware Systems Corporation, and is provided to licensee
+* solely for documentation and educational purposes. Reproduction,
+* publication, or distribution in any form to any party other than
+* the licensee is strictly prohibited.
+
+
+********************
+* SCPIO117:  Centronics Parallel Printer Interface driver
+*            for the VME117 CPU.
+
+
+
+********************
+* Edition History:
+*  #   Date    Comments                                         by
+* -- -------- ------------------------------------------------- ---
+* 00 87/01/21 genesis from scpio050.a                           wwb
+* 01 87/01/27 updated for irq pending flags = 0 (MVME117        wwb
+*             manual in error) and debugged.
+*              ---- OS-9/68K V2.0 Release ---- 
+* 02 87/03/23 Changed module attr to Supervisor State process   wwb
+*              ---- OS-9/68K V2.1 Release ---- 
+* 03 87/10/23 Use OS9svc macro instead of OS9call.              wwb
+*              ---- OS-9/68K V2.2 Release ---- 
+*              ---- OS-9/68K V2.3 Release ---- 
+* 04 90-03-05 Changed to check for deadly signal ala 2.4 defs   Rwb
+*              ---- OS-9/68K V2.4 Release ---- 
+*104 91-09-27 Added KANJI condition                             zoo
+*             ---- OS-9/68K V2.4J released ----
+* 05 92-02-24 Merged ed104 into mainstream.                     wwb
+* 06 93/03/22 Reworked to maintain stack alignment and proper 
+*			  handling of the interrupt mask.					afh
+* 07 93/07/01 reworked use pathlists for MWOS structure.		wwb
+*              ---- OS-9/68k V3.0 released ----
+*              ---- OS-9/68k V3.1 released ----
+*
+Edition equ 7 current edition number
+
+
+********************
+* Scpio117 Device Driver
+*
+Typ_Lang set (Drivr<<8)+Objct
+Attr_Rev set ((ReEnt+SupStat)<<8)+0 Attributes and Revision
+
+ psect scpio117,Typ_Lang,Attr_Rev,Edition,0,scpioent
+
+ use defsfile
+
+ ifdef	KANJI
+
+ use "knjwrite.a"
+
+ endc KANJI
+
+ pag
+********************
+* Macro definitions
+*
+
+* dostrobe:  toggle strobe output line
+*
+dostrobe macro to assert/deassert strobe line
+ bclr.b #b_Strobe1,PPCR(a3) assert strobe
+ swap d0 delay about 1uS
+ swap d0
+ bset.b #b_Strobe1,PPCR(a3) negate strobe
+ endm
+
+* Macro:  branch if flag condition true or false
+*
+* Syntax:  true:  bt flag(An),destination
+*         false:  bf flag(An),destination
+*
+* These macros are designed to complement the st/sf instructions,
+* so that flags set by these instructions can be tested and branched
+* against accordingly.
+*
+* Note that two forms of each macro are available:
+* - sbt/sbf use a byte offset for the branch
+* - bt/bf use a word offset for the branch
+*
+sbt macro
+ ifne \#-2
+ fail 'sbt' macro requires two arguments
+ endc
+ tst.b \1 if :\1: is TRUE...
+ bne.s \2 ...then branch to :\2:
+ endm
+
+bt macro
+ ifne \#-2
+ fail 'bt' macro requires two arguments
+ endc
+ tst.b \1 if :\1: is TRUE...
+ bne \2 ...then branch to :\2:
+ endm
+
+sbf macro
+ ifne \#-2
+ fail 'sbf' macro requires two arguments
+ endc
+ tst.b \1 if :\1: is FALSE...
+ beq.s \2 ...then branch to :\2:
+ endm
+
+bf macro
+ ifne \#-2
+ fail 'bf' macro requires two arguments
+ endc
+ tst.b \1 if :\1: is FALSE...
+ beq \2 ...then branch to :\2:
+ endm
+ 
+ use <os9svc.m>
+
+ pag
+********************
+* Definitions
+*
+BuffSize equ 500 I/O buffer size
+
+* device port offsets
+
+BW set BusWidth
+ org 0
+Status do.b BW printer status
+DataPort do.b BW data register
+PPCR do.b BW parallel printer control register
+ do.b BW
+CP0FLAG do.b BW port 0 clear irq on write (Fault condition)
+IRQFLAGS equ CP0FLAG MSR has irq status
+CP1FLAG do.b BW port 1 clear irq on write (ACK condition )
+
+* PPCR definitions
+
+Dir1_In equ %10000000 port 1: direction = i/p
+Strobe1 equ %01000000 port 1: strobe = high
+ILDis1 equ %00100000 port 1: i/p latch disable
+IrqDis1 equ %00010000 port 1: irq disable
+Dir0_In equ %00001000 port 0: direction = i/p
+Strobe0 equ %00000100 port 0: strobe = high
+ILDis0 equ %00000010 port 0: i/p latch disable
+IrqDis0 equ %00000001 port 0: irq disable
+b_Strobe1 equ 6
+b_Strobe0 equ 2
+
+PPCR.On equ Strobe1!ILDis1!Dir0_In!Strobe0!ILDis0 default enable PPCR
+PPCR.Off equ PPCR.On!IrqDis1!IrqDis0 default disable PPCR
+
+* Status definitions
+
+PBusy equ %10000000 printer busy
+PError equ %01000000 printer error (out of paper)
+PSelect equ %00100000 printer select
+PLight equ %00010000 light detect (video error)
+
+b_PBusy equ 7
+b_PError equ 6
+b_PSelect equ 5
+b_PLight equ 4
+
+* IRQ Flag definitions
+*
+* Note:  The MVME117 User Manual conflicts itself on the setting
+* of the Module Status Register bits which indicate whether or not
+* an interrupt is pending for any of the parallel ports.
+* Table 3-4 (which is correct) indicates that a 0 = irq pending.
+* The textual descriptions indicate that 1 = irq pending, which
+* is incorrect!.
+*
+IRQFlg0 equ %01000000 port 0 irq pending if 0
+IRQFlg1 equ %10000000 port 1 irq pending if 0
+b_IRQFlg0 equ 6 port 0 flag as a bit
+b_IRQFlg1 equ 7 port 1 flag as a bit
+
+
+********************
+* Static Storage
+*
+ vsect
+V_BufPtr ds.l 1 i/o buffer ptr
+V_BufEnd ds.l 1 end of buffer ptr
+V_NxtIn ds.l 1 next in ptr
+V_NxtOut ds.l 1 next out ptr
+V_IRQMsk ds.w 1 interrupt mask word
+V_Ready ds.b 1 port ready flag
+V_Data ds.b 1 data in buffer flag
+V_Buffer ds.b BuffSize beginning of buffer
+ ends
+
+
+***************
+* Entry Offset Table
+*
+scpioent dc.w SCInit initialization routine
+ dc.w SCRead read routine
+ ifndef	KANJI
+ dc.w SCWrite write routine
+ dc.w SCGetStt get status routine
+ dc.w SCSetStt set status routine
+ else
+ dc.w WrtKanji kanji write routine
+ dc.w KpGetStt get status routine
+ dc.w KpSetStt set status routine
+ endc KANJI
+ dc.w SCTerm terminate routine
+ dc.w 0 Exception handler entry (0=none)
+ pag
+***************
+* SCInit - initialize hardware
+*
+* Passed: (a1) = device descriptor ptr
+*         (a2) = static storage ptr
+*         (a6) = system global data ptr
+*
+* Returns:  Carry set, d1.w = error code if error
+*
+* Destroys:  a0, a3, d0, d1
+*
+SCInit lea.l V_Buffer(a2),a0 get buffer ptr
+ move.l a0,V_BufPtr(a2) set buffer ptr
+ move.l a0,V_NxtIn(a2) set next in ptr
+ move.l a0,V_NxtOut(a2) set next out ptr
+ lea.l BuffSize(a0),a0 get end of buffer ptr
+ move.l a0,V_BufEnd(a2) set end ptr
+ st.b V_Ready(a2) flag device ready
+ ifdef	KANJI
+ bsr K_Set
+ endc KANJI
+
+* form interrupt mask value.
+* NOTE: the IRQMasking is always performed "outside" of the Interrupt
+* Service context, thus move.w V_IRQMask(a2),sr is ok, as there will not
+* be an accidental stack switch.
+*
+ move.b M$IRQLvl(a1),d2 get irq level
+ asl.w #8,d2 shift into priority
+ move.w sr,d1 get sr (for stack/trace flags)
+ andi.w #IntEnab,d1 clear irq masks
+ or.w d1,d2 form "current stack, irqs masked to this level" value
+ move.w d2,V_IRQMsk(a2) save for future use
+
+* configure device for centronics operation and clear down
+* any pending interrupts
+
+ movea.l V_PORT(a2),a3 get port addr
+ move.w sr,d6 save irq masks
+ move.w d2,sr mask interrupts
+ move.b #PPCR.On,PPCR(a3) enable printer control register
+* start ed.1 changes
+ move.w #$ffff,d2 set time-out factor
+* end ed.1
+SCInit10 movep.w d0,CP0FLAG(a3) clear down pending interrupts
+ nop delay a bit
+ nop
+ move.b IRQFLAGS(a3),d0 read status
+ andi.b #IRQFlg0!IRQFlg1,d0 any flags still set ?
+* start ed.1 changes
+* bne.s SCInit10 ..yes; wait for all to clear
+ dbeq d2,SCInit10 loop till irqs clear or time-out
+* end ed.1
+ move.w d6,sr restore interrupt masks
+
+* add device to system interrupt table
+
+ move.b M$Vector(a1),d0 get vector number
+ move.b M$Prior(a1),d1 get priority
+ lea.l SCIRQ(pc),a0 addr of service routine
+ OS9 F$IRQ Add to irq polling table
+ rts return result
+
+ pag
+********************
+* SCRead - read character from parallel port
+*
+* Passed: (a1) = path descriptor ptr
+*         (a2) = static storage ptr
+*         (a4) = process descriptor ptr
+*         (a6) = system global data pointer
+*
+* Returns: Carry set, (d1.w) = E$EOF
+*
+SCRead move.w #E$EOF,d1 return "End of File" error
+ ori.b #Carry,ccr set carry
+ rts
+
+
+********************
+* SCGetStt - get status routines
+*
+* Passed: (a1) = path descriptor ptr
+*         (a2) = static storage ptr
+*         (a6) = system global data pointer
+*       (d0.w) = function code
+*
+* Returns:  Carry set, d1.w = E$UnkSvc
+*
+SCGetStt move.w #E$UnkSvc,d1 return "Unknown Service Request"
+ ori.b #Carry,ccr set carry
+ rts return
+
+
+********************
+* SCSetStt - set status routines
+*
+* Passed: (a1) = path descriptor ptr
+*         (a2) = static storage ptr
+*         (a6) = system global data pointer
+*       (d0.w) = function code
+*
+* Returns:  Carry set, d1.w = E$UnkSvc
+*
+SCSetStt equ SCGetStt same as get status
+ pag
+********************
+* SCTerm - Terminate processing.  Remove from polling table.
+*
+* Passed: (a1) = device descriptor ptr
+*         (a2) = static storage
+*         (a4) = current process descriptor ptr
+*         (a6) = system global data ptr
+*
+* Returns: none
+*
+SCT_A bsr.s SCSleep wait for port ready
+
+SCTerm movea.l V_PORT(a2),a3 get port address
+ move.w P$ID(a4),d0 get process id
+ move.w d0,V_BUSY(a2) mark user of port...
+ move.w d0,V_LPRC(a2) ..in case of signals
+ move.w sr,d6 save interrupt masks
+ move.w V_IRQMsk(a2),sr mask irqs
+ sbt V_Data(a2),SCT_A wait if buffer not empty
+ move.w d6,sr retrieve interrupt masks
+ 
+SCTerm_B sbf V_Ready(a2),SCTerm_B now, wait for final irq to set port ready
+ move.b #PPCR.Off,PPCR(a3) disable printer port irqs
+ movep.w d0,CP0FLAG(a3) clear down any pending flags 
+ move.b M$Vector(a1),d0 get vector number
+ suba.l a0,a0 set zero address
+ OS9 F$IRQ remove port from polling tbl
+ rts
+ pag
+***************
+* SCSleep - Sleep until port is ready
+*
+* Passed: SR pushed on stack before return
+*         (a1) = path descriptor ptr
+*         (a2) = static storage ptr
+*         (a4) = current process descriptor ptr
+*         (a6) = system global data pointer
+*
+* Returns: Carry = Set if signal error
+*
+* Destroys: a0
+*
+SCSleep move.w V_BUSY(a2),V_WAKE(a2) set wake-up call
+ movea.l (sp)+,a0 return addr
+ move.w d6,sr retrieve interrupt masks
+ movem.l d0/a0,-(sp) save (d0), PC
+ moveq.l #0,d0 wait for signal
+ OS9svc F$Sleep enter dreamland
+ move.w P$Signal(a4),d0 signal waiting?
+ beq.s SCSleep_B ..No; check status 
+ cmpi.w #S$Deadly,P$Signal(a4) deadly signal?
+ blo.s SCSleep_C ..Yes; return error
+SCSleep_B btst.b #Condemn,P$State(a4) has process died?
+ bne.s SCSleep_C ..yes; exit
+ move.l (sp)+,d0 return restore d0, clear carry
+ rts
+
+SCSleep_C move.l (sp)+,d0 restore d0
+ ori.b #Carry,ccr set carry to flag signal/death
+ rts
+ pag
+***************
+* SCWrite - Write one byte to parallel port
+*
+* Passed: (a1) = path descriptor ptr
+*         (a2) = static storage ptr
+*         (a4) = process descriptor ptr
+*         (a6) = system global data pointer
+*       (d0.b) = char to write to port
+*
+* Returns: Carry,d1 set if Error
+*
+* Destroys: d1, a3
+
+SCW_A bsr.s SCSleep wait for port
+ bcs.s SCW_Z abort if error
+ ifdef	KANJI
+Write:
+ endc KANJI
+SCWrite movea.l V_PORT(a2),a3 get port ptr
+ move.w sr,d6 save interrupt masks
+ move.w V_IRQMsk(a2),sr mask irqs
+ sbt V_Ready(a2),SCW_G ..branch if port ready for data
+ sbt V_Data(a2),SCW_E ..branch if data in buffer
+ move.b Status(a3),d1 get port status
+
+* normally, the Busy line will be asserted when the printer is
+* Busy, Deselected or in a Fault condition
+
+ btst.l #b_PBusy,d1 is printer busy ?
+ beq.s SCW_F ..no; must be ready for data
+SCW_E bsr.s BuffIn put byte in buffer
+ bcs.s SCW_A branch if not successful
+ move.w d6,sr retrieve interrupt masks
+ moveq.l #0,d1 clear Carry
+ rts
+
+SCW_F movep.w d0,CP0FLAG(a3) clear irqs
+
+SCW_G sf.b V_Ready(a2) set port not ready
+ move.w d6,sr retrieve interrupt masks
+ move.b d0,DataPort(a3) write byte
+ dostrobe assert port strobe
+SCW_Z rts
+ pag
+********************
+* BuffIn - put character into buffer
+*
+* Passed:  (a1) = path descriptor ptr
+*          (a2) = static storage ptr
+*        (d0.b) = character to buffer
+*
+* Returns:  Carry set if buffer full
+*
+* Destroys: a0
+*
+BuffIn movea.l V_NxtIn(a2),a0 get next in ptr
+ sbf V_Data(a2),BufI_A ..branch if no data in buffer
+ cmpa.l V_NxtOut(a2),a0 is buffer full?
+ bne.s BufI_B branch if not
+ ori.b #Carry,ccr set carry to indicate buffer full
+ rts
+
+BufI_A st.b V_Data(a2) set data in buffer flag
+
+BufI_B move.b d0,(a0)+ put byte in buffer
+ cmpa.l V_BufEnd(a2),a0 end of buffer?
+ bcs.s BufI_C branch if not
+ movea.l V_BufPtr(a2),a0 get buffer ptr
+BufI_C move.l a0,V_NxtIn(a2) update next in ptr
+ rts return carry clear to indicate data stored in buffer
+
+
+********************
+* BuffOut - read character from buffer
+*
+* Passed:  (a1) = path descriptor ptr
+*          (a2) = static storage ptr
+*
+* Returns:  Carry set if buffer empty, else
+*           (d0.b) = character to buffer
+*
+* Destroys: a0
+*
+BuffOut sbt V_Data(a2),BufO_A ..branch if data in buffer
+ ori.b #Carry,ccr set carry to indicate buffer empty
+ rts
+
+BufO_A movea.l V_NxtOut(a2),a0 get next out ptr
+ move.b (a0)+,d0 get byte from buffer
+ cmpa.l V_BufEnd(a2),a0 end of buffer?
+ bcs.s BufO_B branch if not
+ movea.l V_BufPtr(a2),a0 reset next out ptr
+BufO_B move.l a0,V_NxtOut(a2) update next out ptr
+ cmpa.l V_NxtIn(a2),a0 is buffer empty?
+ sne.b V_Data(a2) set data flag accordingly
+ moveq.l #0,d1 clear carry to indicate data available
+ rts
+ pag
+***************
+* SCIRQ - process parallel port interrupt
+*
+* Passed: (a2) = static storage
+*         (a3) = port address
+*         (a6) = system global data pointer
+*
+* Returns:  Carry = Set if interrupt not serviced
+*
+* OS-9/68000 V2.0 Release comments:
+* The kernel only preserves d0,d1,a0,a2,a3 and a6.
+* All other registers used must be preserved by the driver.
+*
+SCIRQ move.b IRQFLAGS(a3),d0 get printer port irq flags
+* start ed.1 changes
+* andi.b #IRQFlg0!IRQFlg1,d0 printer interrupt ?
+* bne.s SCIRQ10 ..yes; continue
+ btst.l #b_IRQFlg1,d0 ack interrupt ?
+ beq.s SCIRQ10 ..yes; away we go
+ btst.l #b_IRQFlg0,d0 what about fault line ?
+ beq.s SCIRQ10 ..yes; then continue
+* end ed.1
+ ori.b #Carry,ccr set carry to indicate "not this device"
+ rts
+
+SCIRQ10 movep.w d0,CP0FLAG(a3) clear interrupts
+ bsr.s BuffOut get byte from buffer
+ bcs.s SCIRQ20 ..branch if empty
+ move.b d0,DataPort(a3) write it
+ bsr.s SCIRQ30 latch the byte
+ 
+ btst.l #b_PBusy,d0 is busy line asserted ?
+ beq.s SCIRQ10 ..no; printer ready for data now, so keep on pumping
+ moveq.l #0,d1 clear carry
+ rts
+
+SCIRQ20 st.b V_Ready(a2) set port ready
+ bra.s SCIRQ40
+
+SCIRQ30 dostrobe strobe the data
+
+SCIRQ40 move.w V_WAKE(a2),d0 is there waiting process?
+ beq.s SCIRQ50 ..no; return
+ clr.w V_WAKE(a2) clear waiting process
+ moveq.l #S$Wake,d1 (wake up)
+* start ed.3 changes
+* OS9call F$Send,a0 wake up waiter
+ OS9svc F$Send wake up waiter
+* end ed.3
+SCIRQ50 move.b Status(a3),d0 return port ready status
+ rts
+
+ ends
+ 

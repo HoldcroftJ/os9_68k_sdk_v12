@@ -1,0 +1,97 @@
+******************************************************************************
+** Boot Sysinit extension module                                            **
+******************************************************************************
+** Copyright 1995, 1996 by Microware Systems Corporation                    **
+** Reproduced Under License                                                 **
+**                                                                          **
+** This source code is the proprietary confidential property of             **
+** Microware Systems Corporation, and is provided to licensee               **
+** solely for documentation and educational purposes. Reproduction,         **
+** publication, or distribution in any form to any party other than         **
+** the licensee is strictly prohibited.                                     **
+******************************************************************************
+* Editon History                                                            **
+*  #    Date      Comments                                      by          **
+* -- --------- ------------------------------------------------ ----------- **
+* 01 95/03/22  Initial version -- initext.a                     rws         **
+* 02 96/05/14  Updated copyright date.                          ats         **
+*              ---- OS-9/68K MC68328 Support Beta1 Release ----             **
+* 03 96/07/09  Changed conditional for abort switch interrupt   ats         **
+*              enabling to be independent of debugger.                      **
+* 04 96/08/02  General cleanup.                                 ats         **
+* 05 99/07/08  Added branch sizing warning for jumptable.       rkw         **
+*              ---- OS-9/68K MC68328 Support Beta2 Release ----             **
+******************************************************************************
+
+Edition equ 4 current edition number
+
+ use <defsfile>
+
+ nam initext.a
+ ttl initext.a - Sysinit extension module
+
+
+Typ_Lang set (Prgrm<<8)+Objct
+Attr_Rev set (ReEnt<<8)+0
+ psect initext,Typ_Lang,Attr_Rev,Edition,0,Entry
+
+*
+* !!Warning!!, the --b option must be passed to assembler to dis-allow the
+* resizing of branches in the below jumptable. This is in the makefile now.
+*
+Entry
+ dc.l 1801546857 sync code
+ bra RP_SInit extension to sysinit
+ bra RP_SInit2 extension to sysinit2
+
+*****************************************************************************
+*  RP_SInit:  extention to SysInit.
+*
+*  This is the routine that is called from SysInit.  The CPU performs
+*  very little before it reaches this routine.  We will set up the 
+*  chip selects so that we have access to the modules, ROM and RAM.
+*
+RP_SInit:
+ rts return to SysInit.
+
+*****************************************************************************
+*  RP_SInit2:  extention to SInitTwo.
+*
+*  This is the routine that is called from SInitTwo.  The CPU has constructed
+*  the RAM vectors ( if included ) and the exception jump tables.  This would
+*  be a place to install handlers for boards that generate unsolicited
+*  interrupts that would cause the system to fail it's boot proceedure.
+*
+RP_SInit2:
+ movem.l d0-d1/a0,-(sp)
+
+*
+*  Configure interrupts
+*
+
+ movea.l #PADIRMap,a0    base address of Parallel Port Module
+
+ ifdef ABORTINT
+*    Configure M68328ADS so that the abort button will generate a 
+*    level 7 interrupt: PC4 must be configured for NMI input
+ andi.b #^SEL4,PCSEL(a0) PC4 configured as NMI (IRQ7) input
+
+ else
+*    Configure M68328ADS so that the abort button will NOT generate a
+*    level 7 interrupt: PC4 must be configured as GPIO
+ ori.b #SEL4,PCSEL(a0) PC4 configured as GPIO -- NMI not used
+
+ endc ABORTINT
+
+ movea.l #SCRMap,a0  address of the System Configuration Register
+ move.b #$18,IVR(a0) interrupt vectors programmed for autovector usage
+ andi.l #^(MASKIRQ1+MASKTMR1),IMR(a0) unmask IRQ1 
+*                    (68681 Debug Port) and Timer 1 IRQ (tick)
+ ifdef ABORTINT
+ andi.l #^(MASKIRQ7),IMR(a0) unmask IRQ7 (abort switch)
+ endc
+ 
+ movem.l (sp)+,d0-d1/a0
+ rts return to SInitTwo.
+ 
+ ends

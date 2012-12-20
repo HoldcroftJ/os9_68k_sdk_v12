@@ -1,0 +1,8 @@
+ nam D1_ED Device Descriptor
+ use defsfile
+
+ use "rbfdesc.a"
+
+DrvNum set 1
+ DiskD1_ED
+ ends

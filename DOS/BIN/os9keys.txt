@@ -1,0 +1,17 @@
+u_char
+u_int8
+u_int16
+u_int32
+u_short
+u_int
+int8
+int16
+int32
+error_code
+process_id
+path_id
+signal_code
+status_code
+alarm_id
+hardware_vector
+prior_level

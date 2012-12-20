@@ -1,0 +1,10 @@
+ nam H2 Physical Device Descriptor
+ use defsfile
+
+ use "rbfdesc.a"
+
+DrvNum set 2
+ DiskH2pfmt
+Control set (Control&(^FmtDsabl))!PhysEnab physical format only
+Trys set 1
+ ends

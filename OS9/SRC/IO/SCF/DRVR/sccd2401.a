@@ -1,0 +1,1505 @@
+ ttl CD2401 SCI Driver
+ nam sccd2401
+
+* Copyright 1991, 1993, 1994 by Microware Systems Corporation
+* Reproduced Under License
+
+* This source code is the proprietary confidential property of
+* Microware Systems Corporation, and is provided to licensee
+* solely for documentation and educational purposes. Reproduction,
+* publication, or distribution in any form to any party other than
+* the licensee is strictly prohibited.
+******************************************************************
+* Edition History
+*
+* #   date      Comments                                              by
+* -- -------- ------------------------------------------------------- ---
+* 00 91/05/10  Created for the mVme167                                Rwb
+* 01 91/09/27  Debugging away.                                        wwb
+* 02 91/09/06  Mods to PILRx, no longer qualifies level again PILRx   Rwb
+* 03 91/09/08  All access to chip now protected by interrupt masking, Rwb
+*              All changes to channel number now have a delay to
+*              allow chip setup time. (no doc to indicate necessary!)
+* 04 91/09/09  Insures channel disabled during ChipSet time.          Rwb
+* 05 91/09/11  Removed test of TISR in TrmNat for transmitter-empty:  wwb
+*              it appears that this reg is only valid during irqs.
+* 06 91/09/12  reworked somewhat for faster operation.                wwb
+* 07 91/09/12  removed all (hopefully) unnecessary irq masking.       wwb
+* 08 91/09/17  small changes.                                         wwb
+* 09 91/09/19  added PCC2 conditionals to service irq enables and     wwb
+*              levels being on external PCC2 ASIC for the MVME167.
+* 10 91/09/24  fixed COR4 fifo threshold initialization.              wwb
+* 11 91/09/25  made terminate ensure all FIFO data sent.              wwb
+* 12 91/09/26  added "Ch_init" after setting asynchronous mode.       wwb
+*              (to overcome Rev F bug: undocumented!)
+* 13 91/09/27  fixed problems with parity/etc in DoConfig.            wwb
+* 14 91/10/14  fixed problem with SS_SSig permutations.               wwb
+* 15 91/10/18  made 1.5 Stop Bits illegal, due to unreliable          wwb
+*              operation on some baud-rates (eg 9600).  Note that
+*              this change can be patched out if req'd.
+* 16 91/12/11  fixed (minor) problem with DevCon offset calcs.        wwb
+*              reworked Terminate routine to attempt to stop loss     wwb
+*              of data (occassional, latest silicon revs).
+*              <<<---- OS-9 V2.4.4 Release ---->>>
+* 17 93/02/10  reworked IRQMask code for MSP support.                 wwb
+* 18 93/03/11  fixed problem from ed.17.                              wwb
+* 19 93/03/31  added nop's after device writes - ensure that '040     wwb
+*              write-buffering does not delay things.
+*              masked irqs during Config.
+*              mask levels forced to 7!!!!
+* 20 93/04/05  undid some of ed.19 changes - ed.19 was created to     wwb
+*              test a system-state time-slice problem.
+* 21 93/06/30  reworked use pathlists for MWOS structure.             wwb
+*              ---- OS-9/68k V3.0 released ----
+* 22 94/04/19  reworked for usage by MVME177.                         wwb
+* 23 94/11/11  initialized TPR Timer Period Register                  jss
+* 24 94/11/15  accepted ed23 changes - removed conditionals from      wwb
+*              original submission. (Thanks JeffS!).
+*              ---- OS-9/68K V3.0.2 Beta released ----
+*              ---- OS-9/68K V3.0.2 Beta_2 released ----
+*              ---- OS-9/68K V3.0.2 Release ----
+*              ---- OS-9/68K V3.1 Release ----
+* 25 99/02/24  Fixed bad send xon test in ssCharCmd (Jeff Skebe)     mgh
+*                removed conditional branches on InHalt that could never
+*                be taken. 
+* 26 99/07/15  Since no HW flow control, assertion of RTS/DTR        rkw
+*                signals added to enable standard cable use.
+*              
+*
+Edition equ 26
+
+***
+**  Programmers Note:  
+*   Since the chip is well defined in terms of shared/private registers
+*   it is more resonable to view the ports as autonomous.  This driver
+*   expects that the low two bits of the address passed to it will encode
+*   the channel number.  The driver further expects to deal only with
+*   a single channel.  The descriptors should reflect the coding of the
+*   channel into the port address.
+*
+*   This driver currently reserves the low byte of the address passed
+*   through V_Port as the channel address.  The channel number should
+*   be passed in the low two bits (for channel 0-3) with the other bits
+*   currently undefined.  
+******
+*	This part consists of real and 'virtual' registers.  Not all registers
+*   are available at all times!   The TDR/RDR and Interrupt registers are
+*   are virtual and available only during Interrupt service.
+*
+*   The CAR (channel active register) is available only during non-interrupt
+*   operation.  You cannot switch channels during the interrupt service.
+******
+* Notes concerning the CD2401 and it's operation:
+*
+*  One of the important notes is that the chip latches the condition of
+*  the FIFOs at the time of the interrupt.  If a character enters the
+*  FIFO between the condition that caused the interrupt and the time
+*  it is serviced, that character is not seen at interrupt service
+*  time.  Further, it is only during interrupt service that the FIFO
+*  register is available for use.
+*
+*  There are a number of bugs in the Rev F parts.
+*     A)  If Transmitter empty is ignored (EOI written, channel interrupt
+*         left enabled) the interrupt condition will not cease.  The 
+*         interrupt must be disabled in order to allow other chip interrupts
+*         to be processed.
+*
+*     B) If the Recevier interrupt is ignored, a simular result to (A) is
+*        seen.
+*
+
+Typ_Lang set (Drivr<<8)+Objct
+Attr_Rev set ((ReEnt+SupStat)<<8)+0 Attributes and Revision
+
+ psect sccd2401,Typ_Lang,Attr_Rev,Edition,0,SCIEnt
+
+ use defsfile
+
+ use <cd2401.d>
+ use <os9svc.m>
+ 
+ pag
+*******************
+* Conditional assembly options
+*
+ ifndef VME167
+VME167 set 167 default value for MVME167 port
+ endc
+
+ ifndef VME177
+VME177 set 177 default value for MVME177 port
+ endc
+
+
+* i/o buffer sizes
+*
+
+ ifndef IOPBUF
+IOPBUF equ 256 default i/p and o/p buffer sizes
+ endc
+
+ ifeq (IOPBUF>>4)
+ fail sccd2401.a: IOPBUF must be greater than 16 characters
+ endc
+
+ ifeq (CPUType-VME167)*(CPUType-VME177)
+
+* VME167/VME177 use PCC2 device to route irqs and set levels
+*
+PCC2 set 1 define the label (value irrelevant)
+
+ endc
+
+
+*******************
+*  Configuration masks and constants
+*
+m_StopBits equ (%11<<4) mask applied to PD_PAR for stop bits
+m_BpChar equ (%11<<2) mask applied to PD_PAR for bits/character
+m_ParBits equ (%11<<0) mask applied to PD_PAR for parity mode
+
+m_Vector equ 3 mask applied to M$Vector
+m_Channel equ 3 mask applied to V_PORT, etc to get channel #
+
+SpecEn equ (1<<b_COR3_fct)+(1<<b_COR3_scde) enable special character handling
+
+NoParity equ ((PAR_nopar<<b_COR1_parmd)+(1<<b_COR1_ignore)) parity off
+ParityOn equ ((PAR_parity<<b_COR1_parmd)&^(1<<b_COR1_ignore)) enable parity
+
+* Timer Period Register Initialization value (NOTE: minimum value = 0x0a)
+* TPRInit = (Prescaler Period)*(SysClk/2048)
+PS_period equ 1 msec
+SysClk equ 20000 KHz
+TPRInit equ PS_period*(SysClk/2000) use nice even number for divisor
+
+* mask which leaves valid receiver exceptions
+*
+m_RxExcp equ (1<<b_RISRl_oe)+(1<<b_RISRl_fe)+(1<<b_RISRl_pe)
+
+* interrupt enables
+*
+RxIntEn equ (1<<b_IER_ret)+(1<<b_IER_rxd)
+TxIntEn equ (1<<b_IER_txmty)+(1<<b_IER_txd)
+
+* Chip Commands
+*
+Rx_en equ (1<<b_CCmdR_enrc) Receiver enable
+Rx_da equ (1<<b_CCmdR_disrc)  Receiver disable
+Tx_en equ (1<<b_CCmdR_entx) Transmitter enable
+Tx_da equ (1<<b_CCmdR_distx)  Transmitter disable
+Ch_init equ (1<<b_CCmdR_initch) Initialize channel parameters
+Ch_clr equ (1<<b_CCmdR_clrch) Clear Channel
+ResetAll equ (1<<b_CCmdR_rstall) Reset ALL channels
+
+* Chip Special Character commands
+*
+SendXON  equ (1<<b_STCR_sndsc)+SSPC_ch1	send an XON character
+SendXOFF equ (1<<b_STCR_sndsc)+SSPC_ch2 send an XOFF character
+
+* i/o buffer definitions
+*
+InpSiz set IOPBUF input buffer size
+OutSiz set IOPBUF output buffer size
+HighMark set (IOPBUF>>3) low-water and high-water are 1/8th of the buffer
+MaxBuff equ InpSiz-HighMark Send XOFF when buffer contains this many
+MinBuff equ HighMark Send XON when buffer contains this few
+
+
+********************
+*
+* Local Macro definitions
+*
+SETCHANNEL macro
+
+* set the active channel # into the CD2401
+*
+* (a2) = driver static storage ptr
+* (a3) = device base address
+*
+ move.b Channel(a2),CAR(a3) set active channel
+ nop
+ nop
+ nop
+ nop allow register set to switch
+ endm
+ 
+
+ pag
+********************
+* Static storage offsets
+
+ vsect
+
+*  dynamic buffer support
+*
+AllBufAd ds.l 1 Address of the allocated buffer
+AllBufSz ds.l 1 The size of buffer allocated (not nessesarily requested size)
+InpBSize ds.w 1 User requested buffer size (+1 for overflow overhead)
+OutBSize ds.w 1 Rounded up size of output buffer (after all allocation made)
+
+InpBufAd ds.l 1 Address of the input buffer
+InFill ds.l 1 input buffer next-in ptr
+InEmpty ds.l 1 input buffer next-out ptr
+InEnd ds.l 1 end of input buffer
+
+OutBufAd ds.l 1 Address of the output buffer
+OutFill ds.l 1 output buffer next-in ptr
+OutEmpty ds.l 1 output buffer next-out ptr
+OutEnd ds.l 1 output buffer end of buffer pointer
+
+* operational variables
+*
+DevBase ds.l 1 device base address (i.e. V_PORT & m_Channel)
+InCount ds.w 1 # of chars in input buffer
+OutCount ds.w 1 # of chars in output buffer
+IRQMask ds.w 1 Interrupt mask word
+SigPrc ds.w 3 SS_SSig info (ProcID, Signal, System Path #)
+InHalt ds.b 1 input halted flag (non-zero if XON has been Sent)
+OutHalt ds.b 1 output IRQ's disabled when non-Zero
+SetGlobal ds.b 1 non-zero if OEM Global flag actually updated
+
+*  current device setup parameters.
+*
+Cur_Baud ds.b 1 Current baud rate value (PD_BAU image)
+Cur_Parity ds.b 1 Current parity value (PD_PAR image)
+ParityMask ds.b 1 Mask value for all incoming characters
+Channel ds.b 1 Channel number on the device.
+ align
+ ends
+
+******************************************************
+* OutHalt bit numbers (causes of disabled output IRQ)
+*
+H_Empty equ 1 output buffer is empty
+
+********************
+* Module header
+*
+SCIEnt
+ dc.w Init
+ dc.w Read
+ dc.w Write
+ dc.w GetStat
+ dc.w PutStat
+ dc.w TrmNat
+ dc.w 0 reserved for exception handler entry
+
+ pag 
+************************************************
+* Init:  Initialize serial device
+*
+* Passed: (a1) = device descriptor address
+*         (a2) = static storage address
+*         (a4) = process descriptor address
+*         (a6) = system global data address
+*
+Init: move.b M$IRQLvl(a1),d2 get irq level
+
+* form interrupt mask value.
+* NOTE: the IRQMasking is always performed "outside" of the Interrupt
+* Service context, thus move.w IRQMask(a2),sr is ok, as there will not
+* be an accidental stack switch.
+*
+ asl.w #8,d2 shift into priority
+ move.w sr,d0 get sr (for stack/trace flags)
+ andi.w #IntEnab,d0 clear irq masks
+ or.w d0,d2 form "current stack, irqs masked to this level" value
+ move.w d2,IRQMask(a2) save for future use
+
+ move.l V_PORT(a2),d0 I/O port address
+ move.b #m_Channel,d1 get channel mask
+ and.b d0,d1 Channel Number from the descriptor
+ move.b d1,Channel(a2) save channel number in static storage
+ move.b #0,d0 Clear channel number out of address
+ movea.l d0,a3 address set for rest of the routines
+ move.l d0,DevBase(a2) save in static storage also
+ bsr.s SetBuffs set the I/O buffers
+ bcs.s InitErEx error setting up the buffers
+ bsr ChipInit preliminary setup for chip (vectors, level)
+ bcs.s InitErEx problem!!
+ move.b PD_PAR-PD_OPT+M$DTyp(a1),d0 get parity byte
+ move.b PD_BAU-PD_OPT+M$DTyp(a1),d1 get baud_rate
+ move.b PD_XON-PD_OPT+M$DTyp(a1),d2 get X-ON character
+ move.b PD_XOFF-PD_OPT+M$DTyp(a1),d3 get X-OFF character
+ bsr DoConfig Force Configuration of the channel
+ bcs.s InitErEx
+
+* these next two lines are atypical:  the initial SetStat(SS_Open)
+* will not have the V_XXX fields initialized, thus DoConfig will
+* occur again.  These next two lines prevent double initialization
+* of the channel.
+*
+ move.b d2,V_XON(a2) set X-ON character in static
+ move.b d3,V_XOFF(a2) set X-OFF character in static
+
+* add device to IRQ polling system
+*
+ move.b M$Vector(a1),d0 get vector # (verified in Config)
+ move.b M$Prior(a1),d1 get the priority
+ lea.l SCIRExcp(pc),a0 IRQ 0: Receiver Exception
+ os9 F$IRQ add to system
+ bcs.s InitErEx ..exit if error
+ addq.b #2,d0
+ lea.l SCITxIRQ(pc),a0 IRQ 2: Transmitter IRQ
+ os9 F$IRQ add to system
+ bcs.s InitErEx ..exit if error
+ addq.b #1,d0
+ lea.l SCIRxIRQ(pc),a0 IRQ 3: Receiver IRQ
+ os9 F$IRQ add to system
+ bcs.s InitErEx ..exit if error
+
+* enable receiver interrupts
+*
+ move.b #RxIntEn,IER(a3) enable receiver interrupts
+ moveq.l #0,d1 return no error
+InitErEx rts
+
+ pag
+********************
+* SetBuffs -- allocate and initialize the buffers
+*    Buffers are dynamically allocated from the system memory pool and
+*    static storage pointers are initialized here.
+*
+*    Characters are now buffered with an individual status for each character.
+*    The buffer for these is maintained without explicit buffer pointers and
+*    this routine will allocate space for the error buffer.
+*
+*  Note:  SCF descriptors will someday contain the buffer sizes,  this routine
+*         can be modified easily to make use of the new descriptors.
+*
+* Passed:  (a2) = static storage address
+*          (a6) = system global data ptr
+*
+* Returns:  buffers allocated and arranged (if no error)
+*           a0, d0, d1 destroyed.
+*
+*
+*
+SetBuffs: move.b #(1<<H_Empty),OutHalt(a2) output IRQ's disabled; buffer empty
+ move.l #InpSiz,d0 requested size by user ( in future, from descriptor )
+ addq.l #1,d0 add 1 byte as overhead for the software overflow protection.
+ move.w d0,InpBSize(a2) preserve the exact size of the buffer
+ lsl.l #1,d0 size of the error status is same as the input buffer
+ addi.l #OutSiz,d0 the requested size by user ( also will be in descriptor )
+ move.l a2,a0 preserve static storage pointer
+ OS9 F$SRqMem allocate the needed buffers
+ exg a0,a2 get static storage pointer back, a0 will be the new buffer
+ bcs.s SetBuffEr some kind of error in allocation!
+ move.l a0,AllBufAd(a2) preserve the block address allocated
+ move.l d0,AllBufSz(a2) preserve the size of the block allocated
+ move.l d0,d1 copy of the size
+
+*  set up the input buffer pointers
+*
+ move.l a0,InpBufAd(a2) input buffer pointer
+ move.l a0,InFill(a2) next input to buffer here
+ move.l a0,InEmpty(a2) next output from buffer here as well
+ move.w InpBSize(a2),d0 get the exact size of the buffer
+ adda.l d0,a0 update pointer to the end of the input buffer
+ sub.l d0,d1 update size remaining 
+ move.l a0,InEnd(a2) save end of the buffer
+
+* the error status buffer is a one:one relationship with the input buffer
+*
+ adda.l d0,a0 update pointer to the end of the error status buffer
+ sub.l d0,d1 update number of bytes remaining
+
+* now set up the output buffer pointers
+*
+ move.l a0,OutBufAd(a2) save pointer to output buffer
+ move.l a0,OutFill(a2) next input to the buffer
+ move.l a0,OutEmpty(a2) next output from the buffer
+ adda.l d1,a0 fix pointer to the end of the buffer...
+ move.l a0,OutEnd(a2) ...and preserve it
+ move.w d1,OutBSize(a2) save exact size of the buffer (rounded up by allocate)
+SetBuffEr: rts if arrives here as result of error - carry and d1 have been set
+
+ pag
+*********************************************
+* ChipInit
+*
+* Passed: (a1) = device descriptor address
+*         (a2) = static storage address
+*         (a3) = I/O port address
+*         (a6) = system global data address
+*
+* Destroys:  d0, d1, d2, d3
+*
+* Error Return:  (cc) = Carry Set
+*                d1.w = error code
+*
+ChipInit: move.b M$IRQLvl(a1),d0 get hardware irq level
+
+* set the IRQ level
+*
+ beq BadParam may not interrupt on level 0!
+ move.w M$DevCon(a1),d1 get pointer to global variable offset
+ beq BadParam must have a DevCon field or error
+
+* validate vector for chip
+*
+ move.b M$Vector(a1),d2 get the vector for this channel
+ move.b #m_Vector,d3 mask for low bits of vector:  Chip supplies low 2 bits ....
+ and.b d2,d3 ... and if they are not clear....
+ bne BadParam ... indicate bad parameter
+
+* check whether full chip init required
+*
+ move.l d7,-(a7) save register
+ move.w sr,d7 save current sr
+ move.w IRQMask(a2),sr mask interrupts during chip init
+ move.b (a1,d1.w),d1 offset to OEM Globals
+ andi.w #$00FF,d1 purify high nibble (rare case)
+ add.w #OEM_Glob,d1 offset from start of Global Data space
+ tst.b (a6,d1.w) have any other channels been initialized ?
+ seq d3 set TRUE if not (full chip init required)
+ addq.b #1,(a6,d1.w) count channel
+ st.b SetGlobal(a2) inform TrmNat routine
+ tst.b d3 need full initialization ?
+ beq.s ChipInit20 ..no; skip chip reset
+ 
+* reset chip channels (all 4)
+*
+ move.b #ResetAll,CCmdR(a3)
+ nop force write to chip
+WaitReset move.w #2047,d0 delay loop to prevent chip timing violation
+
+WaitLoop nop delay a little
+ dbra d0,WaitLoop take a breath
+ tst.b GFRCR(a3) wait for command to complete
+ beq.s WaitReset GFRCR will be non-zero when complete
+
+* set irq level for chip
+*
+ChipInit20 SETCHANNEL set the channel for the work ahead.
+ tst.b d3 doing full initialization ?
+ beq.s ChipInit40 ..no; skip level setting
+
+* set TPR register
+*
+ move.b #TPRInit,TPR(a3) Timer Prescaler Tick Count
+ nop force write to chip
+
+* set PILR registers
+*
+ moveq.l #1,d0 write the PILRx registers as per the PCC description
+ move.b d0,PILR1(a3) Modem/Timer interrupts
+ addq.l #1,d0
+ move.b d0,PILR2(a3) Transmit Interrupts
+ addq.l #1,d0
+ move.b d0,PILR3(a3) Receive Interrupts
+ nop force pending writes to chip
+
+ ifdef PCC2
+
+* setup PCC2 irqs
+*
+* NOTE: we do not perform a check that "subsequent" descriptors have
+*       an M$IRQLvl different from the original descriptor.  As the
+*       irq level cannot be differentiated per channel, we will ignore
+*       the issue.  Put simply, all 4 channels run at the same irq
+*       hardware level and any attempt to change this in the descriptors
+*       will be ignored.
+*
+ moveq.l #0,d0 sweep register
+ move.b M$IRQLvl(a1),d0 get irq level
+ bset.l #b_PCCicr_IEN,d0 set irq enable bit
+ lsl.w #8,d0 form Tx irq control
+ move.b M$IRQLvl(a1),d0 get irq level again
+ bset.l #b_PCCicr_IEN,d0 form Rx irq control
+ move.l d0,PCCchBase+PCCSCErr enable Tx/Rx irqs thru the PCC2
+ nop force write to chip
+
+ endc PCC2
+
+* setup channel mode
+*
+ChipInit40 move.b #CMR_asy,CMR(a3) set chip to asynchronous mode
+ nop force write to chip
+
+* issue "init channel" so that future writes to COR registers
+* have a chance of being interpreted correctly by the silicon.
+*
+ move.b #Ch_init,d0 channel init command
+ bsr.s ChipCommand issue it
+
+* set interrupt vector base for this channel
+*
+ move.b d2,LIVR(a3) set vector base for this channel
+ nop ensure all data written
+ 
+* Assert modem status lines RTS/DTR for given channel, since no HW flow,
+*  they wont be set automatically. At the same time ensure that the 
+*  OPT bit (4) is clear.
+*
+* NOTE: The 167/177 have routed the DTR signal where the RTS signal
+*       normally connects to the VME P2 connector, so any HW flow needs 
+*       to use DTR instead or RTS. RTS is routed to the P2's DTR line on
+*       channels which bring the signal all the way out. 
+*
+*  #3 = b_MSRV_rtso+b_MSRV_dtro+~b_MSRV_dtr
+* 
+ move.b #3,MSVR_RTS(a3)	Cause assertion of RTS for channel
+ move.b #3,MSVR_DTR(a3)  	Cause assertion of DTS for channel
+ nop                        let it happen
+ 
+ move.w d7,sr restore sr
+ move.l (a7)+,d7 restore reg, clear carry
+ rts
+
+* Error conditions for Chip Initialization
+*
+BadParam: move.w #E$Param,d1  Send parameter error back
+ ori.b #Carry,ccr indicate error found
+ rts
+
+ pag
+********************
+*  ChipCommand - send a command to the CD2401 Channel Command register.
+*
+*  Enter:  d0.b = command to send
+*          (a3) = device base address
+*
+*  Note:  CAR (Channel access register) must be set prior to call!
+*         Also, it is assumed that no other commands are currently pending.
+*  
+ChipCommand: move.b d0,CCmdR(a3) send the command to the chip
+ nop force write to chip and delay a little
+ nop delay some more
+ nop delay some more
+ChipCmdWait nop back off chip some
+ nop back off chip some
+ tst.b CCmdR(a3) command still in progress ?
+ bne.s ChipCmdWait wait for command to complete
+ rts
+
+ pag
+***********************************************
+* Config - configuration subroutine
+*
+* Passed: d0.b = parity byte (PD_PAR)
+*         d1.b = baud_rate code (PD_BAU)
+*         d2.b = X-ON character (PD_XON)
+*         d3.b = X-OFF character (PD_OFF)
+*         (a2) = static storage address
+*         (a3) = I/O port address
+*
+* Destroys:  d1
+*
+* the format of PD_PAR is:       the format of PD_BAU is:
+*
+* 7,6 = reserved                 00 = 50 baud
+* 5,4 = 00: 1 stop               01 = 75 baud
+*       01: 1.5 stop             02 = 110 baud
+*       10: 2 stop               03 = 134.5 baud
+*       11: illegal              04 = 150 baud
+* 3,2 = 00: 8 bits               05 = 300 baud
+*       01: 7 bits               06 = 600 baud
+*       10: 6 bits               07 = 1200 baud
+*       11: 5 bits               08 = 1800 baud
+* 1,0 = 00: no parity            09 = 2000 baud
+*       01: odd parity           0A = 2400 baud
+*       10: illegal              0B = 3600 baud
+*       11: even parity          0C = 4800 baud
+*                                0D = 7200 baud
+*                                0E = 9600 baud
+*                                0F = 19200 baud
+*                                10 = 38400 baud
+*                                11 = 56000 baud
+*                                12 = 64000 baud
+*                                FF = external
+*
+Config: cmp.b Cur_Baud(a2),d1 any baud rate change?
+ bne.s DoConfig if yes, go do configuration
+ cmp.b Cur_Parity(a2),d0 else, any parity change?
+ bne.s DoConfig if yes, do the configuration
+ cmp.b V_XON(a2),d2 X-ON character change?
+ bne.s DoConfig if yes, do the configuration
+ cmp.b V_XOFF(a2),d3 X-OFF character change?
+ beq ConfigNX99 if no changes, simply exit
+ 
+DoConfig: movem.l d4-d7/a0,-(a7) save the registers
+ move.w sr,d7 save current sr
+
+* setup COR3 image (stop bits, flow control)
+*
+ moveq.l #0,d5 sweep register
+ move.b d0,d5 copy stop bits passed
+ andi.b #m_StopBits,d5 isolate them
+ lsr.b #4,d5 move to low bits
+ lea.l StopBits(pc),a0 point at stop bits table
+ move.b (a0,d5.w),d5 get COR3 pattern for stop bits
+ bmi ConfigErr ..error if invalid value
+ 
+* see if X-ON/X-OFF requested
+*
+ move.b d2,d4 X-ON character....
+ or.b d3,d4 ...X-OFF character
+ beq.s Cfgnospec if none present...
+
+* X-ON/X-OFF requested, set bits for the register
+*   also, flag bit set (high bit/low word) d5 to indicate COR2 mode.
+*
+ ori.b #SpecEn,d5 flag s/w handshake protocol mode
+
+Cfgnospec: swap d5 save COR3 register value in high word
+
+* set COR1 register image (char size, parity modes)
+*
+ move.w #NoParity,d5 assume parity disabled
+ move.b d0,d6
+ andi.b #m_ParBits,d6 only the parity bits count at this point
+ beq.s Chksize continue if no parity requested
+
+* parity enable request
+*
+ move.w #ParityOn,d5 set parity on
+ cmpi.b #2,d6 is it the one and only illegal value?
+ beq ConfigErr ... yes it is
+ bhi.s Chksize already even parity, continue on
+ bset.l #b_COR1_parity,d5 set odd parity into COR1 register image
+
+* set character frame size
+*
+Chksize: moveq.l #0,d6 sweep register
+ move.b d0,d6 copy char length field
+ andi.b #m_BpChar,d6 isolate it
+ lsr.b #1,d6 ... and move to create index
+*              Note:  only shifts back 1, value * 2 is index for word table
+
+ lea.l BitsPerChar(pc),a0
+ or.b (a0,d6.w),d5 get value for the chip
+ move.b 1(a0,d6.w),d4 get parity mask into d4
+ 
+* At this time:   d4.b = Parity mask for received characters
+*                 d5.l = MSW is COR3 register value (stop bits, flow control)
+*                        LSW is COR1 register value (char size, parity)
+*                 d2.b = X-ON character
+*                 d3.b = X-OFF character
+*
+
+* Now select and verify the requested baud rate (in d1)
+*
+DoBaud: moveq.l #0,d6 sweep register
+ move.b d1,d6 copy baud-rate
+ cmpi.b #MaxBaud,d6 legal baud value ?
+ bhs ConfigErr ..no; exit
+ lea.l BRconst(pc),a0 point at the baud rate table
+ lsl.l #1,d6 fix index because the table is word sized.
+ adda.l d6,a0 point at desired entry
+
+* Set new configuration into the chip
+*
+ChipSet: move.b d0,Cur_Parity(a2) save current parity image (static storage)
+ move.b d1,Cur_Baud(a2) save current baud image (static storage)
+ move.b d4,ParityMask(a2) character mask (static storage)
+ move.w IRQMask(a2),sr mask irqs when configuring chip
+ SETCHANNEL set channel for the work ahead
+ move.b IER(a3),d1 preserve interrupt mask register for later use
+ move.b #Rx_da+Tx_da,d0 channel transmit and receive disable
+ bsr ChipCommand send it off
+ move.b d2,SCHR1(a3) X-ON character 
+ move.b d3,SCHR2(a3) X-OFF character
+ move.b d5,COR1(a3) Set bits/character and parity
+ swap d5
+ move.b d5,COR3(a3) Set the special character handling and stop bits
+ btst.l #b_COR3_scde,d5 Are there truly special characters in use?
+ beq.s ChipSetBaud
+ ori.b #(1<<b_COR2_ibe),COR2(a3) enable In-Band transmition of special chars.
+
+* now set baud rate and clock select
+*
+ChipSetBaud moveq.l #0,d5
+ move.b (a0)+,d5 baud rate value (for the counter)
+ move.b d5,TBPR(a3) transmit rate
+ move.b d5,RBPR(a3) receive rate
+ move.b (a0),d5 clock select register
+ move.b d5,RCOR(a3) clock select in correct place for RCOR
+ lsl.b #b_TCOR_sel,d5 put clock source in correct place for TCOR
+ move.b d5,TCOR(a3) and feed to chip
+ nop force all pending writes to chip
+ nop give chip chance to take data
+ nop give chip chance to take data
+ 
+* set the receiver timeout value
+*  we should set RTPR = ( NOCF * (RBPR + 1) * (2 ^ (2 * CLKSEL)) ) / 256
+*  where NOCF = number of character frames until timeout
+*  and CLKSEL = clock select value (0 - 4)
+ moveq.l #0,d5 clear out register
+ move.b RCOR(a3),d5 read clock select register
+ andi.b #m_RCOR_clks,d5 isolate clock select bits
+ lsl.b #1,d5 multiply by two to get exponent
+ moveq.l #1,d2 mantissa
+ lsl.w d5,d2
+ move.b RBPR(a3),d5 Receive baud rate period
+ addi.b #1,d5
+ mulu d2,d5
+ lsr.w #5,d5 set Receiver timeout to be 8 character frames (= NOCF)
+ move.w d5,RTPR(a3)
+ nop force all pending writes to chip
+ nop give chip chance to take data
+ nop give chip chance to take data
+
+* set the FIFO thresholds
+*
+ move.b COR4(a3),d5 read reg
+ andi.b #^m_COR4_fifot,d5 clear fifo threshold (and thus set to 1)
+ move.b d5,COR4(a3) set it
+ nop force all pending writes to chip
+ nop give chip chance to take data
+ nop give chip chance to take data
+
+* issue "reset and clear channel" as COR1 updated
+*
+ move.b #Rx_en+Tx_en+Ch_init+Ch_clr,d0 channel init/clear/enable command
+ bsr ChipCommand issue it
+ move.b d1,IER(a3) restore interrupt mask value
+ nop force write to chip
+
+** normal exit
+*
+ConfigNX: move.w d7,sr restore sr
+ movem.l (a7)+,d4-d7/a0 Restore used registers
+ConfigNX99 moveq.l #0,d1 clear carry
+  rts
+
+** error exit
+*
+ConfigErr: move.w d7,sr restore sr
+ movem.l (a7)+,d4-d7/a0 Restore used registers
+ move.w #E$BMode,d1 return "bad-mode" error
+ ori.b #Carry,ccr set carry
+ rts
+
+ pag
+********************
+*  Constant Tables for Baud-Rate/Stop Bits/Char Length
+*
+******** baud rate constant table *************
+* Note: an entry of zero for the rate indicates that the
+* rate is not available
+*
+*  Table is caluclated on the basis of the following formula
+*
+*     Value =  ([INCLK (MHz) / CLK Src Divisor] / Baud Rate) - 1
+*
+*  Where:  INCLK is the clock rate supplied to the chip (mVme167: 20MHz)
+*          Clk Src Divisor is a divisor internally defined by the chip
+*               and selectable (i.e. CLK4 := 2048, CLK0 := 8)
+*          Baud Rate is desired transfer rate (i.e. 9600 Baud)
+*
+*  NOTE:  All baud rates are defined but there is a level of "jitter"
+*         at all rates.  The percentage is usually very low and should
+*         not cause serious problems......
+*
+*  Table format:
+*   dc.b <counter value>,<clock select value>
+
+BRconst equ *
+ dc.b $C2,RCOR_CS4   0 50.0
+ dc.b $81,RCOR_CS4   1 75.0
+ dc.b $58,RCOR_CS4   2 110.0
+ dc.b $47,RCOR_CS4   3 134.5
+ dc.b $40,RCOR_CS4   4 150.0
+ dc.b $81,RCOR_CS3   5 300.0
+ dc.b $40,RCOR_CS3   6 600.0
+ dc.b $81,RCOR_CS2   7 1200.0
+ dc.b $55,RCOR_CS2   8 1800.0
+ dc.b $4D,RCOR_CS2   9 2000.0
+ dc.b $40,RCOR_CS2   A 2400.0
+ dc.b $AD,RCOR_CS1   B 3600.0
+ dc.b $81,RCOR_CS1   C 4800.0
+ dc.b $56,RCOR_CS1   D 7200.0
+ dc.b $40,RCOR_CS1   E 9600.0
+ dc.b $81,RCOR_CS0   F 19200.0
+ dc.b $40,RCOR_CS0  10 38400.0
+ dc.b $2C,RCOR_CS0  11 56000.0
+ dc.b $26,RCOR_CS0  12 64000.0
+
+MaxBaud equ (*-BRconst)/2
+
+*
+*  BitsPerChar - This table relates the OS9 bits/character to the
+*     CD2401's bits/character.
+*
+*   Table contains:
+*       dc.b   <length code>, <AND mask for characters received>
+*
+BitsPerChar: equ *
+ dc.b CLEN_8,$FF  8 Bits/Character 
+ dc.b CLEN_7,$7F  7 Bits/Character
+ dc.b CLEN_6,$3F  6 Bits/Character
+ dc.b CLEN_5,$1F  5 Bits/Character
+
+*
+*  StopBits - This table relates the OS9 stop bits to the
+*     CD2401's stop bits
+*
+*   Table contains:
+*       dc.b   <stop bits>
+*
+*   A value of -1 indicates an illegal value
+*
+StopBits: equ *
+ dc.b STOP1 0 = 1 stop bit
+* dc.b STOP15 1 = 1.5 stop bits
+ dc.b -1 1 = 1.5 stop bits: disallow (see ed15 comments)
+ dc.b STOP2 2 = 2 stop bits
+ dc.b -1 3 = illegal value
+ 
+ pag
+*********************************************
+* Read: Return one byte of input from the SCI port
+* Passed: (a1) = Path Descriptor
+*         (a2) = Static Storage address
+*         (a4) = current process descriptor
+*         (a6) = system global ptr
+* Returns: (d0.b) = input char
+*          (cc) = carry set, (d1.w) = error code if error
+*
+Read00 move.w V_BUSY(a2),V_WAKE(a2) arrange wake up signal
+ move.w d6,sr restore sr
+ bsr SCISleep wait for irq/signal
+
+Read: move.w sr,d6 save current IRQ status
+ move.w IRQMask(a2),sr mask IRQs
+ tst.b InHalt(a2) is input halted?
+ ble.s Read_a branch if not
+ cmpi.w #MinBuff,InCount(a2) buffer mostly emptied?
+ bhi.s Read_a ..No; continue
+
+* buffer is lowered to a point where we can accept more characters, send x-on
+*
+ movea.l DevBase(a2),a3 set base address of device
+ SETCHANNEL set channel in use
+ clr.b InHalt(a2) clean up XOFF flag
+Readwt tst.b STCR(a3)
+ bne.s Readwt wait until it's command register ready
+ move.b #SendXON,STCR(a3) send command to output XON
+ nop ensure all data written out to device
+
+Read_a tst.w SigPrc(a2) a process waiting for device?
+ bne.s ErrNtRdy ..Yes; return dormant terminal error
+ tst.w InCount(a2) any data?
+ beq.s Read00 branch if not
+ move.w d6,sr restore sr
+ movea.l InEmpty(a2),a0 point to next char
+ move.b (a0)+,d0 get character
+ subq.w #1,InCount(a2) dec buffer size by one
+ cmpa.l InEnd(a2),a0 at end of buffer?
+ blo.s Read_b branch if not
+ movea.l InpBufAd(a2),a0 point to start of buffer
+Read_b move.l a0,InEmpty(a2) update buffer pointer
+ move.b V_ERR(a2),PD_ERR(a1) copy I/O status to PD
+ beq.s Read90 return if no error
+ clr.b V_ERR(a2)
+ move.w #E$Read,d1 signal read error
+ ori.w #Carry,sr return Carry set
+Read90 rts
+
+ErrNtRdy move.w d6,sr restore irq masks
+ move.w #E$NotRdy,d1 say "Not Ready"
+ ori.b #Carry,ccr return Carry set
+ rts
+
+ pag
+********************************
+* Write
+* Output one character to Mpcc
+* Passed: (d0.b) = char to write
+*         (a1) = Path Descriptor
+*         (a2) = Static Storage address
+*         (a4) = current process descriptor ptr
+*         (a6) = system global data ptr
+* Returns: none
+* Destroys: d2,a0,a1,a3
+*
+* NOTE:  The Transmit Data Register (TDR) is a 'virtual' register.
+*        It may be accessed only during interrupt service!  As such,
+*        this routine will enable the Transmit Interrupt to kick off
+*        output processing.
+*
+Write00 move.w V_BUSY(a2),V_WAKE(a2) arrange wake up signal
+ move.w d6,sr restore sr
+ bsr.s SCISleep sleep a bit
+
+Write: move.w sr,d6 save current IRQ status
+ move.w IRQMask(a2),sr mask IRQs
+ cmpi.w #OutSiz,OutCount(a2) room for more data?
+ bhs.s Write00
+ addq.w #1,OutCount(a2) increment byte count
+ movea.l OutFill(a2),a0 point to next char location
+ move.b d0,(a0)+ store char and inc pointer
+ cmpa.l OutEnd(a2),a0 end of buffer?
+ blo.s Write10 branch if not
+ movea.l OutBufAd(a2),a0 point to start of buffer
+Write10 move.l a0,OutFill(a2) update buffer pointer
+ bclr.b #H_Empty,OutHalt(a2) clear output buffer empty flag
+ beq.s Write80 already enabled, just return
+ movea.l DevBase(a2),a3 set correct chip address
+ SETCHANNEL set channel in use
+ ori.b #TxIntEn,IER(a3) enable the transmit interrupt
+ nop ensure all data written out to device
+Write80 move.w d6,sr unmask IRQs
+ moveq.l #0,d1 clear carry
+ rts
+
+ pag
+*******************************************
+* SCISleep: Sleep until interrupt occurs
+* Passed: (a2) = driver global storage
+*         (a4) = current process descriptor ptr
+* Destroys: possibly PC
+*
+SCISleep: movem.l d0/a0,-(a7) save regs
+ moveq.l #0,d0 sleep indefinately
+ OS9svc F$Sleep wait for input Data (beware: good for Sleep(0) only)
+ move.w P$Signal(a4),d1 signal present?
+ beq.s SCISlpNX ..no; return
+ cmpi.w #S$Deadly,d1 Deadly signal?
+ blo.s SCISlpEX ..yes; return error
+
+* normal exit
+*
+SCISlpNX btst.b #Condemn,P$State(a4) has process died?
+ bne.s SCISlpEX ..Yes; return error
+ movem.l (a7)+,d0/a0
+ rts
+
+* error exit
+*
+SCISlpEX lea 12(a7),a7 Exit to caller's caller
+ ori.b #Carry,ccr return Carry set
+ rts
+
+*********************************************
+* Getstat: Get SCI Status
+*
+* Passed: d0.w = Status Code
+*         (a1) = Path Descriptor
+*         (a2) = Static Storage address
+*         (a4) = Process Descriptor
+*         (a6) = System global data
+*
+GetStat: cmpi.w #SS_Ready,d0 Ready status?
+ beq.s GetStat10
+ cmpi.w #SS_Opt,d0 get options call ?
+ beq.s GetStat20
+ cmpi.w #SS_EOF,d0 End of file?
+ beq.s GetStatNX if yes, exit w/no error
+
+ move.w #E$UnkSvc,d1 Unknown service code
+
+* error exit
+*
+GetStatEX ori.b #Carry,ccr signal error
+ rts
+
+* ready status
+*
+GetStat10 movea.l PD_RGS(a1),a0 get caller's register stack
+ clr.w R$d1(a0) sweep high word of reg
+ move.w InCount(a2),R$d1+2(a0) return input char count to caller
+ bne.s GetStatNX return no error
+ move.w #E$NotRdy,d1 device not ready
+ bra.s GetStatEX
+
+* update path descriptor for currently active baud, parity
+*
+GetStat20 move.b Cur_Baud(a2),PD_BAU(a1) set currently active baud rate
+ move.b Cur_Parity(a2),PD_PAR(a1) set currently active comms mode
+
+* normal exit
+*
+GetStatNX moveq.l #0,d1
+ rts
+
+ pag
+*****************************************
+* Putstat: Put SCI Status
+*
+* Passed: d0.w = Status Code
+*         (a1) = Path Descriptor
+*         (a2) = Static Storage address
+*         (a4) = Process Descriptor
+*         (a6) = System global data
+*
+PutStat: cmpi.w #SS_SSig,d0 signal process when ready?
+ beq.s PutStat10
+ cmpi.w #SS_Relea,d0 Release Device?
+ beq.s PutStat20
+
+* If call is SS_Open or SS_Opt,
+* check if baud/parity/etc.. needs update
+*
+ cmpi.w #SS_Open,d0 new path opened?
+ beq.s PutStat30
+ cmpi.w #SS_Opt,d0 path options change?
+ beq.s PutStat30
+
+ move.w #E$UnkSvc,d1 Unknown service code
+
+* error exit
+*
+PutStatEX ori.b #Carry,ccr signal error
+ rts
+
+** signal process when data ready?
+*
+PutStat10 tst.w SigPrc(a2) somebody already waiting?
+ beq.s PutStat11 no; continue
+
+* someone else already waiting on signal: return error
+*
+ move.w #E$NotRdy,d1 yes; return busy error
+ bra.s PutStatEX
+
+PutStat11 move.w PD_CPR(a1),d0 get caller's process ID
+ movea.l PD_RGS(a1),a0 get caller's register ptr
+ move.w R$d2+2(a0),d1 get signal code
+ move.w sr,d6 save IRQ status
+ move.w IRQMask(a2),sr disable IRQs
+ tst.w InCount(a2) any Data available?
+ bne.s PutStat12 yes, signal Data ready
+ move.w d0,SigPrc(a2) save process ID
+ move.w d1,SigPrc+2(a2) save the desired signal code
+ move.w PD_PD(a1),SigPrc+4(a2) set associated system path #
+ move.w d6,sr restore sr
+ bra.s PutStatNX
+
+PutStat12 move.w d6,sr restore sr
+ bra SendSig send signal and return status
+
+* Release Device?
+*
+PutStat20 move.w SigPrc(a2),d0 get process to signal
+ cmp.w PD_CPR(a1),d0 current process waiting for data?
+ bne.s PutStatNX ..no; just return
+ move.w PD_PD(a1),d0 get the associated path #
+ cmp.w SigPrc+4(a2),d0 is it the correct path ?
+ bne.s PutStatNX ..no; just return
+ clr.w SigPrc(a2) clear down signalling process
+ bra.s PutStatNX
+
+* Check for dynamic configuration change
+*
+PutStat30 movea.l DevBase(a2),a3 set address for the work to be done
+ move.b PD_PAR(a1),d0 get parity byte
+ move.b PD_BAU(a1),d1 get baud_rate
+ movem.l d2-d3,-(a7) save regs
+ move.b PD_XON(a1),d2 get X-ON character (if any)
+ move.b PD_XOFF(a1),d3 get X-OFF character (if any)
+ bsr Config check for reconfiguration
+ movem.l (a7)+,d2-d3 restore regs
+ bcs.s PutStatEX return error if problems
+PutStatNX moveq.l #0,d1 return no error
+ rts
+
+ pag
+***************************************************
+* Subroutine TrmNat: Terminate SCI processing
+*
+* Passed: (a1) = device descriptor pointer
+*         (a2) = static storage
+*         (a4) = current process descriptor ptr
+*         (a6) = system global data ptr
+*
+* Returns: none
+*
+* Enter here if we have to wait for buffer to empty.
+*
+TrmNat00 move.w V_BUSY(a2),V_WAKE(a2) arrange wake up signal
+ move.w d6,sr restore sr
+ pea TrmNat(pc) return to TrmNat in case of signal
+ bsr SCISleep wait for I/O activity
+ lea 4(a7),a7 toss (signal) return address
+
+TrmNat: move.w P$ID(a4),d0 get process id
+ move.w d0,V_BUSY(a2) set it in static
+ move.w d0,V_LPRC(a2)
+ move.w sr,d6 save current IRQ status
+ move.w IRQMask(a2),sr mask IRQs
+ tst.w OutCount(a2) any data?
+ bne.s TrmNat00 ..yes; wait for data to go
+ move.w d6,sr restore sr
+ 
+ movea.l DevBase(a2),a3 set port address
+ SETCHANNEL set to desired channel
+
+* now, loop on "Transmit Empty" irq enable:  it will be cleared out
+* by the Tx IRQ service routine when the FIFO is empty (we can't poll
+* the actual TISR register, as it is only available in "interrupt mode".
+*
+del1 nop delay a little
+ btst.b #b_IER_txmty,IER(a3) wait for buffer empty ( allows last char. out )
+ bne.s del1 loop again if FIFO not empty
+
+*  The FIFOs and buffers are empty, time to disable
+*
+* normally we could just send a disable Rx/Tx command, BUT
+* there seems to be strangeness/timing issues, in that later
+* revs of the silicon seem to have Tx data still pending when
+* the IER_txmty flag is set.   This causes (occassional) loss
+* of the last few Tx characters ("iniz" on the port would
+* fix the problem).
+* So, in an attempt to fix this problem and not deadloop for
+* some arbitrary long time (esp. at low baud rates, we will
+* do separate disables.
+*
+Trmit move.b #Rx_da,d0 stop receiver first (we may be still transmitting)
+ bsr ChipCommand tell the chip
+ move.w #0x100,d0 some small delay factor
+TrmitDel nop provide a small delay also
+ dbra d0,TrmitDel
+ move.b #Tx_da,d0 now stop transmitter
+ bsr ChipCommand tell the chip
+
+ move.b #^(RxIntEn+TxIntEn),d0
+ and.b d0,IER(a3) insure interrupts disabled
+ nop ensure all data written out to device
+ move.b M$Vector(a1),d0 Get first vector for this channel.
+ suba.l a0,a0 0 indicates remove device from polling table
+ os9 F$IRQ remove receiver interrupt entry (ignore error)
+ addq.l #2,d0 next vector in list....
+ os9 F$IRQ remove receiver interrupt entry (ignore error)
+ addq.l #1,d0 ... and final vector for this channel.
+ os9 F$IRQ remove receiver interrupt entry (ignore error)
+
+* now return the buffers to the system if any have been allocated
+*
+ move.l a2,a0 save static storage pointer
+ move.l AllBufAd(a0),d0 pointer to buffer as allocated
+ beq.s TrmNat80 no memory allocated, do not return
+ move.l d0,a2
+ move.l AllBufSz(a0),d0 size of the buffer
+ OS9 F$SRtMem return the buffers to the system
+TrmNat80 exg a0,a2 restore static storage pointer
+
+* now count out this channel on the OEM Global
+*
+ tst.b SetGlobal(a2) was the field updated at Init time?
+ beq.s TrmNat90 ..no; nothing to do
+ move.w M$DevCon(a1),d1 get DevCon offset (SetGlobal implies it is valid)
+ move.b (a1,d1.w),d1 get offset into OEM global area
+ andi.w #$00FF,d1 purify high nibble (rare case)
+ add.w #OEM_Glob,d1 offset from start of system globals
+ subq.b #1,(a6,d1.w) count out this channel
+ bne.s TrmNat90 ..other channels are active, leave
+
+* last usage of channels
+*
+ ifdef PCC2
+
+ move.l #0,PCCchBase+PCCSCErr turn off ALL PCC2 control bits
+ nop ensure all data written out to device
+
+ endc PCC2
+ 
+* reset chip channels (all 4)
+*
+ move.b #ResetAll,CCmdR(a3)
+ nop ensure all data written out to device
+TrmReset move.w #2047,d1 delay loop to prevent chip timing violation
+
+TrmLoop nop delay a little
+ dbra d1,TrmLoop take a breath
+ tst.b GFRCR(a3) wait for command to complete
+ beq.s TrmReset GFRCR will be non-zero when complete
+
+TrmNat90 moveq.l #0,d1 return no error
+ rts
+
+ pag
+******************************************************
+* ExcSVC:  process Receiver Exception interrupt
+*
+* Passed:  (a2) = Static Storage address
+*          (a3) = device base port address
+*          (a6) = system global data address
+*
+* Returns:  ccr = Carry set if interrupt not this channel
+*
+* OS-9/68000 V2.X:
+* The kernel only preserves d0,d1,a0,a2,a3 and a6.
+* All other registers used must be preserved by the driver.
+*
+SCIRExcp: move.b LICR(a3),d0 get irq status
+ lsr.b #2,d0 shift into low bits
+ andi.b #m_Channel,d0 isolate channel bits
+ cmp.b Channel(a2),d0 is the interrupt for this channel?
+ bne.s notus ..no; return to kernel polling system
+ 
+* process receiver exception
+*
+ move.b RISRl(a3),d0 get cause of exception
+ btst.l #b_RISRl_to,d0 was it a receiver timeout?
+ beq.s ExcSVCnotto not a receiver timeout...
+
+* receiver timer has expired, see if data available
+*
+ tst.b RFOC(a3) any characters available?
+ bne.s RxSVC characters available, pump it out!
+ExcSVCnotto: andi.b #m_RxExcp,d0 exceptions that are valid
+ or.b d0,V_ERR(a2) save exception details
+ move.b #(1<<b_REOIR_noxfr),REOIR(a3) signal end of interrupt
+ nop ensure all data written out to device
+ rts return (carry clear)
+
+
+********************
+* notus:  interrupt source is not this channel
+*
+* Returns:  cc = Carry Set
+*
+notus: ori.b #Carry,ccr set not_us flag and leave
+ rts
+
+
+****
+*  ssCharCmd - send a special character 
+*
+*  Enter:  InHalt(a2)  contains the character to send
+*          (a3) hardware address
+*  Exit:  Character sent, registers as passed.
+*
+ssCharCmd: movem.l d0/d1,-(a7) save needed registers
+ bclr.b #Sign,InHalt(a2) insure flag cleared...
+ move.b InHalt(a2),d1 character to send
+ move.b #SendXON,d0 assume X-ON to be sent..
+ cmp.b SCHR1(a3),d1 is it so?
+ beq.s RxSVCsndsc yes, send the X-ON.
+ move.b #SendXOFF,d0 wants X-OFF instead
+
+* send the special character
+*
+RxSVCsndsc move.b d0,STCR(a3) send the command byte to the special character register
+ nop ensure all data written out to device
+*                  *  NOTE:  not waiting until the command completes!
+ movem.l (a7)+,d0/d1
+ rts return to the caller
+
+ pag
+******************************************************
+* SCRxIRQ:  process Receiver Interrupt
+*
+* Passed:  (a2) = Static Storage address
+*          (a3) = device base port address
+*          (a6) = system global data address
+*
+* Returns:  ccr = Carry set if interrupt not this channel
+*
+* OS-9/68000 V2.X:
+* The kernel only preserves d0,d1,a0,a2,a3 and a6.
+* All other registers used must be preserved by the driver.
+*
+SCIRxIRQ: move.b LICR(a3),d0 get irq status
+ lsr.b #2,d0 shift into low bits
+ andi.b #m_Channel,d0 isolate channel bits
+ cmp.b Channel(a2),d0 is the interrupt for this channel?
+ bne.s notus ..no; return to kernel polling system
+ 
+RxSVC: move.l d2,-(a7) will be used for FIFO count
+*
+* Flag bit is never set in InHalt so this code will not be executed
+*
+* tst.b InHalt(a2) X-ON or X-OFF pending?
+* bpl.s RxSVC.0a no, just continue on.
+* bsr.s ssCharCmd send the special character
+RxSVC.0a moveq.l #0,d2 sweep register
+ move.b RFOC(a3),d2 number of characters available at this interrupt
+ subq.l #1,d2 -1 for dbra
+ movea.l InFill(a2),a0 point to current char
+ move.w InCount(a2),d1 get the current number of characters in the buffer
+
+*  grab a character and check for special handling.
+*
+RxSVC.a: move.b RDR(a3),d0 grab a character
+ and.b ParityMask(a2),d0 clean out parity bits if  not masked by chip
+ beq.s RxSVC.b ..NULL, not a special character
+ cmp.b V_INTR(a2),d0 keyboard Interrupt?
+ beq.s InAbort ..Yes
+ cmp.b V_QUIT(a2),d0 keyboard Quit?
+ beq.s InQuit ..Yes
+ cmp.b V_PCHR(a2),d0 keyboard Pause?
+ beq.s InPause ..Yes
+ 
+* NOTE: PD_XON and PD_XOFF are not explicitly checked (as in normal
+*       drivers because we let the chip do the handling.
+
+RxSVC.b addq.w #1,d1 will add one more to buffer if space left....
+ cmpi.w #InpSiz,d1 ...have we overflowed the available space?
+ bhi RxSVCdf ..yes; go dump the current FIFO
+
+ move.b d0,(a0)+ put Data in buffer
+ cmpi.w #MaxBuff,d1 is buffer almost full?
+ blo.s RxSVC.d if not, proceed on
+
+* buffer has reached high water mark
+*
+ tst.b V_XOFF(a2) is there an X-OFF?
+ beq.s RxSVC.d no, just proceed on....
+ tst.b InHalt(a2) have we sent the X-Off as yet?
+ bne.s RxSVC.d yes, already sent 
+ move.b V_XOFF(a2),InHalt(a2) flag input halt (and send X-OFF)
+ bsr ssCharCmd send the special character
+
+* update buffer pointer
+*
+RxSVC.d: cmp.l InEnd(a2),a0 end of buffer?
+ blo.s RxSVC.e branch if not
+ movea.l InpBufAd(a2),a0 point to start of buffer.
+
+RxSVC.e: dbra d2,RxSVC.a while more FIFO data, continue
+
+* have processed all the characters available
+*
+ move.l a0,InFill(a2) update current buffer pointer
+ move.w d1,InCount(a2) update buffer count
+
+ move.b #0,REOIR(a3) signal end of interrupt to the chip
+ nop ensure all data written out to device
+ move.w SigPrc(a2),d0 any process to notify?
+ beq WakeUp ..no special signal code, if sombody awaits, wake them
+ move.w SigPrc+2(a2),d1 get signal code
+ clr.w SigPrc(a2) disable signal sending
+ bsr SendSig signal controlling process
+
+RxSVCexit move.l (a7)+,d2 restore registers
+ rts
+
+ pag 
+********************************
+* Control character routines
+*
+* These routine handle Pause, Abort and Quit functions
+*
+InPause: tst.l V_DEV2(a2) any echo device?
+ beq.s RxSVC.b buffer char and exit if not
+ move.l a1,-(a7) save register
+ movea.l V_DEV2(a2),a1 get echo device static ptr
+ move.b d0,V_PAUS(a1) request pause in echo device
+ movea.l (a7)+,a1 restore register
+ bra.s RxSVC.b buffer char
+
+InAbort: move.l d1,-(a7) save register
+ moveq.l #S$Intrpt,d1 keyboard INTERRUPT signal
+ bra.s InQuit10
+
+InQuit: move.l d1,-(a7) save register
+ moveq.l #S$Abort,d1 Abort signal
+InQuit10 move.l d0,-(a7) save input char also
+ move.w V_LPRC(a2),d0 last process ID
+ beq.s InQuit90 ..none; exit
+ clr.w V_WAKE(a2) signal interrupt serviced
+ bsr SendSig send signal
+InQuit90 movem.l (a7)+,d0/d1 restore input char and InCount
+ bra RxSVC.b buffer char
+
+
+********************
+* RxSVCdf:  "dump FIFO" routine
+*
+* The local buffer has just overflowed.
+* Because the chip has a bug that will not permit the FIFO to be left
+* partially full, we must dump the FIFO now, or loose the next character
+* in because the interrupt will never arrive.
+*
+RxSVCdf.00 move.b RDR(a3),d0 read out one from the FIFO
+ nop delay
+RxSVCdf: dbra d2,RxSVCdf.00 while FIFO has data, empty it
+ bset.b #b_RISRl_oe,V_ERR(a2) signal over-run error to the process
+
+ move.l a0,InFill(a2) update current buffer pointer
+ subq.w #1,d1 uncount last (and lost) character
+ move.w d1,InCount(a2) update buffer count
+ move.b #0,REOIR(a3) signal end of interrupt to the chip
+ nop ensure all data written out to device
+ bra WakeUp and wake any waiting process...
+ 
+ pag
+******************************************************
+* SCTxIRQ:  process Transmitter Interrupt
+*
+* Passed:  (a2) = Static Storage address
+*          (a3) = device base port address
+*          (a6) = system global data address
+*
+* Returns:  ccr = Carry set if interrupt not this channel
+*
+* OS-9/68000 V2.X:
+* The kernel only preserves d0,d1,a0,a2,a3 and a6.
+* All other registers used must be preserved by the driver.
+*
+SCITxIRQ: move.b LICR(a3),d0 get irq status
+ lsr.b #2,d0 shift into low bits
+ andi.b #m_Channel,d0 isolate channel bits
+ cmp.b Channel(a2),d0 is the interrupt for this channel?
+ bne notus ..no; return to kernel polling system
+ 
+ move.l d2,-(a7) save register
+ moveq.l #0,d2 sweep register
+ move.b TFTC(a3),d2 get the free space in the FIFO for this interrupt
+ subq.l #1,d2 -1 for dbra
+*
+* Flag bit is never set in InHalt so this code will not be executed
+*
+* move.b InHalt(a2),d0 send X-ON or X-OFF?
+* bpl.s TxSVC.a branch if not
+* bsr ssCharCmd send the special character then
+
+TxSVC.a move.w OutCount(a2),d1 any data to send?
+ beq.s TxSVCnoxfer
+ movea.l OutEmpty(a2),a0 get pointer to next char to send
+
+TxSVCsnd move.b (a0)+,d0 data from the queue
+ move.b d0,TDR(a3) send data to the chip
+ nop ensure all data written out to device
+ cmpa.l OutEnd(a2),a0 end of buffer?
+ blo.s TxSVCckdn branch if not
+ movea.l OutBufAd(a2),a0 point to start
+
+TxSVCckdn subq.w #1,d1 one less to do
+ beq.s TxSVCdn no more to send to chip
+ dbra d2,TxSVCsnd while FIFO space available, send data
+
+TxSVCdn move.l a0,OutEmpty(a2) update pointer
+ move.w d1,OutCount(a2) update char count
+ move.b #0,TEOIR(a3) tell chip done with IRQ
+ nop ensure all data written out to device
+ cmpi.w #MinBuff,d1 ready for more data?
+ bhi.s Wake90 exit if not
+ bra.s WakeUp just wake up if not
+
+TxSVCnoxfer bset.b #H_Empty,OutHalt(a2) flag halted; buffer empty
+ btst.b #b_TISR_te,TISR(a3) is the FIFO actually empty ?
+ nop ensure all data written out to device
+ beq.s TxSVCnoxfer10 ..no; keep irq enable active
+ andi.b #(^TxIntEn),IER(a3) disable the transmitter interrupts
+ nop ensure all data written out to device
+TxSVCnoxfer10 move.b #(1<<b_TEOIR_noxfr),TEOIR(a3) send EOI to the chip
+ nop ensure all data written out to device
+ 
+WakeUp move.w V_WAKE(a2),d0 Owner waiting?
+ beq.s Wake90 ..no; return
+ clr.w V_WAKE(a2) signal interrupt serviced
+ moveq.l #S$Wake,d1 Wake up signal
+ bsr.s SendSig signal process waiting
+Wake90 move.l (a7)+,d2 restore regs
+ rts return (Carry clear)
+
+
+********************
+* SendSig:  signal waiting process
+*
+* Passed:  d0.w = process id
+*          d1.w = signal to send
+*
+* Returns:  d1.w = error code (if error)
+*           ccr  = Carry set (if error)
+*
+SendSig: OS9svc F$Send signal process
+ rts return status
+
+ ends
+
+

@@ -1,0 +1,136 @@
+
+*
+* int mask_irq(mask) - mask interrupts to level of scsi device
+*
+
+*
+* WARNING - THIS IS 68xxx SPECIFIC CODE
+* Note also that stack is kept long-aligned.
+*
+
+mask_irq:
+ link a5,#0
+ movem.l d0/d1,-(sp) make space and save d1
+ moveq.l #0,d1 sweep reg
+ move.w sr,d1 get current sr
+ andi.w #IntMask,d1 isolate current interrupt mask bits
+ move.l d1,0(sp) return current irq level in d0
+ move.w sr,d1 copy current sr (again)
+ andi.w #IntEnab,d1 clear current irq flags
+ or.w d0,d1 add in desired irq mask level 
+ move.w d1,sr mask interrupts
+ movem.l (sp)+,d0/d1 return original mask
+ unlk a5
+ rts
+
+
+**********************************************
+**   tas - perform a test & set instruction
+**
+**  Usage:  int tas( ptr )
+**    where:   ptr is the address to test and set
+**
+**  Returns:  0 if the bit was not set
+**            1 if the bit was set.
+***********************************************
+tas:
+ move.l a0,-(sp)
+ movea.l d0,a0  the place to work on
+ clr.l d0 assume bit is not set
+ tas (a0)  do it!
+ smi d0 
+ move.l (sp)+,a0
+ rts
+
+
+*****************************************
+**  _fc_tsleep - perform a timed sleep
+**
+_fc_tsleep:
+ move.l d1,-(sp) save destroyed register
+ clr.l d1
+ os9 F$Sleep do it
+ move.l d1,d0 error return
+ move.l (sp)+,d1
+ rts
+
+
+***************************************************
+**  Local copy of T$UMul
+**
+**   Some forms of access reguarding taking the address of a structure
+**      require that a multiply be performed.  In our case, both 
+**      values are 16 bits and hence the 32 bit result is ok.  This
+**      is not a true and complete implimentation of T$UMul!!
+**
+_T$UMul:
+ link a5,#0
+ mulu d1,d0    d1.w * d0.w 
+ unlk a5
+ rts
+
+
+**********************************************************
+**  This function will return a pointer to the sync message
+**      NOTE:   this is called by:   get_syncmess(lst)
+**          the current implimentation does not require 
+**          the pointer to the static storage.
+**
+get_syncmess:
+ move.l a0,-(sp)
+ lea.l syncmess(pc),a0
+ move.l a0,d0
+ move.l (sp)+,a0
+ rts
+
+*  The contents of this small table are:
+*     size, identify, extended mess,#bytes,sync req,clocks,offset,pad
+*
+*  Ed #17 change: The length is changed to 1 so that only the identify
+*                 byte goes out. Setting SYNC during negotiation lets
+*                 the '327 perform the negotiation on it's own.
+*
+syncmess
+ dc.b $01,$80,$01,$03,$01,$40,$4,$0
+
+
+*************************************************************
+**  These are the script tables for the various SCSI commands.
+**     There is a script here for each available command on the
+**     SCSI bus.  Warning: 	not all commands may be here!!
+**
+**   Note:   This table looks roughly like:
+**
+**		extern void script_table();
+**
+
+*  These define the states that are used in the table 
+DO equ 0 data out phase
+DI equ 1 data in phase
+CM equ 2 command out phase
+ST equ 3 status in phase
+MO equ 6 message out phase
+MI equ 7 message in phase
+TM equ 8 script terminator
+UN equ $56 unused element
+
+script_table:
+ dc.b MO,CM,ST,MI,TM,UN,UN,UN * No data transfer script
+ dc.b MO,CM,DI,ST,MI,TM,UN,UN * data in transfer script
+ dc.b MO,CM,DO,ST,MI,TM,UN,UN * data out transfer script
+ dc.b MO,MI,CM,ST,MI,TM,UN,UN * Special script for Sync xfer negotiations
+ 
+
+**************************************
+*  cacheflush() - flush the data cache
+cacheflush: movem.l d0-d1/a6,-(sp)
+ movec vbr,a6 get vector table ptr
+ movea.l (a6),a6 get system globals ptr
+ tst.b D_SnoopD(a6) is the cache "snoopy"?
+ bne.s alldone yes, no need to proceed
+ moveq.l #fldata,d0 shucks, must flush cache
+ os9 F$CCtl so do it
+alldone
+ movem.l (sp)+,d0-d1/a6
+ rts
+

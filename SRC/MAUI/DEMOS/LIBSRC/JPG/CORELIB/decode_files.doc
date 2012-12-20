@@ -1,0 +1,124 @@
+Include files:
+
+jpeglib.h	JPEG library's exported data and function declarations.
+jconfig.h	Configuration declarations.  Note: this file is not present
+		in the distribution; it is generated during installation.
+jmorecfg.h	Additional configuration declarations; need not be changed
+		for a standard installation.
+jerror.h	Declares JPEG library's error and trace message codes.
+jinclude.h	Central include file used by all IJG .c files to reference
+		system include files.
+jpegint.h	JPEG library's internal data structures.
+jdhuff.h	Private declarations for Huffman decoder modules.
+jdct.h		Private declarations for forward & reverse DCT subsystems.
+jmemsys.h	Private declarations for memory management subsystem.
+jversion.h	Version information.
+
+C source code files:
+
+jdapimin.c	Application program interface: core routines for decompression.
+jdapistd.c	Application program interface: standard decompression.
+jcomapi.c	Application program interface routines common to compression
+		and decompression.
+jdtrans.c	API and library routines for transcoding decompression.
+
+jdmaster.c	Master control: determines which other modules to use.
+jdinput.c	Input controller: controls input processing modules.
+jdmainct.c	Main buffer controller (JPEG decompressor => postprocessor).
+jdcoefct.c	Buffer controller for DCT coefficient buffer.
+jdpostct.c	Postprocessor buffer controller.
+jdmarker.c	JPEG marker reading.
+jdhuff.c	Huffman entropy decoding for sequential JPEG.
+jdphuff.c	Huffman entropy decoding for progressive JPEG.
+jddctmgr.c	IDCT manager (IDCT implementation selection & control).
+jidctint.c	Inverse DCT using slow-but-accurate integer method.
+jidctfst.c	Inverse DCT using faster, less accurate integer method.
+jidctflt.c	Inverse DCT using floating-point arithmetic.
+jidctred.c	Inverse DCTs with reduced-size outputs.
+jdsample.c	Upsampling.
+jdcolor.c	Color space conversion.
+jdmerge.c	Merged upsampling/color conversion (faster, lower quality).
+jquant1.c	One-pass color quantization using a fixed-spacing colormap.
+jquant2.c	Two-pass color quantization using a custom-generated colormap.
+		Also handles one-pass quantization to an externally given map.
+jdatasrc.c	Data source manager for stdio input.
+
+jerror.c	Standard error handling routines (application replaceable).
+jmemmgr.c	System-independent (more or less) memory management code.
+jutils.c	Miscellaneous utility routines.
+
+jmemnobs.c	"No backing store": assumes adequate virtual memory exists.
+jmemansi.c	Makes temporary files with ANSI-standard routine tmpfile().
+jmemname.c	Makes temporary files with program-generated file names.
+jmemdos.c	Custom implementation for MS-DOS: knows about extended and
+		expanded memory as well as temporary files.
+
+
+===========================================================
+User interface functions:
+
+
+jpeg_mem_init
+jpeg_mem_available
+jpeg_create_decompress
+jpeg_read_header
+jpeg_start_decompress
+jpeg_read_scanlines
+jpeg_finish_decompress
+jpeg_abort
+jpeg_destroy[_decompress]
+jpeg_stdio_src
+jpeg_std_error
+jpeg_calc_output_dimensions
+jpeg_set_defaults
+jpeg_set_colorspace
+jpeg_default_colorspace
+jpeg_set_quality
+jpeg_set_linear_quality
+jpeg_add_quant_table
+jpeg_simple_progression
+error_exit
+output_message
+format_message
+emit_message
+jpeg_start_output
+jpeg_finish_output
+jpeg_consume_input
+jpeg_input_complete
+jpeg_has_multiple_scans
+===================================================
+Possible API calls:
+
+jpg_init - (jpeg_mem_init, jpeg_std_error) 
+	- initialize JPEG memory and defaults.
+jpg_set_error_level (jpeg_std_error)
+jpg_create_context (jpeg_create_decompress, jpeg_set_defaults) 
+	- create a decompression object, initialize defaults.
+jpg_set_context_*  - set different decomression parameters
+	jpg_set_context_source (jpeg_stdio_src)
+	jpg_set_context_out_colorspace
+	jpg_set_context_quantization
+	jpg_set_context_color_number
+	jpg_set_context_out_width
+	jpg_set_context_out_height
+	jpg_set_context_buffering
+	jpg_set_context_quant_table
+	jpg_set_context_quality
+	jpg_set_context_dct_method
+	jpg_set_context_scale
+	jpg_set_context_dither
+
+Question: pixel depth? (now just 8BIT).
+
+
+jpg_get_context_params
+	output dimensions (jpeg_calc_output_dimensions)
+	
+jpg_restore_context_defaults (jpeg_set_defaults)
+jpg_read_header (jpeg_read_header)
+jpg_start_decompress (jpeg_start_decompress)
+jpg_decompress (includes the whole loop read_scanlines-slide mem.pointer;
+				also assigns palette and pixmem)
+jpg_finish_decompress (jpeg_finish_decompress, jpeg_abort)
+jpg_destroy_context (jpeg_destroy_decompress)
+jpg_term (free some memory)

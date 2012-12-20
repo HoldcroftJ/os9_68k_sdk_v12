@@ -1,0 +1,1789 @@
+/***************************************************************************
+ *
+ * locale - Declarations for the Standard Library locale classes
+ *
+ * $Id: locale,v 1.85 1996/10/02 01:45:02 smithey Exp $
+ *
+ ***************************************************************************
+ *
+ * (c) Copyright 1994-1996 Rogue Wave Software, Inc.
+ * ALL RIGHTS RESERVED
+ *
+ * The software and information contained herein are proprietary to, and
+ * comprise valuable trade secrets of, Rogue Wave Software, Inc., which
+ * intends to preserve as trade secrets such software and information.
+ * This software is furnished pursuant to a written license agreement and
+ * may be used, copied, transmitted, and stored only in accordance with
+ * the terms of such license and with the inclusion of the above copyright
+ * notice.  This software and information or any other copies thereof may
+ * not be provided or otherwise made available to any other person.
+ *
+ * Notwithstanding any other lease or license that may pertain to, or
+ * accompany the delivery of, this computer software and information, the
+ * rights of the Government regarding its use, reproduction and disclosure
+ * are as set forth in Section 52.227-19 of the FARS Computer
+ * Software-Restricted Rights clause.
+ * 
+ * Use, duplication, or disclosure by the Government is subject to
+ * restrictions as set forth in subparagraph (c)(1)(ii) of the Rights in
+ * Technical Data and Computer Software clause at DFARS 252.227-7013.
+ * Contractor/Manufacturer is Rogue Wave Software, Inc.,
+ * P.O. Box 2328, Corvallis, Oregon 97339.
+ *
+ * This computer software and information is distributed with "restricted
+ * rights."  Use, duplication or disclosure is subject to restrictions as
+ * set forth in NASA FAR SUP 18-52.227-79 (April 1985) "Commercial
+ * Computer Software-Restricted Rights (April 1985)."  If the Clause at
+ * 18-52.227-74 "Rights in Data General" is specified in the contract,
+ * then the "Alternate III" clause applies.
+ *
+ **************************************************************************/
+
+#ifndef __STD_LOCALE__
+#define __STD_LOCALE__ 1
+
+#ifndef __STD_RWCOMPILER_H__
+#include <stdcomp.h>
+#endif
+
+#ifndef __STD_LIMITS
+#include <limits>
+#endif
+
+#ifndef __STD_STRING__
+#include <string>
+#endif
+
+#ifndef __STD_IOSFWD__
+#include <iosfwd>
+#endif
+
+#ifndef __STD_VECTOR__
+#include <vector>
+#endif
+
+#ifndef _RWSTD_NO_NEW_HEADER
+#include <ctime>
+#else
+#include <time.h>
+#endif
+
+// In case these are (wrongly!) defined as macros in <cctype>.
+
+#undef isspace
+#undef isprint
+#undef iscntrl
+#undef isupper
+#undef islower
+#undef isalpha
+#undef isdigit
+#undef ispunct
+#undef isxdigit
+#undef isalnum
+#undef isgraph
+#undef toupper
+#undef tolower
+
+// Forward declarations of functions and classes specified by the locale clause
+// of the C++ Standard Library working paper.
+
+#ifndef _RWSTD_NO_NAMESPACE
+namespace std {
+#endif
+
+class _RWSTDExport locale;
+
+template <class charT> inline bool isspace  (charT c, const locale&);
+template <class charT> inline bool isprint  (charT c, const locale&);
+template <class charT> inline bool iscntrl  (charT c, const locale&);
+template <class charT> inline bool isupper  (charT c, const locale&);
+template <class charT> inline bool islower  (charT c, const locale&);
+template <class charT> inline bool isalpha  (charT c, const locale&);
+template <class charT> inline bool isdigit  (charT c, const locale&);
+template <class charT> inline bool ispunct  (charT c, const locale&);
+template <class charT> inline bool isxdigit (charT c, const locale&);
+template <class charT> inline bool isalnum  (charT c, const locale&);
+template <class charT> inline bool isgraph  (charT c, const locale&);
+
+template <class charT> inline charT toupper (charT c, const locale&);
+template <class charT> inline charT tolower (charT c, const locale&);
+
+#ifndef _RWSTD_NO_TEMPLATE_ON_RETURN_TYPE
+  template <class Facet> const Facet& use_facet (const locale&);
+  template <class Facet>
+    bool has_facet (const locale&) _RWSTD_THROW_SPEC_NULL;
+#else
+  template <class Facet> const Facet& use_facet (const locale&, Facet*);
+  template <class Facet>
+    bool has_facet (const locale&, Facet*) _RWSTD_THROW_SPEC_NULL;
+#endif
+
+class _RWSTDExport ctype_base;
+class _RWSTDExport codecvt_base;
+class _RWSTDExport time_base;
+class _RWSTDExport money_base;
+class _RWSTDExport messages_base;
+
+template <class charT> class _RWSTDExportTemplate ctype;
+template <class charT> class _RWSTDExportTemplate ctype_byname;
+template <class internT, class externT, class stateT> 
+    class _RWSTDExportTemplate codecvt;
+template <class internT, class externT, class stateT> 
+    class _RWSTDExportTemplate codecvt_byname;
+template <class charT,
+    class InputIterator _RWSTD_COMPLEX_DEFAULT(istreambuf_iterator<charT>)>
+    class  num_get;
+template <class charT,
+    class OutputIterator _RWSTD_COMPLEX_DEFAULT(ostreambuf_iterator<charT>)>
+    class  num_put;
+template <class charT> class  numpunct;
+template <class charT> class  numpunct_byname;
+template <class charT> class  collate;
+template <class charT> class _RWSTDExportTemplate collate_byname;
+template <class charT,
+    class InputIterator _RWSTD_COMPLEX_DEFAULT(istreambuf_iterator<charT>)>
+    class  time_get;
+template <class charT,
+    class InputIterator _RWSTD_COMPLEX_DEFAULT(istreambuf_iterator<charT>)>
+    class  time_get_byname;
+template <class charT,
+    class OutputIterator _RWSTD_COMPLEX_DEFAULT(ostreambuf_iterator<charT>)>
+    class  time_put;
+template <class charT,
+    class OutputIterator _RWSTD_COMPLEX_DEFAULT(ostreambuf_iterator<charT>)>
+    class  time_put_byname;
+template <class charT, bool Intl _RWSTD_COMPLEX_DEFAULT(false),
+    class InputIterator _RWSTD_COMPLEX_DEFAULT(istreambuf_iterator<charT>)>
+    class  money_get;
+template <class charT, bool Intl _RWSTD_COMPLEX_DEFAULT(false),
+    class OutputIterator _RWSTD_COMPLEX_DEFAULT(ostreambuf_iterator<charT>)>
+    class  money_put;
+template <class charT, bool Intl _RWSTD_SIMPLE_DEFAULT(false)>
+    class  moneypunct;
+template <class charT, bool Intl _RWSTD_SIMPLE_DEFAULT(false)>
+    class  moneypunct_byname;
+template <class charT> class  messages;
+template <class charT> class  messages_byname;
+
+template<> // for OS9
+class _RWSTDExport ctype<char>;
+
+// Facet base classes.  These data-less classes define constants and types that
+// are part of the public interfaces to some standard facets.
+
+class _RWSTDExport ctype_base {
+ public:
+  enum mask {
+    space=1<<0, print=1<<1, cntrl=1<<2, upper=1<<3, lower=1<<4,
+    alpha=1<<5, digit=1<<6, punct=1<<7, xdigit=1<<8,
+    alnum=(1<<5)|(1<<6), graph=(1<<7)|(1<<6)|(1<<5)
+  };
+};
+
+struct _RWSTDExport codecvt_base {
+  enum result { ok, partial, error, noconv };
+};
+
+struct _RWSTDExport time_base {
+   enum dateorder { no_order, dmy, mdy, ymd, ydm };
+};
+
+struct _RWSTDExport money_base {
+  enum part { none, space, symbol, sign, value };
+  struct pattern { char field[4]; };
+};
+
+struct _RWSTDExport messages_base {
+  typedef int catalog;
+};
+
+#ifndef _RWSTD_NO_NAMESPACE
+} // namespace std
+#endif
+
+#include <rw/locimpl>
+
+#ifndef _RWSTD_NO_NAMESPACE
+namespace std {
+#endif
+
+// -------------
+// Class locale.
+// -------------
+
+class _RWSTDExport locale {
+ public:
+  class facet;
+  class id;
+
+  friend class facet;
+  friend class id;
+
+  typedef int category;
+
+  // The following constants identify standard categories of facets.  The
+  // standard specifies them as const members of type category (i.e. as const
+  // ints).  For compilers that can't initialize const members here, we define
+  // them as members of an anonymous enum instead.
+
+  // Some compilers get confused by the name collision of these constants with
+  // the facet templates collate, ctype and messages.  As a work-around, we
+  // also define non-standard names of the form _rw_xxx_category for these
+  // three categories.  If you have one of the confused compilers (i.e. if
+  // _RWSTD_CONFUSED_ENUM_SCOPE is #defined for you), you must use these non-
+  // standard category names.
+
+  #ifndef _RWSTD_CONFUSED_ENUM_SCOPE
+  #define _RWSTD_CATEGORY_NAMES                              \
+    collate = 0x0010, ctype = 0x0020, monetary = 0x0040,    \
+    numeric = 0x0080, time  = 0x0100, messages = 0x0200,    \
+    all     = 0x03f0, none  = 0x0000
+  #else
+  #define _RWSTD_CATEGORY_NAMES                              \
+    monetary = 0x0040, numeric = 0x0080, time  = 0x0100,    \
+    all      = 0x03f0, none  = 0x0000
+  #endif
+
+  #define _RWSTD_IMPLEMENTATION_VALS                                 \
+    _rw_collate_category  = 0x0010, _rw_ctype_category    = 0x0020, \
+    _rw_messages_category = 0x0200, _rw_Clib_LC_constants = 0x000F, \
+    _rw_num_categories    = 6,      _rw_first_category    = 0x0010
+
+  #ifndef _RWSTD_NO_STI_SIMPLE
+  static const category _RWSTD_CATEGORY_NAMES, _RWSTD_IMPLEMENTATION_VALS;
+  #else
+  enum { _RWSTD_CATEGORY_NAMES, _RWSTD_IMPLEMENTATION_VALS };
+  #endif
+
+  #undef _RWSTD_CATEGORY_NAMES
+  #undef _RWSTD_IMPLEMENTATION_VALS
+
+  // The default constructor creates a copy of the current global locale.
+
+  inline locale () _RWSTD_THROW_SPEC_NULL;
+
+  // The copy constructor and assignment operator can be used freely; most of
+  // the locale's contents are in a reference-counted implementation object,
+  // so copying and assignment involve little overhead.
+
+  inline locale (const locale& other) _RWSTD_THROW_SPEC_NULL;
+  const locale& operator = (const locale& other) _RWSTD_THROW_SPEC_NULL;
+
+  // The following constructor creates a locale composed of by-name facets and
+  // assigns it a name.  The valid arguments are "", "C", and a set of strings
+  // defined by the compiler vendor.  These cause all the facets of the locale
+  // to be obtained, respectively, from the current global locale, from the
+  // classic locale, or from the compiler vendor's locale database.  If the
+  // argument is not recognized, the constructor throws runtime_error.
+
+  _EXPLICIT locale (const char* name);
+
+  // The following constructor copies its first argument except for the facets
+  // in the categories identified by the third argument, which are obtained
+  // from the second argument.
+
+  locale (const locale &other, const locale &second, category);
+
+  // The following constructor copies its first argument except for the facets
+  // in the categories identified by the third argument, which are obtained by
+  // name using the second argument.  Can throw runtime_error.
+
+  locale (const locale& other, const char* name, category);
+
+  // The following templatized constructors are only available if your compiler
+  // supports member function templates.  Each copies its first argument except
+  // for the single facet of type Facet, which it get from the second argument.
+
+  #ifndef _RWSTD_NO_MEMBER_TEMPLATES
+
+  template <class Facet>
+  inline locale (const locale& other,Facet* f);
+
+//  #ifndef _RWSTD_NO_TEMPLATES_ON_RETURN_TYPE
+// above line appears misspelt -- for OS9 (tag)
+  #ifndef _RWSTD_NO_TEMPLATE_ON_RETURN_TYPE
+  template <class Facet>
+  inline locale (const locale& other, const locale& one);
+  #endif
+
+  #else
+
+  // If your compiler does not support member function templates, we provide
+  // the following work-around to let you accrete facets onto a locale.  This
+  // constructor copies its first argument except for the single facet of the
+  // type of the second argument, for which it uses the second argument.
+  //
+  // To determine the type of the second argument, it calls the non-standard
+  // virtual method get_id() in the second argument.  If you are creating your
+  // own facet types on a compiler that does not support member templates, you
+  // must code a get_id() member as follows in each new base class facet (i.e.
+  // in each facet class that has its own static member id of type locale::id):
+  //
+  //    virtual locale::id &get_id (void) const { return id; }
+  //
+  // See the get_id members in the standard facets below for examples.
+
+  inline locale (const locale& other, facet* f);
+
+  #endif // _RWSTD_NO_MEMBER_TEMPLATES
+
+  // The destructor is non-virtual.  Other classes are not intended to be
+  // derived from locale.
+
+  ~locale ();
+
+  // The following returns the locale name, or "*" if the locale is unnamed.
+
+  string name () const;
+
+  // Two locales are equal if they are the same object, or one is a copy of the
+  // other (i.e. they have the same implementation object), or both are named
+  // and their names are the same.
+
+  bool operator == (const locale& other) const;
+  bool operator != (const locale& other) const { return !(*this==other); }
+
+  // The following templatized operator () satisfies STL requirements for a
+  // comparator predicate template argument for comparing strings according to
+  // the collating sequence of the locale.  It lets you use a locale directly
+  // as a comparator using syntax like sort(v.begin(),v.end(),loc), where v is
+  // a vector of some string type and loc is a locale.  If your compiler does
+  // not support member function templates, we provide _EXPLICIT support for
+  // string and (if applicable) wstring.
+
+  #ifndef _RWSTD_NO_MEMBER_TEMPLATES
+  template <class charT, class Traits, class Allocator>
+  bool operator() (const basic_string<charT,Traits,Allocator>& s1,
+                   const basic_string<charT,Traits,Allocator>& s2) const;
+  #else
+  bool operator() (const string &s1,const string &s2) const;
+  #ifndef _RWSTD_NO_WIDE_CHAR
+  bool operator() (const wstring &s1,const wstring &s2) const;
+  #endif
+  #endif
+
+  // Static members.
+
+  static locale global (const locale&);  // Replaces the current global locale
+  static const locale &classic ();       // Returns the classic "C" locale
+
+  // class facet -- base class for locale feature sets.
+
+  // Any class deriving from facet that wants to be perceived as a distinct
+  // facet, as opposed to a re-implementation of an existing facet, must
+  // declare a static member: static std::locale::id id;
+
+  class facet: public _RWSTD_IMP_NAME(facet_imp) {
+    friend class _RWSTD_IMP_NAME(locale_imp);
+    friend class locale;
+   protected:
+    _EXPLICIT facet (size_t refs=0,int cat=0):
+        _RWSTD_IMP_NAME(facet_imp)(refs,cat) { }
+
+    virtual ~facet() { }
+
+    #ifdef _RWSTD_NO_MEMBER_TEMPLATES
+    virtual id &get_id (void) const=0;
+    #endif
+
+   private:
+    facet (const facet&);           // not defined
+    void operator = (const facet&); // not defined
+  };
+
+  // class id -- facet type identifier.
+
+  // This is mostly an implementation class.  It is used internally as an index
+  // to find facets within a locale.  Each distinct facet (i.e. each T that can
+  // be the parameter of a use_facet<T> call) has a unique static member of type
+  // locale::id named id.  The class is made public to enable extension of the
+  // set of standard facets.  Objects of this type don't need to be constructed
+  // or referenced in any other circumstances.
+
+  class id: private _RWSTD_IMP_NAME(locale_id_imp) {
+    _RWSTD_FRIEND_USE_HAS_FACET
+    friend class locale;
+
+    #ifndef HPPA_WA
+    operator size_t () const { return id_; }
+    #else
+    operator size_t () const { return _RWSTD_IMP_NAME(locale_id_imp)::id_; }
+    #endif
+
+    // The private copy constructor and assignment operator help restrict the
+    // class to its intended use.  The copy constructor prevents the compiler
+    // from generating a do-nothing default constructor, so we provide one.
+    // We omit the constructors on compilers that don't support static template
+    // members with constructors.
+
+#ifndef _RWSTD_NO_STATIC_DEF3
+   public:
+    id () { }
+   private:
+    id (const id&);
+#endif
+   private:
+    void operator = (const id&);
+  };
+
+ private:
+
+  // Implementation.
+  friend class _RWSTD_IMP_NAME(locale_imp);
+  _RWSTD_FRIEND_USE_HAS_FACET
+
+  // The only data member is a pointer to a ref-counted implementation object:
+  _RWSTD_IMP_NAME(locale_imp) *imp_;
+
+  typedef _RWSTD_IMP_NAME(facet_imp) *facet_maker_func (int,const char*,size_t);
+
+  _RWSTD_IMP_NAME(facet_imp) *make__EXPLICIT
+      (const id&, bool, category, facet_maker_func) const;
+  inline _RWSTD_IMP_NAME(facet_imp) *get_facet (size_t) const;
+  void install (_RWSTD_IMP_NAME(facet_imp) *f, const id& i) const;
+
+  static _RWSTD_IMP_NAME(locale_imp) *the_classic_locale_;
+  static _RWSTD_IMP_NAME(locale_imp) *the_native_locale_;
+  static _RWSTD_IMP_NAME(locale_imp) *global_;
+
+  // Construct a locale from an implementation object.
+  inline _EXPLICIT locale (_RWSTD_IMP_NAME(locale_imp) *m);
+
+ private:
+  // We have to say private again in case _RWSTD_FRIEND_USE_HAS_FACET evaluated
+  // to public:
+
+  // Create initial implementation objects.
+  static void init ();
+};
+
+#undef _RWSTD_FRIEND_USE_HAS_FACET
+
+// ----------------------------
+// Class locale inline members.
+// ----------------------------
+
+// Private constructor for use by implementation, constructs a locale from
+// a locale_imp implementation object.
+inline locale::locale (_RWSTD_IMP_NAME(locale_imp) *m): imp_(m) {
+  if (!global_) init();
+  _RWSTD_IMP_NAME(ref_counted)::add_reference(imp_);
+}
+
+// Default constructor, returns a copy of the current global locale.
+inline locale::locale () _RWSTD_THROW_SPEC_NULL {
+  if (!global_) init(); // This is not throw() ... something has to give.
+  _RWSTD_IMP_NAME(ref_counted)::add_reference(imp_=global_);
+}
+
+// Copy constructor.
+inline locale::locale (const locale& other) _RWSTD_THROW_SPEC_NULL {
+  _RWSTD_IMP_NAME(ref_counted)::add_reference(imp_=other.imp_);
+}
+
+#ifndef _RWSTD_NO_MEMBER_TEMPLATES
+
+// Constructor to accrete or replace a single facet.
+template <class Facet>
+inline locale::locale (const locale& other, Facet* f)
+{
+  if (f) {
+    imp_=new _RWSTD_IMP_NAME(locale_imp) (*other.imp_,1);
+    install(f,Facet::id);
+    imp_->named_=false;
+  } else
+    _RWSTD_IMP_NAME(ref_counted)::add_reference(imp_=other.imp_);
+}
+
+// feature test apparently missing here -- for OS9 (tag)
+#ifndef _RWSTD_NO_TEMPLATE_ON_RETURN_TYPE
+
+template <class Facet>
+inline locale::locale (const locale& other, const locale& second):
+    imp_(new _RWSTD_IMP_NAME(locale_imp) (*other.imp_,1))
+{
+  const Facet &f=use_facet<Facet>(second);
+  install(&f,Facet::it);
+  imp_->named_=false;
+}
+#endif /* _RWSTD_NO_TEMPLATE_ON_RETURN_TYPE */
+
+#else
+
+inline locale::locale (const locale& other, facet* f):
+    imp_(new _RWSTD_IMP_NAME(locale_imp) (*other.imp_,1))
+{
+  install(f,f->get_id());
+  imp_->named_=false;
+}
+
+#endif // _RWSTD_NO_MEMBER_TEMPLATES
+
+// Destructor
+inline locale::~locale (void) {
+  _RWSTD_IMP_NAME(ref_counted)::remove_reference(imp_);
+}
+
+// Private implementation helper function.
+inline _RWSTD_IMP_NAME(facet_imp)* locale::get_facet (size_t i) const {
+  return imp_->get_facet(i);
+}
+
+// --------------------------------------------------------
+// Standard character classification facet -- ctype<charT>.
+// --------------------------------------------------------
+
+// First, a specialization on char, so that char operations may be inline.
+// This specialization is defined in the standard because it affects the
+// derivation interface (in particular because its constructor's signature
+// differs from the constructors for ctype<charT> for other charT's).
+
+template<> // for OS9 (tag)
+class _RWSTDExport ctype<char>: public locale::facet, public ctype_base,
+    public _RWSTD_IMP_NAME(ctype_helper)<char>
+{
+  friend class _RWSTDExport locale;
+  friend class _RWSTDExport ctype_byname<char>;
+
+  #ifndef _RWSTD_NO_WIDE_CHAR
+  friend class _RWSTDExport ctype<wchar_t>;
+  #endif
+
+ public:
+  typedef char char_type;
+
+  #ifndef _RWSTD_NO_STI_SIMPLE
+  static const int table_size = 256;
+  #else
+  enum { table_size = 256 };
+  #endif
+
+  _EXPLICIT ctype (const mask* tab=0,bool del=false,size_t refs=0);
+
+  #if UCHAR_MAX <= 255
+  bool is (mask m,char c) const
+    { return (table_[(unsigned char)c] & m) != 0; }
+  #else
+  bool is (mask m,char c) const
+    { return c<table_size && (table_[(unsigned char)c] & m) != 0; }
+  #endif
+
+  const char* is (const char* lo,const char* hi,mask* vec) const;
+  const char* scan_is (mask m,const char* low,const char* high) const;
+  const char* scan_not (mask m,const char* low,const char* high) const;
+
+  char toupper (char c) const { return do_toupper(c); }
+  char tolower (char c) const { return do_tolower(c); }
+  char widen   (char c) const { return c; }
+  char narrow  (char c, char /*dfault*/ ) const { return c; }
+
+  const char* toupper (char* low,const char* high) const
+    { return do_toupper(low,high); }
+  const char* tolower (char* low,const char* high) const
+    { return do_tolower(low,high); }
+  const char* widen (const char* lo,const char* hi,char* to) const
+    { memcpy(to,lo,hi-lo); return hi; }
+  const char* narrow (const char* lo, const char* hi,
+                      char /*dfault*/, char* to) const
+    { memcpy(to,lo,hi-lo); return hi; }
+
+  static locale::id _RWSTDExport id;
+
+  // Rogue Wave extensions:
+  typedef string string_type;
+  string_type widen (const string &s) const { return s; }
+  string narrow (const string_type &s, char) const { return s; };
+
+  // Implementation.
+  enum { facet_cat_ = locale::_rw_ctype_category, ok_implicit_ = 1 };
+
+ protected:
+  const mask* table() const _RWSTD_THROW_SPEC_NULL
+    { return table_; }
+  static const mask* classic_table() _RWSTD_THROW_SPEC_NULL
+    { return classic_table_; }
+
+//  virtual 
+  virtual ~ctype ();
+
+
+  virtual char do_toupper (char) const;
+  virtual const char* do_toupper (char* low, const char* high) const;
+  virtual char do_tolower (char) const;
+  virtual const char* do_tolower (char* low, const char* high) const;
+
+ private:
+  static const mask classic_table_[table_size];
+  const mask* table_;
+  bool delete_it_;
+  int lower_min_, lower_max_;
+  int upper_min_, upper_max_;
+  char *to_upper_tab_;
+  char *to_lower_tab_;
+
+  #if defined(__TURBOC__) && __TURBOC__ >= 0x0469
+  // Without this, compiler complains that ctype(size_t) is not a member of
+  // ctype<char> when it hits the constructor template for ctype<charT> in
+  // locale.cc ... needs a proper config test.
+  _EXPLICIT ctype (size_t);
+  #endif
+
+  #ifdef _RWSTD_NO_MEMBER_TEMPLATES
+  locale::id &get_id (void) const { return id; }
+  #endif
+};
+
+#ifndef _RWSTD_NO_WIDE_CHAR
+
+// Specialization for wchar_t.
+
+template<> // for OS9 (tag)
+class _RWSTDExport ctype<wchar_t>: public locale::facet, public ctype_base,
+    public _RWSTD_IMP_NAME(ctype_helper)<wchar_t>
+{
+ public:
+  typedef wchar_t char_type;
+
+  _EXPLICIT ctype (size_t refs=0);
+
+  bool is (mask m, wchar_t c) const
+      { return do_is( m, c); }
+
+  const wchar_t* is (const wchar_t* lo, const wchar_t* hi, mask* vec) const
+      { return do_is(lo,hi,vec); }
+
+  const wchar_t* scan_is (mask m, const wchar_t* lo, const wchar_t* hi) const
+      { return do_scan_is(m,lo,hi); }
+
+  const wchar_t* scan_not (mask m, const wchar_t* lo, const wchar_t* hi) const
+      { return do_scan_not(m,lo,hi); }
+
+  wchar_t toupper(wchar_t c) const
+      { return do_toupper(c); }
+
+  const wchar_t* toupper (wchar_t* lo, const wchar_t* hi) const
+      { return do_toupper(lo,hi); }
+
+  wchar_t tolower (wchar_t c) const
+      { return do_tolower(c); }
+
+  const wchar_t* tolower (wchar_t* lo, const wchar_t* hi) const
+      { return do_tolower(lo,hi); }
+
+  wchar_t widen (char c) const
+      { return do_widen(c); }
+
+  const char* widen (const char* lo, const char* hi, wchar_t* to) const
+      { return do_widen(lo,hi,to); }
+
+  char narrow (wchar_t c, char dfault) const
+      { return do_narrow(c,dfault); }
+
+  const wchar_t* narrow (const wchar_t* lo, const wchar_t* hi, char dfault,
+                         char* to) const
+      { return do_narrow(lo,hi,dfault,to); }
+
+  static locale::id _RWSTDExport id;
+
+  // Rogue Wave extensions:
+  typedef wstring string_type;
+  string_type widen (const string&) const;
+  string narrow (const string_type&, char) const;
+
+  // Implementation:
+  enum { facet_cat_ = locale::_rw_ctype_category, ok_implicit_ = 1 };
+
+ protected:
+  virtual ~ctype () { }
+
+  virtual bool do_is (mask, wchar_t) const;
+  virtual const wchar_t* do_is (const wchar_t*, const wchar_t*, mask*) const;
+  virtual const wchar_t* do_scan_is (mask,const wchar_t*,const wchar_t*) const;
+  virtual const wchar_t* do_scan_not (mask,const wchar_t*,const wchar_t*) const;
+  virtual wchar_t        do_toupper (wchar_t) const;
+  virtual const wchar_t* do_toupper (wchar_t*, const wchar_t*) const;
+  virtual wchar_t        do_tolower (wchar_t) const;
+  virtual const wchar_t* do_tolower (wchar_t*, const wchar_t*) const;
+  virtual wchar_t        do_widen (char) const ;
+  virtual const char*    do_widen (const char*, const char*, wchar_t*) const;
+  virtual char           do_narrow (wchar_t, char dfault) const;
+  virtual const wchar_t* do_narrow (const wchar_t*, const wchar_t*,
+                                    char dfault, char* dest) const;
+ private:
+  static mask mask_of (wchar_t);
+
+  #ifdef _RWSTD_NO_MEMBER_TEMPLATES
+  locale::id &get_id (void) const { return id; }
+  #endif
+};
+
+#endif // _RWSTD_NO_WIDE_CHAR
+
+template <class charT>
+class _RWSTDExportTemplate ctype : public locale::facet, public ctype_base,
+    public _RWSTD_IMP_NAME(ctype_helper)<charT>
+{
+ public:
+  typedef charT char_type;
+
+  _EXPLICIT ctype (size_t refs = 0);
+
+  bool         is(mask m, charT c) const
+                 { return do_is( m, c); }
+  const charT* is(const charT* low, const charT* high, mask* vec) const
+                 { return do_is(low, high, vec); }
+  const charT* scan_is(mask m, const charT* low, const charT* high) const
+                 { return do_scan_is( m, low, high); }
+  const charT* scan_not(mask m, const charT* low, const charT* high) const
+                 { return do_scan_not( m, low, high); }
+
+  charT        toupper(charT c)               const
+                 { return do_toupper(c); }
+  const charT* toupper(charT* low, const charT* high) const
+                 { return do_toupper(low, high); }
+  charT        tolower(charT c)               const
+                 { return do_tolower(c); }
+  const charT* tolower(charT* low, const charT* high) const
+                 { return do_tolower(low, high); }
+
+  charT  widen(char c) const { return do_widen(c); }
+  const char* widen(const char* lo, const char* hi, charT* to) const
+           { return do_widen(lo, hi, to); }
+  char   narrow(charT c, char dfault) const { return do_narrow(c, dfault); }
+  const charT* narrow(const charT* lo, const charT* hi,
+                      char dfault, char* to) const
+           { return do_narrow(lo, hi, dfault, to); }
+
+  static locale::id _RWSTDExport id;
+
+  // Rogue Wave extensions:
+  typedef basic_string<charT,char_traits<charT>,allocator<void> > string_type;
+  string_type widen (const string&) const;
+  string narrow (const string_type&, char) const;
+
+  // Implementation:
+  enum { facet_cat_ = locale::ctype, ok_implicit_ = 1 };
+
+ protected:
+  inline virtual ~ctype () { }
+
+  virtual bool do_is(mask m, charT c) const = 0;
+  virtual const charT* do_is(
+            const charT* low, const charT* high, mask* vec) const = 0;
+  virtual const charT* do_scan_is(
+            mask m, const charT* low, const charT* high) const = 0;
+  virtual const charT* do_scan_not(
+            mask m, const charT* low, const charT* high) const = 0;
+  virtual charT        do_toupper(charT)                         const = 0;
+  virtual const charT* do_toupper(charT* low, const charT* high) const = 0;
+  virtual charT        do_tolower(charT)                         const = 0;
+  virtual const charT* do_tolower(charT* low, const charT* high) const = 0;
+
+  virtual charT        do_widen(char) const = 0;
+  virtual const char*  do_widen(const char* lo,
+                                const char* hi, charT* dest) const = 0;
+  virtual char         do_narrow(charT, char dfault) const = 0;
+  virtual const charT* do_narrow(const charT* lo, const charT* hi,
+                                 char dfault, char* dest) const = 0;
+
+ private:
+  #ifdef _RWSTD_NO_MEMBER_TEMPLATES
+  locale::id &get_id (void) const { return id; }
+  #endif
+
+};
+
+#ifndef _RWSTD_NO_NAMESPACE
+} // namespace std
+#endif
+
+#include <rw/iosbase>
+
+#ifndef _RWSTD_NO_NAMESPACE
+namespace std {
+#endif
+
+// ------------------------------------------------------
+// Codeset conversion facet -- codecvt<fromT,toT,stateT>.
+// ------------------------------------------------------
+
+template<> // for OS9 (tag)
+class _RWSTDExport codecvt<char,char,mbstate_t>:
+    public locale::facet, public codecvt_base
+{
+ public:
+
+  typedef char      extern_type;   
+  typedef char      intern_type;
+  typedef mbstate_t state_type;
+
+  _EXPLICIT codecvt (size_t refs=0):
+      locale::facet(refs,locale::_rw_ctype_category) { }
+
+  bool always_noconv() const _RWSTD_THROW_SPEC_NULL
+    { return do_always_noconv(); }
+
+  int encoding() const _RWSTD_THROW_SPEC_NULL
+    { return do_encoding(); }
+
+  result out (mbstate_t& state,
+      const char* from, const char* from_end, const char*& from_next,
+      char* to, char* to_limit, char*& to_next) const
+    { return do_out(state,from,from_end,from_next,to,to_limit,to_next); }
+
+
+  result in(mbstate_t& state,
+      const char* from, const char* from_end, const char*& from_next,
+      char* to, char* to_limit, char*& to_next) const
+    { return do_in(state,from,from_end,from_next,to,to_limit,to_next); }
+
+  int length (const mbstate_t& state, const char* from, const char* end,
+      size_t max) const { return do_length(state,from,end,max); }
+
+  int max_length() const _RWSTD_THROW_SPEC_NULL
+    { return do_max_length(); }
+
+  static locale::id _RWSTDExport id;
+
+  // Rogue Wave extension:
+  typedef string internal_string_type;
+  typedef string external_string_type;
+  internal_string_type in (const external_string_type &s) const { return s; }
+  external_string_type out (const internal_string_type &s) const { return s; }
+
+  // Implementation:
+  enum { facet_cat_ = locale::_rw_ctype_category, ok_implicit_ = 1 };
+
+ protected:
+  virtual ~codecvt();
+
+  virtual result do_out(mbstate_t& state,
+    const char* from, const char* from_end, const char*& from_next,
+          char* to, char* to_limit, char*& to_next) const;
+
+  virtual result do_in(mbstate_t& state,
+    const char* from, const char* from_end, const char*& from_next,
+          char* to, char* to_limit, char*& to_next) const;
+
+  virtual bool do_always_noconv() const _RWSTD_THROW_SPEC_NULL;
+
+  virtual int do_encoding() const _RWSTD_THROW_SPEC_NULL;
+
+  virtual int do_length (const mbstate_t&, const char* from, const char* end,
+      size_t max) const;
+
+  virtual int do_max_length() const _RWSTD_THROW_SPEC_NULL;
+
+ private:
+  #ifdef _RWSTD_NO_MEMBER_TEMPLATES
+  locale::id &get_id (void) const { return id; }
+  #endif
+};
+
+#ifndef _RWSTD_NO_WIDE_CHAR
+template<> // for OS9 (tag)
+class _RWSTDExport codecvt<wchar_t,char,mbstate_t>:
+    public locale::facet, public codecvt_base
+{
+ public:
+  typedef wchar_t intern_type;
+  typedef char    extern_type;
+  typedef mbstate_t state_type;
+
+  _EXPLICIT codecvt (size_t refs=0):
+      locale::facet(refs,locale::_rw_ctype_category) { }
+
+  bool always_noconv() const _RWSTD_THROW_SPEC_NULL
+    { return do_always_noconv(); }
+
+  int encoding() const _RWSTD_THROW_SPEC_NULL
+    { return do_encoding(); }
+
+  result out (mbstate_t& state,
+      const wchar_t* from, const wchar_t* from_end, const wchar_t*& from_next,
+      char* to, char* to_limit, char*& to_next) const
+    { return do_out(state,from,from_end,from_next,to,to_limit,to_next); }
+
+  result in (mbstate_t& state,
+      const char* from, const char* from_end, const char*& from_next,
+      wchar_t* to, wchar_t* to_limit, wchar_t*& to_next) const
+    { return do_in(state,from,from_end,from_next,to,to_limit,to_next); }
+
+  int length (const mbstate_t& state, const wchar_t* from, const wchar_t* end,
+      size_t max) const
+    { return do_length(state,from,end,max); }
+
+  int max_length() const _RWSTD_THROW_SPEC_NULL
+    { return do_max_length(); }
+
+  static locale::id _RWSTDExport id;
+
+  // Rogue Wave extension:
+  typedef string external_string_type;
+  typedef wstring internal_string_type;
+  internal_string_type in (const external_string_type &s) const;
+  external_string_type out (const internal_string_type &s) const;
+
+  // Implementation:
+  enum { facet_cat_ = locale::_rw_ctype_category, ok_implicit_ = 1 };
+
+ protected:
+  virtual ~codecvt();
+
+  virtual result do_out(mbstate_t& state,
+    const wchar_t* from, const wchar_t* from_end, const wchar_t*& from_next,
+          char* to, char* to_limit, char*& to_next) const;
+
+  virtual result do_in(mbstate_t& state,
+    const char* from, const char* from_end, const char*& from_next,
+          wchar_t* to, wchar_t* to_limit, wchar_t*& to_next) const;
+
+  virtual bool do_always_noconv() const _RWSTD_THROW_SPEC_NULL;
+
+  virtual int do_encoding() const _RWSTD_THROW_SPEC_NULL;
+
+  virtual int do_length (const mbstate_t&, const wchar_t* from,
+      const wchar_t* end, size_t max) const;
+
+  virtual int do_max_length() const _RWSTD_THROW_SPEC_NULL;
+
+ private:
+  #ifdef _RWSTD_NO_MEMBER_TEMPLATES
+  locale::id &get_id (void) const { return id; }
+  #endif
+};
+
+#endif // _RWSTD_NO_WIDE_CHAR
+
+template <class internT, class externT, class stateT>
+class _RWSTDExportTemplate codecvt: public locale::facet, public codecvt_base {
+ public:
+  typedef internT intern_type;
+  typedef externT extern_type;
+  typedef stateT state_type;
+
+  _EXPLICIT codecvt (size_t refs=0): locale::facet(refs) { }
+
+   result out (stateT& state,
+      const internT* from, const internT* from_end, const internT*& from_next,
+      externT* to, externT* to_limit, externT*& to_next) const
+    { return do_out(state,from,from_end,from_next,to,to_limit,to_next); }
+
+  result in(stateT& state,
+      const externT* from, const externT* from_end, const externT*& from_next,
+      internT* to, internT* to_limit, internT*& to_next) const
+    { return do_in(state,from,from_end,from_next,to,to_limit,to_next); }
+
+  bool always_noconv() const _RWSTD_THROW_SPEC_NULL
+    { return do_always_noconv(); }
+
+  int encoding() const _RWSTD_THROW_SPEC_NULL
+    { return do_encoding(); }
+
+  int length (const stateT& state, const internT* from, const internT* end,
+      size_t max) const
+    { return do_length(state,from,end,max); }
+
+  int max_length() const _RWSTD_THROW_SPEC_NULL
+    { return do_max_length(); }
+
+  static locale::id id;
+
+  // Rogue Wave extension:
+  typedef basic_string<externT,char_traits<externT>,allocator<void> >
+      external_string_type;
+  typedef basic_string<internT,char_traits<internT>,allocator<void> >
+      internal_string_type;
+  internal_string_type in (const external_string_type &s) const;
+  external_string_type out (const internal_string_type &s) const;
+
+  // Implementation:
+  enum { facet_cat_ = locale::ctype, ok_implicit_ = 1 };
+
+ protected:
+  virtual ~codecvt();
+
+  virtual result do_out(stateT& state,
+    const internT* from, const internT* from_end, const internT*& from_next,
+          externT* to, externT* to_limit, externT*& to_next) const;
+
+  virtual result do_in(stateT& state,
+    const externT* from, const externT* from_end, const externT*& from_next,
+          internT* to, internT* to_limit, internT*& to_next) const;
+
+
+  virtual bool do_always_noconv() const _RWSTD_THROW_SPEC_NULL;
+  virtual int do_encoding() const _RWSTD_THROW_SPEC_NULL;
+  virtual int do_length (const stateT&, const internT* from, const internT* end,
+      size_t max) const;
+  virtual int do_max_length() const _RWSTD_THROW_SPEC_NULL;
+
+ private:
+  #ifdef _RWSTD_NO_MEMBER_TEMPLATES
+  locale::id &get_id (void) const { return id; }
+  #endif
+};
+
+// ---------------------------------------------------------------
+// Standard numeric parsing facet -- num_get<charT,InputIterator>.
+// ---------------------------------------------------------------
+
+template <class charT, class InputIterator>
+class  num_get: public locale::facet
+{
+ public:
+  typedef charT char_type;
+  typedef InputIterator iter_type;
+
+  _EXPLICIT num_get (size_t refs=0): locale::facet(refs,locale::numeric) { }
+
+#ifndef _RWSTD_NO_BOOL
+  iter_type get (iter_type i, iter_type e, ios_base &f, ios_base::iostate &err,
+                 bool& v) const            { return do_get(i,e,f,err,v); }
+#endif
+  iter_type get (iter_type i, iter_type e, ios_base &f, ios_base::iostate &err,
+                 long& v) const            { return do_get(i,e,f,err,v); }
+  iter_type get (iter_type i, iter_type e, ios_base &f, ios_base::iostate &err,
+                 unsigned short& v) const  { return do_get(i,e,f,err,v); }
+  iter_type get (iter_type i, iter_type e, ios_base &f, ios_base::iostate &err,
+                 unsigned int& v) const    { return do_get(i,e,f,err,v); }
+  iter_type get (iter_type i, iter_type e, ios_base &f, ios_base::iostate &err,
+                 unsigned long& v) const   { return do_get(i,e,f,err,v); }
+  iter_type get (iter_type i, iter_type e, ios_base &f, ios_base::iostate &err,
+                 float& v) const           { return do_get(i,e,f,err,v); }
+  iter_type get (iter_type i, iter_type e, ios_base &f, ios_base::iostate &err,
+                 double& v) const          { return do_get(i,e,f,err,v); }
+  iter_type get (iter_type i, iter_type e, ios_base &f, ios_base::iostate &err,
+                 long double& v) const     { return do_get(i,e,f,err,v); }
+  iter_type get (iter_type i, iter_type e, ios_base &f, ios_base::iostate &err,
+                 void*& p) const            { return do_get(i,e,f,err,p); }
+
+  static locale::id id;
+
+  // Implementation:
+  enum { facet_cat_ = locale::numeric, ok_implicit_ = 1 };
+
+ protected:
+  virtual ~num_get();
+
+#ifndef _RWSTD_NO_BOOL
+  virtual iter_type do_get (iter_type, iter_type, ios_base&,
+                            ios_base::iostate& err, bool& v) const;
+#endif
+  virtual iter_type do_get (iter_type, iter_type, ios_base&,
+                            ios_base::iostate& err, long& v) const;
+  virtual iter_type do_get (iter_type, iter_type, ios_base&,
+                            ios_base::iostate& err, unsigned short& v) const;
+  virtual iter_type do_get (iter_type, iter_type, ios_base&,
+                            ios_base::iostate& err, unsigned int& v) const;
+  virtual iter_type do_get (iter_type, iter_type, ios_base&,
+                            ios_base::iostate& err, unsigned long& v) const;
+  virtual iter_type do_get (iter_type, iter_type, ios_base&,
+                            ios_base::iostate& err, float& v) const;
+  virtual iter_type do_get (iter_type, iter_type, ios_base&,
+                            ios_base::iostate& err, double& v) const;
+  virtual iter_type do_get (iter_type, iter_type, ios_base&,
+                            ios_base::iostate& err, long double& v) const;
+  virtual iter_type do_get (iter_type, iter_type, ios_base&,
+                            ios_base::iostate& err, void*& p) const;
+
+  // Implementation:
+
+ private:
+  #ifdef _RWSTD_NO_MEMBER_TEMPLATES
+  locale::id &get_id (void) const { return id; }
+  #endif
+};
+
+// -------------------------------------------------------------------
+// Standard numeric formatting facet -- num_put<charT,OutputIterator>.
+// -------------------------------------------------------------------
+
+template <class charT, class OutputIterator>
+class  num_put: public locale::facet {
+ public:
+  typedef charT char_type;
+  typedef OutputIterator iter_type;
+
+  _EXPLICIT num_put (size_t refs=0): locale::facet(refs,locale::numeric) { }
+
+#ifndef _RWSTD_NO_BOOL
+  iter_type put (iter_type s, ios_base& f, char_type fill, bool v)
+                 const { return do_put(s,f,fill,v); }
+#endif
+  iter_type put (iter_type s, ios_base& f, char_type fill, long v)
+                 const { return do_put(s,f,fill,v); }
+  iter_type put (iter_type s, ios_base& f, char_type fill, unsigned long v)
+                 const { return do_put(s,f,fill,v); }
+  iter_type put (iter_type s, ios_base& f, char_type fill, double v)
+                 const { return do_put(s,f,fill,v); }
+  iter_type put (iter_type s, ios_base& f, char_type fill, long double v)
+                 const { return do_put(s,f,fill,v); }
+  iter_type put (iter_type s, ios_base& f, char_type fill, void* p)
+                 const { return do_put(s,f,fill,p); }
+
+  // Rogue Wave extensions.
+  iter_type put (iter_type s, ios_base& f, char_type fill, short v)
+                 const { return do_put(s,f,fill,v); }
+  iter_type put (iter_type s, ios_base& f, char_type fill, unsigned short v)
+                 const { return do_put(s,f,fill,v); }
+  iter_type put (iter_type s, ios_base& f, char_type fill, int v)
+                 const { return do_put(s,f,fill,v); }
+  iter_type put (iter_type s, ios_base& f, char_type fill, unsigned int v)
+                 const { return do_put(s,f,fill,v); }
+
+  static locale::id id;
+
+  // Implementation:
+  enum { facet_cat_ = locale::numeric, ok_implicit_ = 1 };
+
+ protected:
+  virtual ~num_put();
+
+#ifndef _RWSTD_NO_BOOL
+  virtual iter_type do_put (iter_type, ios_base&, char_type fill,
+                            bool v) const;
+#endif
+  virtual iter_type do_put (iter_type, ios_base&, char_type fill,
+                            long v) const;
+  virtual iter_type do_put (iter_type, ios_base&, char_type fill,
+                            unsigned long v) const;
+  virtual iter_type do_put (iter_type, ios_base&, char_type fill,
+                            double v) const;
+  virtual iter_type do_put (iter_type, ios_base&, char_type fill,
+                            long double v) const;
+  virtual iter_type do_put (iter_type, ios_base&, char_type fill,
+                            void* p) const;
+
+  // Rogue Wave extensions.
+  virtual iter_type do_put (iter_type, ios_base&, char_type fill,
+                            short v) const;
+  virtual iter_type do_put (iter_type, ios_base&, char_type fill,
+                            unsigned short v) const;
+  virtual iter_type do_put (iter_type, ios_base&, char_type fill,
+                            int v) const;
+  virtual iter_type do_put (iter_type, ios_base&, char_type fill,
+                            unsigned int v) const;
+
+  // Implementation.
+
+ private:
+  #ifdef _RWSTD_NO_MEMBER_TEMPLATES
+  locale::id &get_id (void) const { return id; }
+  #endif
+};
+
+// ------------------------------------------------------
+// Standard numeric punctuation facet -- numpunct<charT>.
+// ------------------------------------------------------
+
+template <class charT>
+class  numpunct: public locale::facet,
+    public _RWSTD_IMP_NAME(numpunct_impl)<charT>
+{
+ public:
+  typedef charT char_type;
+  typedef basic_string<charT,char_traits<charT>,allocator<void> >
+    string_type;
+
+  // The second parameter (i) to the constructor is implementation specific.
+  // For portable code, always let it default as shown.
+  _EXPLICIT numpunct (size_t refs=0,
+      const _RWSTD_IMP_NAME(numpunct_init)<charT> *i =
+      _RWSTD_IMP_NAME(numpunct_impl)<charT>::get_ivals_());
+
+  char_type   decimal_point() const { return do_decimal_point(); }
+  char_type   thousands_sep() const { return do_thousands_sep(); }
+  string      grouping()      const { return do_grouping(); }
+  string_type truename()      const { return do_truename(); }
+  string_type falsename()     const { return do_falsename(); }
+
+  static locale::id id;
+
+  // Implementation:
+  enum { facet_cat_ = locale::numeric, ok_implicit_ = 1 };
+
+ protected:
+  virtual ~numpunct();
+
+  virtual char_type   do_decimal_point() const;
+  virtual char_type   do_thousands_sep() const;
+  virtual string      do_grouping()      const;
+  virtual string_type do_truename()      const;
+  virtual string_type do_falsename()     const;
+
+  // Implementation:
+
+ private:
+  void rw_init (void);
+
+  #ifdef _RWSTD_NO_MEMBER_TEMPLATES
+  locale::id &get_id (void) const { return id; }
+  #endif
+
+#if 0 //def HPPA_WA
+public:
+#endif
+  static const _RWSTD_IMP_NAME(numpunct_init)<charT> *get_ivals_ ()
+    { return _RWSTD_IMP_NAME(numpunct_impl)<charT>::get_ivals_(); }
+};
+
+template <class charT>
+inline numpunct<charT>::numpunct
+    (size_t refs,const _RWSTD_IMP_NAME(numpunct_init)<charT> *init):
+     locale::facet(refs,locale::numeric),
+     _RWSTD_IMP_NAME(numpunct_impl)<charT>(init)
+{ }
+
+// -----------------------------------------------------
+// Standard character collation facet -- collate<charT>.
+// -----------------------------------------------------
+
+template <class charT>
+class  collate: public locale::facet,
+    public _RWSTD_IMP_NAME(collate_impl)<charT>
+{
+ public:
+  typedef charT char_type;
+  typedef basic_string<charT,char_traits<charT>,allocator<void> > string_type;
+
+  _EXPLICIT collate (size_t refs=0):
+      locale::facet(refs,locale::_rw_collate_category)
+    { }
+
+  int compare (const charT* low1, const charT* high1,
+               const charT* low2, const charT* high2) const
+    { return do_compare(low1, high1, low2, high2); }
+
+  string_type transform (const charT* low, const charT* high) const
+    { return do_transform(low, high); }
+
+  long hash (const charT* low, const charT* high) const
+    { return do_hash(low, high); }
+
+  static locale::id id;
+
+  // Implementation:
+  enum { facet_cat_ = locale::_rw_collate_category, ok_implicit_ = 1 };
+
+ protected:
+  virtual ~collate();
+
+  virtual int do_compare (const charT* low1, const charT* high1,
+                          const charT* low2, const charT* high2) const;
+  virtual string_type do_transform (const charT* low, const charT* high) const;
+  virtual long do_hash (const charT* low, const charT* high) const;
+
+ private:
+  #ifdef _RWSTD_NO_MEMBER_TEMPLATES
+  locale::id &get_id (void) const { return id; }
+  #endif
+};
+
+// ----------------------------------------------------------------------
+// Standard time and date parsing facet -- time_get<charT,InputIterator>.
+// ----------------------------------------------------------------------
+
+template <class charT,class InputIterator>
+class  time_get: public locale::facet, public time_base {
+ public:
+  typedef charT char_type;
+  typedef InputIterator iter_type;
+
+  _EXPLICIT time_get (size_t refs=0): locale::facet(refs,locale::time) { }
+
+  dateorder date_order() const { return do_date_order(); }
+  iter_type get_time (iter_type start, iter_type end, ios_base& format,
+      ios_base::iostate &err, tm* time) const
+        { return do_get_time (start,end,format,err,time); }
+
+  iter_type get_date (iter_type start, iter_type end, ios_base& format,
+      ios_base::iostate &err, tm* time) const
+        { return do_get_date(start,end,format,err,time); }
+
+  iter_type get_weekday (iter_type start, iter_type end, ios_base& format,
+      ios_base::iostate &err, tm* time) const
+        { return do_get_weekday(start,end,format,err,time); }
+
+  iter_type get_monthname (iter_type start, iter_type end, ios_base& format,
+      ios_base::iostate &err, tm* time) const
+        { return do_get_monthname(start,end,format,err,time); }
+
+  iter_type get_year (iter_type start, iter_type end, ios_base& format,
+      ios_base::iostate &err, tm* time) const
+        { return do_get_year(start,end,format,err,time); }
+
+  static locale::id id;
+
+  // Implementation:
+  enum { facet_cat_ = locale::time, ok_implicit_ = 1 };
+
+ protected:
+  virtual ~time_get();
+
+  virtual dateorder do_date_order()  const;
+
+  virtual iter_type do_get_time
+            (iter_type, iter_type, ios_base&, ios_base::iostate&, tm*) const;
+  virtual iter_type do_get_date
+            (iter_type, iter_type, ios_base&, ios_base::iostate&, tm*) const;
+  virtual iter_type do_get_weekday
+            (iter_type, iter_type, ios_base&, ios_base::iostate&, tm*) const;
+  virtual iter_type do_get_monthname
+            (iter_type, iter_type, ios_base&, ios_base::iostate&, tm*) const;
+  virtual iter_type do_get_year
+            (iter_type, iter_type, ios_base&, ios_base::iostate&, tm*) const;
+
+  // Implementation:
+
+ private:
+  #ifdef _RWSTD_NO_MEMBER_TEMPLATES
+  locale::id &get_id (void) const { return id; }
+  #endif
+};
+
+// --------------------------------------------------------------------------
+// Standard time and date formatting facet -- time_put<charT,OutputIterator>.
+// --------------------------------------------------------------------------
+
+template <class charT,class OutputIterator>
+class  time_put: public locale::facet {
+ public:
+  typedef charT char_type;
+  typedef OutputIterator iter_type;
+
+  _EXPLICIT time_put (size_t refs=0): locale::facet(refs,locale::time) { }
+
+  iter_type put (iter_type start, ios_base& format, char_type fill,
+      const tm* time, const char_type *pattern, const char_type *pat_end) const;
+
+  iter_type put (iter_type start, ios_base& format, char_type fill,
+      const tm* time, char fmt, char modifier = 0) const
+        { return do_put(start,format,fill,time,fmt,modifier); }
+
+  static locale::id id;
+
+  // Implementation:
+  enum { facet_cat_ = locale::time, ok_implicit_ = 1 };
+
+ protected:
+  virtual ~time_put();
+
+  virtual iter_type do_put (iter_type, ios_base&, char_type fill,
+           const tm* time, char fmt, char modifier) const;
+
+ private:
+  #ifdef _RWSTD_NO_MEMBER_TEMPLATES
+  locale::id &get_id (void) const { return id; }
+  #endif
+};
+
+#ifndef _RWSTD_NO_NAMESPACE
+} namespace __rwstd {
+#endif
+
+// ----------------------------------------------------
+// Time and date punctuation facet -- timepunct<charT>.
+// ----------------------------------------------------
+
+template <class charT>
+class _RWSTD_IMP_DECL(timepunct): 
+#if __EDG_VERSION__ >= 236 // for OS9 (tag)
+  public ::std::locale::facet,
+#else
+  public locale::facet,
+#endif
+    public _RWSTD_IMP_DECL(timepunct_impl)<charT>
+{
+ public:
+  typedef charT char_type;
+  typedef basic_string<charT,char_traits<charT>,allocator<void> >
+    string_type;
+
+  _EXPLICIT _RWSTD_IMP_DECL(timepunct) (size_t refs=0):
+      locale::facet(refs,locale::time) { }
+
+  string_type dayname (int day, bool abbreviated) const
+      { return do_dayname(day,abbreviated); }
+  string_type monthname (int month, bool abbreviated) const
+      { return do_monthname(month,abbreviated); }
+  string_type ordinal (int number) const
+      { return do_ordinal(number); }
+
+#if __EDG_VERSION__ >= 236 // for OS9 (tag)
+  static ::std::locale::id id;
+#else
+  static locale::id id;
+#endif
+
+  // Implementation:
+#if __EDG_VERSION__ >= 236 // for OS9 (tag)
+  enum { facet_cat_ = ::std::locale::time, ok_implicit_ = 1 };
+#else
+  enum { facet_cat_ = locale::time, ok_implicit_ = 1 };
+#endif
+
+ protected:
+  virtual ~_RWSTD_IMP_DECL(timepunct)() { }
+
+  virtual string_type do_dayname (int day, bool abbreviated) const;
+  virtual string_type do_monthname (int month, bool abbreviated) const;
+  virtual string_type do_ordinal (int number) const;
+
+ private:
+  void rw_init (void);
+
+  #ifdef _RWSTD_NO_MEMBER_TEMPLATES
+#if __EDG_VERSION__ >= 236 // for OS9 (tag)
+  ::std::locale::id &get_id (void) const { return id; }
+#else
+  locale::id &get_id (void) const { return id; }
+#endif
+  #endif
+};
+
+#ifndef _RWSTD_NO_NAMESPACE
+} namespace std {
+#endif
+
+// --------------------------------------------------------------------
+// Standard money parsing facet -- money_get<charT,Intl,InputIterator>.
+// --------------------------------------------------------------------
+
+template <class charT, bool Intl, class InputIterator>
+class  money_get: public locale::facet {
+ public:
+  typedef charT char_type;
+  typedef InputIterator iter_type;
+  typedef basic_string<charT,char_traits<charT>,allocator<void> > string_type;
+
+  #ifndef _RWSTD_NO_STI_SIMPLE
+  static const bool intl = Intl;
+  #else
+  enum { intl = Intl };
+  #endif
+
+  _EXPLICIT money_get (size_t refs=0): locale::facet(refs,locale::monetary) { }
+
+  iter_type get (iter_type s, iter_type e, ios_base& f, ios_base::iostate& err,
+                 long double& units) const { return do_get(s,e,f,err,units); }
+  iter_type get (iter_type s, iter_type e, ios_base& f, ios_base::iostate& err,
+                 string_type& digits) const { return do_get(s,e,f,err,digits); }
+
+  static locale::id id;
+
+  // Implementation:
+  enum { facet_cat_ = locale::monetary, ok_implicit_ = 1 };
+
+ protected:
+  virtual ~money_get();
+
+  virtual iter_type do_get (iter_type, iter_type, ios_base&,
+                            ios_base::iostate&, long double& units) const;
+  virtual iter_type do_get (iter_type, iter_type, ios_base&,
+                            ios_base::iostate&, string_type& digits) const;
+
+ private:
+  #ifdef _RWSTD_NO_MEMBER_TEMPLATES
+  locale::id &get_id (void) const { return id; }
+  #endif
+};
+
+// ------------------------------------------------------------------------
+// Standard money formatting facet -- money_put<charT,Intl,OutputIterator>.
+// ------------------------------------------------------------------------
+
+template <class charT, bool Intl, class OutputIterator>
+class  money_put: public locale::facet {
+ public:
+  typedef charT char_type;
+  typedef OutputIterator iter_type;
+  typedef basic_string<charT,char_traits<charT>,allocator<void> > string_type;
+
+  #ifndef _RWSTD_NO_STI_SIMPLE
+  static const bool intl = Intl;
+  #else
+  enum { intl = Intl };
+  #endif
+
+  _EXPLICIT money_put (size_t refs=0): locale::facet(refs,locale::monetary) { }
+
+#ifndef _RWSTD_NO_LONG_DOUBLE
+  iter_type put (iter_type out, ios_base& io, char_type fill,
+                 long double quant) const
+#else
+  iter_type put (iter_type out, ios_base& io, char_type fill,
+                 double quant) const
+#endif
+     { return do_put(out,io,fill,quant); }
+
+  iter_type put (iter_type out, ios_base& io, char_type fill,
+                 const string_type& digits) const
+     { return do_put(out,io,fill,digits); }
+
+  static locale::id  id;
+
+  // Implementation:
+  enum { facet_cat_ = locale::monetary, ok_implicit_ = 1 };
+
+ protected:
+  virtual ~money_put();
+
+#ifndef _RWSTD_NO_LONG_DOUBLE
+  virtual iter_type do_put (iter_type out, ios_base& io, char_type fill,
+                            long double quant) const;
+#else
+  virtual iter_type do_put (iter_type out, ios_base& io, char_type fill,
+                            double quant) const;
+#endif
+
+  virtual iter_type do_put (iter_type out, ios_base& io, char_type fill,
+                            const string_type &digits) const;
+
+ private:
+  #ifdef _RWSTD_NO_MEMBER_TEMPLATES
+  locale::id &get_id (void) const { return id; }
+  #endif
+};
+
+// -----------------------------------------------------------
+// Standard money punctuation facet -- moneypunct<charT,bool>.
+// -----------------------------------------------------------
+
+template <class charT, bool Intl>
+class  moneypunct: public locale::facet, public money_base,
+    public _RWSTD_IMP_NAME(moneypunct_impl)<charT,Intl>
+{
+ public:
+  typedef charT char_type;
+  typedef basic_string<charT,char_traits<charT>,allocator<void> > string_type;
+
+  #ifndef _RWSTD_NO_STI_SIMPLE
+  static const bool intl = Intl;
+  #else
+  enum { intl = Intl };
+  #endif
+
+  // The second parameter (i) to the constructor is implementation specific.
+  // For portable code, always let it default as shown.
+  _EXPLICIT moneypunct (size_t refs=0,
+      _RWSTD_IMP_NAME(moneypunct_init)<charT> *i = get_ivals_());
+
+  char_type    decimal_point() const  { return do_decimal_point(); }
+  char_type    thousands_sep() const  { return do_thousands_sep(); }
+  string       grouping()      const  { return do_grouping(); }
+  string_type  curr_symbol()   const  { return do_curr_symbol(); };
+  string_type  positive_sign() const  { return do_positive_sign(); }
+  string_type  negative_sign() const  { return do_negative_sign(); }
+  int          frac_digits()   const  { return do_frac_digits(); }
+  pattern      pos_format()    const  { return do_pos_format(); }
+  pattern      neg_format()    const  { return do_neg_format(); }
+
+  static locale::id id;
+
+  // Implementation:
+  enum { facet_cat_ = locale::monetary, ok_implicit_ = 1 };
+
+ protected:
+  virtual ~moneypunct();
+
+  virtual char_type    do_decimal_point()  const;
+  virtual char_type    do_thousands_sep()  const;
+  virtual string       do_grouping()       const;
+  virtual string_type  do_curr_symbol()    const;
+  virtual string_type  do_positive_sign()  const;
+  virtual string_type  do_negative_sign()  const;
+  virtual int          do_frac_digits()    const;
+  virtual pattern      do_pos_format()     const;
+  virtual pattern      do_neg_format()     const;
+
+ private:
+  void rw_init (void);
+
+  #ifdef _RWSTD_NO_MEMBER_TEMPLATES
+  locale::id &get_id (void) const { return id; }
+  #endif
+
+  static _RWSTD_IMP_NAME(moneypunct_init)<charT> *get_ivals_ ()
+    { return &_RWSTD_IMP_NAME(moneypunct_impl)<charT,Intl>::ivals_; }
+};
+
+template <class charT,bool Intl>
+inline moneypunct<charT,Intl>::moneypunct
+    (size_t refs,_RWSTD_IMP_NAME(moneypunct_init)<charT> *init):
+     locale::facet(refs,locale::monetary),
+     _RWSTD_IMP_NAME(moneypunct_impl)<charT,Intl>(init) { }
+
+// ----------------------------------------------------
+// Standard message retrieval facet -- messages<charT>.
+// ----------------------------------------------------
+
+template <class charT>
+class  messages: public locale::facet, public messages_base,
+    public _RWSTD_IMP_NAME(messages_impl)
+{
+ public:
+  typedef charT char_type;
+  typedef basic_string<charT,char_traits<charT>,allocator<void> > string_type;
+
+  _EXPLICIT messages (size_t refs=0);
+
+  catalog open (const string& fn, const locale& loc) const
+    { return do_open(fn,loc); }
+  string_type get (catalog c, int set, int msgid, const string_type& df) const
+    { return do_get(c,set,msgid,df); }
+  void close (catalog c) const { do_close(c); }
+
+  static locale::id id;
+
+  // Implementation:
+  enum { facet_cat_ = locale::messages, ok_implicit_ = 1 };
+
+ protected:
+  virtual ~messages();
+
+  virtual catalog do_open (const string&, const locale&) const;
+  virtual string_type do_get (catalog, int, int, const string_type&) const;
+  virtual void do_close (catalog) const;
+
+  // Implementation:
+  messages (size_t refs,string);
+
+ private:
+  #ifdef _RWSTD_NO_MEMBER_TEMPLATES
+  locale::id &get_id (void) const { return id; }
+  #endif
+};
+
+#ifndef _RWSTD_NO_NAMESPACE
+} // namespace std
+#endif
+
+// Get declarations for the standard xxx_byname facets and for vendor-defined
+// extensions, such as declarations of the facets of the native ("") locale.
+
+#include <rw/byname>
+#include <rw/vendor>
+
+#ifndef _RWSTD_NO_NAMESPACE
+namespace std {
+#endif
+
+// Template use_facet<Facet>(loc) returns a reference to a facet.  Its result
+// is guaranteed by locale's value semantics to last at least as long as the
+// locale or any copy of the locale it came from.
+
+#ifndef _RWSTD_NO_TEMPLATE_ON_RETURN_TYPE
+#define _RWSTD_SELECT_FACET
+#else
+#define _RWSTD_SELECT_FACET ,Facet*
+#endif
+
+template <class Facet>
+inline const Facet & _RWSTDExport use_facet (const locale &loc _RWSTD_SELECT_FACET)
+{
+  // Ensure that Facet has a static member named id, and (via cast) that it is
+  // of type locale::id, and obtain from it (via size_t conversion operator)
+  // the private numeric index associated with type Facet for this run.
+  size_t i=(const locale::id&) Facet::id;
+
+  // Get pointer to facet from locale.
+  const _RWSTD_IMP_NAME(facet_imp) *f=loc.get_facet(i);
+
+  // If facet is not _EXPLICITly present in locale yet, use private function
+  // locale::make__EXPLICIT to construct it or retrieve it from a cache, and
+  // install it in the locale.  This function can throw bad_cast or other
+  // exceptions.
+  if (!f)
+    f=loc.make__EXPLICIT(Facet::id,Facet::ok_implicit_,Facet::facet_cat_,
+        _RWSTD_IMP_NAME(facet_maker)<Facet>::maker_func);
+
+  return _RWSTD_STATIC_CAST(const Facet&,*f);
+}
+
+// Function has_facet<Facet>(loc) simply reports whether a locale implements a
+// particular facet.  If has_facet<facet>(loc) is false, use_facet<facet>(loc)
+// would throw an exception.
+
+template <class Facet>
+inline bool has_facet (const locale &loc _RWSTD_SELECT_FACET)
+    _RWSTD_THROW_SPEC_NULL
+{
+  size_t ix = (const locale::id&) Facet::id;  // verify is a locale::id.
+  return loc.imp_->get_facet(ix) != NULL || Facet::ok_implicit_;
+}
+
+// convenience interfaces: is*(char)
+
+#ifndef _RWSTD_NO_TEMPLATE_ON_RETURN_TYPE
+
+template <class charT> inline bool isspace(charT c, const locale& loc)
+  { typedef ctype<charT> idiot; return use_facet<idiot>(loc).is(ctype_base::space, c); }
+template <class charT> inline bool isprint(charT c, const locale& loc)
+  { return use_facet<ctype<charT> >(loc).is(ctype_base::print, c); }
+template <class charT> inline bool iscntrl(charT c, const locale& loc)
+  { return use_facet<ctype<charT> >(loc).is(ctype_base::cntrl, c); }
+template <class charT> inline bool isupper(charT c, const locale& loc)
+  { return use_facet<ctype<charT> >(loc).is(ctype_base::upper, c); }
+template <class charT> inline bool islower(charT c, const locale& loc)
+  { return use_facet<ctype<charT> >(loc).is(ctype_base::lower, c); }
+template <class charT> inline bool isalpha(charT c, const locale& loc)
+  { return use_facet<ctype<charT> >(loc).is(ctype_base::alpha, c); }
+template <class charT> inline bool isdigit(charT c, const locale& loc)
+  { return use_facet<ctype<charT> >(loc).is(ctype_base::digit, c); }
+template <class charT> inline bool ispunct(charT c, const locale& loc)
+  { return use_facet<ctype<charT> >(loc).is(ctype_base::punct, c); }
+template <class charT> inline bool isxdigit(charT c, const locale& loc)
+  { return use_facet<ctype<charT> >(loc).is(ctype_base::xdigit, c); }
+template <class charT> inline bool isalnum(charT c, const locale& loc)
+  { return use_facet<ctype<charT> >(loc).is(ctype_base::alnum, c); }
+template <class charT> inline bool isgraph(charT c, const locale& loc)
+  { return use_facet<ctype<charT> >(loc).is(ctype_base::graph, c); }
+
+template <class charT> inline charT toupper(charT c, const locale& loc)
+  { return use_facet<ctype<charT> >(loc).toupper(c); }
+template <class charT> inline charT tolower(charT c, const locale& loc)
+  { return use_facet<ctype<charT> >(loc).tolower(c); }
+
+#else
+
+template <class charT> inline bool isspace(charT c, const locale& loc)
+  { return use_facet(loc,(ctype<charT>*)0).is(ctype_base::space, c); }
+template <class charT> inline bool isprint(charT c, const locale& loc)
+  { return use_facet(loc,(ctype<charT>*)0).is(ctype_base::print, c); }
+template <class charT> inline bool iscntrl(charT c, const locale& loc)
+  { return use_facet(loc,(ctype<charT>*)0).is(ctype_base::cntrl, c); }
+template <class charT> inline bool isupper(charT c, const locale& loc)
+  { return use_facet(loc,(ctype<charT>*)0).is(ctype_base::upper, c); }
+template <class charT> inline bool islower(charT c, const locale& loc)
+  { return use_facet(loc,(ctype<charT>*)0).is(ctype_base::lower, c); }
+template <class charT> inline bool isalpha(charT c, const locale& loc)
+  { return use_facet(loc,(ctype<charT>*)0).is(ctype_base::alpha, c); }
+template <class charT> inline bool isdigit(charT c, const locale& loc)
+  { return use_facet(loc,(ctype<charT>*)0).is(ctype_base::digit, c); }
+template <class charT> inline bool ispunct(charT c, const locale& loc)
+  { return use_facet(loc,(ctype<charT>*)0).is(ctype_base::punct, c); }
+template <class charT> inline bool isxdigit(charT c, const locale& loc)
+  { return use_facet(loc,(ctype<charT>*)0).is(ctype_base::xdigit, c); }
+template <class charT> inline bool isalnum(charT c, const locale& loc)
+  { return use_facet(loc,(ctype<charT>*)0).is(ctype_base::alnum, c); }
+template <class charT> inline bool isgraph(charT c, const locale& loc)
+  { return use_facet(loc,(ctype<charT>*)0).is(ctype_base::graph, c); }
+
+template <class charT> inline charT toupper(charT c, const locale& loc)
+  { return use_facet(loc,(ctype<charT>*)0).toupper(c); }
+template <class charT> inline charT tolower(charT c, const locale& loc)
+  { return use_facet(loc,(ctype<charT>*)0).tolower(c); }
+
+#endif
+
+#ifndef _RWSTD_NO_NAMESPACE
+} // namespace std
+#endif
+
+#ifdef _RWSTD_COMPILE_INSTANTIATE
+#include <locale.cc>
+#endif
+
+#endif // __STD_LOCALE__
+

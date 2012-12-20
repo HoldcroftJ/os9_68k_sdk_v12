@@ -1,0 +1,918 @@
+#ifndef __RW_VALARRAY__
+#define __RW_VALARRAY__
+
+/***************************************************************************
+ *
+ * valaray - Declarations for the Standard Library valarray
+ *
+ * $Id: valarray,v 1.22 1996/09/25 00:46:13 philippe Exp $
+ *
+ ***************************************************************************
+ *
+ * (c) Copyright 1994-1996 Rogue Wave Software, Inc.
+ * ALL RIGHTS RESERVED
+ *
+ * The software and information contained herein are proprietary to, and
+ * comprise valuable trade secrets of, Rogue Wave Software, Inc., which
+ * intends to preserve as trade secrets such software and information.
+ * This software is furnished pursuant to a written license agreement and
+ * may be used, copied, transmitted, and stored only in accordance with
+ * the terms of such license and with the inclusion of the above copyright
+ * notice.  This software and information or any other copies thereof may
+ * not be provided or otherwise made available to any other person.
+ *
+ * Notwithstanding any other lease or license that may pertain to, or
+ * accompany the delivery of, this computer software and information, the
+ * rights of the Government regarding its use, reproduction and disclosure
+ * are as set forth in Section 52.227-19 of the FARS Computer
+ * Software-Restricted Rights clause.
+ * 
+ * Use, duplication, or disclosure by the Government is subject to
+ * restrictions as set forth in subparagraph (c)(1)(ii) of the Rights in
+ * Technical Data and Computer Software clause at DFARS 252.227-7013.
+ * Contractor/Manufacturer is Rogue Wave Software, Inc.,
+ * P.O. Box 2328, Corvallis, Oregon 97339.
+ *
+ * This computer software and information is distributed with "restricted
+ * rights."  Use, duplication or disclosure is subject to restrictions as
+ * set forth in NASA FAR SUP 18-52.227-79 (April 1985) "Commercial
+ * Computer Software-Restricted Rights (April 1985)."  If the Clause at
+ * 18-52.227-74 "Rights in Data General" is specified in the contract,
+ * then the "Alternate III" clause applies.
+ *
+ **************************************************************************/
+
+#include <rw/valimp>
+
+#ifndef _RWSTD_NO_NAMESPACE
+namespace std {
+#endif
+
+// forward declarations
+class slice;
+template <class T> class  slice_array;
+class gslice;
+template <class T> class gslice_array;
+template <class T> class mask_array;
+template <class T> class indirect_array;
+
+
+/*************************************************************
+ *                     CLASS VALARRAY                        *
+ *************************************************************/
+
+template <class T> class valarray {
+
+public:
+
+    typedef T value_type;
+
+// constructors
+
+    valarray( ) {;}
+
+    _EXPLICIT valarray(size_t size)
+    { memory_array._initial_size(size); }
+
+    valarray(const T& value, size_t size)
+    { memory_array._initialize_with_value(value,size); }
+
+    valarray(const T* pointer, size_t size)
+    { memory_array._initialize_with_array(pointer,size); }
+
+    valarray(const valarray<T>& array)
+    { memory_array._copy_memory_array(array._RW_get_memory_array()); }
+
+    valarray(const slice_array<T>&);
+    valarray(const gslice_array<T>&);
+    valarray(const mask_array<T>&);
+    valarray(const indirect_array<T>&);
+
+    // destructor
+
+	~valarray() {;}
+
+	// operator =
+
+	valarray<T>& operator= (const valarray<T>& array)
+        {
+          if ( this != &array )
+	   memory_array._copy_memory_array(array._RW_get_memory_array());
+	  return *this;
+        }
+
+   valarray<T>& operator= (const slice_array<T>&);
+   valarray<T>& operator= (const gslice_array<T>&);
+   valarray<T>& operator= (const mask_array<T>&);
+   valarray<T>& operator= (const indirect_array<T>&);
+   valarray<T>& operator= (const T&);
+
+	// operator[]
+
+	T operator[] (size_t ind) const
+    { return memory_array[ind];  }
+
+	T& operator[] (size_t ind)
+    { return memory_array[ind]; }
+
+	valarray<T> operator[](slice) const;
+        inline slice_array<T> operator[](slice);
+        valarray<T> operator[](const gslice&) const;
+	inline gslice_array<T> operator[](const gslice&);
+	valarray<T> operator[](const valarray<bool>&) const;
+	inline mask_array<T> operator[](const valarray<bool>&);
+	valarray<T> operator[](const valarray<size_t>&) const;
+	inline indirect_array<T> operator[](const valarray<size_t>&);
+
+    // unary operators
+
+	valarray<T> operator+() const;
+	valarray<T> operator-() const;
+   #ifndef _RWSTD_NO_ONLY_NEEDED_INSTANTIATION
+	valarray<T> operator~() const;
+	valarray<bool> operator!() const;
+   #endif
+
+    // computed assignment
+
+   valarray<T>& operator*= (const valarray<T>& array);
+   valarray<T>& operator/= (const valarray<T>& array);
+   valarray<T>& operator+= (const valarray<T>& array);
+   valarray<T>& operator-= (const valarray<T>& array);
+   #ifndef _RWSTD_NO_ONLY_NEEDED_INSTANTIATION
+   valarray<T>& operator%= (const valarray<T>& array);
+   valarray<T>& operator^= (const valarray<T>& array);
+   valarray<T>& operator&= (const valarray<T>& array);
+   valarray<T>& operator|= (const valarray<T>& array);
+   valarray<T>& operator<<= (const valarray<T>& array);
+   valarray<T>& operator>>= (const valarray<T>& array);
+   #endif
+
+
+   valarray<T>& operator*= (const T& val);
+   valarray<T>& operator/= (const T& val);
+   valarray<T>& operator%= (const T& val);
+   valarray<T>& operator+= (const T& val);
+   valarray<T>& operator-= (const T& val);
+   valarray<T>& operator^= (const T& val);
+   valarray<T>& operator&= (const T& val);
+   valarray<T>& operator|= (const T& val);
+   valarray<T>& operator<<= (const T& val);
+   valarray<T>& operator>>= (const T& val);
+
+
+   // others
+
+   size_t size() const { return memory_array._get_length(); }
+
+   T sum() const;
+   #ifndef _RWSTD_NO_ONLY_NEEDED_INSTANTIATION
+   T min() const;
+   T max() const;
+   #endif
+
+   valarray<T> shift(int sh) const;
+   valarray<T> cshift(int sh) const;
+
+   valarray<T> apply(T func(T)) const;
+   valarray<T> apply(T func(const T&)) const;
+
+   void free()
+   { memory_array._RW_resize_without_copy(0); }
+
+   void resize(size_t sz, const T& c= T() )
+   {
+     memory_array._RW_resize_without_copy(sz);
+     *this = c;
+   }
+
+    // implementation specific
+
+    const _RW_IMP_SPACE(_RW_array<T>)& _RW_get_memory_array( ) const
+    { return memory_array; }
+
+    _RW_IMP_SPACE(_RW_array<T>)* _RW_get_memory_array_adr( )
+    { return &memory_array; }
+
+    valarray(_RW_IMP_SPACE(_RW_temporary<T>)* tmp)
+    {
+	  memory_array._replace(tmp->store_adr,tmp->length);
+	  delete tmp;
+    }
+
+private:
+
+	_RW_IMP_SPACE(_RW_array<T>)  memory_array;
+
+};
+
+/*
+ *   VALARRAY INLINE MEMBER FUNCTIONS
+ */
+
+
+   template <class T>
+   inline valarray<T>& valarray<T>::operator=(const T& value)
+   {
+	 memory_array._initialize_with_value(value, size());
+	 return *this;
+   }
+
+// operator[] for slice
+  
+   template <class T>
+   inline slice_array<T> valarray<T>::operator[](slice sl)
+   {
+      return slice_array<T>(&memory_array, sl);
+   }
+
+   // operator[] for gslice
+
+     
+   template <class T>
+   inline gslice_array<T> valarray<T>::operator[](const gslice& sl)
+   {
+      return gslice_array<T>(&memory_array, sl);
+   }
+
+
+// operator[] for valarray[valarray<bool>] used with mask_array
+
+  
+   template <class T>
+   inline mask_array<T> valarray<T>::operator[](const valarray<bool>& array)
+   {
+      return mask_array<T>(&memory_array, array);
+   }
+
+
+// operator[] for valarray[valarray<size_t>] used with indirect_array
+
+
+   template <class T>
+   inline indirect_array<T> valarray<T>::operator[](const valarray<size_t>& array)
+   {
+      return indirect_array<T>(&memory_array, array);
+   }
+
+/*
+ *
+ *   VALARRAY NON MEMBER FUNCTIONS
+ *
+ */
+
+ // binary operators
+
+ template<class T>
+ valarray<T> operator* (const valarray<T>& , const valarray<T>&  );
+ 
+ template<class T>
+ valarray<T> operator/ (const valarray<T>& , const valarray<T>& );
+ 
+ template<class T>
+ valarray<T> operator% (const valarray<T>&, const valarray<T>&);
+
+ template<class T>
+ valarray<T> operator+ (const valarray<T>& , const valarray<T>& );
+ 
+ template<class T>
+ valarray<T> operator- (const valarray<T>& , const valarray<T>& );
+  
+ template<class T>
+ valarray<T> operator^ (const valarray<T>&, const valarray<T>&);
+
+ template<class T>
+ valarray<T> operator& (const valarray<T>&, const valarray<T>&);
+
+ template<class T>
+ valarray<T> operator| (const valarray<T>&, const valarray<T>&);
+
+ template<class T>
+ valarray<T> operator<< (const valarray<T>&, const valarray<T>&);
+
+ template<class T>
+ valarray<T> operator>> (const valarray<T>&, const valarray<T>&);
+
+ template<class T>
+ valarray<bool> operator&& (const valarray<T>&, const valarray<T>&);
+
+ template<class T>
+ valarray<bool> operator|| (const valarray<T>&, const valarray<T>&);
+
+// with non array second param
+
+ template<class T>
+ valarray<T> operator* (const valarray<T>& , const T& );
+ 
+ template<class T>
+ valarray<T> operator/ (const valarray<T>& , const T& );
+ 
+ template<class T>
+ valarray<T> operator% (const valarray<T>&, const T&);
+
+ template<class T>
+ valarray<T> operator+ (const valarray<T>& , const T& );
+ 
+ template<class T>
+ valarray<T> operator- (const valarray<T>& , const T& );
+  
+ template<class T>
+ valarray<T> operator^ (const valarray<T>&, const T&);
+
+ template<class T>
+ valarray<T> operator& (const valarray<T>&, const T&);
+
+ template<class T>
+ valarray<T> operator| (const valarray<T>&, const T&);
+
+ template<class T>
+ valarray<T> operator<< (const valarray<T>&, const T&);
+
+ template<class T>
+ valarray<T> operator>> (const valarray<T>&, const T&);
+
+ template<class T>
+ valarray<T> operator&& (const valarray<T>&, const T&);
+
+ template<class T>
+ valarray<T> operator|| (const valarray<T>&, const T&);
+
+
+// with non array first param
+
+ template<class T>
+ valarray<T> operator* (const T& , const valarray<T>& ); 
+ 
+ template<class T>
+ valarray<T> operator/ (const T& , const valarray<T>& );
+ 
+ template<class T>
+ valarray<T> operator% (const T&, const valarray<T>&);
+
+ template<class T>
+ valarray<T> operator+ (const T& , const valarray<T>& );
+ 
+ template<class T>
+ valarray<T> operator- (const T& , const valarray<T>& );
+ 
+ template<class T>
+ valarray<T> operator^ (const T&, const valarray<T>&);
+
+ template<class T>
+ valarray<T> operator& (const T&, const valarray<T>&);
+
+ template<class T>
+ valarray<T> operator| (const T&, const valarray<T>&);
+
+ template<class T>
+ valarray<T> operator<< (const T&, const valarray<T>&);
+
+ template<class T>
+ valarray<T> operator>> (const T&, const valarray<T>&);
+
+ template<class T>
+ valarray<T> operator&& (const T&, const valarray<T>&);
+
+ template<class T>
+ valarray<T> operator|| (const T&, const valarray<T>&);
+
+// comparison operators
+
+ template<class T>
+ valarray<bool> operator== (const valarray<T>& , const valarray<T>& );
+  
+ template<class T>
+ valarray<bool> operator!= (const valarray<T>& , const valarray<T>& );
+   
+ template<class T>
+ valarray<bool> operator< (const valarray<T>& , const valarray<T>& );
+ 
+ template<class T>
+ valarray<bool> operator> (const valarray<T>& , const valarray<T>& );
+   
+ template<class T>
+ valarray<bool> operator<= (const valarray<T>& , const valarray<T>& ); 
+
+ template<class T>
+ valarray<bool> operator>= (const valarray<T>& , const valarray<T>& );
+ 
+// comparison operators, non valarray second param
+
+ template<class T>
+ valarray<bool> operator== (const valarray<T>& , const T& );
+ 
+ template<class T>
+ valarray<bool> operator!= (const valarray<T>& , const T& );
+ 
+ template<class T>
+ valarray<bool> operator< (const valarray<T>& , const T& );
+
+ template<class T>
+ valarray<bool> operator> (const valarray<T>& , const T& );
+ 
+ template<class T>
+ valarray<bool> operator<= (const valarray<T>& , const T& );
+  
+ template<class T>
+ valarray<bool> operator>= (const valarray<T>& , const T& );
+ 
+// comparison operators, non valarray first param
+
+ template<class T>
+ valarray<bool> operator== (const T& , const valarray<T>& );
+ 
+ template<class T>
+ valarray<bool> operator!= (const T& , const valarray<T>& );
+ 
+ template<class T>
+ valarray<bool> operator< (const T& , const valarray<T>& );
+ 
+ template<class T>
+ valarray<bool> operator> (const T& , const valarray<T>& );
+ 
+ template<class T>
+ valarray<bool> operator<= (const T& , const valarray<T>& ); 
+  
+ template<class T>
+ valarray<bool> operator>= (const T& , const valarray<T>& );
+ 
+   
+// transcendentals
+
+#ifdef _RWSTD_NO_NEW_HEADER 
+#ifndef _RWSTD_NO_NAMESPACE
+// needed for expression like valarray< valarray<float> > 
+
+# error this code should not be compiled
+
+   inline long double cos(long double var) { return ::cos(var); }
+   inline double cos(double var) { return ::cos(var); }
+   inline float cos(float var) { return (float)::cos(var); }
+
+   inline long double cosh(long double var) { return ::cosh(var); }
+   inline double cosh(double var) { return ::cosh(var); }
+   inline float cosh(float var) { return (float)::cosh(var); }
+
+   inline long double exp(long double var) { return ::exp(var); }
+   inline double exp(double var) { return ::exp(var); }
+   inline float exp(float var) { return (float)::exp(var); }
+ 
+   inline long double log(long double var) { return ::log(var); }
+   inline double log(double var) { return ::log(var); }
+   inline float log(float var) { return (float)::log(var); }
+ 
+   inline long double log10(long double var) { return ::log10(var); }
+   inline double log10(double var) { return ::log10(var); }
+   inline float log10(float var) { return (float)::log10(var); }
+
+   inline long double pow(long double var1, long double var2) { return ::pow(var1,var2); }
+   inline double pow(double var1, double var2) { return ::pow(var1,var2); }
+   inline float pow(float var1,float var2) { return (float)::pow(var1,var2); }
+
+   inline long double sin(long double var) { return ::sin(var); }
+   inline double sin(double var) { return ::sin(var); }
+   inline float sin(float var) { return (float)::sin(var); }
+
+   inline long double sinh(long double var) { return ::sinh(var); }
+   inline double sinh(double var) { return ::sinh(var); }
+   inline float sinh(float var) { return (float)::sinh(var); }
+
+   inline long double sqrt(long double var) { return ::sqrt(var); }
+   inline double sqrt(double var) { return ::sqrt(var); }
+   inline float sqrt(float var) { return (float)::sqrt(var); }
+
+   inline long double tan(long double var) { return ::tan(var); }
+   inline double tan(double var) { return ::tan(var); }
+   inline float tan(float var) { return (float)::tan(var); }
+
+   inline long double tanh(long double var) { return ::tanh(var); }
+   inline double tanh(double var) { return ::tanh(var); }
+   inline float tanh(float var) { return (float)::tanh(var); }
+
+   inline long double acos(long double var) { return ::acos(var); }
+   inline double acos(double var) { return ::acos(var); }
+   inline float acos(float var) { return (float)::acos(var); }
+
+   inline long double asin(long double var) { return ::asin(var); }
+   inline double asin(double var) { return ::asin(var); }
+   inline float asin(float var) { return (float)::asin(var); }
+
+   inline long double atan(long double var) { return ::atan(var); }
+   inline double atan(double var) { return ::atan(var); }
+   inline float atan(float var) { return (float)::atan(var); }
+
+   inline long double atan2(long double var1, long double var2) { return ::atan2(var1,var2); }
+   inline double atan2(double var1, double var2) { return ::atan2(var1,var2); }
+   inline float atan2(float var1,float var2) { return (float)::atan2(var1,var2); }
+
+   inline long double abs(long double var) { return (var>0) ? var : -var; }
+   inline double abs(double var) { return (var>0) ? var : -var; }
+   inline float abs(float var) { return (var>0) ? var : -var; }
+   inline long abs(long var) { return (var>0) ? var : -var; }
+   inline int abs(int var) { return (var>0) ? var : -var; }
+   inline short abs(short var) { return (var>0) ? var : -var; }
+
+ #endif
+#endif
+
+ template<class T>
+ valarray<T> abs(const valarray<T>& );
+
+ template<class T>
+ valarray<T> acos(const valarray<T>& );
+
+ template<class T>
+ valarray<T> asin(const valarray<T>& );
+
+ template<class T>
+ valarray<T> atan(const valarray<T>& );
+
+ template<class T>
+ valarray<T> cos(const valarray<T>& );
+
+ template<class T>
+ valarray<T> cosh(const valarray<T>& );
+
+ template<class T>
+ valarray<T> exp(const valarray<T>& );
+
+ template<class T>
+ valarray<T> log(const valarray<T>& );
+
+ template<class T>
+ valarray<T> log10(const valarray<T>& );
+
+ template<class T>
+ valarray<T> sinh(const valarray<T>& );
+
+ template<class T>
+ valarray<T> sin(const valarray<T>& );
+
+ template<class T>
+ valarray<T> sqrt(const valarray<T>& );
+
+ template<class T>
+ valarray<T> tan(const valarray<T>& );
+
+ template<class T>
+ inline valarray<T> tanh(const valarray<T>& );
+
+ template<class T>
+ valarray<T> atan2(const valarray<T>& , const valarray<T>& );
+
+ template<class T>
+ valarray<T> atan2(const valarray<T>& , const T& );
+
+ template<class T>
+ valarray<T> atan2(const T& , const valarray<T>& );
+
+ template<class T>
+ valarray<T> pow(const valarray<T>& , const valarray<T>& );
+
+ template<class T>
+ valarray<T> pow(const valarray<T>& , const T& );
+
+ template<class T>
+ valarray<T> pow(const T& , const valarray<T>& );
+
+// Global min and max template fonction
+// for compiler that try to instantiate all the member function
+
+#ifdef _RWSTD_NO_ONLY_NEEDED_INSTANTIATION
+template <class T> T max(const valarray<T>&);
+template <class T> T min(const valarray<T>&);
+#endif
+
+/****************************************************************
+ *                SLICE AND SLICE_ARRAY                         *
+ ****************************************************************/
+
+ class slice {
+
+ public:
+
+	 slice()
+	 : start_(0), length_(0), stride_(0)
+	 {;}
+     slice(size_t start, size_t length, size_t stride)
+	 : start_(start)
+     , length_(length)
+	 , stride_(stride)
+     {;}
+
+     slice(const slice& sl)
+	 :start_(sl.start())
+	 ,length_(sl.length())
+	 ,stride_(sl.stride())
+	 {;}
+
+	 size_t start() const { return start_; }
+	 size_t length() const { return length_; }
+	 size_t stride() const { return stride_; }
+
+ private:
+
+	 size_t start_;
+	 size_t length_;
+	 size_t stride_;
+
+ };
+
+ template <class T> class slice_array {
+
+
+ public:
+
+     typedef T value_type;
+
+	 slice_array( _RW_IMP_SPACE(_RW_array<T>)* pt,const slice& a ) 
+     :ref_mem_array(pt)
+	 ,slice_(a)
+	 {;}
+
+     slice_array(const slice_array<T>& sl)
+	 :ref_mem_array(sl.get_ref_mem_array())
+	 ,slice_(sl.get_slice())
+	 {;}
+
+     _RW_IMP_SPACE(_RW_array<T>)* get_ref_mem_array() const { return ref_mem_array; }
+	 slice get_slice() const { return slice_; }
+
+    // assignment
+
+        void operator= (const valarray<T>& ) const;
+        void operator= (const T&) const;
+
+    // computed assignment
+
+   void operator*= (const valarray<T>& ) const;
+   void operator/= (const valarray<T>& ) const;
+   void operator+= (const valarray<T>& ) const;
+   void operator-= (const valarray<T>& ) const;
+   #ifndef _RWSTD_NO_ONLY_NEEDED_INSTANTIATION
+   void operator%= (const valarray<T>& ) const;
+   void operator^= (const valarray<T>& ) const;
+   void operator&= (const valarray<T>& ) const;
+   void operator|= (const valarray<T>& ) const;
+   void operator<<= (const valarray<T>& ) const;
+   void operator>>= (const valarray<T>& ) const;
+   #endif
+
+	~slice_array() {;}
+
+ private:
+
+	 slice_array();
+	 slice_array<T>& operator= (const slice_array<T>&);
+
+	 _RW_IMP_SPACE(_RW_array<T>)*  ref_mem_array;
+	 slice slice_;
+    
+ };
+
+
+/****************************************************************
+ *                GSLICE AND GSLICE_ARRAY                       *
+ ****************************************************************/
+
+ class gslice {
+
+ public:
+
+	 gslice()
+	 : start_(0)
+	 , reset_(true)
+	 {;}
+	 
+
+	 gslice(size_t s, const valarray<size_t>& l, const valarray<size_t>& d)
+	 : start_(s)
+	 , length_(l)
+         , stride_(d)
+	 , reset_(true)
+	 , r_length_((size_t)0,l.size())
+	 {;}
+
+         gslice(const gslice& sl) 
+	 : start_(sl.start())
+	 , length_(sl.length())
+         , stride_(sl.stride())
+	 , reset_(true)
+	 , r_length_((size_t)0,sl.length().size())
+	 {;}
+
+	 ~gslice() {;}
+
+         size_t start() const { return start_; }
+	 valarray<size_t> length() const { return length_; }
+	 valarray<size_t> stride() const { return stride_; }
+
+	 size_t next_ind();
+	 inline size_t is_reseted() const { return reset_; }
+	 size_t ind_max() const;
+	 size_t ind_numb() const;
+
+ private:
+
+	 size_t start_;
+	 valarray<size_t> length_;
+	 valarray<size_t> stride_;
+
+	 bool reset_;
+	 valarray<size_t>  r_length_;
+
+ };
+
+
+// class gslice_array
+
+template <class T> class gslice_array {
+
+
+ public:
+
+     typedef T value_type;
+
+	 gslice_array( _RW_IMP_SPACE(_RW_array<T>)* pt,const gslice& a ) 
+     :ref_mem_array(pt)
+	 ,slice_(a)
+	 {;}
+
+     gslice_array(const gslice_array<T>& sl)
+	 :ref_mem_array(sl.get_ref_mem_array())
+	 ,slice_(sl.get_slice())
+	 {;}
+
+     _RW_IMP_SPACE(_RW_array<T>)* get_ref_mem_array() const { return ref_mem_array; }
+	 gslice get_slice() const { return slice_; }
+
+    // assignment
+
+        void operator= (const valarray<T>& ) const;
+        void operator= (const T&) const;
+
+    // computed assignment
+
+   void operator*= (const valarray<T>& ) const;
+   void operator/= (const valarray<T>& ) const;
+   void operator+= (const valarray<T>& ) const;
+   void operator-= (const valarray<T>& ) const;
+   #ifndef _RWSTD_NO_ONLY_NEEDED_INSTANTIATION
+   void operator%= (const valarray<T>& ) const;
+   void operator^= (const valarray<T>& ) const;
+   void operator&= (const valarray<T>& ) const;         
+   void operator|= (const valarray<T>& ) const;         
+   void operator<<= (const valarray<T>& ) const;        
+   void operator>>= (const valarray<T>& ) const;
+   #endif
+
+	~gslice_array() {;}
+
+ private:
+
+	 gslice_array();
+	 gslice_array<T>& operator= (const gslice_array<T>&);
+
+	 _RW_IMP_SPACE(_RW_array<T>)*  ref_mem_array;
+	 gslice slice_;
+    
+ };
+ 
+
+/****************************************************************
+ *                         MASK_ARRAY                           *
+ ****************************************************************/
+
+
+// class mask_array
+
+template <class T> class mask_array {
+
+
+ public:
+
+	 typedef T value_type;
+
+	 mask_array( _RW_IMP_SPACE(_RW_array<T>)* pt,const valarray<bool>& a )
+     :ref_mem_array(pt)
+	 ,array(a)
+	 {;}
+
+     mask_array(const mask_array<T>& sl)
+	 :ref_mem_array(sl.get_ref_mem_array())
+	 ,array(sl.get_array())
+	 {;}
+
+     _RW_IMP_SPACE(_RW_array<T>)* get_ref_mem_array() const { return ref_mem_array; }
+	 valarray<bool> get_array() const { return array; }
+     valarray<bool>* get_array_pt() { return &array; }
+
+    // assignment
+
+       void operator= (const valarray<T>& ) const;
+       void operator= (const T&) const;
+
+    // computed assignment
+
+   void operator*= (const valarray<T>& ) const;
+   void operator/= (const valarray<T>& ) const;
+   void operator+= (const valarray<T>& ) const;
+   void operator-= (const valarray<T>& ) const;
+   #ifndef _RWSTD_NO_ONLY_NEEDED_INSTANTIATION
+   void operator%= (const valarray<T>& ) const;
+   void operator^= (const valarray<T>& ) const;
+   void operator&= (const valarray<T>& ) const;
+   void operator|= (const valarray<T>& ) const;
+   void operator<<= (const valarray<T>& ) const;
+   void operator>>= (const valarray<T>& ) const;
+   #endif
+
+	~mask_array() {;}
+
+ private:
+
+	 mask_array();
+	 mask_array<T>& operator= (const mask_array<T>&); 
+
+	 _RW_IMP_SPACE(_RW_array<T>)*  ref_mem_array;
+	 valarray<bool> array;
+    
+ };
+ 
+  
+/****************************************************************
+ *                       INDIRECT_ARRAY                         *
+ ****************************************************************/
+
+
+// class indirect_array
+
+template <class T> class indirect_array {
+
+
+ public:
+
+	 typedef T value_type;
+
+	 indirect_array( _RW_IMP_SPACE(_RW_array<T>)* pt,const valarray<size_t>& a ) 
+     :ref_mem_array(pt)
+	 ,array(a)
+	 {;}
+
+     indirect_array(const indirect_array<T>& sl)
+	 :ref_mem_array(sl.get_ref_mem_array())
+	 ,array(sl.get_array())
+	 {;}
+
+         _RW_IMP_SPACE(_RW_array<T>)* get_ref_mem_array() const { return ref_mem_array; }
+	 valarray<size_t> get_array() const { return array; }
+         valarray<size_t>* get_array_pt() { return &array; }
+
+    // assignment
+
+        void operator= (const valarray<T>& ) const;
+        void operator= (const T& ) const;
+
+    // computed assignment
+
+   void operator*= (const valarray<T>& ) const;
+   void operator/= (const valarray<T>& ) const;
+   void operator+= (const valarray<T>& ) const;
+   void operator-= (const valarray<T>& ) const;
+   #ifndef _RWSTD_NO_ONLY_NEEDED_INSTANTIATION
+   void operator%= (const valarray<T>& ) const;
+   void operator^= (const valarray<T>& ) const;
+   void operator&= (const valarray<T>& ) const;
+   void operator|= (const valarray<T>& ) const;
+   void operator<<= (const valarray<T>& ) const;
+   void operator>>= (const valarray<T>& ) const;
+   #endif
+
+	~indirect_array() {;}
+
+ private:
+
+	 indirect_array();
+	 indirect_array<T>& operator= (const indirect_array<T>&); 
+
+	 _RW_IMP_SPACE(_RW_array<T>)*  ref_mem_array;
+	 valarray<size_t> array;
+
+ };
+
+#ifndef _RWSTD_NO_NAMESPACE
+}
+#endif
+
+#if 0 
+We don't seem to need this for OS9 (tag)
+
+#ifdef _RWSTD_COMPILE_INSTANTIATE
+#include <valarray.cc>
+#endif
+
+#endif
+
+
+
+#endif /* __VALARRAY__ */

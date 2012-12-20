@@ -1,0 +1,94 @@
+**************************************************
+* Copyright 1991, 1993, 1995 Microware Systems Corporation.
+* All Rights Reserved
+* Reproduced Under License
+*
+*   This source code is the proprietary confidential property of
+* Microware Systems Corporation, and is provided to the licensee
+* for documentation and educational purposes only.  Reproduction,
+* publication, or any form of distribution to any party other than
+* the licensee is strictly prohibited.
+
+********************************
+* Editon History
+*  #    Date      Comments                                      by
+* -- --------- ------------------------------------------------ ---
+* 01 91/05/07  Initial version: mVme167                         Rwb
+* 02 93/07/28  VMEChip setup moved to sysinit for new NVRAM and ats
+*              backplane booter support. Adapted MWOS directory
+*              structure. Fixed CD2401 setup on 33Mhz board.
+*               ---- OS-9/68K V3.0.2 Beta release ----
+*               ---- OS-9/68K V3.0.2 Release ----
+* 03 99/07/30  Correct cd2401Wait to watch GFRCR                srm
+*
+Edition equ 3 current edition number
+
+ use defsfile
+ use <cd2401.d>
+
+ nam initext.a
+ ttl initext.a - Sysinit extension module
+
+********************
+* Debugger usage
+*
+ ifdef DEBUGGER
+USING_DEBUGGER set 1 define primitive debugger in use
+ endc
+
+ ifdef ROMBUG
+USING_DEBUGGER set 1 define smart debugger in use
+ endc
+
+Typ_Lang set (Prgrm<<8)+Objct
+Attr_Rev set (ReEnt<<8)+0
+ psect initext,Typ_Lang,Attr_Rev,Edition,0,Entry
+
+Entry
+ dc.l 1801546857 sync code
+ bra RP_SInit extension to sysinit
+ bra RP_SInit2 extension to sysinit2
+
+***********************************************************************
+*  RP_SInit:  extention to SysInit.
+*
+*  This is the routine that is called from SysInit.  The CPU performs
+*  very little before it reaches this routine.  We will set up the 
+*  chip selects so that we have access to the modules, ROM and RAM.
+*
+RP_SInit:
+ 
+ rts return to SysInit.
+
+*****************************************************************************
+*  RP_SInit2:  extention to SInitTwo.
+*
+*  This is the routine that is called from SInitTwo.  The CPU has constructed
+*  the RAM vectors ( if included ) and the exception jump tables.  This would
+*  be a place to install handlers for boards that generate unsolicited
+*  interrupts that would cause the system to fail it's boot proceedure.
+*
+RP_SInit2:
+ movem.l d0-d1/a0,-(sp)
+
+*
+*  Set operational level for the CD2401 serial chip
+*
+ movea.l #TermBase+GFRCR,a0 Base address of the 2401 chip
+cd2401Wait move.b (a0),d1 wait for chip to be ready
+  beq.s cd2401Wait
+ move.b #SerLevel,d1 Set the same level to all three level registers
+ move.b d1,PILR1(a0) 
+ nop
+ move.b d1,PILR2(a0)
+ nop
+ move.b d1,PILR3(a0)
+ nop
+ move.b #TPRDefault,TPR(a0) set time period register for 1ms.
+
+* enable interrupts through the PCC for the Serial Chip
+
+ movem.l (sp)+,d0-d1/a0
+  rts return to SInitTwo.
+ 
+ ends

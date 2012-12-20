@@ -1,0 +1,9 @@
+ nam T13
+ ttl 68000 T13 device descriptor module
+ use defsfile
+
+ use "scfdesc.a"
+
+ T13
+ ends
+

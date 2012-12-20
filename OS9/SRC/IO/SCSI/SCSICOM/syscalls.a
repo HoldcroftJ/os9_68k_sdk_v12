@@ -1,0 +1,444 @@
+ nam syscalls
+ ttl system call interface for C language SCSI Driver System
+
+************************************
+*
+* System call interface for C Language SCSI Driver System
+*
+* These system call bindings always return either an error
+* or 0 if no error.  All possible return values are returned via 
+* pointers passed as arguments.
+*
+* Copyright 1988, 1989 by Microware Systems Corporation
+* Reproduced Under License
+*
+* This source code is the proprietary confidential property of
+* Microware Systems Corporation, and is provided to licensee
+* solely for documentation and educational purposes. Reproduction,
+* publication, or distribution in any form to any party other than
+* the licensee is strictly prohibited.
+*
+* Edition History
+*
+* ed.   date.   reason                                           who
+* --  --------  -----------------------------------------------  ---
+*  1  88/01/18  created                                          djl
+*  2  88/08/15  revised for less stack usage                     lac
+*  3  88/09/09  added _f_sleep                                   srw
+*  4  88/12/20  added _f_send                                    jal
+*  5  89/05/11  added _f_trans support.                          wwb
+*               added link/unlk protocol, preserved d1 usage.    wwb
+*  6  89/05/25  fixed bug from ed.5 (srtmem).                    wwb
+*  7  89/11/27  Added _fev_set call                              Rwb
+*  8  90/04/06  Added _f_chkmem call (F$ChkMem)                  Rwb
+*  9  90/04/10  Added _f_move call (F$Move)                      Rwb
+*               ---- OS-9/68K V2.4 released ----
+* 10  91/04/15  Fixed _f_chkmem, _f_move: preserve d1 please.    wwb
+*               ---- OS-9/68K V2.4.3 released ----
+* 11  93/07/02  converted for UCC.                               wwb
+*               ---- OS-9/68K V3.0 released ----
+*               ---- OS-9/68K V3.1 released ----
+*
+Edition set 11 driver will set this via @_sysedit:
+
+ psect syscalls,0,0,Edition,0,0
+
+
+********************
+* Stacked parameter defs
+*
+params equ 8 offset from a5 to stacked parameters
+
+* F$DatMod - _f_datmod(size, attrev, perm, name, typlang, attrev, newname,
+*                      moddat, modhead)
+*			int size, attrev, perm;
+*			char *name;
+*			int **typlang, **attrev;
+*			char **newname;
+*			void **moddat, **modhead;
+*
+perm set 0
+name set 4
+typlang set 8
+attrev set 12
+newname set 16
+moddat set 20
+modhead set 24
+
+_f_datmod: link a5,#0
+ movem.l d1/d2/a0-a4,-(sp) save regs
+ move.l perm+params(a5),d2 get permissions
+ move.l name+params(a5),a0 get name ptr
+ os9 F$DatMod
+ bcs.s _f_link_err
+ lea typlang+params(a5),a4 get return ptrs ptr
+ bra.s _f_link_ret
+
+
+* F$Link - _f_link(wattr, name, typlang, gattr, newname, entry, header)
+*			int wattr;
+*			char *name;
+*			int **typlang, **gattr;
+*			char **newname;
+*			void **entry, **header;
+*
+typlang set 0
+
+_f_link: link a5,#0
+ movem.l d1/d2/a0-a4,-(sp) save regs
+ move.l d1,a0 set the name address
+ os9 F$Link
+ bcs.s _f_link_err skip if error
+ lea typlang+params(a5),a4 get return ptrs ptr
+_f_link_ret move.l (a4)+,a3
+ move.l d0,(a3)
+ move.l (a4)+,a3
+ move.l d1,(a3)
+ move.l (a4)+,a3
+ move.l a0,(a3)
+ move.l (a4)+,a3
+ move.l a1,(a3)
+ move.l (a4)+,a3
+ move.l a2,(a3)
+ moveq.l #0,d0 return successful
+_f_link_xit movem.l (sp)+,d1/d2/a0-a4 restore regs
+ unlk a5
+ rts
+
+_f_link_err ext.l d1 make error code an int
+ move.l d1,d0 return in d0
+ bra.s _f_link_xit
+
+
+* F$SRqMem - _f_srqmem(size, gotsize, addr)
+*			int size, *gotsize;
+*			void **addr;
+*
+addr set 0
+
+_f_srqmem: link a5,#0
+ movem.l d1/a0/a2,-(sp) save regs
+ os9 F$SRqMem
+ bcs.s _f_srqmem_err
+ move.l d1,a0 copy size ptr
+ move.l d0,(a0) return size gotten
+ move.l addr+params(a5),a0
+ move.l a2,(a0) return address of memory
+ moveq.l #0,d0 return success
+_f_srqmem_xit movem.l (sp)+,d1/a0/a2 restore regs
+ unlk a5
+ rts
+
+_f_srqmem_err ext.l d1 make error code an int
+ move.l d1,d0 return error
+ bra.s _f_srqmem_xit
+
+
+* F$IRQ - _f_irq(vector, prior, irqsrvc, static, port)
+*			int vector, prior, (*irqsvc)();
+*			void **static, **port;
+*
+irqsvc set 0
+static set 4
+port set 8
+
+_f_irq: link a5,#0
+ movem.l d1/a0/a2-a3,-(sp) save regs
+ move.l irqsvc+params(a5),a0 get IRQ service routine ptr
+ move.l static+params(a5),a2 get static storage ptr
+ move.l port+params(a5),a3 get port ptr
+ os9 F$IRQ add device to irq polling table
+ bsr.s HandleErr check for error
+ movem.l (sp)+,d1/a0/a2-a3 restore regs
+ unlk a5
+ rts
+
+
+* F$DelPrc - _f_delprc(id)
+*			int id;
+*
+
+_f_delprc: link a5,#0
+ move.l d1,-(sp) save reg
+ os9 F$DelPrc delete process
+ bsr.s HandleErr check for error
+ move.l (sp)+,d1 restore reg
+ unlk a5
+ rts
+
+
+* F$Sleep - _f_sleep(ticks)
+*			int ticks;
+*
+* ticks/seconds already in d0
+*
+
+_f_sleep: link a5,#0
+ move.l d1,-(sp) save reg
+ os9 F$Sleep sleep for (d0) ticks
+ bsr.s HandleErr check for error
+ move.l (sp)+,d1 restore reg
+ unlk a5
+ rts
+
+
+* F$Send - _f_send(process_id, signal_code)
+*			unsigned short	process_id,
+*							signal_code;
+* process ID is already in d0
+* signal code is already in d1
+*
+
+_f_send: link a5,#0
+ move.l d1,-(sp) save reg
+ os9 F$Send send the signal
+ bsr.s HandleErr check for error
+ move.l (sp)+,d1 restore reg
+ unlk a5
+ rts
+
+
+* F$SRtMem - _f_srtmem(size, addr)
+*
+
+_f_srtmem: link a5,#0
+ movem.l d1/a2,-(sp) save regs
+ move.l d1,a2 copy memory pointer
+ os9 F$SRtMem return memory block
+ bsr.s HandleErr check for error
+ movem.l (sp)+,d1/a2 restore regs
+ unlk a5
+ rts
+
+
+***********************
+* Subroutine HandleErr
+*   If carry set copy d1->d0 else put 0->d0
+*
+* Passed: d1.l = error code if error
+*         (cc) = carry set if error
+*
+HandleErr bcs.s HandleErr10
+ moveq.l #0,d0 return success
+ rts 
+
+HandleErr10 ext.l d1 make error an int
+ move.l d1,d0 return error code
+ rts
+
+
+* F$UnLink - _f_unlink(modhead)
+*
+
+_f_unlink: link a5,#0
+ movem.l d1/a2,-(sp) save regs
+ move.l d0,a2 set module ptr
+ os9 F$UnLink unlink module
+ bsr.s HandleErr check for error
+ movem.l (sp)+,d1/a2 restore regs
+ unlk a5
+ rts
+
+
+* Ev$Signl - _fev_signl(id, actall)
+*
+
+_fev_signl: link a5,#0
+ move.l d1,-(sp) save reg
+ move.w #Ev$Signl,d1 get event signal code
+_fev_10 os9 F$Event call event
+ bsr.s HandleErr check for error
+ move.l (sp)+,d1 restore reg
+ unlk a5
+ rts
+
+* Ev$Set - _fev_set( id, value, wake )
+*    int id;   		/* event ID */
+*    int value;		/* new value for the event */
+*    int wake;      /* FALSE = signal next, TRUE = signal all */
+
+wake set 0
+
+_fev_set: link a5,#0
+ movem.l d1-d2,-(sp) save these for return 
+ move.l d1,d2 new value for the event
+ move.l wake+params(a5),d1 set proper command
+ bne.s _fev_set_allwake
+ move.l #$A,d1 just the command code
+ bra.s _fev_set_doit
+_fev_set_allwake move.l #$800A,d1 wake all that are waiting
+_fev_set_doit os9 F$Event
+ bcs.s _fev_set_error
+ clr.l d0 nothing amis, return good status
+ bra.s _fev_set_done
+_fev_set_error ext.l d1
+ move.l d1,d0 return error code to caller 
+_fev_set_done movem.l (sp)+,d1-d2
+ unlk a5
+ rts
+
+* Ev$UnLnk - _fev_unlnk(id)
+*
+
+_fev_unlnk: link a5,#0
+ move.l d1,-(sp) save reg
+ move.w #Ev$UnLnk,d1 get event unlink code
+ bra.s _fev_10 call event
+
+
+* Ev$Creat - _ev_creat(initval, waitinc, siginc, name, id, newname)
+*			int initval, waitinc, siginc;
+*			char *name;
+*			int **id;
+*			char **newname;
+*
+siginc set 0
+name set 4
+id set 8
+newname set 12
+
+_fev_creat: link a5,#0
+ movem.l d1-d3/a0-a1,-(sp) save regs
+ move.l d1,d2 move the wait increment
+ move.l siginc+params(a5),d3 get signal increment
+ move.l name+params(a5),a0 get name ptr
+ move.w #Ev$Creat,d1 get the code
+ os9 F$Event
+ bcs.s _fev_create_err skip if error
+ move.l id+params(a5),a1 get id ptr
+ move.l d0,(a1) return id
+ move.l newname+params(a5),a1 get name ptr
+ move.l a0,(a1) return updated name ptr
+ moveq.l #0,d0 return success
+_fev_create_xit movem.l (sp)+,d1-d3/a0-a1 restore regs
+ unlk a5
+ rts
+
+_fev_create_err ext.l d1 make error an int
+ move.l d1,d0 return in d0
+ bra.s _fev_create_xit
+
+
+* Ev$Delet - _fev_delet(name, newname)
+*			char *name, **newname;
+*
+
+_fev_delet: link a5,#0
+ movem.l d1/a0-a1,-(sp) save regs
+ move.l d1,a1 save name ptr
+ move.w #Ev$Delet,d1 get the event code
+ move.l d0,a0 get the address of the name
+ os9 F$Event
+ bcs.s _fev_delet10 skip if error
+ move.l a0,(a1) return updated name ptr
+ moveq #0,d0 no errors
+_fev_delet20 movem.l (sp)+,d1/a0-a1 restore regs
+ unlk a5
+ rts
+
+_fev_delet10 ext.l d1 make error an int
+ move.l d1,d0 return in d0
+ bra.s _fev_delet20
+
+
+* Ev$Wait - _fev_wait(id, min, max, val)
+*			int id, min, max, *val;
+*
+max set 0
+val set 4
+
+_fev_wait: link a5,#0
+ movem.l d1-d3/a0,-(sp) save regs
+ move.l d1,d2 the minimum activation value
+ move.l max+params(a5),d3 get max activation value
+ move.w #Ev$Wait,d1 get event code
+ os9 F$Event
+ bcs.s _fev_wait_err
+ move.l val+params(a5),a0 get value ptr
+ move.l d1,(a0) return activation value
+ moveq.l #0,d0 return success
+_fev_wait_xit movem.l (sp)+,d1-d3/a0
+ unlk a5
+ rts
+
+_fev_wait_err ext.l d1 make error an int
+ move.l d1,d0 return error in d0
+ bra.s _fev_wait_xit
+
+
+* F$Trans - _f_trans(address, size, direction)
+*			u_char	*ptr;
+*           u_int	size, direction;
+*
+direction set 0
+
+_f_trans: link a5,#0
+ movem.l d0/d1/a0,-(sp) save registers
+ movea.l d0,a0 get address to translate
+ move.l d1,d0 get size of block
+ move.l direction+params(a5),d1 get translation method
+ os9 F$Trans perform address translation
+ bcc.s _f_trans_ok ..seems ok, branch on
+ cmpi.w #E$UnkSvc,d1 system call unknown ?
+ beq.s _f_trans_ok ..yes; not an error
+_f_trans_bad move.l #-1,0(sp) return error (-1) in d0
+ bra.s _f_trans_xit
+
+_f_trans_ok cmp.l 4(sp),d0 did the entire block translate ?
+ bne.s _f_trans_bad ..no; return error (split blocks not supported)
+ move.l a0,0(sp) return translated address in d0
+_f_trans_xit movem.l (sp)+,d0/d1/a0 restore regs
+ unlk a5
+ rts
+
+*
+*  _f_chkmem - check user access permissions for a memory space
+*
+*  Syntax:  int _f_chkmem( bytes, permission, memptr )
+*			int bytes;		/* size of block to check */
+*           int permission;	/* requested modes (  read, write, execute ) */
+*           void *memptr;	/* pointer to memory space to be validated */
+*
+memptr set 0
+
+_f_chkmem: link a5,#0
+ movem.l d1/a2,-(a7) 
+ move.l memptr+params(a5),a2 get pointer to the memory space
+ os9 F$ChkMem
+ bcc.s _f_chkok ok, he can do it
+ move.l d1,d0 return error in d0
+ bra.s _f_chkexit
+
+_f_chkok moveq.l #0,d0 perimission granted
+
+_f_chkexit movem.l (a7)+,d1/a2 restore regs
+ unlk a5
+ rts
+
+*
+* _f_move - move memory (low bound first)
+*
+* Syntax: int _f_move( destination, source, count )
+*
+* Description:  fast block move that is capable of moving data
+*               from one address space to another.
+*
+count set 0
+
+_f_move: link a5,#0
+ movem.l d1-d2/a0/a2,-(sp)
+ move.l d0,a2 destination address
+ move.l d1,a0 source address
+ move.l count+params(a5),d2 number of bytes
+ os9 F$Move
+ bcc.s _f_moveok
+ move.l d1,d0 return error in d0
+ bra.s _f_movexit
+
+_f_moveok moveq.l #0,d0 no error
+
+_f_movexit movem.l (sp)+,d1-d2/a0/a2
+ unlk a5
+ rts
+
+ ends

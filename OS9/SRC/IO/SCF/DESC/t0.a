@@ -1,0 +1,9 @@
+ nam T0
+ ttl 68000 T0 device descriptor module
+ use defsfile
+
+ use "scfdesc.a"
+
+ T0
+ ends
+

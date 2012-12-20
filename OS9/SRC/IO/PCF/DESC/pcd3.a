@@ -1,0 +1,8 @@
+ nam PCD3 Device Descriptor
+ use defsfile
+
+ use "pcfdesc.a"
+
+DrvNum set 3
+ DiskPCD3
+ ends

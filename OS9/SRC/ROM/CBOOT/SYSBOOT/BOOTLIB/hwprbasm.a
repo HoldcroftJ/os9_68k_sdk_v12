@@ -1,0 +1,99 @@
+
+* Copyright 1993, 1996 by Microware Systems Corporation.
+* All Rights Reserved
+* Reproduced Under License
+
+*   This source code is the proprietary confidential property of
+* Microware Systems Corporation, and is provided to the licensee
+* for documentation and educational purposes only.  Reproduction,
+* publication, or any form of distribution to any party other than
+* the licensee is strictly prohibited.
+
+*****************************************************************************
+*                                                                           *
+* Edition History:                                                          *
+* #   Date    Comments                                                By    *
+* -- -------- ------------------------------------------------------- ---   *
+* 01 96/08/14 History started.                                        ats   *
+* 02 96/08/14 Corrected position independent pc-relative calculation. ats   *
+*             ---- OS-9/68K V3.0.3 released ----                            *
+*             ---- OS-9/68K V3.1 released ----                              *
+*****************************************************************************
+
+***********************************************
+* Assembly code extracted from hwprobe.c
+***********************************************
+
+BTrap_JmpEntry equ 6 offset to Bus Trap handler in jump table
+
+hw_probe:
+ movem.l d5-d7/a0-a3,-(a7)
+ move.l d0,a0 copy address to be tested into a0
+*
+* Get the base address of the exception jump table
+* NOTE: This is also the base of the debugger's globals
+*
+ movea.l #MemList-*-8,a3 get 32-bit pc relative offset to MemList
+ move.l (pc,a3.l),a3 get the base address of the exception jump table
+*
+* Save and clear the debugger's trapflag
+*
+ move.b trapflag(a3),d6 preserve the debugger's trap flag
+ clr.b trapflag(a3) clear the debugger's trap flag
+*
+* insert bus trap handler in the exception jump table
+*
+ lea.l BTrap_HWProbe(pc),a1 get address of trap handler
+ move.l BTrap_JmpEntry(a3),d5 save current handler address
+ move.l a1,BTrap_JmpEntry(a3) setup local handler
+*
+* set continuation point for bus trap
+*
+ move.l sp,d7 save current stack ptr
+ lea.l hw10(pc),a2 get continuation point
+*
+* Attempt to read the hardware
+*
+ tst.b (a0) if no bus trap, fall through to clear d0
+ moveq.l #0,d0 flag success (no error)
+ bra.s hw20
+*
+* If a bus trap occurred the bus trap handler
+* will drop us here
+*
+hw10
+ move.l #E$BusErr,d0 flag that a bus error occurred
+*
+* Reset the Bus Trap Handler
+*
+hw20 move.l d5,BTrap_JmpEntry(a3) restore previous handler address
+ move.b d6,trapflag(a3) restore the debugger's trap flag
+ tst.w d0 make the zero flag indicate the error status
+ movem.l (a7)+,d5-d7/a0-a3
+ rts
+
+*************************************
+* BTrap_HWProbe: Bus Trap Handler
+*
+* Passed:  (a2) = continuation address
+*          (d7.l) = stack pointer (before interrupt)
+*
+BTrap_HWProbe:
+* NOTE that you cannot set a 'rom' breakpoint at this label
+* (chicken/egg syndrome).
+
+* restore pre-exception SR (mainly for Trace flag(s)).
+ sub.l a7,d7 get frame size
+ cmpi.b #18,d7 is this a 68000/008 ?
+ beq.s BTrap_HWProbe_000 ...yes; branch on
+ move.w 4(sp),sr restore pre-exception SR (68010 or better)
+ bra.s BTrap_HWProbe_can_break
+
+BTrap_HWProbe_000 move.w 12(sp),sr restore pre-exception SR (68000/008)
+
+* rom breakpoints can be set at the next label.
+BTrap_HWProbe_can_break:
+ adda.l d7,sp restore stack ptr
+ jmp (a2) resume operation
+
+

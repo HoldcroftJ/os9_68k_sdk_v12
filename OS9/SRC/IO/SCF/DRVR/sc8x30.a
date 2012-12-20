@@ -1,0 +1,1690 @@
+ nam sc8x30         
+ ttl Interrupt-Driven Acia driver for the Zilog Z8030/8530 SCCs
+
+*****************************************************
+* SC8x30.a - interrupt driven serial driver for the
+*            Zilog Z8030/8530 SCC.
+*
+* Copyright 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1995 by
+* Microware Systems Corporation
+* Reproduced Under License
+*
+* This source code is the proprietary confidential property of
+* Microware Systems Corporation, and is provided to licensee
+* solely for documentation and educational purposes. Reproduction,
+* publication, or distribution in any form to any party other than
+* the licensee is strictly prohibited.
+
+********************
+* Edition History
+*
+* #    date   Comments                                          by
+* -- -------- ------------------------------------------------- ---
+*
+* 01 86/04/24 First edition                                     gnh
+* 02 86/07/30 Mods for 2 sided operations                       sms
+* 03 86/08/21 Minor mods for use with Heurikon                  djl
+* 04 86/09/19 Fixed IRQ routine to work with V2.0               djl
+* 05 86/10/28 Added exception handler offset entry              wwb
+*             <<--- OS-9/68000 V2.0 Released --->>
+* 06 86/12/10 Cleanup pass on source in preparation for VME117  wwb
+*             V2.0 Release. Made branches short when possible.
+* 07 86/12/17 Repaired Init routines to correctly select word/  wwb
+*             parity/baud, added VME117 conditionals to select
+*             register offsets correctly, added saving of system
+*             path # for SS.SSig, etc., minor repairs elsewhere.
+* 08 87/01/12 Fixed error created in ed.7 (ClearSig using       wwb
+*             wrong index when testing system path #)
+* 09 87/03/23 Changed module attr to Supervisor State process   wwb
+*              ---- OS-9/68K V2.1 Release ---- 
+* 10 87/06/17 Modified for VME133 usage                         wwb
+* 11 87/10/09 Added conditionals for VME134                     djl
+*              ---- OS-9/68K V2.2 Release ---- 
+* 12 88/02/19 Changed VME133 version to use 1.23MHz clk (so     wwb
+*             that independant of cpu clock speed).
+* 13 88/05/27 Added conditionals for VME333 w/4.9152MHz PCLK    srw
+* 14 88/06/07 fixed conditional problem from ed.13.             wwb
+* 15 88/06/15 added conditionals for VME147 w/5.0 MHz PCLK      wwb
+* 16 89/01/16 added AVME551 conditionals. (untested as yet)     wwb
+*             added IPBUF/OPBUF conditionals to allow setting
+*             of buffer sizes from cmd line or systype.d.
+* 17 89/03/02 added dynamic baud rate change handling           jal
+*             fixed error detection in IRQ routine
+*             fixed parity bit leakage on less than 8-bit Configs
+*             fixed buad rate table for avme551 version         tje
+* 18 89/03/13 added FORCE conditionals                          Rwb
+* 19 89/05/04 changed VME134 to work like VME133                jal
+*             added baud rate table for VME117
+* 20 89/05/17 added conditionals for VME107                     jal
+*              ---- OS-9/68K V2.3 Release ---- 
+* 21 89/05/17 added delay macro and conditionals for SUN3       jal
+* 22 89/05/17 added a correct baud rate table for the VME107    jal
+* 23 90-03-05 Changed to check for deadly signal ala 2.4 defs   Rwb
+* 24 90-05-10 Added HWSHAKE conditional to turn on hardware
+*             handshake line                                    Rwb
+*              ---- OS-9/68K V2.4 released ----
+*              >>>>>>>>>>  sc8x30.a  Rev 1.2
+* 25 91/11/27 Init should call DoConfig directly: @50 baud,     wwb
+*             8bit, noparity, 1stop Config call will fail
+*             (thanks hawkins).
+*              <<<<<<<<<<  sc8x30.a  Rev "V2.4.3J" (1.0.1.0)
+*124 91/08/30 Added KANJI condition and delay for 133/147/164	zoo
+*              ---- OS-9/68K V2.4J released ----
+*              ==========
+* 26 92/02/24 Merged ed124 into mainstream.                     wwb
+* 27 92/02/24 Removed old edition change comments.              wwb
+*             Added OS9svc usage.                               wwb
+*              ---- OS-9/68K V2.4.4 released ----
+* 28 93-02-16 Added conditionals for 85230 on VME162			ats
+* 29 93/02/10 reworked IRQMask code for MSP support.			wwb
+* 30 93/02/23 added label to HWSHAKE area (easier patching).	wwb
+* 31 93/07/01 reworked use pathlists for MWOS structure.		wwb
+*              ---- OS-9/68K V3.0 released ----
+* 32 95/05/12 Added NODATAPORT conditional for indirect         ats
+*             data access.
+*              ---- OS-9/68K V3.0.2 Release ----
+* 33 96/08/20 Added support for 38400 baud rate for VME162		jam
+* 34 97/03/26 added conditionals for VME172                     gdw
+*              ---- OS-9/68K V3.1 Release ----
+*
+Edition equ 34 current Edition number
+
+Typ_Lang set (Drivr<<8)+Objct 
+Attr_Rev set ((ReEnt+SupStat)<<8)+0 Attributes and Revision
+
+ psect sc8x30,Typ_Lang,Attr_Rev,Edition,0,AciaEnt 
+
+ use defsfile
+ use <os9svc.m>
+
+
+********************
+* Conditional Setups
+*
+ ifndef VME172
+VME172 equ 172 default value for VME172 CPUType
+ endc
+
+ ifndef VME162
+VME162 equ 162 default value for VME162 CPUType
+ endc
+
+ ifndef VME147
+VME147 equ 147 default value for VME147 CPUType
+ endc
+
+ ifndef VME107
+VME107 equ 107 default value for VME107 CPUType
+ endc
+
+ ifndef VME117
+VME117 equ 117 default value for VME117 CPUType
+ endc
+
+ ifndef VME133
+VME133 equ 133 default value for VME133 CPUType
+ endc
+
+ ifndef VME134
+VME134 set 134
+ endc
+
+ ifndef SUN3
+SUN3 set 350
+ endc
+
+ ifeq (CPUType-VME133)*(CPUType-VME134)
+VME133_4 set 1
+ endc
+
+ ifndef PCB1782
+PCB1782 equ 1782
+ endc
+
+ ifndef VME333
+VME333 equ 333 default value for VME333
+ endc
+
+delay macro
+ ifeq (CPUType-SUN3)
+ nop
+ nop
+ endc SUN3
+ ifeq (CPUType-VME147)*(CPUType-VME133)
+ bsr delay35
+ endc	147/133
+ ifdef	VME165
+ ifeq (CPUType-VME165)
+ bsr delay70
+ endc	165
+ endc	def165
+ endm
+
+DELEY35 set 1
+ ifdef	VME165
+ ifeq (CPUType-VME165)
+DELEY35 set 0
+delay70
+ bsr.w delay35
+* fall through next deley35 routine
+* DON'T insert lines between delay70 to daley35
+ endc	VME165
+ endc	defVME165
+ ifeq (CPUType-VME147)*(CPUType-VME133)*DELEY35
+delay35
+ rept (35-5-9)/2	(35Cycle - bsr C. - rts C.) / nop C.
+ nop
+ endr
+ rts
+ endc	VME147/133/165
+
+ pag
+********************
+* VME117/VME133/VME134 registers:
+*
+
+ ifdef AVME551
+ org 0 descriptor has actual base address
+BW set $10 distance between regs
+ else
+ ifdef VME133_4
+ org 0
+BW set 1
+ else
+ ifeq (CPUType-VME147)
+ org 0
+BW set 1
+ else
+ ifeq (CPUType-VME117)*(CPUType-VME107)
+BW set BusWidth
+ org BW-1 address on odd-bytes only
+ else
+ ifeq (CPUType-VME333)*(CPUType-PCB1782)*(CPUType-SUN3)
+ org 0
+BW set 2
+ else
+ ifeq (CPUType-VME162)*(CPUType-VME172)
+ org 1
+BW set 2
+ else
+BW set 4 these are actual registers, not pointers
+ org 0
+ endc VME162/VME172
+ endc VME333/PCB1782/SUN3
+ endc VME117/107
+ endc VME147
+ endc VME133_4
+ endc AVME551
+*
+* these are the offsets to the SC8530 registers
+*
+CommReg do.b BW Command/Status register
+DatReg do.b BW transmit/receive data register
+
+
+********************
+* Register definitions for the Zilog Z8030/Z8530
+* Serial Communications Controllers (SCCs).
+*
+* Write Registers: (Channels A & B)
+*
+ org 0 
+WR0 do.b 1 CRC and mode initialisation, shift left/right.
+WR1 do.b 1 TX/RX interrupt and data transfer mode defs.
+WR2 do.b 1 Interrupt vector (A and B channels).
+WR3 do.b 1 Receive parameters and control.
+WR4 do.b 1 TX/RX misc. parameters and modes.
+WR5 do.b 1 TX parameters and controls.
+WR6 do.b 1 Sync chars or SDLC address field.
+WR7 do.b 1 Sync char or SDLC flag.
+WR8 do.b 1 Transmit buffer.
+WR9 do.b 1 Master interrupt control and reset (A and B channels)
+WR10 do.b 1 Misc. TX/RX control bits.
+WR11 do.b 1 Clock mode control.
+WR12 do.b 1 Lower byte of Baud Rate Generator Time Constant.
+WR13 do.b 1 Upper byte of Baud Rate Generator Time Constant.
+WR14 do.b 1 Misc. control bits.
+WR15 do.b 1 External/Status interrupt control.
+*
+* Read registers: (Channels A & B)
+*
+ org 0 
+RR0 do.b 1 TX/RX buffer status and External status.
+RR1 do.b 1 Special Receive Condition status.
+RR2 do.b 1 Modified interrupt vector (Channel B only).
+RR3 do.b 1 
+ do.b 1 
+ do.b 1 
+ do.b 1 
+ do.b 1 
+RR8 do.b 1 Receive buffer.
+ do.b 1 
+RR10 do.b 1 Misc. status.
+ do.b 1 
+RR12 do.b 1 Lower byte of Baud Rate Generator Time Constant.
+RR13 do.b 1 Upper byte of Baud Rate Generator Time Constant.
+ do.b 1 
+RR15 do.b 1 External/Status interrupt information.
+
+* Register bit definitions:
+
+ org 0 
+b_NULL do.b 1 define a variable for 0.
+
+ pag
+********************
+* Write Registers:
+*
+* WR0:
+*
+SLM equ %00000010 select shift left mode.
+SRM equ %00000011 select shift right mode.
+RESI equ %00010000 reset ext/status interrupts.
+ABO equ %00011000 send abort (SDLC).
+EIRC equ %00100000 enable interrupts on next RX character.
+RTIP equ %00101000 reset TX int pending.
+ERES equ %00110000 error reset.
+RHIUS equ %00111000 reset highest IUS.
+RESRCC equ %01000000 reset RX CRC checker.
+RESTCG equ %10000000 reset TX CRC generator.
+RESTXU equ %11000000 reset TX underrun/EOM latch.
+
+* WR1:
+
+ org 0 
+b_EIE do.b 1 (bit 0)
+b_TIE do.b 1 (bit 1)
+b_PSC do.b 1 (bit 2)
+ org 5 
+b_WDRT do.b 1 (bit 5)
+b_WDRF do.b 1 (bit 6)
+b_WDRE do.b 1 (bit 7)
+
+EIE equ 1<<b_EIE External interrupt enable.
+TIE equ 1<<b_TIE TX interrupt enable.
+PSC equ 1<<b_PSC Parity is special condition.
+RID equ b_NULL RX int disable.
+RIFS equ %00001000 RX int on 1st char of special condition.
+IARCS equ %00010000 Int on all RX chars or special condition.
+RISC equ %00011000 RX int on special condition only.
+WDRT equ 1<<b_WDRT Wait/DMA request on Receive/Transmit.
+WDRF equ 1<<b_WDRF Wait/DMA request function.
+WDRE equ 1<<b_WDRE Wait/DMA request enable.
+
+* WR2: (Interrupt Vector only)
+*
+* Warning:  It may not be apparent from the documentation of the
+* Z8530, but this register is SHARED between both sides of the
+* device.  Thus, both "logical" devices must have the SAME VECTOR
+* specified in their respective device descriptors.
+
+* WR3:
+
+ org 0 
+b_RXEN do.b 1 (bit 0)
+b_SCLI do.b 1 (bit 1)
+b_ASMS do.b 1 (bit 2)
+b_RXCRC do.b 1 (bit 3)
+b_HMOD do.b 1 (bit 4)
+b_AUTO do.b 1 (bit 5)
+
+RXEN equ 1<<b_RXEN RX enable.
+SCLI equ 1<<b_SCLI Sync char load inhibit.
+ASMS equ 1<<b_ASMS Address search mode (SDLC).
+RXCRC equ 1<<b_RXCRC RX CRC enable.
+HMOD equ 1<<b_HMOD Enter hunt mode.
+AUTO equ 1<<b_AUTO Auto enables.
+RX5 equ b_NULL RX 5 bits/char.
+RX7 equ %01000000 RX 7 bits/char.
+RX6 equ %10000000 RX 6 bits/char.
+RX8 equ %11000000 RX 8 bits/char.
+
+* WR4:
+
+ org 0 
+b_PAREN do.b 1 (bit 0)
+b_PAREO do.b 1 (bit 1)
+
+PAREN equ 1<<b_PAREN Parity enable.
+PAREO equ 1<<b_PAREO Parity Even.
+SYMOEN equ b_NULL Sync Modes Enable.
+STOP15 equ %00001000 1.5 stop bits/char.
+STOP20 equ %00001100 2 stop bits/char.
+SYNC08 equ b_NULL 8 bit sync character.
+SYNC16 equ %00010000 16 bit sync
+SDLCMO equ %00010000 SDLC mode (01111110 flag).
+EXSYNC equ %00110000 External Sync Mode.
+CLCK01 equ b_NULL x1 clock mode.
+CLCK16 equ %01000000 x16 clock mode.
+CLCK32 equ %10000000 x32 clock mode.
+CLCK64 equ %11000000 x64 clock mode.
+
+ pag
+
+* WR5:
+
+ org 0 
+b_TXCRC do.b 1 (bit 0)
+b_RTS do.b 1 (bit 1)
+b_CRCPOL do.b 1 (bit 2)
+b_TXEN do.b 1 (bit 3)
+b_BREAK do.b 1 (bit 4)
+ org 7 
+b_DTR do.b 1 (bit 7)
+
+TXCRC equ 1<<b_TXCRC TX CRC enable.
+RTS equ 1<<b_RTS request to send.
+CRCPOL equ 1<<b_CRCPOL SDLC/CRC-16 CRC polynomials.
+TXEN equ 1<<b_TXEN TX enable.
+BREAK equ 1<<b_BREAK send break.
+TX5 equ b_NULL TX 5 bits/char.
+TX7 equ %00100000 TX 7 bits/char.
+TX6 equ %01000000 TX 6 bits/char.
+TX8 equ %01100000 TX 8 bits/char.
+DTR equ 1<<b_DTR data terminal ready/request.
+
+* WR6: (Sync chars or SDLC address field only)
+
+* WR7: (Sync char or SDLC flag only)
+
+* WR8: (Transmit buffer register only)
+
+* WR9:
+
+ org 0 
+b_VIS do.b 1 (bit 0)
+b_NV do.b 1 (bit 1)
+b_DLC do.b 1 (bit 2)
+b_MIE do.b 1 (bit 3)
+b_SHILO do.b 1 (bit 4)
+
+VIS equ 1<<b_VIS 
+NV equ 1<<b_NV 
+DLC equ 1<<b_DLC 
+MIE equ 1<<b_MIE 
+SHILO equ 1<<b_SHILO status high/low.
+NORES equ b_NULL No Reset.
+CRESB equ %01000000 channel B reset.
+CRESA equ %10000000 channel A reset.
+RESET equ %11000000 force hardware reset.
+
+* WR10:
+
+ org 0 
+b_SYNC68 do.b 1 (bit 0)
+b_LMODE do.b 1 (bit 1)
+b_AFU do.b 1 (bit 2)
+b_MFI do.b 1 (bit 3)
+b_ACTPOL do.b 1 (bit 4)
+ org 7 
+b_CRCPIO do.b 1 (bit 7)
+
+SYNC68 equ 1<<b_SYNC68 6 bit/8 bit sync.
+LMODE equ 1<<b_LMODE loop mode.
+AFU equ 1<<b_AFU abort/flag on underrun.
+MFI equ 1<<b_MFI mark/flag idle.
+ACTPOL equ 1<<b_ACTPOL go active on poll.
+NRZ equ b_NULL NRZ mode.
+NRZI equ %00100000 NRZI mode.
+FM1 equ %01000000 FM1 mode.
+FM0 equ %01100000 FM0 mode.
+CRCPIO equ 1<<b_CRCPIO CRC preset I/O.
+
+ pag
+
+* WR11:
+
+ org 2 
+b_TRXCD do.b 1 (bit 2)
+ org 7 
+b_RTXCXT do.b 1 (bit 7)
+
+TRXCX equ b_NULL TRXC out=crystal output.
+TRXCT equ %00000001 TRXC out=transmit clock.
+TRXCB equ %00000010 TRXC out=Baud Rate Generator output.
+TRXCP equ %00000011 TXRC out=DPLL output.
+TRXCD equ 1<<b_TRXCD direction of TRXC pin. (0=in,1=out)
+
+TXCKR equ b_NULL TX clk=RTXC pin output.
+TXCKT equ %00001000 TX clk=TXRC pin.
+TXCKB equ %00010000 TX clk=BR generator output.
+TXCBP equ %00011000 TX clk=DPLL output.
+
+RXCKR equ b_NULL RX clk=RTXC pin output.
+RXCKT equ %00100000 RX clk=TRXC pin.
+RXCKB equ %01000000 RX clk=BR generator output.
+RXCBP equ %01100000 RX clk=DPLL output.
+
+RTXCXT equ 1<<b_RTXCXT RTXC crystal/no crystal.
+
+* WR12: (Lower byte of Baud Rate Generator Time Constant only)
+
+* WR13: (Upper byte of Baud Rate Generator Time Constant only)
+
+* WR14:
+
+ org 0 
+b_BRGE do.b 1 (bit 0)
+b_BRGS do.b 1 (bit 1)
+b_DTRR do.b 1 (bit 2)
+b_AECH do.b 1 (bit 3)
+b_LOLO do.b 1 (bit 4)
+
+BRGE equ 1<<b_BRGE BR generator enable.
+BRGS equ 1<<b_BRGS BR generator source.
+DTRR equ 1<<b_DTRR DTR request function.
+AECH equ 1<<b_AECH auto echo.
+LOLO equ 1<<b_LOLO local loopback.
+SMODE equ %00100000 enter search mode.
+RESMC equ %01000000 reset missing clock.
+DDPLL equ %01100000 disable DPLL.
+SSBRG equ %10000000 set source=Baud Rate Generator.
+SSRTX equ %10100000 set source=RTXC.
+FMMODE equ %11000000 set FM mode.
+NRMODE equ %11100000 set NRZI mode.
+
+* WR15:
+
+ org 1 
+b_ZCIE do.b 1 (bit 1)
+ org 3 
+b_DCDIE do.b 1 (bit 3)
+b_SHIE do.b 1 (bit 4)
+b_CTSIE do.b 1 (bit 5)
+b_TUEIE do.b 1 (bit 6)
+b_BAIE do.b 1 (bit 7)
+
+ZCIE equ 1<<b_ZCIE zero count IE.
+DCDIE equ 1<<b_DCDIE DCD IE.
+SHIE equ 1<<b_SHIE sync/hunt IE.
+CTSIE equ 1<<b_CTSIE CTS IE.
+TUEIE equ 1<<b_TUEIE TX underrun/EOM IE.
+BAIE equ 1<<b_BAIE break/abort IE.
+
+ pag
+********************
+* Read registers:
+*
+
+* RR0:
+
+ org 0 
+b_RXCHAR do.b 1 (bit 0)
+b_ZCOUNT do.b 1 (bit 1)
+b_TBFEMP do.b 1 (bit 2)
+b_DCD do.b 1 (bit 3)
+b_SYHUNT do.b 1 (bit 4)
+b_CTS do.b 1 (bit 5)
+b_TXUE do.b 1 (bit 6)
+b_BRAB do.b 1 (bit 7)
+
+RXCHAR equ 1<<b_RXCHAR RX char available.
+ZCOUNT equ 1<<b_ZCOUNT zero count.
+TBFEMP equ 1<<b_TBFEMP TX buffer empty.
+DCD equ 1<<b_DCD DCD
+SYHUNT equ 1<<b_SYHUNT sync/hunt.
+CTS equ 1<<b_CTS CTS
+TXUE equ 1<<b_TXUE TX underrun/EOM.
+BRAB equ 1<<b_BRAB break abort.
+
+* RR1:
+
+ org 0 
+b_ALSENT do.b 1 (bit 0)
+b_RESCO2 do.b 1 (bit 1)
+b_RESCO1 do.b 1 (bit 2)
+b_RESCO0 do.b 1 (bit 3)
+b_PARERR do.b 1 (bit 4)
+b_RXOERR do.b 1 (bit 5)
+b_CRCFER do.b 1 (bit 6)
+b_ENDFRA do.b 1 (bit 7)
+
+ALSENT equ 1<<b_ALSENT all sent.
+RESCO2 equ 1<<b_RESCO2 residue code 2.
+RESCO1 equ 1<<b_RESCO1 residue code 1.
+RESCO0 equ 1<<b_RESCO0 residue code 0.
+PARERR equ 1<<b_PARERR parity error.
+RXOERR equ 1<<b_RXOERR RX overrun error.
+CRCFER equ 1<<b_CRCFER CRC/framing error.
+ENDFRA equ 1<<b_ENDFRA end of frame (SDLC).
+
+* RR2: (Interrupt Vector only - modified in channel B)
+
+* RR3:
+
+ org 0 
+b_CHBEIP do.b 1 (bit 0)
+b_CHBTIP do.b 1 (bit 1)
+b_CHBRIP do.b 1 (bit 2)
+b_CHAEIP do.b 1 (bit 3)
+b_CHATIP do.b 1 (bit 4)
+b_CHARIP do.b 1 (bit 5)
+
+CHBEIP equ 1<<b_CHBEIP channel B EXT/STAT IP
+CHBTIP equ 1<<b_CHBTIP channel B TX IP
+CHBRIP equ 1<<b_CHBRIP channel B RX IP
+CHAEIP equ 1<<b_CHBEIP channel A EXT/STAT IP
+CHATIP equ 1<<b_CHBTIP channel A TX IP
+CHARIP equ 1<<b_CHBRIP channel A RX IP
+
+* RR8: (Receive data register only)
+
+* RR10:
+
+ org 1 
+b_ONLOOP do.b 1 (bit 1)
+ org 4 
+b_LOSEND do.b 1 (bit 4)
+ org 6 
+b_MISSC2 do.b 1 (bit 6)
+b_MISSC1 do.b 1 (bit 7)
+
+ONLOOP equ 1<<b_ONLOOP On loop.
+LOSEND equ 1<<b_LOSEND Loop sending.
+MISSC2 equ 1<<b_MISSC2 two clocks missing.
+MISSC1 equ 1<<b_MISSC1 one clock missing.
+
+* RR12: (Lower byte of Baud Rate Generator Time Constant)
+
+* RR13: (Upper byte of Baud Rate Generator Time Constant)
+
+* RR15: (Same as WR15 above)
+
+ pag
+********************
+* General Definitions
+*
+ ifdef IPBUF
+ ifeq IPBUF-1
+ fail must specify a value for IPBUF
+ endc
+InpSiz set IPBUF set user defined buffer size
+ else
+InpSiz set 80 input buffer size
+ endc IPBUF
+ ifdef OPBUF
+ ifeq OPBUF-1
+ fail must specify a value for OPBUF
+ endc
+OutSiz set OPBUF set user defined buffer size
+ else
+OutSiz set 140 output buffer size
+ endc OPBUF
+
+Low_Cnt set 10 # of bytes to restart receive data
+
+ ifdef AVME551
+* TxFreq not used for these CPU's
+ else
+ ifeq (CPUType-VME333)*(CPUType-SUN3)
+* TxFreq no longer used for VME333 series
+ else
+ ifdef VME133_4
+* TxFreq no longer used for VME133/134 series
+ else
+ ifeq (CPUType-VME117)*(CPUType-VME107)
+* TxFreq no longer used for VME117/107
+ else
+ ifeq (CPUType-VME162)*(CPUType-VME172)
+* TxFreq not used for VME162/VME172
+ else
+TxFreq set ClocFreq*100000/32 (MPUClk/2 * (*16 clock))
+ endc VME162/VME172
+ endc VME117/107
+ endc VME133_4
+ endc VME333
+ endc AVME551
+
+ ifdef AVME551
+ABBit equ 5 bit #5 flags whether A or B side
+ else
+ ifeq (CPUType-VME117)*(CPUType-VME107)*(CPUType-VME333)*(CPUType-PCB1782)*(CPUType-SUN3)*(CPUType-VME162)*(CPUType-VME172)
+ABBit equ 2 bit #2 flags whether A or B side
+ else
+ABBit equ 1 "are we channel A/B ?" bit of port address
+ endc
+ endc AVME551
+
+Flip set 0 no flip bits
+Mask set %00000101 Interrupt Request
+ParityErr set %00100000 parity error bit
+Overun set %00010000 overrun error bit
+Frame set %01000000 framing error bit
+
+IRQIn equ %00000001 input IRQ enable
+NoIRQIn equ 2 
+IRQOut equ %00000100 output IRQ enable
+NoIRQOut equ 8 
+RstErr equ $30 
+InpErr set ParityErr+Overun+Frame 
+
+MaxBuff equ InpSiz-10 Send XOFF when buffer contains this many
+MinBuff equ 10 Send XON when buffer contains this few
+ResetA equ $80 reset channel A bit of control register
+ResetB equ $40 reset channel B bit of control register
+Sign equ $80 mask for masking off sign bit
+
+* OutHalt bit numbers (causes of disabled output IRQ)
+
+H_XOFF equ 0 V_XOFF has been received; awaiting V_XON
+H_Empty equ 1 output buffer is empty
+
+ pag
+********************
+* Static storage requirements
+*
+ vsect 
+InFill ds.l 1 input buffer next-in ptr
+InEmpty ds.l 1 input buffer next-out ptr
+InEnd ds.l 1 end of input buffer
+OutFill ds.l 1 output buffer next-in ptr
+OutEmpty ds.l 1 output buffer next-out ptr
+OutEnd ds.l 1 output buffer end of buffer pointer
+
+InCount ds.w 1 # of chars in input buffer
+OutCount ds.w 1 # of chars in output buffer
+IRQMask ds.w 1 Interrupt mask word
+SigPrc ds.w 1 Process to signal on data ready
+ ds.w 1 signal code
+ ds.w 1 system path #
+DCDOff ds.w 1 Process to signal on loss of DCD
+ ds.w 1 signal code
+ ds.w 1 system path #
+DCDOn ds.w 1 Process to signal when DCD gained
+ ds.w 1 signal code
+ ds.w 1 system path #
+
+Shake ds.b 1 current state of handshake lines
+InHalt ds.b 1 input halted flag (non-zero if XON has been Sent)
+OutHalt ds.b 1 output IRQ's disabled when non-Zero
+RTSBit ds.b 1 static for state of RTS bit
+Parity ds.b 1 parity, word length and stop bit bits
+BaudRate ds.b 1 Baud rate
+Stripper ds.b 1 bit mask to strip unwanted parity bits in IRQ routine
+WR1Copy ds.b 1 saved copy of WR1 to OR in TX/RX int enables
+InpBuf ds.b InpSiz input buffer
+OutBuf ds.b OutSiz output buffer
+ ends 
+
+
+********************
+* Module Header
+*
+AciaEnt
+ ifndef	KANJI
+ dc.w Init 
+ dc.w Read 
+ dc.w Write 
+ dc.w GetStat 
+ dc.w PutStat 
+ dc.w TrmNat 
+ else
+ dc.w K_Init
+ dc.w K_Read
+ dc.w K_Write
+ dc.w K_GetStt
+ dc.w K_PutStt
+ dc.w K_TrmNat
+ endc KANJI
+ dc.w 0 Exception handler (0=none)
+
+ pag
+********************
+* Init - Initialize SCC
+*
+* Passed: (a1)=device descriptor address
+*         (a2)=static storage address
+*
+* Returns: cc=carry set if device can't be initialized
+*
+* Destroys: (may destroy d0-d7, a0-a5)
+*
+Init: move.l V_PORT(a2),a3 save copy of port address
+ 
+* form interrupt mask value.
+* NOTE: the IRQMasking is always performed "outside" of the Interrupt
+* Service context, thus move.w IRQMask(a2),sr is ok, as there will not
+* be an accidental stack switch.
+*
+ move.b M$IRQLvl(a1),d2 get irq level
+ asl.w #8,d2 shift into priority
+ move.w sr,d0 get sr (for stack/trace flags)
+ andi.w #IntEnab,d0 clear irq masks
+ or.w d0,d2 form "current stack, irqs masked to this level" value
+ move.w d2,IRQMask(a2) save for future use
+
+ move.b V_PORT+3(a2),d2 get LSB of address to test
+ move.b #ResetB,d0 assume we want to reset Channel B
+ btst #ABBit,d2 is this channel B ?
+ beq.s Init10 ...yes it is
+ move.b #ResetA,d0 ..and set up reset of Channel A
+Init10 moveq.l #WR9,d1 set up pointer to WR9
+ bsr WriteReg write this data
+ clr.b d0 set up disable reset, vector in WR2 & clear master int enable
+ bsr WriteReg write this data
+*
+* Set up character format, baud rate etc. etc.
+*
+ move.b PD_PAR-PD_OPT+M$DTyp(a1),d0 get parity, w/length & stop bits
+ move.b PD_BAU-PD_OPT+M$DTyp(a1),d1 get baud rate
+ bsr DoConfig do configuration
+ bcs.s InitEnd 
+
+ clr.b d0 load 0 into d0
+ moveq.l #WR15,d1 set up pointer to WR15
+ bsr WriteReg (disable External/Status Interrupt Controls)
+ moveq.l #WR10,d1 set up pointer to WR10
+ bsr WriteReg (Initialise TX/RX control bits)
+
+* Initialise buffer pointers:
+
+ move.b #(1<<H_Empty),OutHalt(a2) output IRQ's disabled; buffer empty
+ lea InpBuf(a2),a0 init buffer pointers
+ move.l a0,InFill(a2) 
+ move.l a0,InEmpty(a2) 
+ lea InpSiz(a0),a0 figure size of buffer
+ move.l a0,InEnd(a2) mark end of input buffer
+ lea OutBuf(a2),a0 point to start of output buf
+ move.l a0,OutFill(a2) init output buff pointers
+ move.l a0,OutEmpty(a2) 
+ lea OutSiz(a0),a0 figure size of out buff
+ move.l a0,OutEnd(a2) mark end of output buffer
+
+ ifne (CPUType-VME107)*(CPUType-SUN3)
+*
+* Initialize interrupt vector:
+*
+ move.b M$Vector(a1),d0 get interrupt vector
+ moveq.l #WR2,d1 set up pointer to WR2
+ bsr.s WriteReg write in the interrupt vector
+ endc
+*
+* Install IRQ service routine in the polling table
+*
+ move.b M$Vector(a1),d0 
+ move.b M$Prior(a1),d1 
+ lea ACIRQ(pc),a0 address of interrupt service routine
+ os9 F$IRQ Add to IRQ polling table
+ bcs.s InitEnd ...Error - return it
+
+* Initialise interrupts:
+
+ move.b #TIE+IARCS,d0 enable TX and RX interrupts
+ moveq.l #WR1,d1 set up pointer to WR1
+ bsr.s WriteReg write this data
+ move.b d0,WR1Copy(a2) save state of WR1 for later
+ delay
+ move.b #RTIP,CommReg(a3) reset TX interrupt pending in CommReg
+ ifeq (CPUType-VME107)*(CPUType-SUN3)
+ moveq.l #MIE!NV,d0 set up master interrupt enable bit; disable vectoring
+ else
+ moveq.l #MIE,d0 set up master interrupt enable bit
+ endc
+
+ moveq.l #WR9,d1 set up pointer to WR9
+ bsr.s WriteReg 
+InitEnd: rts 
+
+ pag
+********************
+* WriteReg - (routine for Z8530 only) is responsible for writing
+* data to registers in the SCC.
+*
+* NOTE: this routine can ONLY be called OUTSIDE of an IRQ context
+*
+* Passed: (d0.b) = data to be passed
+*         (d1.b) = register offset from base
+*         (a3)   = SCC base address
+*
+* Returns: nothing
+*
+WriteReg: move.w sr,d6 save IRQ status
+ move.w IRQMask(a2),sr disable interrupts
+ bsr.s IntWrReg use subroutine below
+ move.w d6,sr restore sr
+ rts 
+
+********************
+* IntWrReg - (routine for Z8530 only) is responsible for writing
+* data to registers in the SCC.
+*
+* NOTE: this routine is only called INSIDE an IRQ context,
+*       or with interrupts masked.
+*
+* Passed: (d0.b) = data to be passed
+*         (d1.b) = register offset from base
+*         (a3)   = SCC base address
+*
+* Returns: nothing
+*
+IntWrReg:
+ delay
+ move.b d1,CommReg(a3) set up pointer to register
+ delay
+ move.b d0,CommReg(a3) load data into this register
+ rts 
+
+
+*************************************************
+* Config: Configure Baud rate, parity, stop bits
+*         and word size in the 8x30 hardware
+*
+Config: 
+ cmp.b BaudRate(a2),d1 any baud rate change?
+ bne.s DoConfig if yes, go do configuration
+ cmp.b Parity(a2),d0 else, any parity change?
+ bne.s DoConfig if yes, go do configuration
+ moveq.l #0,d1 if no changes needed, return with no error
+ rts
+DoConfig: movem.l a0/a3/d0-d4,-(a7) save the regs
+ move.l V_PORT(a2),a3 save copy of port address
+*
+* clear out some regs
+*
+ moveq.l #0,d2
+ move.l d2,d3
+ move.l d2,d4
+ move.l d2,d5
+*
+* save input values for later use
+*
+ move.b d0,d2 save parity, wordlength and stop bits in d2
+ move.b d1,d3 save baud rate code in d3
+*
+* calculate the parity and stop bits (in d4)
+*
+ move.b d2,d4
+ andi.b #$03,d4 isolate parity
+ move.b d2,d1 get another copy of parity, w/length & stop bits
+ andi.b #$30,d1 isolate stop bits
+ add.b #$10,d1 need to add an offset
+ lsr.b #2,d1 shift into position
+ or.b d1,d4 OR stop bits with parity
+ ori.b #CLCK16,d4 set up *16 clock as well
+*
+* get baud rate word (in d3)
+*
+ lea BaudTabl(pc),a0 point at beginning of Baud table
+ cmpi.w #MaxBaud,d3 legal request ?
+ bcc ConfigErr ..no, so exit with error
+ lsl.w #1,d3 produce word offset
+ move.w (a0,d3.w),d3 get appropriate baud rate selection word
+ cmpi.w #-1,d3 available baud rate ?
+ beq.s ConfigErr ..no; abort
+*
+* Calculate the word length (in d2)
+*
+ andi.l #$000C,d2 isolate wordlength
+ lsr.w #1,d2 make it a word size index for a word size table
+ lea WordTabl(pc),a0 point at wordlength look-up table
+ move.w (a0,d2.w),d2 get entry from table for TX wordlength
+
+*************************************************
+* The following section stuffs all the previously
+* claculated values into the hardware
+*
+* set parity and stop bits
+*
+ move.l d4,d0 get WR4 stuff value
+ moveq.l #WR4,d1 set up pointer to WR4
+ bsr WriteReg write this data
+*
+* set baud rate
+*
+ move.w d3,d0 get baud rate table value
+ moveq.l #WR12,d1 set up pointer to WR12
+ bsr WriteReg write the LSB to WR12
+ lsr.w #8,d0 get MSB of baud rate generator time constant
+ moveq.l #WR13,d1 set up pointer to WR13
+ bsr WriteReg write the MSB to WR13
+*
+* Set word length stuff
+*
+ move.b d2,Stripper(a2) store the stripper mask for the IRQ routine
+ lsr.w #8,d2 move wordlength value to LSB
+ move.b d2,d0 move word length to d0
+ ori.b #RTS+TXEN+DTR,d0 enable TX as well as RTS and DTR
+ moveq.l #WR5,d1 set up pointer to WR5
+ bsr WriteReg write this data to WR5
+ move.b d2,d0 get another copy of TX wordlength
+ lsl.b #1,d0 convert TX wordlength to RX wordlength
+
+HWShake: equ *+3 mark (exact) patchable location
+ ifdef HWSHAKE
+ ori.b #(RXEN|AUTO),d0 enable RX and hardware lines
+ else 
+ ori.b #RXEN,d0 enable RX
+ endc
+
+ moveq.l #WR3,d1 set up pointer to WR3
+ bsr WriteReg write this data
+ move.b #RXCKB+TXCKB+TRXCD+TRXCB,d0 TX & RX clks from BRG & o/p on TRXC
+ moveq.l #WR11,d1 set up pointer to WR11
+ bsr WriteReg write this data
+*
+* enable baud rate generator
+*
+ ifdef VME133_4
+ move.b #SSBRG+BRGS,d0 src=brg, brg source
+ else
+ move.b #DDPLL,d0 disable DPLL
+ endc VME133_4
+
+ moveq.l #WR14,d1 set up pointer to WR14
+ bsr WriteReg write this data
+
+ ifdef VME133_4
+ move.b #SSBRG+BRGE,d0 source=BRG, enable BRG
+ else
+ move.b #SSBRG+BRGE+BRGS,d0 source=BRG,enable BRG,BRG clk is PCLK
+ endc VME133_4
+
+ moveq.l #WR14,d1 set up pointer to WR14
+ bsr WriteReg write this data
+*
+* Normal exit - no errors
+* save parity/stop bits/wordsize and
+* baud rate values in static storage
+*
+ movem.l (a7)+,a0/a3/d0-d4 retrieve the regs
+ move.b d0,Parity(a2) save parity, w/length & stop bits
+ move.b d1,BaudRate(a2) save baud rate
+ rts
+*
+* error exit
+*
+ConfigErr:
+ movem.l (a7)+,a0/a3/d0-d4 retrieve the regs
+ move.w #E$BMode,d1 "Bad Mode" Error code
+ ori.b #Carry,ccr 
+ rts 
+
+********************
+* WordTabl - look-up table for wordlength conversion for the Z8x30
+*            1) The first byte is the value used to initialize the 8x30
+*            2) The second byte is used as a bit mask in the input
+*               IRQ service routine to mask off unwanted parity bits
+*
+WordTabl:
+ dc.b $60,$FF 8 bits/char
+ dc.b $20,$7F 7 bits/char
+ dc.b $40,$3F 6 bits/char
+ dc.b $00,$1F 5 bits/char or fewer
+
+********************
+* BaudTabl - look-up table for baud-rate to time constant 
+* conversion used by SetBaud
+*
+BaudTabl:
+ ifdef AVME551
+ dc.w 1534   50 baud, 2 stop
+ dc.w 1022   75 baud, 2 stop
+ dc.w 696   110 baud, 2 stop
+ dc.w 566   135 baud, 2 stop
+ dc.w 510   150 baud, 2 stop
+ dc.w 254   300 baud, 1 stop
+ dc.w 126   600 baud, 1 stop
+ dc.w 62   1200 baud, 1 stop
+ dc.w 40   1800 baud, 1 stop
+ dc.w 36   2000 baud, 1 stop
+ dc.w 30   2400 baud, 1 stop
+ dc.w 19   3600 baud, 1 stop
+ dc.w 14   4800 baud, 1 stop
+ dc.w 8    7200 baud, 1 stop
+ dc.w 6   9600 baud, 1 stop
+ dc.w 2   19200 baud, 1 stop
+ else
+ ifdef VME133_4
+ dc.w 772    50 baud, 2 stop
+ dc.w 514    75 baud, 2 stop
+ dc.w 350   110 baud, 2 stop
+ dc.w 286   135 baud, 2 stop
+ dc.w 256   150 baud, 2 stop
+ dc.w 126   300 baud, 1 stop
+ dc.w 62   600 baud, 1 stop
+ dc.w 30  1200 baud, 1 stop
+ dc.w 19  1800 baud, 1 stop
+ dc.w 17  2000 baud, 1 stop
+ dc.w 14  2400 baud, 1 stop
+ dc.w -1  3600 baud NOT AVAILABLE
+ dc.w 6  4800 baud, 1 stop
+ dc.w -1  7200 baud NOT AVAILABLE
+ dc.w 2  9600 baud, 1 stop
+ dc.w 0 19200 baud, 1 stop
+ else
+ ifeq (CPUType-VME333)*(CPUType-SUN3)
+ dc.w 3070   50 baud, 2 stop
+ dc.w 2046   75 baud, 2 stop
+ dc.w 1394  110 baud, 2 stop
+ dc.w 1136  135 baud, 2 stop
+ dc.w 1022  150 baud, 2 stop
+ dc.w 510   300 baud, 1 stop
+ dc.w 254   600 baud, 1 stop
+ dc.w 126  1200 baud, 1 stop
+ dc.w 83   1800 baud, 1 stop
+ dc.w 75   2000 baud, 1 stop
+ dc.w 62   2400 baud, 1 stop
+ dc.w 41   3600 baud, 1 stop
+ dc.w 30   4800 baud, 1 stop
+ dc.w 19   7200 baud, 1 stop
+ dc.w 14   9600 baud, 1 stop
+ dc.w 6   19200 baud, 1 stop
+ else
+ ifeq CPUType-VME117
+ dc.w $0C33   50 baud, 2 stop
+ dc.w $0821   75 baud, 2 stop
+ dc.w $05A4  110 baud, 2 stop
+ dc.w $0488  135 baud, 2 stop
+ dc.w $0410  150 baud, 2 stop
+ dc.w $0207  300 baud, 1 stop
+ dc.w $0102  600 baud, 1 stop
+ dc.w $0080 1200 baud, 1 stop
+ dc.w $0055 1800 baud, 1 stop
+ dc.w $004C 2000 baud, 1 stop
+ dc.w $003F 2400 baud, 1 stop
+ dc.w $0029 3600 baud, 1 stop
+ dc.w $001F 4800 baud, 1 stop
+ dc.w $0014 7200 baud, 1 stop
+ dc.w $000E 9600 baud, 1 stop
+ dc.w $0006 19200 baud, 1 stop
+ else
+ ifeq CPUType-VME107
+ dc.w $09BE   50 baud, 2 stop
+ dc.w $067E   75 baud, 2 stop
+ dc.w $046C  110 baud, 2 stop
+ dc.w $039D  135 baud, 2 stop
+ dc.w $033E  150 baud, 2 stop
+ dc.w $019E  300 baud, 1 stop
+ dc.w $00CE  600 baud, 1 stop
+ dc.w $0066 1200 baud, 1 stop
+ dc.w $0043 1800 baud, 1 stop
+ dc.w $003C 2000 baud, 1 stop
+ dc.w $0032 2400 baud, 1 stop
+ dc.w $0020 3600 baud, 1 stop
+ dc.w $0018 4800 baud, 1 stop
+ dc.w $000F 7200 baud, 1 stop
+ dc.w $000B 9600 baud, 1 stop
+ dc.w $FFFF 19200 baud is invalid
+ else
+ ifeq (CPUType-VME162)*(CPUType-VME172)
+ dc.w $1868    50 baud, 2 stop
+ dc.w $1045    75 baud, 2 stop
+ dc.w $0B17   110 baud, 2 stop
+ dc.w $0909   135 baud, 2 stop
+ dc.w $0821   150 baud, 2 stop
+ dc.w $0410   300 baud, 1 stop
+ dc.w $0207   600 baud, 1 stop
+ dc.w $0102  1200 baud, 1 stop
+ dc.w $00AC  1800 baud, 1 stop
+ dc.w $009A  2000 baud, 1 stop
+ dc.w $0080  2400 baud, 1 stop
+ dc.w $0055  3600 baud, 1 stop
+ dc.w $003F  4800 baud, 1 stop
+ dc.w $0029  7200 baud, 1 stop
+ dc.w $001E  9600 baud, 1 stop
+ dc.w $000E 19200 baud, 1 stop
+ dc.w $0006 38400 baud, 1 stop
+ else
+ dc.w (TxFreq/(2*50))-2 
+ dc.w (TxFreq/(2*75))-2 
+ dc.w (TxFreq/(2*110))-2 
+ dc.w (TxFreq/(269))-2 (269=2*134.5)
+ dc.w (TxFreq/(2*150))-2 
+ dc.w (TxFreq/(2*300))-2 
+ dc.w (TxFreq/(2*600))-2 
+ dc.w (TxFreq/(2*1200))-2 
+ dc.w (TxFreq/(2*1800))-2 
+ dc.w (TxFreq/(2*2000))-2 
+ dc.w (TxFreq/(2*2400))-2 
+ dc.w (TxFreq/(2*3600))-2 
+ dc.w (TxFreq/(2*4800))-2 
+ dc.w (TxFreq/(2*7200))-2 
+ dc.w (TxFreq/(2*9600))-2 
+ dc.w (TxFreq/(2*19200))-2
+ endc VME162/VME172
+ endc VME107
+ endc VME117
+ endc VME333
+ endc VME133_4
+ endc AVME551
+MaxBaud equ (*-BaudTabl)/2 maximum baud rate index
+ pag
+********************
+* Read
+*   Return one byte of input from the Acia
+*
+* Passed: (a1)=Path Descriptor
+*         (a2)=Static Storage address
+*         (a4)=current process descriptor
+*         (a6)=system global ptr
+*
+* Returns: (d0.b)=input char
+*          cc=carry set, (d1.w)=error code if error
+*
+* Destroys: a0,a3,a5
+*
+Read00 move.w V_BUSY(a2),V_WAKE(a2) arrange wake up signal
+ move.w d6,sr restore sr
+ bsr AciaSlep go to sleep routine
+ bcs Read90 ..signal received; abort
+
+Read: tst.b InHalt(a2) is input halted?
+ ble.s Read_a branch if not
+ cmpi.w #MinBuff,InCount(a2) buffer mostly emptied?
+ bhi.s Read_a ..No; continue
+ move.b V_XON(a2),d0 get X-ON char
+ move.w sr,d6 save interrupt status
+ move.w IRQMask(a2),sr mask interrupts
+ tst.b OutHalt(a2) output halted ?
+ beq.s Read10 
+ movea.l V_PORT(a2),a3 get port address
+ delay
+ btst #b_TBFEMP,CommReg(a3) Tx buffer empty ?
+ beq.s Read10 ...no
+ ifdef NODATAPORT
+ moveq.l #WR8,d1 address data register indirectly
+ bsr IntWrReg write
+ else
+ delay
+ move.b d0,DatReg(a3) push data through chip by hand
+ endc NODATAPORT
+ bra.s Read20 
+
+Read10 ori.b #Sign,d0 set Sign bit
+
+Read20 move.b d0,InHalt(a2) flag input resume
+ move.w d6,sr restore sr
+
+Read_a tst.w SigPrc(a2) a process waiting for device?
+ bne.s ErrNtRdy ..Yes; return dormant terminal error
+ move.w sr,d6 save current IRQ status
+ move.w IRQMask(a2),sr mask irqs
+ tst.w InCount(a2) any data?
+ beq.s Read00 branch if not
+ move.w d6,sr restore sr
+ movea.l InEmpty(a2),a0 point to next char
+ move.b (a0)+,d0 get character
+ subq.w #1,InCount(a2) dec buffer size by one
+ cmpa.l InEnd(a2),a0 at end of buffer?
+ blo.s Read_b branch if not
+ lea.l InpBuf(a2),a0 point to start of buffer
+Read_b move.l a0,InEmpty(a2) update buffer pointer
+ move.b V_ERR(a2),PD_ERR(a1) copy I/O status to PD
+ beq.s Read90 return if no error
+ clr.b V_ERR(a2) 
+ move.w #E$Read,d1 signal read error
+ ori.b #Carry,ccr return Carry set
+Read90: rts 
+
+ErrNtRdy: move.w #E$NotRdy,d1 
+ ori.b #Carry,ccr return Carry set
+ rts 
+ pag
+********************
+* AciaSlep
+*   Sleep until interrupt occurs
+*
+* Passed: (a2)=driver global storage
+*         (a4)=current process descriptor ptr
+*
+* Destroys: possibly PC
+*
+AciaSlep movem.l d0/d1,-(a7) save reg
+ moveq #0,d0 sleep indefinitely
+ OS9svc F$Sleep wait (works only for sleep(0))
+ move.w P$Signal(a4),d1 signal present?
+ beq.s ACSL90 ..no; return
+ cmpi.w #S$Deadly,d1 Deadly signal?
+ blo.s ACSLER ..yes; return error
+ACSL90 btst #Condemn,P$State(a4) has process died?
+ bne.s ACSLER ..Yes; return error
+ movem.l (a7)+,d0/d1
+ rts 
+
+ACSLER move.l (a7)+,d0 restore reg
+ addq.l #4,a7 ditch d1
+ ori.b #Carry,ccr return Carry set
+ rts
+
+ pag
+********************
+* Write
+*   Output one character to Acia
+*
+* Passed: (d0.b)=char to write
+*         (a1)=Path Descriptor
+*         (a2)=Static Storage address
+*         (a4)=current process descriptor ptr
+*         (a6)=system global data ptr
+*
+* Returns: none
+*
+* Destroys: a0,a3,a5
+*
+Write00 move.w V_BUSY(a2),V_WAKE(a2) arrange wake up signal
+ move.w d6,sr restore sr
+ bsr.s AciaSlep sleep a bit
+ bcs.s Write90 ..signal received; abort
+
+Write: move.w sr,d6 save current IRQ status
+ move.w IRQMask(a2),sr mask IRQs
+ cmpi.w #OutSiz,OutCount(a2) room for more data?
+ bhs.s Write00 
+ bclr #H_Empty,OutHalt(a2) was output buffer empty?
+ beq.s Write20 just exit if not
+ tst.b OutHalt(a2) still halted due to other cause?
+ bne.s Write20 don't enable IRQ if so
+ movea.l V_PORT(a2),a3 get port address
+ ifdef NODATAPORT
+ moveq.l #WR8,d1 address data register indirectly
+ bsr IntWrReg
+ else
+ delay
+ move.b d0,DatReg(a3) force character through by hand
+ endc NODATAPORT
+ bra.s Write80 
+
+Write20 addq.w #1,OutCount(a2) increment byte count
+ movea.l OutFill(a2),a0 point to next char location
+ move.b d0,(a0)+ store char and inc pointer
+ cmpa.l OutEnd(a2),a0 end of buffer?
+ blo.s Write10 branch if not
+ lea OutBuf(a2),a0 point to start of buffer
+Write10 move.l a0,OutFill(a2) update buffer pointer
+
+Write80 move.w d6,sr restore sr
+ moveq #0,d1 clear carry
+Write90: rts 
+
+ pag
+********************
+* Getstat - Get Acia Status
+*
+* Passed: (d0.w)=Status Code
+*         (a1)=Path Descriptor
+*         (a2)=Static Storage address
+*
+* returns: depends on status code
+*
+GetStat: cmpi.w #SS_Ready,d0 Ready status?
+ bne.s GetSta10 ..no
+ movea.l PD_RGS(a1),a0 get caller's register stack
+ clr.w R$d1(a0) sweep reg
+ move.w InCount(a2),R$d1+2(a0) return input char count to caller
+ beq ErrNtRdy ..No data; return not ready error
+ rts (Carry clear)
+
+GetSta10 cmpi.b #SS_EOF,d0 End of file?
+ beq.s GetSta99 ..yes; return (Carry clear)
+*
+* update path descriptor for currently active baud, parity
+*
+ cmpi.w #SS_Opt,d0 get options call ?
+ bne.s Unknown
+ move.b BaudRate(a2),PD_BAU(a1) set currently active baud rate
+ move.b Parity(a2),PD_PAR(a1) set currently active comms mode
+ rts
+
+Unknown: move.w #E$UnkSvc,d1 Unknown service code
+ ori #Carry,ccr return Carry set
+GetSta99 rts 
+
+
+********************
+* Putstat - Put Acia Status
+*
+* Passed: (d0.w)=Status Code
+*         (a1)=Path Descriptor
+*         (a2)=Static Storage address
+*
+* returns: depends on status code
+*
+PutStat: cmpi.w #SS_SSig,d0 signal process when ready?
+ bne.s PutSta_A ..No
+ tst.w SigPrc(a2) somebody already waiting?
+ bne ErrNtRdy ..Yes; error
+ move.w PD_CPR(a1),d0 get caller's process ID
+ movea.l PD_RGS(a1),a0 get caller's register ptr
+ move.w R$d2+2(a0),d1 get signal code
+ move.w sr,d6 save IRQ status
+ move.w IRQMask(a2),sr disable IRQs
+ tst.w InCount(a2) any Data available?
+ bne.s PutSta10 yes, signal Data ready
+ move.w PD_PD(a1),d2 get system path #
+ movem.w d0-d2,SigPrc(a2) save process ID, Signal, Path
+ move.w d6,sr restore sr
+ moveq #0,d1 clear carry
+ rts 
+
+PutSta10 move.w d6,sr restore sr
+ bra SendSig send the signal
+
+PutSta_A cmpi.w #SS_Relea,d0 Release Device?
+ bne.s PutSta_B bra if not
+ move.w PD_CPR(a1),d2 get current process ID
+ lea SigPrc(a2),a3 test SigPrc
+ bsr.s ClearSig 
+ lea DCDOff(a2),a3 test DCDOff
+
+ClearSig cmp.w (a3),d2 does it concern this process?
+ bne.s ClrSig20 ..no; just return
+ move.w PD_PD(a1),d1 get system path #
+ cmp.w 4(a3),d1 is this path the signal owner ?
+ bne.s ClrSig20 ..no; simply exit
+ clr.w (a3) no more signals for him
+ClrSig20 moveq #0,d1 
+ rts 
+
+PutSta_B cmpi.w #SS_DCOn,d0 signal on carrier detect?
+ beq.s Unknown 
+
+PutSta_C cmpi.w #SS_DCOff,d0 on loss of carrier?
+ bne.s PutSta_D ..no; try next
+ move.w PD_CPR(a1),d0 get process id
+ movea.l PD_RGS(a1),a0 get caller's register ptr
+ move.w R$d2+2(a0),d1 get signal code
+ move.w PD_PD(a1),d2 get system path #
+ movem.w d0-d2,DCDOff(a2) save signal conditions
+ rts exit (carry clear)
+
+PutSta_D cmpi.w #SS_EnRTS,d0 enable RTS line ?
+ bne.s PutSta_E ..no; try next
+RTSDummy moveq.l #0,d1 RTS steady-state enabled, return no error
+ rts
+
+PutSta_E cmpi.w #SS_DsRTS,d0 disable RTS line ?
+ beq.s RTSDummy ..yes; fake call ok
+*
+* If call is SS_Open or SS_Opt,
+* check if baud/parity/etc.. needs update
+*
+ cmpi.w #SS_Open,d0 
+ beq.s PutSta_F
+ cmpi.w #SS_Opt,d0
+ bne Unknown return error for unknown service requests
+*
+* Check for dynamic configuration change
+*
+PutSta_F
+ move.b PD_PAR(a1),d0 get parity byte
+ move.b PD_BAU(a1),d1 get baud_rate
+ bra Config
+
+ pag
+********************
+* Subroutine TrmNat
+*   Terminate Acia processing
+*
+* Passed: (a1) device descriptor pointer
+*         (a2)=static storage
+*         (a4)=current process descriptor ptr
+*
+* Returns: none
+*
+TRMN00 move.w V_BUSY(a2),V_WAKE(a2) arrange wake up signal
+ move.w d6,sr restore sr
+ bsr AciaSlep wait for I/O activity
+TrmNat: move.w P$ID(a4),d0 get process id
+ move.w d0,V_BUSY(a2) set user in case of signals
+ move.w d0,V_LPRC(a2) ditto last user
+ move.w sr,d6 save current IRQ status
+ move.w IRQMask(a2),sr mask IRQs
+ tst.w OutCount(a2) any data?
+ bne.s TRMN00 sleep if there is
+ movea.l V_PORT(a2),a3 get port address
+ moveq.l #0,d0 
+ moveq.l #WR1,d1 
+ bsr WriteReg disable TX,RX interrupts
+ move.w d6,sr restore sr
+ move.b M$Vector(a1),d0 get vector #
+ suba.l a0,a0 
+ os9 F$IRQ remove acia from polling tbl
+ rts 
+
+ pag
+********************
+* ACIRQ
+*   Process interrupt (input or output) from Acia
+*
+* Passed: (a2)=Static Storage addr
+*         (a3)=Port address
+*
+* Returns: cc=carry set if false interrupt
+*
+* OS-9/V2.0 Release comments:  The kernel will only save registers
+* D0, D1, A0, A2, A3 and A6.  Any other registers used must be
+* saved by this routine.
+*
+ACIRQ: move.l a3,d0 get port address
+ bset #ABBit,d0 make sure we have base address of channel A
+ movea.l d0,a3 restore dummy port address (forced Channel A base)
+ moveq.l #RR3,d1 set up pointer to RR3
+ bsr.s IntRdReg read register into d0
+ btst #ABBit,V_PORT+3(a2) was the port address actually for channel A ?
+ beq.s ACIRQ01 ..no
+ lsr.b #3,d0 ...yes so rotate interrupt pending bits to look like chan B
+ACIRQ01 andi.b #7,d0 AND off just the interrupt pending bits
+ bne.s ACIRQ02 if any of them are set then we have interrupted
+ ori.b #Carry,ccr ...otherwise indicate not us
+ rts 
+
+ACIRQ02 movem.l d2,-(sp) save register
+ movea.l V_PORT(a2),a3 get port address
+ delay
+ move.b #$38,CommReg(a3) reset highest IUS (Interrupt under service)
+ btst #2,d0 ..RX interrupt ?
+ bne InIRQ ..yes
+ btst #1,d0 ...TX interrupt ?
+ bne.s OutIRQ ..yes
+ delay
+ move.b #$10,CommReg(a3) reset external/status interrupt
+GoodXit clr.l d1 clear carry
+IRQXit movem.l (sp)+,d2 restore register
+ rts 
+
+********************
+* IntRdReg - (routine for Z8530 only) is responsible for reading
+* data from registers in the SCC.
+*
+* NOTE: this routine is only called INSIDE an IRQ context,
+*       or with interrupts masked.
+*
+* Passed: (d0.b) = data to be passed
+*         (d1.b) = register offset from base
+*         (a3)   = SCC base address
+*
+* Returns: d0.b data read from register
+*
+IntRdReg: delay
+ move.b d1,CommReg(a3) set up pointer to register
+ delay
+ move.b CommReg(a3),d0 get data from this register
+ rts
+
+
+ pag
+********************
+* OutIRQ
+*   Acia output interrupt service
+*
+* Passed: (d0.b)=Acia Status Register Contents
+*         (a3)=Acia port address
+*         (a2)=Static Storage address
+*
+OutIRQ: move.b InHalt(a2),d0 send X-ON or X-OFF?
+ bpl.s OutI_a branch if not
+ bclr #SignBit,d0 clear sign bit
+ ifdef NODATAPORT
+ moveq.l #WR8,d1 address data register indirectly
+ bsr IntWrReg
+ else
+ delay
+ move.b d0,DatReg(a3) load this data
+ endc
+ move.b V_XON(a2),d2 get X-ON value
+ eor.b d2,d0 get Zero if X-ON
+ move.b d0,InHalt(a2) mark it sent
+ bra.s GoodXit
+
+OutI_a tst.b OutHalt(a2) is output halted?
+ bne.s OutIRQ3 branch if so
+ move.w OutCount(a2),d2 any Data in buffer ?
+ beq.s OutIRQ2 branch if not
+ subq.w #1,d2 taking one char
+ movea.l OutEmpty(a2),a0 get pointer to next char
+ move.b (a0)+,d0 get next char
+ ifdef NODATAPORT
+ moveq.l #WR8,d1 address data register indirectly
+ bsr IntWrReg
+ else
+ delay
+ move.b d0,DatReg(a3) write this data
+ endc
+ cmpa.l OutEnd(a2),a0 end of buffer?
+ blo.s OutI_1 branch if not
+ lea OutBuf(a2),a0 point to start
+OutI_1 move.l a0,OutEmpty(a2) update pointer
+ move.w d2,OutCount(a2) update char count
+ cmpi.w #Low_Cnt,d2 ready for more data?
+ bhi.s GoodXit exit if not
+
+WakNXit bsr.s WakeUp wake up driver
+ bra.s IRQXit
+
+OutIRQ2 bset #H_Empty,OutHalt(a2) flag halted; buffer empty
+
+OutIRQ3
+ delay
+ move.b #RTIP,CommReg(a3) 
+ bra.s WakNXit
+
+WakeUp: moveq #S$Wake,d1 Wake up signal
+ move.w V_WAKE(a2),d0 Owner waiting?
+Wake10: beq.s Wake90 ..no; return
+ clr.w V_WAKE(a2) 
+SendSig: OS9svc F$Send send signal
+
+Wake90 clr.b d1 return Carry clear
+ rts 
+ pag
+********************
+* InIRQ
+*   Acia input interrupt service
+*
+* Passed: (d0.b)=Acia Status Register Data
+*         (d1.b)=Acia Error Status
+*         (a3)=Acia port address
+*         (a2)=Static Storage address
+*
+InIRQ:
+ moveq.l #RR1,d1 get a copy of the status register
+ bsr IntRdReg
+ move.b d0,d2 copy status
+ andi.b #InpErr,d2 mask status error bits
+ beq.s InIRQ05 ..no error
+ or.b d2,V_ERR(a2) update cumulative errors
+ delay
+ move.b #RstErr,CommReg(a3) reset error; write data to CommReg
+
+ ifdef NODATAPORT
+InIRQ05 moveq.l #RR8,d1 address data register indirectly
+ bsr IntRdReg
+ else
+InIRQ05 delay
+ move.b DatReg(a3),d0 get data from RX data register
+ endc
+ and.b Stripper(a2),d0 mask off any unused bits
+ beq.s InIRQ1 ..NULL, impossible ctl chr
+ tst.b d2 any error ?
+ bne.s InIRQ1 ..yes; skip checks
+ cmp.b V_INTR(a2),d0 keyboard Interrupt?
+ beq InAbort ..Yes
+ cmp.b V_QUIT(a2),d0 keyboard Quit?
+ beq InQuit ..Yes
+ cmp.b V_PCHR(a2),d0 keyboard Pause?
+ beq InPause ..Yes
+ cmp.b V_XON(a2),d0 X-ON continue?
+ beq InXON ..Yes
+ cmp.b V_XOFF(a2),d0 X-OFF Immediate Pause request?
+ beq InXOFF ..Yes
+
+InIRQ1 movea.l InFill(a2),a0 point to current char
+ move.b d0,(a0)+ put Data in buffer
+ addq.w #1,InCount(a2) count character
+ cmpi.w #InpSiz,InCount(a2) buffer full?
+ bls.s InIRQ10 branch if not
+ subq.w #1,InCount(a2) uncount character
+ ori.b #Overun,V_ERR(a2) or in error
+ bra WakNXit exit with error
+
+InIRQ10 cmp.l InEnd(a2),a0 end of buffer?
+ blo.s InIRQ30 branch if not
+ lea InpBuf(a2),a0 point to start of buffer
+InIRQ30 move.l a0,InFill(a2) update next in pointer
+ move.w SigPrc(a2),d0 any process to notify?
+ beq.s InIRQ4 ..no
+ move.w SigPrc+2(a2),d1 get signal code
+ clr.w SigPrc(a2) disable signal sending
+ bsr SendSig Signal Controlling process
+ bra IRQXit
+
+InIRQ4 move.b V_XOFF(a2),d0 get X-OFF char
+ beq WakNXit branch if not enabled
+ cmpi.w #MaxBuff,InCount(a2) is buffer almost full?
+ blo WakNXit bra if not
+ move.b InHalt(a2),d1 have we sent XOFF?
+ bne WakNXit yes then don't send it again
+ andi.b #^Sign,d0 insure Sign clear
+ move.b d0,V_XOFF(a2) 
+ tst.b OutHalt(a2) 
+ beq.s InIRQ5 
+ delay
+ btst #b_TBFEMP,CommReg(a3) 
+ beq.s InIRQ5 
+ ifdef NODATAPORT
+ moveq.l #WR8,d1 address data register indirectly
+ bsr IntWrReg
+ else
+ delay
+ move.b d0,DatReg(a3) 
+ endc
+ bra.s InIRQ6 
+
+InIRQ5 ori.b #Sign,d0 set Sign bit
+
+InIRQ6 move.b d0,InHalt(a2) flag input halt
+ bra WakNXit
+ pag
+********************
+* Control character routines:
+*
+InPause tst.l V_DEV2(a2) any echo device?
+ beq InIRQ1 buffer char and exit if not
+ movea.l V_DEV2(a2),a0 get echo device static ptr
+ move.b d0,V_PAUS(a0) request pause
+ bra InIRQ1 buffer char and exit
+
+InAbort moveq #S$Intrpt,d1 keyboard INTERRUPT signal
+ bra.s InQuit10 
+
+InQuit moveq #S$Abort,d1 Abort signal
+
+InQuit10 move.l d0,-(a7) save input char
+ move.w V_LPRC(a2),d0 last process ID
+ bsr Wake10 Send error signal
+ move.l (a7)+,d0 restore input char
+ bra InIRQ1 buffer char, exit
+
+InXON bclr #H_XOFF,OutHalt(a2) enable output
+ beq.s GoodXit
+ tst.b OutHalt(a2) still halted (buffer empty)?
+ bne.s GoodXit exit if so
+ delay
+ btst #b_TBFEMP,CommReg(a3) 
+ bne OutIRQ 
+ bra GoodXit
+
+InXOFF bset #H_XOFF,OutHalt(a2) flag output restricted
+ bra GoodXit
+
+ ends 

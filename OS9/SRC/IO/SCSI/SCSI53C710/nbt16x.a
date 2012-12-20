@@ -1,0 +1,38 @@
+
+* Function:
+*		stoirq - Select Timeout IRQ Service entry
+*
+* Synopsis:  Kernel calls with the following:
+*             (a2) = static storage ptr
+*             (a3) = port address
+*             (a6) = system global data ptr
+*
+*    Returns:  (cc) = carry clear (interrupt serviced)
+*
+*    Error Return:  (cc) = carry set (interrupt NOT serviced)
+*		
+*    NOTE:  The following registers may be destroyed by the
+*           IRQ service routine:  d0, d1, a0, a2, a3, a6.
+*           Any other registers used MUST be preserved.
+*
+* C Driver Conventions:
+*
+*    Call:  stoirq(local_stat, port_addr)
+*
+*    Returns:  0 if interrupt serviced.
+*
+* Description:
+*		This is the kernel interrupt service polling entry.  This call 
+* should NEVER be made by the driver itself.
+*
+stoirq: move.l a5,-(sp) save a5
+ move.l a2,d0 copy low-level static storage ptr
+ move.l a3,d1 copy port address
+ suba.l a5,a5 set top of stack (traceback)
+ bsr seltoirq call irq service
+ move.l d0,d1 was interrupt serviced ?
+ beq.s irq_done ..yes; return carry clear
+ ori.w #Carry,ccr flag interrupt NOT serviced
+irq_done movea.l (sp)+,a5 restore a5 (keep ccr status)
+ rts return
+

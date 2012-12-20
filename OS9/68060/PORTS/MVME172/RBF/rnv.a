@@ -1,0 +1,16 @@
+ nam RNV Device Descriptor
+
+RAMDISK equ 1
+
+ use defsfile
+
+ use <rbfdesc.a>
+
+DrvNum set 0
+ DiskRx
+
+ ifndef DevCon
+DevCon dc.b 0 default device setup flags
+ endc
+
+ ends

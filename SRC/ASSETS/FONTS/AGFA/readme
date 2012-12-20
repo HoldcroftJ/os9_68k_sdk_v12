@@ -1,0 +1,17 @@
+The directories MT and TT hold the font files that are the basis for the font data modules 
+in the mwos\OS9000\<processor port>ASSETS\FONTS\AGFA directory. The makefile in this 
+directory (mwos\SRC\ASSETS\AGFA) calls the makefiles in the MT and TT directories. The 
+makefiles in these directories will wrap their respective font files into data modules 
+and place them into the following directories:
+
+mwos\OS9000\<processor port>ASSETS\FONTS\AGFA\MT
+and
+mwos\OS9000\<processor port>ASSETS\FONTS\AGFA\TT
+
+
+Use os9make in this directory to build the data modules from the fonts in both the TT and 
+MT directories. 
+
+Use os9make in the MT directory to make data modules from the fonts in that directory.
+
+Use os9make in the TT directory to make data modules from the fonts in that directory.

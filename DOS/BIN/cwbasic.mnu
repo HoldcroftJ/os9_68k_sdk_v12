@@ -1,0 +1,28 @@
+[CWBASIC]
+Open                             ; cwbExecuteCommand cwbFileOpen
+Close                            ; cwbExecuteCommand cwbFileClose
+Save                             ; cwbExecuteCommand cwbFileSave     ;~ !cwbAllowExecuteCommand cwbFileSave
+Save As...                       ; cwbExecuteCommand cwbFileSaveAs
+-					             
+Print...                         ; cwbExecuteCommand cwbFilePrint    ;~ !cwbAllowExecuteCommand cwbFilePrint
+Print Setup...                   ; DlgPrintSetup                     ;~ !cwbAllowExecuteCommand cwbFilePrint
+-					             
+Run                              ; cwbExecuteCommand cwbMacroRun     ;~ !cwbAllowExecuteCommand cwbMacroRun
+Break                            ; cwbExecuteCommand cwbMacroPause   ;~ !cwbAllowExecuteCommand cwbMacroPause
+Stop                             ; cwbExecuteCommand cwbMacroEnd     ;~ !cwbAllowExecuteCommand cwbMacroEnd
+-					             
+Toggle Breakpoint                ; cwbExecuteCommand cwbDebugBreak
+-					             
+Add Watch                        ; cwbExecuteCommand cwbDebugAddWatch  ;~ !cwbAllowExecuteCommand cwbDebugAddWatch
+Object Browser...                ; cwbExecuteCommand cwbDebugBrowse    ;~ !cwbAllowExecuteCommand cwbDebugBrowse
+Edit User Dialog...              ; cwbExecuteCommand cwbEditUserDialog ;~ !cwbAllowExecuteCommand cwbEditUserDialog
+-					             
+>View				             
+Toolbar                          ; cwbToggleToolbar         ;! cwbQToolbarShown()
+Procedure Display                ; cwbToggleProcDisplay     ;! cwbQProcDisplayShown()
+Rich Text Editor                 ; cwbToggleRichTextEditor  ;! cwbQRichTextEditor() 
+<
+-
+Properties...                    ; cwbExecuteCommand cwbEditProperties   ;~ !cwbAllowExecuteCommand cwbEditProperties
+-
+Edit this menu...                ; DlgEditPopupMenu $

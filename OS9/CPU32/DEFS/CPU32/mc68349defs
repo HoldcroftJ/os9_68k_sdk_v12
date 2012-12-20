@@ -1,0 +1,9 @@
+ nam mc68349defs
+ ttl Include file to gather all defs for mc68349 processor
+
+ use <sim349.d>
+ use <dmam340.d>
+ use <serm340.d>
+ use <cic349.d>
+ use <qdmm349.d>
+
