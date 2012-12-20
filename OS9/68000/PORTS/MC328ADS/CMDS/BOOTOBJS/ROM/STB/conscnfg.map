@@ -1,0 +1,25 @@
+Linkage map for module 'conscnfg' in file ..\..\CMDS\BOOTOBJS\ROM\conscnfg  Page 1
+
+
+'p2start.a' psect from file: ..\..\..\..\..\..\OS9\68000\LIB\ROM\p2start.r
+	C:0000003c M:00000000 D:00000000 RM:00000000 RD:00000000
+ _btext    COD 00000000 | _bdata    DAT 00000000 | _enddata  DAT 00000000 |
+ btext     COD 00000000 | bdata     DAT 00000000 | end       DAT 00000000 |
+ Main      COD 0000003c | _bname    COD 000002f0 | bname     COD 000002f0 |
+ _etext    COD 000002fe | etext     COD 000002fe |
+
+'conscnfg.c' psect from file: RELS\conscnfg.r
+	C:00000076 M:00000000 D:00000000 RM:00000000 RD:00000000
+ _sysedit  ABS 00000009 | p2start   COD 00000076 |
+
+'getrinf.c' psect from file: ..\..\..\..\..\..\OS9\68000\LIB\ROM\p2lib.l
+	C:00000246 M:00000000 D:00000000 RM:00000000 RD:00000000
+ getrinf   COD 00000246 |
+
+'findrinf.c' psect from file: ..\..\..\..\..\..\OS9\68000\LIB\ROM\p2lib.l
+	C:00000298 M:00000000 D:00000000 RM:00000000 RD:00000000
+ findrinf  COD 00000298 |
+
+'strcmp.c' psect from file: ..\..\..\..\..\..\OS9\68000\LIB\clib.l
+	C:000002ce M:00000000 D:00000000 RM:00000000 RD:00000000
+ strcmp    COD 000002ce |

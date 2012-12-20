@@ -1,0 +1,721 @@
+Linkage map for module 'rombug' in file ..\CMDS\BOOTOBJS\ROMBUG\rombug    Page 1
+
+
+'vectors' psect from file: RELS\ROMBUG\rom_common.l
+	C:ff800000 M:00000000 D:0000380c RM:000049e8 RD:00004660
+ ExcptJmp  ABS 00000400 | IntrptStk ABS 00000400 | VectTbl   COD ff800000 |
+
+'MBugBoot' psect from file: RELS\ROMBUG\rom_common.l
+	C:ff800400 M:00000000 D:0000380c RM:000049e8 RD:00004660
+ MBBEnd    COD ff80041a | MBBStart  COD ff800400 | MBugBoot  COD ff800416 |
+
+'Boot' psect from file: RELS\ROMBUG\rom_common.l
+	C:ff800480 M:00000000 D:0000380c RM:000049e8 RD:00004660
+ AbortVect COD ff800542 | Access    MEM 000009fc | Author    COD ff800480 |
+ BadExcpt  COD ff800b72 | Boot      COD ff800a74 | CallDBug  COD ff800541 |
+ ChunkSiz  COD ff800530 | CommPort  COD ff800538 | ConsPort  COD ff800534 |
+ Crystal   MEM 000009f0 | DiskPort  COD ff80053c | DiskVect  COD ff800540 |
+ Extract   COD ff800b32 | IOReserv  MEM 00000a04 | MPUType   MEM 000009ec |
+ MemList   COD ff8004e0 | Out1Hex   COD ff800ba8 | Out2Hex   COD ff800ba2 |
+ Out4Hex   COD ff800b9c | OutHex    COD ff800bae | Parity_Init COD ff8009c8 |
+ PrintCR   COD ff800bc8 | PrintStr  COD ff800bce | RelFctr   MEM 000009f4 |
+ Reset     COD ff80054c | SysRetrn  COD ff80066e | TotRAM    MEM 000009f8 |
+ TransFact COD ff800548 | VBRPatch  COD ff800544 | _bdata    DAT 00000000 |
+ _bidata   COD ff81b380 | _birefs   COD ff81c564 | _bname    COD 00000000 |
+ _btext    COD ff800000 | _codebias ABS 00000000 | _databias ABS 00000000 |
+ _dsize    ABS 00005f00 | _enddata  DAT 000052ec | _etext    COD ff81cc20 |
+ _jmptbl   DAT 000043fc | bdata     DAT 00000000 | bname     COD 00000000 |
+ btext     COD ff800000 | dsize     ABS 00005f00 | edata     COD ff81c564 |
+ end       DAT 000052ec | etext     COD ff81b380 |
+
+'NVRam' psect from file: RELS\ROMBUG\rom_common.l
+	C:ff800c9c M:00000a7c D:0000380c RM:000049e8 RD:00004660
+ GoodNVR   COD ff800cc6 | goodnvr   COD ff800d20 | nwck16    COD ff800c9c |
+
+'sysinit' psect from file: RELS\ROMBUG\rom_port.l
+	C:ff800d38 M:00000a7c D:0000380c RM:000049e8 RD:00004660
+ BTrap_050 COD ff800d38 | GetRomEnd COD ff800da0 | PortMan   COD ff80119c |
+ ReadSwitch50 COD ff800d4e | SInitTwo  COD ff801088 | SysInit   COD ff800e02 |
+ TCDefault COD ff801198 | UseDebug  COD ff801160 | btrap_exit COD ff800d4a |
+
+'syscon.c' psect from file: RELS\ROMBUG\rom_port.l
+	C:ff8011cc M:00000a7c D:00003810 RM:000049e8 RD:00004660
+ RAMDisk_Base COD ff80200a | Teac_ID   COD ff80200f | Viper_ID  COD ff80200e |
+ _stkhandler COD ff801d2c | _stklimit DAT 00003814 | altfuncs  DAT 00003820 |
+ boot_fd_teac COD ff8015e2 | boot_hd_sccs COD ff8015f8 | booters   DAT 00003848 |
+ getbdrvmax COD ff801fc8 | getbootmethod COD ff801d32 | getboottype COD ff801fd8 |
+ getnvrbase COD ff801fbc | getnvrversion COD ff801fd0 | novme050  COD ff802010 |
+ novme050_can_trap COD ff802014 | nulstr    DAT 00003810 | nvrw      COD ff801fe0 |
+ rc_dialogue COD ff80160e | rdiskbase MEM 00000a7e | readswitch50 COD ff801f44 |
+ scsi_icr  DAT 00003818 | scsibase  DAT 0000381c | sysfuncs  DAT 00003834 |
+ viper_id  MEM 00000a7c |
+
+'ioz8530_a' psect from file: RELS\ROMBUG\rom_serial.l
+	C:ff802034 M:00000a84 D:000038d4 RM:000049e8 RD:00004660
+ ChekPort  COD ff80218c | ConsDeIn  COD ff80222e | ConsInit  COD ff8020b8 |
+ ConsSet   COD ff80220c | InChChek  COD ff80215e | InChar    COD ff80208c |
+ InPort    COD ff8021ae | OutChar   COD ff802044 | OutPort   COD ff80219c |
+ OutRaw    COD ff802034 | PortDeIn  COD ff80220a | PortInit  COD ff8021d6 |
+
+'init.c' psect from file: ..\..\..\..\SRC\ROM\LIB\bt_147_33c93.l
+	C:ff802260 M:00000a84 D:000038d4 RM:000049e8 RD:00004660
+ apart     MEM 00000a88 | cmdstatus MEM 00000a84 | compbyte  MEM 00000a85 |
+ jicpad_b33 MEM 00000a86 | llinit    COD ff802260 |
+Linkage map for module 'rombug' in file ..\CMDS\BOOTOBJS\ROMBUG\rombug    Page 2
+
+
+'exec.c' psect from file: ..\..\..\..\SRC\ROM\LIB\bt_147_33c93.l
+	C:ff802314 M:00000a8c D:000038d4 RM:000049e8 RD:00004660
+ llexec    COD ff802314 |
+
+'term.c' psect from file: ..\..\..\..\SRC\ROM\LIB\bt_147_33c93.l
+	C:ff80261c M:00000a8c D:000038d4 RM:000049e8 RD:00004660
+ llterm    COD ff80261c |
+
+'misc.c' psect from file: ..\..\..\..\SRC\ROM\LIB\bt_147_33c93.l
+	C:ff802628 M:00000a8c D:000038d4 RM:000049e8 RD:00004660
+ chkstat   COD ff802628 | wd_command COD ff802722 |
+
+'bootsccs.c' psect from file: ..\..\..\..\SRC\ROM\LIB\bootsccs.l
+	C:ff80274c M:00000a8c D:000038d4 RM:000049e8 RD:00004660
+ bootsccs  COD ff80274c | drvsize   MEM 00000aba | jicpad1_sb MEM 00000a90 |
+ jicpad2_sb MEM 00000a8e | jicpad3_sb MEM 00000a8c | sccs_err_det MEM 00000a92 |
+ sccs_mode_sel MEM 00000aa4 | sccs_scsicmd MEM 00000ab0 |
+
+'init.c' psect from file: ..\..\..\..\SRC\ROM\LIB\bootsccs.l
+	C:ff802774 M:00000ac4 D:000038d4 RM:000049e8 RD:00004660
+ initsccs  COD ff802774 |
+
+'read.c' psect from file: ..\..\..\..\SRC\ROM\LIB\bootsccs.l
+	C:ff8027e8 M:00000ac4 D:000038d4 RM:000049e8 RD:00004660
+ readsccs  COD ff8027e8 |
+
+'misc.c' psect from file: ..\..\..\..\SRC\ROM\LIB\bootsccs.l
+	C:ff802824 M:00000ac4 D:000038d4 RM:000049e8 RD:00004660
+ adjust_lba COD ff802f02 | sccs_execnoxfer COD ff8029ce | sccs_execute COD ff802824 |
+ sccs_handlerr COD ff802b04 | sccs_scsistat COD ff80298a |
+
+'bootfteac.c' psect from file: ..\..\..\..\SRC\ROM\LIB\bootfc1.l
+	C:ff802f0c M:00000ac4 D:000038d4 RM:000049e8 RD:00004660
+ bootfteac COD ff802f0c | rbteac_statics MEM 00000ac4 |
+
+'init.c' psect from file: ..\..\..\..\SRC\ROM\LIB\bootfc1.l
+	C:ff802f4c M:00000d00 D:000038d4 RM:000049e8 RD:00004660
+ init_fteac COD ff802f4c |
+
+'read.c' psect from file: ..\..\..\..\SRC\ROM\LIB\bootfc1.l
+	C:ff802f90 M:00000d00 D:000038d4 RM:000049e8 RD:00004660
+ read_fteac COD ff802f90 |
+
+'misc.c' psect from file: ..\..\..\..\SRC\ROM\LIB\bootfc1.l
+	C:ff803098 M:00000d00 D:000038d4 RM:000049e8 RD:00004660
+ copyblock COD ff803c42 | execnoxfer COD ff80348e | execute   COD ff8035f8 |
+ ftinitdrv COD ff80318e | fttrkoffs COD ff803c62 | get_drive_kind COD ff8037a4 |
+ handlerr  COD ff803890 | scsistat  COD ff803852 | teac_desc COD ff8030c8 |
+ validate_descriptor COD ff803406 |
+
+'bootviper.c' psect from file: ..\..\..\..\SRC\ROM\LIB\bootviper.l
+	C:ff803ce4 M:00000d00 D:000038d4 RM:000049e8 RD:00004660
+ blknum    MEM 00000d32 | bootviper COD ff803ce4 | fstatus   MEM 00000d36 |
+ jicpad1_vb MEM 00000d02 | jicpad3_vb MEM 00000d00 | markcnt   MEM 00000d2e |
+ residual  MEM 00000d3a | viper_err_det MEM 00000d04 | viper_mode_sel MEM 00000d1c |
+ viper_scsicmd MEM 00000d28 |
+
+'init.c' psect from file: ..\..\..\..\SRC\ROM\LIB\bootviper.l
+	C:ff803d34 M:00000d40 D:000038d4 RM:000049e8 RD:00004660
+ initviper COD ff803d34 |
+Linkage map for module 'rombug' in file ..\CMDS\BOOTOBJS\ROMBUG\rombug    Page 3
+
+
+'read.c' psect from file: ..\..\..\..\SRC\ROM\LIB\bootviper.l
+	C:ff803e1c M:00000d40 D:000038d4 RM:000049e8 RD:00004660
+ readviper COD ff803e1c |
+
+'misc.c' psect from file: ..\..\..\..\SRC\ROM\LIB\bootviper.l
+	C:ff803eac M:00000d40 D:000038d4 RM:000049e8 RD:00004660
+ rewindviper COD ff803eac | viper_execnoxfer COD ff803ece | viper_execute COD ff803f8a |
+ viper_handlerr COD ff8040aa | viper_scsistat COD ff804068 |
+
+'term.c' psect from file: ..\..\..\..\SRC\ROM\LIB\bootviper.l
+	C:ff8042bc M:00000d40 D:000038d4 RM:000049e8 RD:00004660
+ termviper COD ff8042bc |
+
+'bp_tk147.c' psect from file: ..\..\..\..\SRC\ROM\LIB\bp_tk147.l
+	C:ff8042c8 M:00000d40 D:000038d4 RM:000049e8 RD:00004660
+ bpt_bootp COD ff80439c | bpt_curtick MEM 00000d4a | bpt_init  COD ff804310 |
+ bpt_irqsvc COD ff8043b4 | bpt_rseed MEM 00000d42 | bpt_term  COD ff804374 |
+
+'boot7990.c' psect from file: ..\..\..\..\SRC\ROM\LIB\bp_147_7990.l
+	C:ff8043f4 M:00000d50 D:000038d4 RM:000049e8 RD:00004660
+ boot_le   COD ff80440e | ifdev_le  MEM 00000e48 | le_desc_fake MEM 00000f50 |
+ le_static MEM 00000d50 |
+
+'init.c' psect from file: ..\..\..\..\SRC\ROM\LIB\bp_147_7990.l
+	C:ff804518 M:00000f64 D:000038d4 RM:000049e8 RD:00004660
+ clog2     COD ff804518 | if_init_le COD ff804534 |
+
+'term.c' psect from file: ..\..\..\..\SRC\ROM\LIB\bp_147_7990.l
+	C:ff804854 M:00000f64 D:000038d4 RM:000049e8 RD:00004660
+ if_term_le COD ff804854 |
+
+'xmit.c' psect from file: ..\..\..\..\SRC\ROM\LIB\bp_147_7990.l
+	C:ff804878 M:00000f64 D:000038d4 RM:000049e8 RD:00004660
+ if_send_le COD ff8049f0 | if_xmit_le COD ff8049bc | load_tmd  COD ff8048b0 |
+
+'recv.c' psect from file: ..\..\..\..\SRC\ROM\LIB\bp_147_7990.l
+	C:ff804a60 M:00000f64 D:000038d4 RM:000049e8 RD:00004660
+ if_recv_le COD ff804a94 |
+
+'machdep.c' psect from file: ..\..\..\..\SRC\ROM\LIB\bp_147_7990.l
+	C:ff804bac M:00000f64 D:000038d4 RM:000049e8 RD:00004660
+ get_eaddr_le COD ff804bea | init_le_desc COD ff804bac |
+
+'misc.c' psect from file: ..\..\..\..\SRC\ROM\LIB\bp_147_7990.l
+	C:ff804c44 M:00000f64 D:000038d4 RM:000049e8 RD:00004660
+ nop       COD ff804c44 | swabytes  COD ff804c4a |
+
+'inetboot.c' psect from file: ..\..\..\..\SRC\ROM\LIB\inetboot.l
+	C:ff804c90 M:00000f64 D:000038d4 RM:000049e8 RD:00004660
+ TS        COD ff804d74 | bpt_test  DAT 000038d6 | inetboot  COD ff804db0 |
+ msgprint  DAT 000038d4 | net_in    MEM 00000f64 | net_inpbuf MEM 00000f68 |
+ net_outbuf MEM 00001768 | save_bootp MEM 00001f68 | stash_ipaddr COD ff804fba |
+
+'lbootp.c' psect from file: ..\..\..\..\SRC\ROM\LIB\inetboot.l
+	C:ff804fd0 M:00001f80 D:000038d8 RM:000049e8 RD:00004660
+ TRYCNT    DAT 000038d8 | WAITCNT   DAT 000038dc | bootp     COD ff8053e8 |
+ bprp      MEM 00001f86 | getvend_1048 COD ff805872 | in_bootsize MEM 00001f84 |
+ inetname  COD ff8052e2 | make_bootp COD ff805346 | show_ether COD ff80528e |
+Linkage map for module 'rombug' in file ..\CMDS\BOOTOBJS\ROMBUG\rombug    Page 4
+
+
+'lip.c' psect from file: ..\..\..\..\SRC\ROM\LIB\inetboot.l
+	C:ff805914 M:00002134 D:000038e0 RM:000049e8 RD:00004660
+ b_check   COD ff805fe4 | check16   COD ff80604a | icmp_check COD ff805f46 |
+ icmp_in   COD ff805c10 | in_checksum COD ff805bce | ip_inp    COD ff805a08 |
+ ip_out    COD ff805dc4 | udp_in    COD ff805d16 | udp_out   COD ff805f70 |
+
+'larp.c' psect from file: ..\..\..\..\SRC\ROM\LIB\inetboot.l
+	C:ff80606c M:00002134 D:000038e4 RM:000049e8 RD:00004660
+ arp_dest_hwaddr MEM 00002134 | arp_dest_ip MEM 00002144 | arp_input COD ff806074 |
+ arp_resolve COD ff80625e | arp_whohas COD ff80619e |
+
+'ltftp.c' psect from file: ..\..\..\..\SRC\ROM\LIB\inetboot.l
+	C:ff8062b8 M:00002148 D:000038e4 RM:000049e8 RD:00004660
+ dummy     MEM 00002148 | make_tftp_ack COD ff806506 | make_tftp_req COD ff80651c |
+ tftp      COD ff806580 |
+
+'ethernet_in.c' psect from file: ..\..\..\..\SRC\ROM\LIB\inetboot.l
+	C:ff806b98 M:000025ac D:000038f4 RM:000049e8 RD:00004660
+ ethernet_in COD ff806bf6 |
+
+'romsys_a' psect from file: ..\..\..\..\SRC\ROM\LIB\rombug.l
+	C:ff806ce0 M:000025ac D:000038f8 RM:000049e8 RD:00004660
+ AddrTrap  COD ff806cf4 | Aut7Trap  COD ff806ce8 | BusTrap   COD ff806cee |
+ DbugInit  COD ff806db0 | Debug     COD ff806ce0 | GenericTrap COD ff806d04 |
+ IllTrap   COD ff806cfa | KernelUp  COD ff8072b0 | TracTrap  COD ff806d00 |
+ fast_rte  COD ff806d96 | fp_cir    MEM 000025ac | get_fpcp_type COD ff807020 |
+ get_isp   COD ff80728a | get_mmu_type COD ff8070c4 | get_msp   COD ff807284 |
+ get_sr    COD ff807290 | get_ssp   COD ff80727a | get_usp   COD ff80727e |
+ grab_registers COD ff806de0 | kernelup  MEM 0000291e | next040   COD ff8070ae |
+ next060   COD ff807042 | next881   COD ff80708c | next882   COD ff80709a |
+ null_restore COD ff807258 | nullframe COD ff80701c | outstr    COD ff80726e |
+ reset_fpcp COD ff807170 | reset_mmu COD ff80714e | restore_sr COD ff807016 |
+ run       COD ff807176 | switch_stack COD ff807296 |
+
+'entry_exit.c' psect from file: ..\..\..\..\SRC\ROM\LIB\rombug.l
+	C:ff8072b4 M:00002924 D:000038fc RM:000049e8 RD:00004660
+ customs   COD ff80738e | init      COD ff8072da | reset     COD ff8079fe |
+ rte       COD ff80797c |
+
+'rombug.c' psect from file: ..\..\..\..\SRC\ROM\LIB\rombug.l
+	C:ff807a64 M:00002924 D:00003924 RM:000049e8 RD:00004660
+ CPUType   RME 00004a1e | FPCPType  RME 00004a0c | MMUType   RME 00004a0e |
+ X_addr    RME 00004a5e | X_class   RME 00004a16 | X_instr   RME 00004a18 |
+ abort_vector RME 000049f8 | at_breakpoint RME 000049f0 | auxpath   RME 00004a00 |
+ badaddr   COD ff809268 | badreg    COD ff809272 | breakpoints_set RME 000049f4 |
+ breakpts  RME 00004c20 | brkfull   COD ff80927c | brkptcnt  RME 00004a12 |
+ caller_sp RME 00004a2a | catch_usertrap RME 000049f6 | cmdline   RME 00004dc0 |
+ cur_rel   RME 00004a0a | dbghlp    COD ff8091f2 | debugstk  RME 00004a26 |
+ default_radix RME 00004a08 | deinit_io COD ff8092c6 | dub_fltout RME 00004a10 |
+ environ   RME 00004a52 | errno     RME 00004a46 | error     COD ff809298 |
+ errpath   RME 00004a02 | exception RME 000049fe | fregs     RME 00004ba8 |
+ fregs_fpsr RME 00004a62 | go_trace  RME 00004a2e | hidden    COD ff80919a |
+ hlpmsg    RDA 00004668 | ill_ins_save RME 000049e8 | init_io   COD ff80916a |
+ io_init   RME 00004a1c | linked    RME 00004a3a | main      COD ff808a96 |
+ mmu       RME 00004ace | regs      RME 00004b34 | regs_sr   RME 00004a1a |
+ relocs    RME 00004a6e | relreg    RME 00004a56 | rest_env  RME 00004a5a |
+ rombug_edition RDA 00004660 | romdbg_active RME 000049ec | show_ctrlregs RME 000049f2 |
+ show_fregs RME 00004a04 | show_mmu  RME 00004a06 | sigcode   RME 00004a42 |
+ soft_breakpoints RME 000049fa | stat_reg_save RME 000049ee | stopaddr  RME 00004a32 |
+ symdircnt RME 00004a14 | symval    RME 00004a22 | sysmsg    RME 00004a4a |
+Linkage map for module 'rombug' in file ..\CMDS\BOOTOBJS\ROMBUG\rombug    Page 5
+
+ testflag  RME 00004a66 | totinsts  RME 00004a3e | tr_cmd    RME 00004a4e |
+ tr_count  RME 00004a6a | trace_count RME 00004a36 | trace_save RME 000049e9 |
+ tracing   RME 000049fc | trapflag  RME 000049ea | vect_tab  RDA 00004664 |
+ vectors   RME 00004ec0 | vf        RME 00004cc0 |
+
+'breakpoints.c' psect from file: ..\..\..\..\SRC\ROM\LIB\rombug.l
+	C:ff8092e4 M:00002924 D:00003924 RM:000052c0 RD:000047a8
+ breakpoints COD ff809540 | insbrkpt  COD ff8093dc | isbreakpoint COD ff8095de |
+ kilbrkpt  COD ff809464 | movebrkpt COD ff809448 | rembrkpt  COD ff8094e0 |
+ setbrkpt  COD ff809354 |
+
+'vectors.c' psect from file: ..\..\..\..\SRC\ROM\LIB\rombug.l
+	C:ff80961c M:00002924 D:00003924 RM:000052c0 RD:000047a8
+ bad_vector COD ff80997a | clear_vector COD ff8099a4 | set_vector COD ff809a74 |
+ set_vectors COD ff809708 | show_vector COD ff8098bc | vect_text COD ff8096cc |
+
+'expression.c' psect from file: ..\..\..\..\SRC\ROM\LIB\rombug.l
+	C:ff809b20 M:00002944 D:00003924 RM:000052c0 RD:000047a8
+ complex   MEM 00002948 | evaluate  COD ff809d3a | expr      COD ff809c3e |
+ getaddr   COD ff809b90 | getnum    COD ff809bc4 | oprd      COD ff809d7a |
+ skipspac  COD ff809c22 | upcase    COD ff80a1c0 |
+
+'rom_attach.c' psect from file: ..\..\..\..\SRC\ROM\LIB\rombug.l
+	C:ff80a1e0 M:0000294c D:00003924 RM:000052c0 RD:000047a8
+ attach_stb COD ff80a2e4 | mod_probe COD ff80a6c6 | mod_search COD ff80a48e |
+ remove_sym_mod COD ff80a828 |
+
+'crc.c' psect from file: ..\..\..\..\SRC\ROM\LIB\rombug.l
+	C:ff80a8b4 M:0000298c D:00003924 RM:000052c0 RD:000047a8
+ check_parity COD ff80a9b6 | crc32     COD ff80aaa0 | crcgen    COD ff80a9d8 |
+
+'memory.c' psect from file: ..\..\..\..\SRC\ROM\LIB\rombug.l
+	C:ff80ab30 M:0000298c D:00003928 RM:000052c0 RD:000047a8
+ _fillmem  COD ff80ae0c | _srchmem  COD ff80b164 | bmask     COD ff80b298 |
+ change    COD ff80abd2 | lmask     COD ff80b2bc | memdis    COD ff80aecc |
+ memfilsrch COD ff80b2d0 | memstuff  COD ff80b50c | mstrcmp   COD ff80b11a |
+ prtasm    COD ff80b552 | srchdis   COD ff80ae9a | strfill   COD ff80add8 |
+ wmask     COD ff80b2ae |
+
+'floats.c' psect from file: ..\..\..\..\SRC\ROM\LIB\rombug.l
+	C:ff80b5cc M:0000298c D:00003928 RM:000052c0 RD:000047a8
+ dnum      RME 000052c8 | dnumber   COD ff80ba64 | dtype     RME 000052c0 |
+ enumber   COD ff80bda0 | flterr    COD ff80b95e | get_fpcptype COD ff80b684 |
+ inlptr    RME 000052c4 | memfloat  COD ff80b690 | normalize COD ff80bd56 |
+ setfreg   COD ff80b99a |
+
+'float_support_a' psect from file: ..\..\..\..\SRC\ROM\LIB\rombug.l
+	C:ff80be9c M:0000298c D:00003928 RM:000052d4 RD:000047a8
+ addin     COD ff80becc | atoftbl   COD ff80bf0e | dblext    COD ff80be9c |
+ extdbl    COD ff80beb4 | get_atoftbl COD ff80bf04 |
+
+'registers.c' psect from file: ..\..\..\..\SRC\ROM\LIB\rombug.l
+	C:ff80bfc0 M:0000298c D:00003928 RM:000052d4 RD:000047a8
+ chgreg    COD ff80f5c2 | cond_reg  COD ff80f150 | findrel   COD ff80fb16 |
+ get68kcc  COD ff80d366 | get_fpsr  COD ff80d37a | getreg    COD ff80f6b0 |
+ getreg_val COD ff80fbea | getstackp COD ff80d384 | hex_sign  COD ff80fb4e |
+ no_68881  COD ff80f498 | outfreg   COD ff80f4be | prt8regs  COD ff80f0c2 |
+ prtaddr   COD ff80e354 | prtfreg   COD ff80f220 | prtregs   COD ff80e484 |
+ put_exception COD ff80e446 | range_address COD ff80fada | read_stack_ptr COD ff80d318 |
+ round_mode DAT 00003b24 | round_prec DAT 00003b20 | set_stack_ptr COD ff80d2ae |
+Linkage map for module 'rombug' in file ..\CMDS\BOOTOBJS\ROMBUG\rombug    Page 6
+
+ setrel    COD ff80fb8a | show_040_ttn COD ff80f0fa | show_addr COD ff80fb70 |
+ show_flags COD ff80f52a | show_pcsr COD ff80f084 | show_psr  COD ff80f00c |
+ show_root_ptr COD ff80ee9e | show_tc   COD ff80ef0e | show_ttn  COD ff80ef8a |
+ show_wbn  COD ff80e3c0 | special_status COD ff80d3da | status_reg COD ff80f1a2 |
+ tcs_cond  COD ff80f57a | vector_text DAT 00003928 |
+
+'symbols.c' psect from file: ..\..\..\..\SRC\ROM\LIB\rombug.l
+	C:ff80fc08 M:00002a0c D:00003b28 RM:000052d4 RD:000047a8
+ OpenSymbolModule COD ff8101f0 | adjname   COD ff810622 | code_symbol MEM 00002a10 |
+ cur_sym_mod COD ff8101be | cur_symdir MEM 00002a0c | del_sym_mod COD ff80fe66 |
+ fakecmp   COD ff810c02 | find_symdir COD ff8100da | findsnam  COD ff810682 |
+ findsval  COD ff810436 | findsval_symdptr MEM 00002a12 | findsval_symptr MEM 00002a1e |
+ free_symdir COD ff810052 | get_symdir COD ff80ff38 | getnext   COD ff8105fa |
+ getsnode  COD ff8105c8 | hexdisp   COD ff810652 | ins_symdir COD ff80ff7a |
+ insert_stb COD ff8102bc | outsymb   COD ff810b14 | set_symbols COD ff81013c |
+ set_usr_data COD ff810168 | show_symbol_modules COD ff81088c | sym_search COD ff810c10 |
+ symbols   COD ff81090e | symbols_present COD ff8100ca | symclean  COD ff80fe30 |
+ symdir    MEM 00002a26 |
+
+'romopt.c' psect from file: ..\..\..\..\SRC\ROM\LIB\rombug.l
+	C:ff810ccc M:000032a8 D:00003b28 RM:000052d4 RD:000047a8
+ on_off    COD ff8111f8 | options   COD ff811214 |
+
+'where.c' psect from file: ..\..\..\..\SRC\ROM\LIB\rombug.l
+	C:ff811628 M:000032a8 D:00003b6c RM:000052d4 RD:000047a8
+ where_at  COD ff811642 |
+
+'comm.c' psect from file: ..\..\..\..\SRC\ROM\LIB\rombug.l
+	C:ff8116b4 M:000032a8 D:00003b6c RM:000052d4 RD:000047a8
+ download  COD ff8116de | getbyte   COD ff81193c | loadline  COD ff811854 |
+ sendmsg   COD ff811830 | syncup    COD ff8118cc | talkmode  COD ff811970 |
+
+'trace.c' psect from file: ..\..\..\..\SRC\ROM\LIB\rombug.l
+	C:ff8119d4 M:00003320 D:00003b6c RM:000052d4 RD:000047a8
+ go        COD ff8119dc | set_trace COD ff811ade | trace     COD ff811b1e |
+ xecute    COD ff811ba2 |
+
+'linkaddr.c' psect from file: ..\..\..\..\SRC\ROM\LIB\rombug.l
+	C:ff811bac M:00003320 D:00003b6c RM:000052d4 RD:000047a8
+ linkaddr  COD ff811be4 |
+
+'initdata.c' psect from file: ..\..\..\..\SRC\ROM\LIB\rombug.l
+	C:ff811c8c M:00003320 D:00003b6c RM:000052d4 RD:000047a8
+ _fixtop   COD ff811d7a | _mtop     RME 000052d4 | _relfac   RME 000052e8 |
+ _sbsize   RME 000052e0 | _stbot    RME 000052d8 | _sttop    RME 000052dc |
+ _totmem   RME 000052e4 | adjptr    COD ff811dd6 | cpidata   COD ff811dae |
+ initdata  COD ff811c8c | setup     COD ff811d06 |
+
+'init_support_a' psect from file: ..\..\..\..\SRC\ROM\LIB\rombug.l
+	C:ff811e18 M:00003320 D:00003b6c RM:000052ec RD:000047a8
+ InitData  COD ff811e4c | allocsize COD ff811e38 | btextptr  COD ff811e3c |
+ edataptr  COD ff811e44 | etextptr  COD ff811e40 | memcpyptr COD ff811e48 |
+
+'disasm.c' psect from file: ..\..\..\..\SRC\ROM\LIB\rombug.l
+	C:ff811e70 M:00003320 D:00003b6c RM:000052ec RD:000047a8
+ asmb_hex  MEM 000033bc | dis_asmline MEM 00003320 | dis_codebase MEM 000033b0 |
+ dis_count MEM 000033ac | dis_ctrlchange MEM 000033b8 | dis_database MEM 000033b4 |
+ dis_datareg MEM 000033be | dis_oldopc MEM 000033a8 | dis_opc   MEM 000033a4 |
+ disasm    COD ff811e70 | disinit   COD ff811ec8 | dislp     MEM 000033a0 |
+Linkage map for module 'rombug' in file ..\CMDS\BOOTOBJS\ROMBUG\rombug    Page 7
+
+
+'misc.c' psect from file: ..\..\..\..\SRC\ROM\LIB\rombug.l
+	C:ff811ed4 M:000033c0 D:00003b6c RM:000052ec RD:000047a8
+ altreg    COD ff812138 | doea      COD ff8121de | fdreg     COD ff81265e |
+ longformat COD ff8123da | oa        COD ff811fda | oai       COD ff812004 |
+ od        COD ff811fb8 | odcl      COD ff811f9e | odcw      COD ff811f4a |
+ oddstreg  COD ff811fc4 | odi       COD ff812018 | oi        COD ff8120b6 |
+ os        COD ff81203c | os9call   COD ff812732 | osa       COD ff812086 |
+ ox        COD ff811f60 | pc_relative COD ff81218a | pindxreg  COD ff81238a |
+ placeindx COD ff812504 | printdis  COD ff81249a | reglist   COD ff812550 |
+ revbits   COD ff81267c | symbolic_offset COD ff8121a4 | tcalls    COD ff8127b8 |
+ trapcall  COD ff8126ac |
+
+'g0.c' psect from file: ..\..\..\..\SRC\ROM\LIB\rombug.l
+	C:ff8127f8 M:000033c4 D:00003b6c RM:000052ec RD:000047a8
+ group0    COD ff812832 |
+
+'g123.c' psect from file: ..\..\..\..\SRC\ROM\LIB\rombug.l
+	C:ff812c38 M:000033c4 D:00003b6c RM:000052ec RD:000047a8
+ group1    COD ff812c3e |
+
+'g4.c' psect from file: ..\..\..\..\SRC\ROM\LIB\rombug.l
+	C:ff812d2c M:000033c4 D:00003b6c RM:000052ec RD:000047a8
+ cntlreg   COD ff8135e0 | dstring   COD ff813566 | group4    COD ff812e8e |
+ longmuldiv COD ff8134a2 |
+
+'g5.c' psect from file: ..\..\..\..\SRC\ROM\LIB\rombug.l
+	C:ff813744 M:000033c4 D:00003b6c RM:000052ec RD:000047a8
+ group5    COD ff813770 |
+
+'g6.c' psect from file: ..\..\..\..\SRC\ROM\LIB\rombug.l
+	C:ff8138e4 M:000033c4 D:00003b6c RM:000052ec RD:000047a8
+ group6    COD ff8138fc | pbr       COD ff813b2a | showcond  COD ff813a0c |
+
+'g7.c' psect from file: ..\..\..\..\SRC\ROM\LIB\rombug.l
+	C:ff813b44 M:000033c4 D:00003b6c RM:000052ec RD:000047a8
+ group7    COD ff813b4e |
+
+'g812.c' psect from file: ..\..\..\..\SRC\ROM\LIB\rombug.l
+	C:ff813b94 M:000033c4 D:00003b6c RM:000052ec RD:000047a8
+ group12   COD ff813d90 | group8    COD ff813bcc |
+
+'g913.c' psect from file: ..\..\..\..\SRC\ROM\LIB\rombug.l
+	C:ff813e34 M:000033c4 D:00003b6c RM:000052ec RD:000047a8
+ group13   COD ff813f7c | group9    COD ff813e3c |
+
+'g11.c' psect from file: ..\..\..\..\SRC\ROM\LIB\rombug.l
+	C:ff813f90 M:000033c4 D:00003b6c RM:000052ec RD:000047a8
+ group11   COD ff813f9e |
+
+'g14.c' psect from file: ..\..\..\..\SRC\ROM\LIB\rombug.l
+	C:ff8140d0 M:000033c4 D:00003b6c RM:000052ec RD:000047a8
+ bitfields COD ff814114 | group14   COD ff8140e4 | pea       COD ff8142bc |
+ shifts    COD ff8141c8 |
+
+'tables.c' psect from file: ..\..\..\..\SRC\ROM\LIB\rombug.l
+	C:ff814340 M:000033c4 D:00003b6c RM:000052ec RD:000047a8
+ group_handler DAT 00003e3c | maxiosvc  DAT 00003f54 | maxmaths  DAT 00003f50 |
+ maxsvc    DAT 00003f52 | tbl_bit   DAT 00003f38 | tbl_bitfield DAT 00003eec |
+ tbl_condition DAT 00003e7c | tbl_immediate DAT 00003f0c | tbl_iosvc DAT 00003dec |
+ tbl_math1 DAT 00003d30 | tbl_math2 DAT 00003ebc | tbl_service DAT 00003b6c |
+Linkage map for module 'rombug' in file ..\CMDS\BOOTOBJS\ROMBUG\rombug    Page 8
+
+ tbl_shift DAT 00003f28 |
+
+'put.c' psect from file: ..\..\..\..\SRC\ROM\LIB\rombug.l
+	C:ff81480c M:000033c4 D:00003f58 RM:000052ec RD:000047a8
+ ps        COD ff814810 | psdec     COD ff8148ca | putf      COD ff81482e |
+ putff     COD ff814868 |
+
+'pmmu.c' psect from file: ..\..\..\..\SRC\ROM\LIB\rombug.l
+	C:ff8148f4 M:000033c4 D:00003f58 RM:000052ec RD:000047a8
+ pmmu      COD ff8149b8 | pmmu_fc   COD ff814e86 | pmmu_general COD ff814aa6 |
+ pmmucond  COD ff814e80 |
+
+'gf.c' psect from file: ..\..\..\..\SRC\ROM\LIB\rombug.l
+	C:ff814edc M:000033c4 D:00003fb8 RM:000052ec RD:000047a8
+ cp_cond_op COD ff815a72 | cp_restore COD ff815c50 | cp_save   COD ff815bc8 |
+ cp_spec_cond COD ff8156d4 | cpu32     COD ff8160d2 | fpcp_general COD ff81548e |
+ fpcrom    COD ff81626e | fpctlreg  COD ff8165ca | fpgenop   COD ff81620a |
+ fpoprnd   COD ff81645e | fpreglist COD ff81666a | fpsize    COD ff815aca |
+ fshowcond COD ff8158be | groupf    COD ff8152e4 | move16    COD ff815f5a |
+ put_extended COD ff8166c8 | spec040   COD ff815ccc |
+
+'romio.c' psect from file: ..\..\..\..\SRC\ROM\LIB\romio.l
+	C:ff816724 M:000033c4 D:00003fb8 RM:000052ec RD:000049e8
+ instr     COD ff81674e | issymch   COD ff816818 | rputs     COD ff816802 |
+ sigcheck  COD ff81672c | wrt       COD ff81687a |
+
+'printf.c' psect from file: ..\..\..\..\SRC\ROM\LIB\romio.l
+	C:ff81689c M:000033c4 D:00003fb8 RM:000052ec RD:000049e8
+ rprintf   COD ff816b42 | rsprintf  COD ff816ee0 |
+
+'sysboot_glue.c' psect from file: ..\..\..\..\SRC\ROM\LIB\sysboot.l
+	C:ff817148 M:000035f0 D:00004020 RM:000052ec RD:000049e8
+ ABErrExit COD ff81728c | GoSysBoot COD ff8171fc | NoRomBug  COD ff817188 |
+ SysBoot   COD ff817148 | aboot_glue COD ff817238 | rombug    DAT 00004020 |
+
+'insert.c' psect from file: ..\..\..\..\SRC\ROM\LIB\sysboot.l
+	C:ff8172a4 M:000035f0 D:00004024 RM:000052ec RD:000049e8
+ insert    COD ff8172a4 |
+
+'misc.c' psect from file: ..\..\..\..\SRC\ROM\LIB\sysboot.l
+	C:ff8172fc M:000035f0 D:00004024 RM:000052ec RD:000049e8
+ fixmemlist COD ff817396 | flipmemlist COD ff817344 | restmemlist COD ff817322 |
+ savememlist COD ff8172fc | sort_mem  COD ff81740e |
+
+'sysboot.c' psect from file: ..\..\..\..\SRC\ROM\LIB\sysboot.l
+	C:ff817464 M:000035f0 D:00004024 RM:000052ec RD:000049e8
+ argarray  MEM 0000364a | bdrivers_qty DAT 00004025 | bootdriver MEM 000035f6 |
+ bootjmp   MEM 0000363e | bootram   MEM 00003622 | bootsize  MEM 0000361e |
+ call_any_bdriver COD ff817c68 | callboot  COD ff817ad4 | checkmodhead COD ff817c86 |
+ chunksize MEM 00003626 | crystalptr MEM 000035fe | ctrlr_id  DAT 00004024 |
+ endrommap MEM 0000362a | exjmptab  MEM 00003632 | freememlist MEM 00003636 |
+ getargs   COD ff817a3c | gp_btrap  MEM 000036aa | hbuff     MEM 00003616 |
+ inbuff    MEM 000035f0 | inizdriver MEM 00003612 | memsize   MEM 0000361a |
+ mpuptr    MEM 00003602 | outbuff   MEM 000035fa | portaddr  MEM 0000363a |
+ readdriver MEM 0000360e | rwnddriver MEM 0000360a | sysb_dsize MEM 00003642 |
+ sysb_gptr MEM 00003646 | sysboot   COD ff8176be | sysrommap MEM 0000362e |
+ systrap   MEM 0000366a | termdriver MEM 00003606 | trap_it   COD ff817cac |
+ trappit   COD ff817cc2 | vflag     MEM 000035f4 |
+
+'streq.c' psect from file: ..\..\..\..\SRC\ROM\LIB\sysboot.l
+	C:ff817cdc M:000036ec D:00004028 RM:000052ec RD:000049e8
+ streq     COD ff817cdc |
+Linkage map for module 'rombug' in file ..\CMDS\BOOTOBJS\ROMBUG\rombug    Page 9
+
+
+'makelower.c' psect from file: ..\..\..\..\SRC\ROM\LIB\sysboot.l
+	C:ff817d20 M:000036ec D:00004028 RM:000052ec RD:000049e8
+ makelower COD ff817d20 |
+
+'setexcpt.c' psect from file: ..\..\..\..\SRC\ROM\LIB\sysboot.l
+	C:ff817d44 M:000036ec D:00004028 RM:000052ec RD:000049e8
+ setexcpt  COD ff817d44 |
+
+'inttoascii.c' psect from file: ..\..\..\..\SRC\ROM\LIB\sysboot.l
+	C:ff817d6c M:000036ec D:00004028 RM:000052ec RD:000049e8
+ inttoascii COD ff817d6c |
+
+'extract.c' psect from file: ..\..\..\..\SRC\ROM\LIB\sysboot.l
+	C:ff817dc4 M:000036ec D:00004028 RM:000052ec RD:000049e8
+ extract   COD ff817dc4 |
+
+'inizbootdriver.c' psect from file: ..\..\..\..\SRC\ROM\LIB\sysboot.l
+	C:ff817e54 M:000036ec D:00004028 RM:000052ec RD:000049e8
+ barray_count DAT 00004028 | ibdrvrjicpad MEM 000036ec | iniz_boot_driver COD ff817e84 |
+
+'binboot.c' psect from file: ..\..\..\..\SRC\ROM\LIB\sysboot.l
+	C:ff817f44 M:000036f0 D:0000402c RM:000052ec RD:000049e8
+ binboot   COD ff817fda |
+
+'getbootmem.c' psect from file: ..\..\..\..\SRC\ROM\LIB\sysboot.l
+	C:ff8180d8 M:000036f0 D:0000402c RM:000052ec RD:000049e8
+ getbootmem COD ff8180d8 |
+
+'nvram.c' psect from file: ..\..\..\..\SRC\ROM\LIB\sysboot.l
+	C:ff81811c M:000036f0 D:0000402c RM:000052ec RD:000049e8
+ ask_ynq   COD ff818672 | checknvram COD ff81875c | getinchar COD ff81850e |
+ outendis  COD ff818608 | outerase  COD ff81864c | outhex    COD ff818528 |
+ outint    COD ff8185a0 | outsome   COD ff818626 | rc_btlist COD ff818cb0 |
+ rc_endis  COD ff818b3c | rc_int    COD ff818914 | rc_vmeints COD ff818edc |
+ reconfig  COD ff818870 |
+
+'sysreset.c' psect from file: ..\..\..\..\SRC\ROM\LIB\sysboot.l
+	C:ff819080 M:000036f0 D:0000402c RM:000052ec RD:000049e8
+ sysreset  COD ff819080 |
+
+'diskboot.c' psect from file: ..\..\..\..\SRC\ROM\LIB\sysboot.l
+	C:ff819090 M:000036f0 D:0000402c RM:000052ec RD:000049e8
+ bootramdisk COD ff819bfc | callread  COD ff819a8e | cmdblk    MEM 000037e0 |
+ dbptr     MEM 000036f4 | defopts   MEM 000036fc | diskboot  COD ff819412 |
+ drivenum  MEM 00003708 | drivetable MEM 0000378c | dskbtjicpad MEM 00003700 |
+ fdptr     MEM 00003704 | format    DAT 0000402c | getboot   COD ff8197dc |
+ getdefmat COD ff819586 | getvalue  COD ff8199f8 | handle_read COD ff819a1a |
+ pathbuf   MEM 000036f0 | pathopts  MEM 0000370c | rdiskboot COD ff819b88 |
+ readramdisk COD ff819c74 | sectzero  MEM 000036f8 | tryboot   COD ff8195ee |
+
+'powerof2.c' psect from file: ..\..\..\..\SRC\ROM\LIB\sysboot.l
+	C:ff819cc4 M:00003800 D:00004080 RM:000052ec RD:000049e8
+ powerof2  COD ff819cc4 |
+
+'gethexaddr.c' psect from file: ..\..\..\..\SRC\ROM\LIB\sysboot.l
+	C:ff819ce8 M:00003800 D:00004080 RM:000052ec RD:000049e8
+ gethexaddr COD ff819cec |
+
+'convhex.c' psect from file: ..\..\..\..\SRC\ROM\LIB\sysboot.l
+	C:ff819da8 M:00003800 D:00004080 RM:000052ec RD:000049e8
+ convhex   COD ff819da8 |
+Linkage map for module 'rombug' in file ..\CMDS\BOOTOBJS\ROMBUG\rombug    Page 10
+
+
+'romboot.c' psect from file: ..\..\..\..\SRC\ROM\LIB\sysboot.l
+	C:ff819df4 M:00003800 D:00004080 RM:000052ec RD:000049e8
+ bus_trap_rom COD ff81a102 | bus_trap_rom_can_break COD ff81a114 | checkquiet COD ff81a14a |
+ goodmodule COD ff81a056 | load_n_go DAT 00004080 | loadrom   COD ff819ecc |
+ modptr    MEM 00003804 | romboot   COD ff819ede | sizer     MEM 00003800 |
+
+'tapeboot.c' psect from file: ..\..\..\..\SRC\ROM\LIB\sysboot.l
+	C:ff81a164 M:00003808 D:00004084 RM:000052ec RD:000049e8
+ checkhead COD ff81a47a | tapeboot  COD ff81a304 |
+
+'flush_cache_a' psect from file: ..\..\..\..\SRC\ROM\LIB\flushcache.l
+	C:ff81a498 M:00003808 D:00004084 RM:000052ec RD:000049e8
+ flush_cache COD ff81a498 |
+
+'fteac_fbd.c' psect from file: RELS\ROMBUG\rom_descriptors.l
+	C:ff81a4dc M:00003808 D:00004084 RM:000052ec RD:000049e8
+ fteac_fbd DAT 00004084 |
+
+'sccs_hbd.c' psect from file: RELS\ROMBUG\rom_descriptors.l
+	C:ff81a4dc M:00003808 D:00004104 RM:000052ec RD:000049e8
+ sccs_hbd  DAT 00004104 |
+
+'setjmp.c' psect from file: ..\..\..\..\68000\LIB\clib.l
+	C:ff81a4dc M:00003808 D:00004184 RM:000052ec RD:000049e8
+ __setjmp  COD ff81a4dc | longjmp   COD ff81a500 |
+
+'strncmp.c' psect from file: ..\..\..\..\68000\LIB\clib.l
+	C:ff81a51c M:00003808 D:00004184 RM:000052ec RD:000049e8
+ strncmp   COD ff81a51c |
+
+'ansimem.c' psect from file: ..\..\..\..\68000\LIB\clib.l
+	C:ff81a558 M:00003808 D:00004184 RM:000052ec RD:000049e8
+ memcpy    COD ff81a558 |
+
+'fmove.c' psect from file: ..\..\..\..\68000\LIB\clib.l
+	C:ff81a584 M:00003808 D:00004184 RM:000052ec RD:000049e8
+ __asm_fmove COD ff81a584 |
+
+'memset.c' psect from file: ..\..\..\..\68000\LIB\clib.l
+	C:ff81a6f4 M:00003808 D:00004184 RM:000052ec RD:000049e8
+ memset    COD ff81a6f4 |
+
+'memcmp.c' psect from file: ..\..\..\..\68000\LIB\clib.l
+	C:ff81a7c4 M:00003808 D:00004184 RM:000052ec RD:000049e8
+ memcmp    COD ff81a7c4 |
+
+'strings.c' psect from file: ..\..\..\..\68000\LIB\clib.l
+	C:ff81a80c M:00003808 D:00004184 RM:000052ec RD:000049e8
+ strcat    COD ff81a828 | strcpy    COD ff81a80c |
+
+'strlen.c' psect from file: ..\..\..\..\68000\LIB\clib.l
+	C:ff81a860 M:00003808 D:00004184 RM:000052ec RD:000049e8
+ strlen    COD ff81a860 |
+
+'chcodes.c' psect from file: ..\..\..\..\68000\LIB\clib.l
+	C:ff81a884 M:00003808 D:00004184 RM:000052ec RD:000049e8
+ __charcodes DAT 00004190 | _ctype_class DAT 00004184 |
+
+'strcmp.c' psect from file: ..\..\..\..\68000\LIB\clib.l
+	C:ff81a988 M:00003808 D:00004194 RM:000052ec RD:000049e8
+ strcmp    COD ff81a988 |
+Linkage map for module 'rombug' in file ..\CMDS\BOOTOBJS\ROMBUG\rombug    Page 11
+
+
+'strncpy.c' psect from file: ..\..\..\..\68000\LIB\clib.l
+	C:ff81a9ac M:00003808 D:00004194 RM:000052ec RD:000049e8
+ strncpy   COD ff81a9ac |
+
+'strtol.c' psect from file: ..\..\..\..\68000\LIB\clib.l
+	C:ff81a9ec M:00003808 D:00004194 RM:000052ec RD:000049e8
+ atoi      COD ff81a9ec |
+
+'strtol.c' psect from file: ..\..\..\..\68000\LIB\clib.l
+	C:ff81aa04 M:00003808 D:00004194 RM:000052ec RD:000049e8
+ atol      COD ff81aa04 |
+
+'strtol.c' psect from file: ..\..\..\..\68000\LIB\clib.l
+	C:ff81aa2c M:00003808 D:00004194 RM:000052ec RD:000049e8
+ strtol    COD ff81aa2c |
+
+'strtol.c' psect from file: ..\..\..\..\68000\LIB\clib.l
+	C:ff81ab5c M:00003808 D:00004194 RM:000052ec RD:000049e8
+ strtoul   COD ff81ab5c |
+
+'dtoa.c' psect from file: ..\..\..\..\68000\LIB\clib.l
+	C:ff81ad8c M:00003808 D:00004194 RM:000052ec RD:000049e8
+ _dtoa     COD ff81ad94 |
+
+'frexp.c' psect from file: ..\..\..\..\68000\LIB\clib.l
+	C:ff81b07c M:00003808 D:00004194 RM:000052ec RD:000049e8
+ frexp     COD ff81b07c |
+
+'tens_tbl.c' psect from file: ..\..\..\..\68000\LIB\clib.l
+	C:ff81b0d4 M:00003808 D:00004194 RM:000052ec RD:000049e8
+ _tab16s   DAT 00004194 | _tab1s    DAT 000042cc |
+
+'case.c' psect from file: ..\..\..\..\68000\LIB\clib.l
+	C:ff81b0d4 M:00003808 D:000043e4 RM:000052ec RD:000049e8
+ _ctype_map DAT 000043e4 | _mapfunc  DAT 000043f8 | tolower   COD ff81b112 |
+ toupper   COD ff81b0ea |
+
+'getmodir.c' psect from file: ..\..\..\..\68000\LIB\sys_clib.l
+	C:ff81b144 M:00003808 D:000043fc RM:000052ec RD:000049e8
+ _get_module_dir COD ff81b144 |
+
+'syscomm.c' psect from file: ..\..\..\..\68000\LIB\sys_clib.l
+	C:ff81b16c M:00003808 D:000043fc RM:000052ec RD:000049e8
+ __sc_os9err COD ff81b16c | __sc_sysret COD ff81b176 | __sc_sysret0 COD ff81b174 |
+
+'srqmem.c' psect from file: ..\..\..\..\68000\LIB\sys_clib.l
+	C:ff81b180 M:00003808 D:000043fc RM:000052ec RD:000049e8
+ _srqmem   COD ff81b180 | _srqsiz   MEM 00003808 |
+
+'srtmem.c' psect from file: ..\..\..\..\68000\LIB\sys_clib.l
+	C:ff81b1a4 M:0000380c D:000043fc RM:000052ec RD:000049e8
+ _srtmem   COD ff81b1a4 |
+
+'index.c' psect from file: ..\..\..\..\68000\LIB\sys_clib.l
+	C:ff81b1c0 M:0000380c D:000043fc RM:000052ec RD:000049e8
+ index     COD ff81b1c0 |
+
+'modlink.c' psect from file: ..\..\..\..\68000\LIB\sys_clib.l
+	C:ff81b1dc M:0000380c D:000043fc RM:000052ec RD:000049e8
+ __modcom  COD ff81b1ec | modlink   COD ff81b1dc |
+Linkage map for module 'rombug' in file ..\CMDS\BOOTOBJS\ROMBUG\rombug    Page 12
+
+
+'munlink.c' psect from file: ..\..\..\..\68000\LIB\sys_clib.l
+	C:ff81b200 M:0000380c D:000043fc RM:000052ec RD:000049e8
+ munlink   COD ff81b200 |
+
+'rindex.c' psect from file: ..\..\..\..\68000\LIB\sys_clib.l
+	C:ff81b228 M:0000380c D:000043fc RM:000052ec RD:000049e8
+ rindex    COD ff81b228 |
+
+'strass.c' psect from file: ..\..\..\..\68000\LIB\sys_clib.l
+	C:ff81b244 M:0000380c D:000043fc RM:000052ec RD:000049e8
+ _strass   COD ff81b244 |
+
+'cmpnam.c' psect from file: ..\..\..\..\68000\LIB\sys_clib.l
+	C:ff81b264 M:0000380c D:000043fc RM:000052ec RD:000049e8
+ _cmpnam   COD ff81b264 |
+
+'_udiv.c' psect from file: ..\..\..\..\68000\LIB\os_lib.l
+	C:ff81b290 M:0000380c D:000043fc RM:000052ec RD:000049e8
+ __udivide COD ff81b298 | __umodulo COD ff81b290 |
+
+'_mul.c' psect from file: ..\..\..\..\68000\LIB\os_lib.l
+	C:ff81b31c M:0000380c D:000043fc RM:000052ec RD:000049e8
+ __multiply COD ff81b31c | __umultiply COD ff81b31c |
+
+'_div.c' psect from file: ..\..\..\..\68000\LIB\os_lib.l
+	C:ff81b340 M:0000380c D:000043fc RM:000052ec RD:000049e8
+ __sdivide COD ff81b340 | __smodulo COD ff81b376 |

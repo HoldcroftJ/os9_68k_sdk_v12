@@ -1,0 +1,251 @@
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" SUBTRGT=_clean _alltrgts
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _clean SUBTRGT=_clean
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k SUBTRGT=_clean _all
+*
+cd CLOCK; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _clean
+*
+os9del -qf RELS\tk68328.r
+os9del -qf RELS\rtc68328.r
+cd INIT; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _clean
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k SUBTRGT=_clean _all
+*
+cd DD_DISK; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _clean
+*
+os9del -qf RELS\*.r
+*
+*
+cd SCF; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _clean
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k SUBTRGT=_clean _all
+*
+cd SC68681; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _clean
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k SUBTRGT=_clean _all
+*
+cd DRVR; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _clean
+*
+os9del -qf RELS\sc68681.r
+cd DESC; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _clean
+*
+os9del -qf RELS\term.r
+os9del -qf RELS\t1.r
+os9del -qf RELS\p1.r
+*
+*
+cd TPAD; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _clean
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k SUBTRGT=_clean _all
+*
+cd DESC; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _clean
+*
+os9del -qf RELS\tpad.r
+cd DRVR; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _clean
+*
+os9del -qf RELS\scf_glue.r
+os9del -qf RELS\main.i
+os9del -qf RELS\init.i
+os9del -qf RELS\term.i
+os9del -qf RELS\irqs.i
+os9del -qf RELS\stat.i
+os9del -qf RELS\read.i
+cd TEST; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _clean
+*
+* ..\..\..\CMDS\tpadtest
+os9del -qf ..\..\..\CMDS\tpadtest
+* ..\..\..\CMDS\STB\tpadtest.stb
+os9del -qf ..\..\..\CMDS\STB\tpadtest.stb
+os9del -qf ..\..\..\CMDS\STB\tpadtest.dbg
+*
+*
+*
+*
+cd RBF; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _clean
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k SUBTRGT=_clean _all
+*
+cd RAM; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _clean
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k SUBTRGT=_clean _all
+*
+cd DESC; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _clean
+*
+os9del -qf RELS\r0.r
+* ..\..\..\CMDS\BOOTOBJS\DESC\RAMDISK\dd
+os9del -qf ..\..\..\CMDS\BOOTOBJS\DESC\RAMDISK\dd
+* ..\..\..\CMDS\BOOTOBJS\DESC\RAMDISK\STB\dd.stb
+os9del -qf ..\..\..\CMDS\BOOTOBJS\DESC\RAMDISK\STB\dd.stb
+*
+*
+*
+*
+cd MAUI; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _clean
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k SUBTRGT=_clean _all
+*
+cd CDB; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _clean
+* ..\..\CMDS\BOOTOBJS\MAUI\cdb
+os9del -qf ..\..\CMDS\BOOTOBJS\MAUI\cdb
+cd GX_328; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _clean
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k SUBTRGT=_clean _all
+*
+os9make -f desc.mak "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _clean
+* ..\..\CMDS\BOOTOBJS\MAUI\gfx
+os9del -qf ..\..\CMDS\BOOTOBJS\MAUI\gfx
+* ..\..\CMDS\BOOTOBJS\MAUI\gfx1
+os9del -qf ..\..\CMDS\BOOTOBJS\MAUI\gfx1
+* ..\..\CMDS\BOOTOBJS\MAUI\gfx2
+os9del -qf ..\..\CMDS\BOOTOBJS\MAUI\gfx2
+os9make -f drvr.mak "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _clean
+*
+os9del -qf RELS\DRVR\*.r
+os9del -qf RELS\DRVR\HOST3\*.i
+*
+*
+cd MP_T328ADS; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _clean
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k SUBTRGT=_clean _all
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k SUBTRGT=_clean _clean -f=cdb.mak
+* ..\..\CMDS\BOOTOBJS\MAUI\cdb_touch
+os9del -qf ..\..\CMDS\BOOTOBJS\MAUI\cdb_touch
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k SUBTRGT=_clean _clean -f=pmod.mak
+os9del -qf RELS\*.r
+os9del -qf RELS\HOST3\*.i
+*
+*
+cd DEMOS; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _clean
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k SUBTRGT=_clean _all
+*
+cd DEMO; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _clean
+* ..\..\..\CMDS\demo
+* ..\..\..\CMDS\STB\demo.stb
+* ..\..\..\CMDS\STB\demo.dbg
+os9del -qf ..\..\..\CMDS\demo
+os9del -qf ..\..\..\CMDS\STB\demo.stb
+os9del -qf ..\..\..\CMDS\STB\demo.dbg
+cd DRAW; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _clean
+* ..\..\..\CMDS\draw
+* ..\..\..\CMDS\STB\draw.stb
+* ..\..\..\CMDS\STB\draw.dbg
+os9del -qf ..\..\..\CMDS\draw
+os9del -qf ..\..\..\CMDS\STB\draw.stb
+os9del -qf ..\..\..\CMDS\STB\draw.dbg
+cd MAUIDEMO; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _clean
+* ..\..\..\CMDS\mauidemo
+* ..\..\..\CMDS\STB\mauidemo.stb
+* ..\..\..\CMDS\STB\mauidemo.dbg
+os9del -qf ..\..\..\CMDS\mauidemo
+os9del -qf ..\..\..\CMDS\STB\mauidemo.stb
+os9del -qf ..\..\..\CMDS\STB\mauidemo.dbg
+cd PENP; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _clean
+* ..\..\..\CMDS\penp
+* ..\..\..\CMDS\STB\penp.stb
+* ..\..\..\CMDS\STB\penp.dbg
+os9del -qf ..\..\..\CMDS\penp
+os9del -qf ..\..\..\CMDS\STB\penp.stb
+os9del -qf ..\..\..\CMDS\STB\penp.dbg
+cd SLIDSHOW; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _clean
+* ..\..\..\CMDS\slidshow
+* ..\..\..\CMDS\STB\slidshow.stb
+* ..\..\..\CMDS\STB\slidshow.dbg
+os9del -qf ..\..\..\CMDS\slidshow
+os9del -qf ..\..\..\CMDS\STB\slidshow.stb
+os9del -qf ..\..\..\CMDS\STB\slidshow.dbg
+*
+*
+*
+*
+cd PWRMAN; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _clean
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" -f makefile TARGET=k68k SUBTRGT=_clean _all
+*
+cd PWREXT; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" -f makefile TARGET=k68k _clean
+os9del -qf RELS\*.i
+os9del -qf RELS\*.r
+cd PWRPLCY; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" -f makefile TARGET=k68k _clean
+os9del -qf RELS\*.i
+os9del -qf RELS\*.r
+*
+*
+cd SYSIF; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _clean
+os9del -qf RELS\*.i
+os9del -qf RELS\*.r
+cd UTILS; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _clean
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k SUBTRGT=_clean _all
+*
+cd STARTDBG; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _clean
+* ..\..\CMDS\startdbg
+os9del -qf ..\..\CMDS\startdbg
+* ..\..\CMDS\STB\startdbg.stb
+os9del -qf ..\..\CMDS\STB\startdbg.stb
+* ..\..\CMDS\STB\startdbg.dbg
+os9del -qf ..\..\CMDS\STB\startdbg.dbg
+*
+*
+cd ROM; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _clean
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k SUBTRGT=_clean _all
+*
+cd CNFGDATA; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _clean
+os9del -qf RELS\*.r
+os9del -qf RELS\*.i
+cd ABORT328; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _clean
+os9del -qf RELS\*.r
+os9del -qf RELS\*.i
+cd CNFGFUNC; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _clean
+os9del -qf RELS\*.r
+os9del -qf RELS\*.i
+cd CONSCNFG; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _clean
+os9del -qf RELS\*.r
+os9del -qf RELS\*.i
+cd COMMCNFG; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _clean
+os9del -qf RELS\*.r
+os9del -qf RELS\*.i
+cd IO68681; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _clean
+os9del -qf RELS\*.r
+os9del -qf RELS\*.i
+cd M328TIMR; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _clean
+os9del -qf RELS\*.r
+os9del -qf RELS\*.i
+*
+*
+cd ROM_CBOOT; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _clean
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k SUBTRGT=_clean _all
+*
+cd INITEXT; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _clean
+os9del -qf RELS\*.r
+cd COMMON; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _clean
+os9del -qf RELS\vectors.r
+os9del -qf RELS\boot.r
+os9del -qf RELS\sysboot.r
+cd SERIAL; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _clean
+os9del -qf RELS\io68681.r
+cd PORT; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _clean
+os9del -qf RELS\bootio.r
+os9del -qf RELS\sysinit.r
+os9del -qf RELS\syscon.r
+cd ROMCORE; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _clean
+* ..\..\CMDS\BOOTOBJS\NOBUG\romcore
+os9del -qf ..\..\CMDS\BOOTOBJS\NOBUG\romcore
+* ..\..\CMDS\BOOTOBJS\NOBUG\STB\romcore.map
+os9del -qf ..\..\CMDS\BOOTOBJS\NOBUG\STB\romcore.map
+* ..\..\CMDS\BOOTOBJS\NOBUG\STB\romcore.stb
+os9del -qf ..\..\CMDS\BOOTOBJS\NOBUG\STB\romcore.stb
+cd BOOTFILE; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _clean
+* ..\..\CMDS\BOOTOBJS\NOBUG\bootfile
+os9del -qf ..\..\CMDS\BOOTOBJS\NOBUG\bootfile
+cd BOOTROM; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _clean
+* ..\..\CMDS\BOOTOBJS\NOBUG\bootrom
+os9del -qf ..\..\CMDS\BOOTOBJS\NOBUG\bootrom
+*
+*
+*
+*
+*

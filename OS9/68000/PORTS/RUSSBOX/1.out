@@ -1,0 +1,204 @@
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" SUBTRGT=_clean _alltrgts
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _clean SUBTRGT=_clean
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k SUBTRGT=_clean _all
+cd INIT;  os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k SUBTRGT=_clean _clean
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k SUBTRGT=_clean _all
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k SUBTRGT=_clean _clean -f=init.make
+os9del -qf RELS\init.r
+*
+*
+*
+cd SCF;  os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k SUBTRGT=_clean _clean
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k SUBTRGT=_clean _all
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k SUBTRGT=_clean _clean -f=scf_descriptors.make
+os9del -qf RELS\term.r
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k SUBTRGT=_clean _clean -f=scf_drivers.make
+os9del -qf RELS\sc68990.r
+*
+*
+cd SYSMODS;  os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k SUBTRGT=_clean _clean
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k SUBTRGT=_clean _all
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k SUBTRGT=_clean _clean -f=clock.make
+os9del -qf RELS\*.r
+*
+*
+cd ROM;  os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k SUBTRGT=_clean _clean
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k SUBTRGT=_clean _all
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k SUBTRGT=_clean _clean -f=romfull.make
+os9del -qf RELS\ROMBUG\*.r
+*
+*
+*
+*
+*
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" SUBTRGT=_build  _build TARGET=k68k
+cd INIT;  os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k SUBTRGT=_build _build
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k SUBTRGT=_build _build -f=init.make
+r68 -qb -u=. -u=..\..\..\..\SRC\DEFS -u=..\..\..\..\68000\DEFS\RUSSBOX -qb -u=. -u=..\..\..\..\SRC\DEFS -u=..\..\..\..\68000\DEFS\RUSSBOX -o=RELS\init.r ..\..\..\..\SRC\SYSMODS\INIT\init.a
+* ..\CMDS\BOOTOBJS\INITS\init
+os9del -qf  ..\CMDS\BOOTOBJS\INITS\init
+* ..\CMDS\BOOTOBJS\INITS\STB\init.stb
+os9del -qf  ..\CMDS\BOOTOBJS\INITS\STB\init.stb
+os9del -qf  ..\CMDS\BOOTOBJS\INITS\STB\init.dbg
+l68 -l=..\..\..\..\68000\LIB\sys.l -n=init RELS\init.r -O=..\CMDS\BOOTOBJS\INITS\init
+*
+*
+*
+cd SCF;  os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k SUBTRGT=_build _build
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k SUBTRGT=_build _build -f=scf_descriptors.make
+r68 -q -u=. -u=..\..\..\..\SRC\DEFS  -u=..\..\..\..\68000\DEFS\RUSSBOX ..\..\..\..\SRC\IO\SCF\DESC\term.a -o=RELS\term.r
+* ..\CMDS\BOOTOBJS\term
+l68 -l=..\..\..\..\68000\LIB\sys.l -gu=0.0 -p=577 RELS\term.r -O=..\CMDS\BOOTOBJS\term
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k SUBTRGT=_build _build -f=scf_drivers.make
+r68 -qb -u=. -u=..\..\..\..\SRC\DEFS -u=..\..\..\..\SRC\MACROS -m2 -u=..\..\..\..\68000\DEFS\RUSSBOX ..\..\..\..\SRC\IO\SCF\DRVR\sc68990.a -o=RELS\sc68990.r
+* ..\CMDS\BOOTOBJS\sc68990
+os9del -qf  ..\CMDS\BOOTOBJS\sc68990
+* ..\CMDS\BOOTOBJS\STB\sc68990.stb
+os9del -qf  ..\CMDS\BOOTOBJS\STB\sc68990.stb
+os9del -qf  ..\CMDS\BOOTOBJS\STB\sc68990.dbg
+l68 -g -l=..\..\..\..\68000\LIB\sys.l -gu=0.0 ..\..\..\..\68000\LIB\scfstat.l RELS\sc68990.r -O=..\CMDS\BOOTOBJS\sc68990
+*
+*
+*
+cd SYSMODS;  os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k SUBTRGT=_build _build
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k SUBTRGT=_build _build -f=clock.make
+* RELS\tick68990.r
+r68 -qb  -u=. -u=..\..\..\..\SRC\DEFS -u=..\..\..\..\SRC\MACROS -u=..\..\..\..\SRC\DEFS -u=..\..\..\..\RUSSBOX\DEFS\RUSSBOX tick68990.a -o=RELS\tick68990.r
+tickgeneric.r not up to date
+r68 -qb  -u=. -u=..\..\..\..\SRC\DEFS -u=..\..\..\..\SRC\MACROS -u=..\..\..\..\SRC\DEFS -u=..\..\..\..\RUSSBOX\DEFS\RUSSBOX ..\..\..\..\SRC\SYSMODS\GCLOCK\tk68990.a -o=RELS\tk68990.r
+* ..\CMDS\BOOTOBJS\tk68990
+* ..\CMDS\BOOTOBJS\STB\tk68990.stb
+l68 -g -l=..\..\..\..\68000\LIB\sys.l -gu=0.0 RELS\tick68990.r RELS\tk68990.r -O=..\CMDS\BOOTOBJS\tk68990
+r68 -qb  -u=. -u=..\..\..\..\SRC\DEFS -u=..\..\..\..\SRC\MACROS -u=..\..\..\..\SRC\DEFS -u=..\..\..\..\RUSSBOX\DEFS\RUSSBOX ..\..\..\..\SRC\SYSMODS\GCLOCK\rtc68990.a -o=RELS\rtc68990.r
+* ..\CMDS\BOOTOBJS\rtc68990
+* ..\CMDS\BOOTOBJS\STB\rtc68990.stb
+l68 -g -l=..\..\..\..\68000\LIB\sys.l -gu=0.0 RELS\rtc68990.r -O=..\CMDS\BOOTOBJS\rtc68990
+*
+*
+*
+cd ROM;  os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k SUBTRGT=_build _build
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k SUBTRGT=_build _build -f=romfull.make
+os9make "TYPE=ROMBUG" -f=rom_common.make
+os9makdir -pq RELS\ROMBUG
+r68 -q -aROMBUG  -u=. -u=.. -u=..\..\..\..\SRC\DEFS -u=..\..\..\..\SRC\MACROS -u=..\..\..\..\SRC\ROM\COMMON vectors.a -o=RELS\ROMBUG\vectors.r
+r68 -q -aROMBUG  -u=. -u=.. -u=..\..\..\..\SRC\DEFS -u=..\..\..\..\SRC\MACROS -u=..\..\..\..\SRC\ROM\COMMON boot.a -o=RELS\ROMBUG\boot.r
+* RELS\ROMBUG\rom_common.l
+os9del -qf  RELS\ROMBUG\rom_common.l
+cd RELS\ROMBUG; os9merge vectors.r boot.r >rom_common.l
+os9make "TYPE=ROMBUG" -f=rom_port.make
+os9makdir -pq RELS\ROMBUG
+r68 -q -aCBOOT -aROMBUG -u=. -u=..\..\..\..\68000\DEFS\RUSSBOX -u=..\..\..\..\SRC\DEFS -u=..\..\..\..\SRC\MACROS -m2 sysinit.a -o=RELS\ROMBUG\sysinit.r
+xcc -qst=. -O=0 -dCBOOT  -v=. -v=.. -v=..\..\..\..\SRC\ROM\CBOOT\DEFS -v=..\..\..\..\..\SRC\DEFS\IO\SCSI -v=..\..\..\..\SRC\IO\SCSI\DEFS  -v=..\..\..\..\SRC\DEFS -v=..\..\..\..\..\SRC\DEFS syscon.c -r=RELS\ROMBUG
+* RELS\ROMBUG\rom_port.l
+os9del -qf  RELS\ROMBUG\rom_port.l 
+cd RELS\ROMBUG; os9merge  sysinit.r syscon.r >rom_port.l
+os9make "TYPE=ROMBUG" -f=rom_image.make
+os9makdir -pq RELS\ROMBUG
+os9makdir -pq ..\CMDS\BOOTOBJS\ROMBUG\STB
+* ..\CMDS\BOOTOBJS\ROMBUG\rombug
+* ..\CMDS\BOOTOBJS\ROMBUG\STB\rombug.stb
+* ..\CMDS\BOOTOBJS\ROMBUG\STB\rombug.map
+os9del -qf ..\CMDS\BOOTOBJS\ROMBUG\rombug
+os9del -qf  ..\CMDS\BOOTOBJS\ROMBUG\STB\rombug.stb
+os9del -qf  ..\CMDS\BOOTOBJS\ROMBUG\STB\rombug.map
+os9del -qf  ..\CMDS\BOOTOBJS\ROMBUG\STB\rombug.dbg
+l68 -r=f00000 -swam -M=3k -g -b=4 -l=..\..\..\..\SRC\ROM\LIB\sysboot.l -l=..\..\..\..\SRC\ROM\LIB\flushcache.l  -l=..\..\..\..\68000\LIB\clib.l -l=..\..\..\..\68000\LIB\sys_clib.l -l=..\..\..\..\68000\LIB\os_lib.l -l=..\..\..\..\68000\LIB\sys.l -gu=0.0 RELS\ROMBUG\rom_common.l  RELS\ROMBUG\rom_port.l  RELS\ROMBUG\rom_serial.l  ..\..\..\..\SRC\ROM\LIB\rombug.l ..\..\..\..\SRC\ROM\LIB\romio.l -O=..\CMDS\BOOTOBJS\ROMBUG\rombug >..\CMDS\BOOTOBJS\ROMBUG\STB\rombug.map
+
+Raw binary file, "..\CMDS\BOOTOBJS\ROMBUG\rombug" has been created.
+
+Code size = 83800 (0x14758) bytes
+Data area size = 16384 (0x4000) bytes [minimum]
+* NOTE: This module also requires 3396 (0xD44) bytes of initialized data.
+Be sure to include the appropriate code in the module to handle this,
+as initialization is not performed automatically.
+os9make "TYPE=ROMBUG" -f=rom_initext.make
+os9makdir -pq RELS\ROMBUG
+os9makdir -pq ..\CMDS\BOOTOBJS\ROMBUG\STB
+r68 -q -aROMBUG -aBPLOAD -u=. -u=..\..\..\..\SRC\DEFS initext.a -o=RELS\ROMBUG\initext.r
+* ..\CMDS\BOOTOBJS\ROMBUG\initext
+* ..\CMDS\BOOTOBJS\ROMBUG\STB\initext.stb
+* ..\CMDS\BOOTOBJS\ROMBUG\STB\initext.map
+os9del -qf	 ..\CMDS\BOOTOBJS\ROMBUG\initext
+os9del -qf	 ..\CMDS\BOOTOBJS\ROMBUG\STB\initext.stb
+os9del -qf	 ..\CMDS\BOOTOBJS\ROMBUG\STB\initext.map
+os9del -qf	 ..\CMDS\BOOTOBJS\ROMBUG\STB\initext.dbg
+l68 -r=0 -gu=0.0 RELS\ROMBUG\initext.r -O=..\CMDS\BOOTOBJS\ROMBUG\initext >..\CMDS\BOOTOBJS\ROMBUG\STB\initext.map
+
+Raw binary file, "..\CMDS\BOOTOBJS\ROMBUG\initext" has been created.
+
+Code size = 32 (0x20) bytes
+Data area size = 0 (0x0) bytes [minimum]
+os9make "TYPE=ROMBUG" -f=rom_bootfile.make
+os9makdir -pq ..\CMDS\BOOTOBJS\ROMBUG
+* ..\CMDS\BOOTOBJS\ROMBUG\bootfile
+os9del -qf  ..\CMDS\BOOTOBJS\ROMBUG\bootfile
+cd ..; os9merge -b=100k -z=BOOTLISTS\rom.bl >CMDS\BOOTOBJS\ROMBUG\bootfile; fixmod -uo=0.0 CMDS\BOOTOBJS\ROMBUG\bootfile
+Module: kernel - Header parity is good
+Module: ioman - Header parity is good
+Module: init - Fixing header parity - Fixing module CRC
+Module: fpu - Header parity is good
+Module: tk68990 - Header parity is good
+Module: rtc68990 - Header parity is good
+Module: scf - Header parity is good
+Module: null - Header parity is good
+Module: nil - Header parity is good
+Module: pipeman - Header parity is good
+Module: pipe - Header parity is good
+Module: sc68990 - Header parity is good
+Module: term - Header parity is good
+Module: rbf - Header parity is good
+Module: ram - Header parity is good
+Module: dd - Fixing header parity - Fixing module CRC
+Module: r0 - Fixing header parity - Fixing module CRC
+Module: sysgo - Fixing header parity - Fixing module CRC
+os9make "TYPE=ROMBUG" -f=rom_utilities.make
+os9makdir -pq ..\CMDS\BOOTOBJS\ROMBUG
+* ..\CMDS\BOOTOBJS\ROMBUG\utilities
+os9del -qf ..\CMDS\BOOTOBJS\ROMBUG\utilities
+cd ..; os9merge -b=100k -z=BOOTLISTS\rom_utilities.ml >CMDS\BOOTOBJS\ROMBUG\utilities; fixmod -uo=0.0 CMDS\BOOTOBJS\ROMBUG\utilities
+Module: break - Header parity is good
+Module: deiniz - Fixing header parity - Fixing module CRC
+Module: devs - Fixing header parity - Fixing module CRC
+Module: dump - Fixing header parity - Fixing module CRC
+Module: echo - Fixing header parity - Fixing module CRC
+Module: events - Fixing header parity - Fixing module CRC
+Module: ident - Fixing header parity - Fixing module CRC
+Module: iniz - Fixing header parity - Fixing module CRC
+Module: irqs - Fixing header parity - Fixing module CRC
+Module: mdir - Fixing header parity - Fixing module CRC
+Module: mfree - Fixing header parity - Fixing module CRC
+Module: printenv - Fixing header parity - Fixing module CRC
+Module: procs - Fixing header parity - Fixing module CRC
+Module: setime - Fixing header parity - Fixing module CRC
+Module: mshell - Fixing header parity - Fixing module CRC
+Module: pd - Fixing header parity - Fixing module CRC
+Module: sleep - Fixing header parity - Fixing module CRC
+Module: tmode - Fixing header parity - Fixing module CRC
+Module: unlink - Fixing header parity - Fixing module CRC
+Module: xmode - Fixing header parity - Fixing module CRC
+Module: attr - Fixing header parity - Fixing module CRC
+Module: copy - Fixing header parity - Fixing module CRC
+Module: dir - Header parity is good
+Module: format - Header parity is good
+Module: free - Fixing header parity - Fixing module CRC
+Module: list - Fixing header parity - Fixing module CRC
+Module: load - Fixing header parity - Fixing module CRC
+Module: makdir - Fixing header parity - Fixing module CRC
+*
+* ..\CMDS\BOOTOBJS\ROMBUG\romfull
+os9del -qf  ..\CMDS\BOOTOBJS\ROMBUG\romfull
+os9merge ..\CMDS\BOOTOBJS\ROMBUG\rombug ..\CMDS\BOOTOBJS\ROMBUG\initext ..\CMDS\BOOTOBJS\ROMBUG\bootfile ..\CMDS\BOOTOBJS\ROMBUG\utilities >..\CMDS\BOOTOBJS\ROMBUG\romfull
+*
+*
+*
+*
+*

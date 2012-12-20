@@ -1,0 +1,304 @@
+
+; This is the primary CodeWright configuration file.  The general format
+; of this file is similar to a standard Windows .ini file.  The basic
+; characteristics are as follows:
+;
+; - a configuration section begins with [<section name>]
+; - all entries are of the form <key>=<string value>
+; - there may be multiple entries in a given section with the same key name
+; - the <string value> may contain several components separated by comma or
+;   space
+; - apostrophe or quote characters may be used in pairs to specify a string
+;   component that contains commas or spaces
+; - within a quoted string, backslash may be used to escape a quote of the
+;   type being used and a backslash itself, otherwise backslashes are literal
+; - blank lines and lines beginning with semicolon are ignored
+
+[DefaultKeymap]
+DefaultKeymap=CUA
+
+[KmapAssign]
+; Uncomment for Visual Studio 97 (MSDev 5.0 or MSDev 6.0) Menu commands:
+;ConfigFileRead( CWSYNC.INI, KmapAssign_MSVC50, FALSE )
+; Uncomment for VCSync MSDev 4.x Menu commands:
+;ConfigFileRead( CWSYNC.INI, KmapAssign_MSVC40, FALSE )
+; Uncomment for VCSync MSVC++ 2.x Menu commands:
+;ConfigFileRead( CWSYNC.INI, KmapAssign_MSVC20, FALSE )
+; Uncomment for VBSync MS Visual Basic 6.0 Menu commands:
+;ConfigFileRead( CWSYNC.INI, KmapAssign_VB60, FALSE )
+; Uncomment for CWSync Delphi 5.0 Menu commands:
+;ConfigFileRead( CWSYNC.INI, KmapAssign_DPR50, FALSE )
+; Uncomment for CWSync Delphi 4.0 Menu commands:
+;ConfigFileRead( CWSYNC.INI, KmapAssign_DPR40, FALSE )
+; Uncomment for CWSync Delphi 3.0 Menu commands:
+;ConfigFileRead( CWSYNC.INI, KmapAssign_DPR30, FALSE )
+; Uncomment for CWSync Delphi 2.0 Menu commands:
+;ConfigFileRead( CWSYNC.INI, KmapAssign_DPR20, FALSE )
+; Uncomment for CWSync Borland C++ Builder 1.0 Menu commands:
+;ConfigFileRead( CWSYNC.INI, KmapAssign_BCB10, FALSE )
+; Uncomment for CWSync Borland C++ Builder 4.0 Menu commands:
+;ConfigFileRead( CWSYNC.INI, KmapAssign_BCB40, FALSE )
+; Uncomment for CWSync Borland C++ 5.0 Menu commands:
+;ConfigFileRead( CWSYNC.INI, KmapAssign_BCW50, FALSE )
+; Uncomment for HTML popup menu:
+;KmapAssign="<Shift-mouse_right_click>", "DlgMenuPopup html.mnu"
+; Uncomment to momentarily highlight the matching open '(', '{', or '[' brace:
+;KmapAssign=')' 'ExtExpandTemplateEx ")%ml1%xBraceFindEx=BRACE_PARENS|BRACE_DISPLAY_PAUSE|BRACE_CHECK_CMT_STR|BRACE_SKIP_COMMENTS|BRACE_SKIP_STRINGS$%mr1" 2'
+;KmapAssign='}' 'ExtExpandTemplateEx "}%ml1%xBraceFindEx=BRACE_BRACES|BRACE_DISPLAY_PAUSE|BRACE_CHECK_CMT_STR|BRACE_SKIP_COMMENTS|BRACE_SKIP_STRINGS$%mr1" 2'
+;KmapAssign=']' 'ExtExpandTemplateEx "]%ml1%xBraceFindEx=BRACE_BRACKETS|BRACE_DISPLAY_PAUSE|BRACE_CHECK_CMT_STR|BRACE_SKIP_COMMENTS|BRACE_SKIP_STRINGS$%mr1" 2'
+; Uncomment one of the following lines to include European keystroke
+; mappings.  The first reads the assignments from a .ini while the second
+; does so via code.  The former is slower but more easily modifiable.
+;ConfigFileRead eurokeys.ini KmapAssign_Euro
+;AssignEuroKeys
+ConfigFileRead( CWSYNC.INI, KmapAssign_AppBasic, FALSE )
+
+[LibPreLoad]
+
+[Editor]
+HelpSetDefault=0,1,'','MSIN','vcbks40.mvb','KeywordLookup(`${KEYWORD}\')'
+VCSVendor='PVCS'
+VCSProvider=''
+VCSUserName=''
+VCSFlags=0x00000427, 1
+TipOfDay=0,6
+_RestoreSysFlags=0x00010001, 0xffffffff, 1
+CUA_flags=0x00001000,1
+;Use for multiple MVB files -->HelpSetDefault=0,1,'iv2tool /k ${KEYWORD}','MSIN','$(MVBFILE)','KeywordLookup(`${KEYWORD}\')'
+EditSetPath=
+_StateHistory=XVCS,RCS,TLIB,PVCS,SourceSafe
+
+[Colors]
+
+[Helper]
+ExactMatch=0
+Browse=0
+Use_MSVC_Help=0
+
+[Definitions]
+
+[Compiler]
+
+[Tools]
+ToolAddCmd='$_custom_tool_$_1','API Database Editor',1342177312,'cwtedit.exe',0,'',0,'',0,'',0,'',0,'','','','',''
+ToolAddCmd='$_custom_tool_$_2','Paint',1342177312,'pbrush.exe',0,'',0,'',0,'',0,'',0,'','','','',''
+
+[VersionControl]
+;ProjectAddFile='All','*.*','%b%{??V|___}e'
+
+[Extension]
+ExtColorsAssoc='.*',1
+ExtColorsAssoc='.asm',5
+ExtChromaLexer='.asm','Assembly'
+ExtSetDelimiters=.asm,^A-Za-z0-9_
+ExtColorsAssoc='.bas',5
+ExtChromaLexer='.bas','BASIC'
+ExtSetDelimiters=.bas,^A-Za-z0-9_
+ExtColorsAssoc='.c',5
+ExtChromaLexer='.c','C'
+ExtSetDelimiters=.c,^A-Za-z0-9_
+ExtSetLCommentStr=c,'/*'
+ExtSetRCommentStr=c,'*/'
+ExtColorsAssoc='.cob',5
+ExtChromaLexer='.cob','COBOL'
+ExtSetDelimiters=.cob,^A-Za-z0-9_
+ExtColorsAssoc='.cpp',5
+ExtChromaLexer='.cpp','C++'
+ExtSetDelimiters=.cpp,^A-Za-z0-9_
+ExtSetLCommentStr=cpp,'/*'
+ExtSetRCommentStr=cpp,'*/'
+ExtColorsAssoc='.cxx',5
+ExtChromaLexer='.cxx','C++'
+ExtSetDelimiters=.cxx,^A-Za-z0-9_
+ExtColorsAssoc='.h',5
+ExtChromaLexer='.h','C'
+ExtSetDelimiters=.h,^A-Za-z0-9_
+ExtSetLCommentStr=h,'/*'
+ExtSetRCommentStr=h,'*/'
+ExtColorsAssoc='.hpp',5
+ExtChromaLexer='.hpp','C++'
+ExtSetDelimiters=.hpp,^A-Za-z0-9_
+ExtColorsAssoc='.prg',5
+ExtChromaLexer='.prg','dBase/Clipper'
+ExtSetDelimiters=.prg,^A-Za-z0-9_
+ExtColorsAssoc='.html',5
+ExtChromaLexer='.html','HTML'
+ExtSetDelimiters=.html,^A-Za-z0-9_
+ExtColorsAssoc='.java',5
+ExtChromaLexer='.java','Java'
+ExtSetDelimiters=.java,^A-Za-z0-9_
+ExtColorsAssoc='.mac',5
+ExtChromaLexer='.mac','API Macros'
+ExtSetDelimiters=.mac,^A-Za-z0-9_
+ExtColorsAssoc='.pas',5
+ExtChromaLexer='.pas','Pascal'
+ExtSetDelimiters=.pas,^A-Za-z0-9_
+ExtColorsAssoc='.pl',5
+ExtChromaLexer='.pl','Perl'
+ExtSetDelimiters=.pl,^A-Za-z0-9_
+ExtAlias=rc,c
+
+[Folders]
+FolderDeleteList
+FolderAdd='All Files',*.*
+FolderAdd='C/C++ Files',*.c
+FolderAdd='C/C++ Files',*.h
+FolderAdd='C/C++ Files',*.cpp
+FolderAdd='C/C++ Files',*.hpp
+
+[VersionControl:PVCS]
+VCSSetCmd=VCS_CHECKIN_ID,'put -n -T@"%Q" -M@"%Q" "%b%e"',0x8000040
+VCSSetCmd=VCS_CHECKINLOCK_ID,'put -n -T@"%Q" -M@"%Q" -l "%b%e"',0x8000040
+VCSSetCmd=VCS_CHECKOUT_ID,'get -y "%b%e"',0x8000040
+VCSSetCmd=VCS_CHECKOUTLOCK_ID,'get -y -l "%b%e"',0x8000040
+VCSSetCmd=VCS_CHECKLOCK_ID,'vcs -y -l "%b%e"',0x8000040
+VCSSetCmd=VCS_CHECKUNLOCK_ID,'vcs -y -u "%b%e"',0x8000040
+VCSSetCmd=VCS_CHECKLABEL_ID,'vcs -y -v"${VCSLABEL}" "%b%e"',0x8000040
+VCSSetCmd=VCS_CHECKLOG_ID,'vlog "%b%e"',0x8000040
+VCSSetCmd=VCS_CHECKPROP_ID,'vlog -b "%b%e"',0x8000040
+VCSSetCmd=VCS_CHECKDIFF_ID,'vdiff -r "%b%e"',0x8000040
+VCSSetCmd=VCS_CHECKMENU_ID,'pvcsvmwn',0x8000000
+VCSSetCmd=VCS_ADD_ID,'vcs -i -t@"%Q" "%b%e"',0x8000040
+VCSSetCmd=VCS_REMOVE_ID,'del /f "%b%{??v|___}e"',0x8000040
+
+[VersionControl:RCS]
+VCSSetCmd=VCS_CHECKIN_ID,'ci -f -I "%b%e" <"%Q"',0x8000040
+VCSSetCmd=VCS_CHECKINLOCK_ID,'ci -f -I -l "%b%e" <"%Q"',0x8000040
+VCSSetCmd=VCS_CHECKOUT_ID,'co -f "%b%e"',0x8000040
+VCSSetCmd=VCS_CHECKOUTLOCK_ID,'co -f -l "%b%e"',0x8000040
+VCSSetCmd=VCS_CHECKLOCK_ID,'rcs -l "%b%e"',0x8000040
+VCSSetCmd=VCS_CHECKUNLOCK_ID,'rcs -u "%b%e"',0x8000040
+VCSSetCmd=VCS_CHECKLABEL_ID,'rcs -N"${VCSLABEL}": "%b%e"',0x8000040
+VCSSetCmd=VCS_CHECKLOG_ID,'rlog "%b%e"',0x8000040
+VCSSetCmd=VCS_CHECKPROP_ID,'rlog -t "%b%e"',0x8000040
+VCSSetCmd=VCS_CHECKDIFF_ID,'rcsdiff -r "%b%e"',0x8000040
+VCSSetCmd=VCS_CHECKMENU_ID,'mksrcs',0x8000000
+VCSSetCmd=VCS_ADD_ID,'ci -f -t -I "%b%e" <"%Q"',0x8000040
+VCSSetCmd=VCS_REMOVE_ID,'del /f "%b%%e,v"',0x8000040
+
+[VersionControl:TLIB]
+VCSSetCmd=VCS_CHECKIN_ID,'tlib U "%b%e" @"%Q"',0x8000040
+VCSSetCmd=VCS_CHECKINLOCK_ID,'tlib K "%b%e" @"%Q"',0x8000040
+VCSSetCmd=VCS_CHECKOUT_ID,'tlib B "%b%e"',0x8000040
+VCSSetCmd=VCS_CHECKOUTLOCK_ID,'tlib E "%b%e"',0x8000040
+VCSSetCmd=VCS_CHECKLOCK_ID,'tlib O "%b%e"',0x8000040
+VCSSetCmd=VCS_CHECKUNLOCK_ID,'tlib I "%b%e"',0x8000040
+VCSSetCmd=VCS_CHECKLABEL_ID,'tlibsnap A ${VCSLABEL} S "%b%e"',0x8000040
+VCSSetCmd=VCS_CHECKLOG_ID,'tlib L "%b%e"',0x8000040
+VCSSetCmd=VCS_CHECKPROP_ID,'tlib T "%b%e"',0x8000040
+VCSSetCmd=VCS_CHECKDIFF_ID,'cmpr "%b%e"',0x8000040
+VCSSetCmd=VCS_CHECKMENU_ID,'tlib ?',0x8000000
+VCSSetCmd=VCS_ADD_ID,'tlib N "%b%e" @"%Q"',0x8000040
+VCSSetCmd=VCS_REMOVE_ID,'del /f "%b.tlb"',0x8000040
+
+[VersionControl:SourceSafe]
+VCSSetCmd=VCS_CHECKIN_ID,'ss UPDATE -I- -C@"%Q" -Y${USER} "%r%e"',0x8000040
+VCSSetCmd=VCS_CHECKINLOCK_ID,'ss UPDATE -I- -C@"%Q" -K -Y${USER} "%r%e"',0x8000040
+VCSSetCmd=VCS_CHECKOUT_ID,'ss GET -I- -Y${USER} "%r%e"',0x8000040
+VCSSetCmd=VCS_CHECKOUTLOCK_ID,'ss CHECKOUT -I- -Y${USER} "%r%e"',0x8000040
+VCSSetCmd=VCS_CHECKLOCK_ID,'ss CHECKOUT -I- -G- -Y${USER} "%r%e"',0x8000040
+VCSSetCmd=VCS_CHECKUNLOCK_ID,'ss UNCHECKOUT -I- -G- -Y${USER} "%r%e"',0x8000040
+VCSSetCmd=VCS_CHECKLABEL_ID,'ss LABEL -I- -L"${VCSLABEL}" -Y${USER} "%r%e"',0x8000040
+VCSSetCmd=VCS_CHECKLOG_ID,'ss HISTORY -I- -Y${USER} "%r%e"',0x8000040
+VCSSetCmd=VCS_CHECKPROP_ID,'ss PROPERTIES -I- -Y${USER} "%r%e"',0x8000040
+VCSSetCmd=VCS_CHECKDIFF_ID,'ss DIFF -I- -Y${USER} "%r%e"',0x8000040
+VCSSetCmd=VCS_CHECKMENU_ID,'ssexp',0x8000000
+VCSSetCmd=VCS_ADD_ID,'ss ADD -I- -Y${USER} "%r%e"',0x8000040
+VCSSetCmd=VCS_REMOVE_ID,'ss DELETE -I- -Y${USER} "%r%e"',0x8000040
+
+[VersionControl:Other]
+VCSSetCmd=VCS_CHECKIN_ID,'',0x8000040
+VCSSetCmd=VCS_CHECKINLOCK_ID,'',0x8000040
+VCSSetCmd=VCS_CHECKOUT_ID,'',0x8000040
+VCSSetCmd=VCS_CHECKOUTLOCK_ID,'',0x8000040
+VCSSetCmd=VCS_CHECKLOCK_ID,'',0x8000040
+VCSSetCmd=VCS_CHECKUNLOCK_ID,'',0x8000040
+VCSSetCmd=VCS_CHECKLABEL_ID,'',0x8000040
+VCSSetCmd=VCS_CHECKLOG_ID,'',0x8000040
+VCSSetCmd=VCS_CHECKPROP_ID,'',0x8000040
+VCSSetCmd=VCS_CHECKDIFF_ID,'',0x8000040
+VCSSetCmd=VCS_CHECKMENU_ID,'',0x8000000
+VCSSetCmd=VCS_ADD_ID,'',0x8000040
+VCSSetCmd=VCS_REMOVE_ID,'',0x8000040
+
+[HTML]
+HTMLAutoUpdate=1
+
+[AppBasic Setup]
+cwbShowProcDisplay=1
+cwbShowToolbar=1
+
+[FileOpen]
+CWFOpenFlags=0x81840000
+CWFOpenTools=525316,525317,525318,525319,525320,525321,525322,525323,525324,525325,525326,525327,525328,656401,656402,525331,525332,525333,525334,525335,525336
+CWFOColumnInfo="Name",0,8,0x0000000c
+CWFOColumnInfo="Ext",1,8,0x0000000c
+CWFOColumnInfo="Size",2,6,0x0000000d
+CWFOColumnInfo="Modified",3,8,0x0000000d
+CWFOColumnInfo="Attr",4,8,0x0000002e
+CWFOpenDirHeight=116
+
+[PerlInterpreter]
+; This section provides configuration information for the Perl interpreter.
+; You may add entries to it to automatically load Perl scripts when the
+; CWPERLI.DLL load.  To do so, use "PerlLoad=<filename>".
+
+[PerlMacros]
+; This section is automatically maintained by CodeWright.  Do not add
+; entries to this section because they will be deleted the next time
+; this section is updated.
+
+[Ribbon]
+ToolbarAutoHideFlags=0x0000
+ToolbarAutoHideSize=0x00000008
+ToolbarDockingPrecedence=7
+StateToolbarCreateTool="Standard",0x4d2f,0x4d2f,20,0,0,0,1,100,200,"",1
+StateToolbarAddItem=1015,0,"C:\Users\russtopia\Desktop\OSK\MWOS\DOS\BIN\CWDLL32.DLL",445,3,26,24,1,"213","Rebuild current project.","hawkProjDispatch IDM_HAWK_PROJ_REBUILD"
+StateToolbarAddItem=1016,0,"C:\Users\russtopia\Desktop\OSK\MWOS\DOS\BIN\CWDLL32.DLL",471,3,26,24,1,"212","Build current project.","hawkProjDispatch IDM_HAWK_PROJ_BUILD"
+StateToolbarAddItem=1018,0,"C:\Users\russtopia\Desktop\OSK\MWOS\DOS\BIN\CWDLL32.DLL",497,3,26,24,1,"214","Goto next message line.","ErrorNext 0 ''"
+StateToolbarAddItem=1017,0,"C:\Users\russtopia\Desktop\OSK\MWOS\DOS\BIN\CWDLL32.DLL",523,3,26,24,1,"215","Debug module.","hawkProjDispatch IDM_HAWK_COMP_DEBUG"
+StateBtnPositions=0,201,202,203,204,501,205,206,207,502,208,209,503,500,504,210,211,505,1015,1016,1018,1017,219
+StateToolbarCreateTool="Build",0x10f,0x0,64,0,0,0,0,200,300,"",1
+StateBtnPositions=1,212,213,214,215,216
+StateToolbarCreateTool="Edit",0x10f,0x0,64,0,0,0,0,200,300,"",1
+StateBtnPositions=2,241,240,511,239,238,512,237,235,234,513,229,228,227,226,514,225,224,515,223,222,221,220
+StateToolbarCreateTool="Tools",0x10f,0x0,64,0,0,0,0,200,300,"",1
+StateBtnPositions=3,333,334,336,337,338,311
+StateToolbarCreateTool="VCS",0x10f,0x0,64,0,0,0,0,200,300,"",1
+StateBtnPositions=4,351,313,312,308,309,352,353,342,341,354,310,343,355
+StateToolbarCreateTool="AppBasic",0x10f,0x0,64,0,0,0,0,200,300,"",1
+StateBtnPositions=5,430,431,450,516,441,442,443,517,440,447,444,446,445,518,448,449,519,451
+StateToolbarCreateTool="Project",0x8e081f,0x8e081f,254,254,370,1,0,200,300,"ProjectToolbar",1
+StateToolbarCreateTool="Output",0x8e000f,0xce088f,300,300,136,0,6,404,435,"",1
+StateToolbarCreateTool="Debug",0x10f,0x0,64,0,0,0,0,200,300,"",1
+StateBtnPositions=8,15006,600,15001,15002,15004,15000,602,15008,15005,15007,15009,15003
+StateToolbarCreateTool="Telnet",0xde000f,0x80,420,300,140,44,100,200,300,"",1
+StateToolbarCreateTool="Serial",0xde000f,0x80,420,300,140,44,100,200,300,"",1
+FldrFlags=0x00000003
+FldrSetCurrent=0
+FldrObjBrowserFlags=0x4100f3ff
+OutputWindowFlags=0,0x01000008,WRITE_FLAGS
+OutputWindowFlags=1,0x01000008,WRITE_FLAGS
+OutputWindowFlags=2,0x01000008,WRITE_FLAGS
+OutputWindowFlags=3,0x00000008,WRITE_FLAGS
+OutputWindowFlags=4,0x00000008,WRITE_FLAGS
+OutputWindowFlags=5,0x00000008,WRITE_FLAGS
+OutputWindowFlags=6,0x01000008,WRITE_FLAGS
+OutputWindowFlags=9,0x00000008,WRITE_FLAGS
+OutputWindowFlags=10,0x01000008,WRITE_FLAGS
+
+[fmatch]
+FGrepFile='cwfgrep.___'
+FFindFile='cwffind.___'
+FGrepPattern=RX
+FFindPattern=
+FGrepScope='*.*'
+FGrepFlags=0x12
+FGrepOutputFlags=0x0
+
+[Diff]
+DiffDirFlags=0x21a0040
+DiffFlags=0x2000040
+MergeFlags=0x101
+
+[RunOnce]

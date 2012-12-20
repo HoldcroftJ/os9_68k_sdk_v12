@@ -1,0 +1,841 @@
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" SUBTRGT=_build  _build TARGET=k68k
+*
+cd CLOCK; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _build
+os9makdir -pq RELS
+os9makdir -pq ..\CMDS\BOOTOBJS\STB
+xcc -td=. -to=OSK -cw -tp=68k -k -r  -v=. -v=.. -v=..\..\..\..\..\OS9\68000\DEFS\MC6832X -v=..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\OS9\SRC\DEFS  -eas=RELS -asn  -as=-bt ..\..\..\..\..\OS9\SRC\SYSMODS\GCLOCK\tk68328.a -fd=tk68328.r
+* ..\CMDS\BOOTOBJS\tk68328
+* ..\CMDS\BOOTOBJS\STB\tk68328.stb
+xcc -td=. -to=OSK -cw -olg -tp=68k -k -r -l=..\..\..\..\..\OS9\68000\LIB\sys.l    -olgu=0.0 ..\..\..\..\..\OS9\68000\LIB\tickgeneric.r RELS\tk68328.r -fd=..\CMDS\BOOTOBJS\tk68328
+xcc -td=. -to=OSK -cw -tp=68k -k -r  -v=. -v=.. -v=..\..\..\..\..\OS9\68000\DEFS\MC6832X -v=..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\OS9\SRC\DEFS  -eas=RELS -asn  -as=-bt ..\..\..\..\..\OS9\SRC\SYSMODS\GCLOCK\rtc68328.a -fd=rtc68328.r
+* ..\CMDS\BOOTOBJS\rtc68328
+* ..\CMDS\BOOTOBJS\STB\rtc68328.stb
+xcc -td=. -to=OSK -cw -olg -tp=68k -k -r -l=..\..\..\..\..\OS9\68000\LIB\sys.l    -olgu=0.0 RELS\rtc68328.r -fd=..\CMDS\BOOTOBJS\rtc68328 -oln=rtclock
+*
+*
+*
+*
+cd INIT; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _build
+*
+cd DD_DISK; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k 
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" SUBTRGT=_build  _build TARGET=k68k
+os9makdir -pq RELS
+os9makdir -pq ..\..\CMDS\BOOTOBJS\INITS\STB
+xcc -td=. -to=OSK -cw -tp=68k -v=. -v=..\.. -v=..\..\..\..\..\..\OS9\68000\DEFS\MC6832X -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS -eas=. -r -asb   -asn -fd=RELS\dd_disk.r ..\..\..\..\..\..\OS9\SRC\SYSMODS\INIT\init.a -asaSYSMBUF -asaPWRMAN
+* ..\..\CMDS\BOOTOBJS\INITS\dd_disk
+* ..\..\CMDS\BOOTOBJS\INITS\STB\dd_disk.stb
+xcc -td=. -to=OSK -cw -olg -tp=68k -k -r -l=..\..\..\..\..\..\OS9\68000\LIB\sys.l -oln=init    -olgu=0.0 RELS\dd_disk.r -fd=..\..\CMDS\BOOTOBJS\INITS\dd_disk -oln=init
+*
+*
+*
+*
+*
+cd SCF; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _build
+*
+cd SC68681; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k 
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" SUBTRGT=_build  _build TARGET=k68k
+*
+cd DRVR; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _build
+os9makdir -pq RELS
+os9makdir -pq ..\..\..\CMDS\BOOTOBJS\STB
+xcc -td=. -to=OSK -cw -tp=68k -k -r -v=. -v=..\..\.. -v=..\..\..\..\..\..\..\OS9\68000\DEFS\MC6832X -v=..\..\..\..\..\..\..\OS9\SRC\MACROS -v=..\..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\..\OS9\SRC\DEFS   -eas=RELS -asn ..\..\..\..\..\..\..\OS9\SRC\IO\SCF\DRVR\sc68681.a
+* ..\..\..\CMDS\BOOTOBJS\sc68681
+* ..\..\..\CMDS\BOOTOBJS\STB\sc68681.stb
+xcc -td=. -to=OSK -cw -olg -tp=68k -k -r -olg -l=..\..\..\..\..\..\..\OS9\68000\LIB\sys.l    -olgu=0.0 ..\..\..\..\..\..\..\OS9\68000\LIB\scfstat.l RELS\sc68681.r -fd=..\..\..\CMDS\BOOTOBJS\sc68681
+*
+*
+*
+cd DESC; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _build
+os9makdir -pq RELS
+os9makdir -pq ..\..\..\CMDS\BOOTOBJS\DESC\SC68681\STB
+xcc -td=. -to=OSK -cw -tp=68k -k -r -v=. -v=..\..\.. -v=..\..\..\..\..\..\..\OS9\68000\DEFS\MC6832X -v=..\..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\..\OS9\SRC\DEFS   -eas=RELS -asn ..\..\..\..\..\..\..\OS9\SRC\IO\SCF\DESC\term.a
+* ..\..\..\CMDS\BOOTOBJS\DESC\SC68681\term
+* ..\..\..\CMDS\BOOTOBJS\DESC\SC68681\STB\term.stb
+xcc -td=. -to=OSK -cw -olg -tp=68k -k -r -olS -l=..\..\..\..\..\..\..\OS9\68000\LIB\sys.l    -olgu=0.0 -olp=577 RELS\term.r -fd=..\..\..\CMDS\BOOTOBJS\DESC\SC68681\term
+xcc -td=. -to=OSK -cw -tp=68k -k -r -v=. -v=..\..\.. -v=..\..\..\..\..\..\..\OS9\68000\DEFS\MC6832X -v=..\..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\..\OS9\SRC\DEFS   -eas=RELS -asn ..\..\..\..\..\..\..\OS9\SRC\IO\SCF\DESC\t1.a
+* ..\..\..\CMDS\BOOTOBJS\DESC\SC68681\t1
+* ..\..\..\CMDS\BOOTOBJS\DESC\SC68681\STB\t1.stb
+xcc -td=. -to=OSK -cw -olg -tp=68k -k -r -olS -l=..\..\..\..\..\..\..\OS9\68000\LIB\sys.l    -olgu=0.0 -olp=577 RELS\t1.r -fd=..\..\..\CMDS\BOOTOBJS\DESC\SC68681\t1
+*
+*
+*
+*
+*
+cd TPAD; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k 
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" SUBTRGT=_build  _build TARGET=k68k
+*
+cd DESC; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _build
+os9makdir -pq RELS
+os9makdir -pq ..\..\..\CMDS\BOOTOBJS\DESC\TPAD\STB
+xcc -td=. -to=OSK -cw -tp=68k -k -r -v=. -v=..\..\.. -v=..\..\..\..\..\..\..\OS9\68000\DEFS\MC6832X -v=..\..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\..\OS9\SRC\DEFS  -asaCYC_ALM_PERIOD=3 -asaSAMPLES_PER_POINT=3 -eas=RELS -asn -asaCYC_ALM_PERIOD=3 -asaSAMPLES_PER_POINT=3 -asaX_PIXELS=240 -asaY_PIXELS=160  ..\..\..\..\..\..\..\OS9\SRC\IO\SCF\DESC\tpad.a -fd=tpad.r -asn
+* ..\..\..\CMDS\BOOTOBJS\DESC\TPAD\tpad
+* ..\..\..\CMDS\BOOTOBJS\DESC\TPAD\STB\tpad.stb
+xcc -td=. -to=OSK -cw -olg -tp=68k -k -r -olS -l=..\..\..\..\..\..\..\OS9\68000\LIB\sys.l    -olgu=0.0 RELS\tpad.r -fd=..\..\..\CMDS\BOOTOBJS\DESC\TPAD\tpad
+*
+*
+*
+cd DRVR; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _build
+os9makdir -pq RELS
+os9makdir -pq ..\..\..\CMDS\BOOTOBJS\STB
+xcc -td=. -to=OSK -cw -tp=68kc -v=. -v=..\..\..\DEFS -v=..\..\.. -v=..\..\..\..\..\..\..\OS9\68000\DEFS\MC6832X  -v=..\..\..\..\..\..\..\OS9\SRC\MACROS -v=..\..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\..\OS9\SRC\DEFS  -eas=RELS -rg -o=0 -iom  -asn ..\..\..\..\..\..\..\OS9\SRC\IO\SCF\DRVR\MC328ADS\TOUCHPAD\scf_glue.a
+xcc -td=. -to=OSK -cw -tp=68kc -v=. -v=..\..\..\DEFS -v=..\..\.. -v=..\..\..\..\..\..\..\OS9\68000\DEFS\MC6832X  -v=..\..\..\..\..\..\..\OS9\SRC\MACROS -v=..\..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\..\OS9\SRC\DEFS  -efe=RELS -rg -o=0 -iom   -asn ..\..\..\..\..\..\..\OS9\SRC\IO\SCF\DRVR\MC328ADS\TOUCHPAD\main.c
+xcc -td=. -to=OSK -cw -tp=68kc -v=. -v=..\..\..\DEFS -v=..\..\.. -v=..\..\..\..\..\..\..\OS9\68000\DEFS\MC6832X  -v=..\..\..\..\..\..\..\OS9\SRC\MACROS -v=..\..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\..\OS9\SRC\DEFS  -efe=RELS -rg -o=0 -iom   -asn ..\..\..\..\..\..\..\OS9\SRC\IO\SCF\DRVR\MC328ADS\TOUCHPAD\init.c
+xcc -td=. -to=OSK -cw -tp=68kc -v=. -v=..\..\..\DEFS -v=..\..\.. -v=..\..\..\..\..\..\..\OS9\68000\DEFS\MC6832X  -v=..\..\..\..\..\..\..\OS9\SRC\MACROS -v=..\..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\..\OS9\SRC\DEFS  -efe=RELS -rg -o=0 -iom   -asn ..\..\..\..\..\..\..\OS9\SRC\IO\SCF\DRVR\MC328ADS\TOUCHPAD\term.c
+xcc -td=. -to=OSK -cw -tp=68kc -v=. -v=..\..\..\DEFS -v=..\..\.. -v=..\..\..\..\..\..\..\OS9\68000\DEFS\MC6832X  -v=..\..\..\..\..\..\..\OS9\SRC\MACROS -v=..\..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\..\OS9\SRC\DEFS  -efe=RELS -rg -o=0 -iom   -asn ..\..\..\..\..\..\..\OS9\SRC\IO\SCF\DRVR\MC328ADS\TOUCHPAD\irqs.c
+xcc -td=. -to=OSK -cw -tp=68kc -v=. -v=..\..\..\DEFS -v=..\..\.. -v=..\..\..\..\..\..\..\OS9\68000\DEFS\MC6832X  -v=..\..\..\..\..\..\..\OS9\SRC\MACROS -v=..\..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\..\OS9\SRC\DEFS  -efe=RELS -rg -o=0 -iom   -asn ..\..\..\..\..\..\..\OS9\SRC\IO\SCF\DRVR\MC328ADS\TOUCHPAD\read.c
+xcc -td=. -to=OSK -cw -tp=68kc -v=. -v=..\..\..\DEFS -v=..\..\.. -v=..\..\..\..\..\..\..\OS9\68000\DEFS\MC6832X  -v=..\..\..\..\..\..\..\OS9\SRC\MACROS -v=..\..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\..\OS9\SRC\DEFS  -efe=RELS -rg -o=0 -iom   -asn ..\..\..\..\..\..\..\OS9\SRC\IO\SCF\DRVR\MC328ADS\TOUCHPAD\stat.c
+* ..\..\..\CMDS\BOOTOBJS\tpaddrvr
+* ..\..\..\CMDS\BOOTOBJS\STB\tpaddrvr.stb
+xcc -td=. -to=OSK -cw -olg -tp=68k -k -r -l=..\..\..\..\..\..\..\OS9\68000\LIB\sys_clib.l -y=..\..\..\..\..\..\..\OS9\68000\LIB\HOST3\sys_clib.il -l=..\..\..\..\..\..\..\OS9\68000\LIB\clib.l -y=..\..\..\..\..\..\..\OS9\68000\LIB\HOST3\clib.il -l=..\..\..\..\..\..\..\OS9\68000\LIB\os_lib.l -y=..\..\..\..\..\..\..\OS9\68000\LIB\HOST3\os_lib.il -l=..\..\..\..\..\..\..\OS9\68000\LIB\sys.l -o=0 -iom    -olgu=0.0 RELS\scf_glue.r  RELS\main.i  RELS\init.i  RELS\term.i  RELS\irqs.i  RELS\read.i  RELS\stat.i -fd=..\..\..\CMDS\BOOTOBJS\tpaddrvr
+*
+*
+*
+cd TEST; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _build
+os9makdir -pq ..\..\..\CMDS\STB
+* ..\..\..\CMDS\tpadtest
+* ..\..\..\CMDS\STB\tpadtest.stb
+xcc -td=. -to=OSK -cw -olg -tp=68k  -v=..\..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\..\OS9\SRC\DEFS -v=..\..\..\..\..\..\..\OS9\SRC\IO\SCF\DRVR\MC328ADS\TOUCHPAD\TEST -v=..\..\..\..\..\..\..\OS9\SRC\IO\SCF\DRVR\MC328ADS\TOUCHPAD\TEST\.. -v=..\..\..\DEFS  -v=..\..\..\..\..\..\..\OS9\68000\DEFS\MC6832X -l=..\..\..\..\..\..\..\OS9\68000\LIB\conv_lib.l -y=..\..\..\..\..\..\..\OS9\68000\LIB\HOST3\conv_lib.il -l=..\..\..\..\..\..\..\OS9\68000\LIB\sys_csl.l -y=..\..\..\..\..\..\..\OS9\68000\LIB\HOST3\sys_csl.il -l=..\..\..\..\..\..\..\OS9\68000\LIB\sys_clib.l -y=..\..\..\..\..\..\..\OS9\68000\LIB\HOST3\sys_clib.il -l=..\..\..\..\..\..\..\OS9\68000\LIB\csl.l -y=..\..\..\..\..\..\..\OS9\68000\LIB\HOST3\csl.il -l=..\..\..\..\..\..\..\OS9\68000\LIB\csl.l -l=..\..\..\..\..\..\..\OS9\68000\LIB\clib.l -y=..\..\..\..\..\..\..\OS9\68000\LIB\HOST3\clib.il -l=..\..\..\..\..\..\..\OS9\68000\LIB\os_csl.l -y=..\..\..\..\..\..\..\OS9\68000\LIB\HOST3\os_csl.il  -l=..\..\..\..\..\..\..\OS9\68000\LIB\os_lib.l -y=..\..\..\..\..\..\..\OS9\68000\LIB\HOST3\os_lib.il -l=..\..\..\..\..\..\..\OS9\68000\LIB\sys.l -o=7 -cw  -ola -olS -k  -olgu=0.0 ..\..\..\..\..\..\..\OS9\68000\LIB\ansi_cstart.r ..\..\..\..\..\..\..\OS9\SRC\IO\SCF\DRVR\MC328ADS\TOUCHPAD\TEST\main.c -fd=..\..\..\CMDS\tpadtest -oln=tpadtest
+*
+*
+*
+*
+*
+*
+*
+cd RBF; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _build
+*
+cd RAM; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k 
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" SUBTRGT=_build  _build TARGET=k68k
+*
+cd DESC; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _build
+os9makdir -pq RELS
+os9makdir -pq ..\..\..\CMDS\BOOTOBJS\DESC\RAMDISK\STB
+xcc -td=. -to=OSK -cw -tp=68k -k -r -eas=RELS -v=. -v=..\..\.. -v=..\..\..\..\..\..\..\OS9\68000\DEFS\MC6832X -v=..\..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\..\OS9\SRC\DEFS -dDEVTAPE -asn ..\..\..\..\..\..\..\OS9\SRC\IO\RBF\DESC\r0.a -fd=r0.r
+* ..\..\..\CMDS\BOOTOBJS\DESC\RAMDISK\r0
+* ..\..\..\CMDS\BOOTOBJS\DESC\RAMDISK\STB\r0.stb
+xcc -td=. -to=OSK -cw -olg -tp=68k -k -r -l=..\..\..\..\..\..\..\OS9\68000\LIB\sys.l -asn   -olgu=0.0 RELS\r0.r -oln=r0 -fd=..\..\..\CMDS\BOOTOBJS\DESC\RAMDISK\r0
+* ..\..\..\CMDS\BOOTOBJS\DESC\RAMDISK\dd
+* ..\..\..\CMDS\BOOTOBJS\DESC\RAMDISK\STB\dd.stb
+xcc -td=. -to=OSK -cw -olg -tp=68k -k -r -l=..\..\..\..\..\..\..\OS9\68000\LIB\sys.l -asn   -olgu=0.0 RELS\r0.r -oln=dd -fd=..\..\..\CMDS\BOOTOBJS\DESC\RAMDISK\dd
+*
+*
+*
+*
+*
+*
+*
+*
+cd MAUI; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _build
+*
+cd CDB; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k 
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" SUBTRGT=_build  _build TARGET=k68k
+os9makdir -pq ..\..\CMDS\BOOTOBJS\MAUI
+* ..\..\CMDS\BOOTOBJS\MAUI\cdb
+xcc cdb.a -to=OSK -tp=68k -k -olgu=0.0 -fd=..\..\CMDS\BOOTOBJS\MAUI\cdb
+*
+*
+*
+cd GX_328; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k 
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" SUBTRGT=_build  _build TARGET=k68k
+*
+os9make -f desc.mak "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _build
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" -f desc.mak TARGET=k68k OSK_DESC=gfx OSK.desc -f desc.mak
+* ..\..\CMDS\BOOTOBJS\MAUI\gfx
+xcc -to=OSK -tp=68k -td=. -o=0 -v=. -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_COMM -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_328 -v=..\..\..\..\..\..\SRC\DPIO\MFM\DEFS -v=..\..\..\..\..\..\SRC\DPIO\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS -dgfx -d -dMFM_DESC -ebe=RELS\DESC -r  -olgu=0.0 ..\..\..\..\..\..\SRC\DPIO\MFM\DESC\cnst.c;  rm_vsect RELS\DESC\cnst.o RELS\DESC\cnst.a;  xcc -to=OSK -tp=68k -td=. -o=0 -v=. -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_COMM -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_328 -v=..\..\..\..\..\..\SRC\DPIO\MFM\DEFS -v=..\..\..\..\..\..\SRC\DPIO\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS -dgfx -d -dMFM_DESC -eas=RELS\DESC -r  -olgu=0.0 RELS\DESC\cnst.a;  xcc -to=OSK -tp=68k -td=. -o=0 -v=. -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_COMM -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_328 -v=..\..\..\..\..\..\SRC\DPIO\MFM\DEFS -v=..\..\..\..\..\..\SRC\DPIO\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS -dgfx -d -dMFM_DESC -eas=RELS\DESC -r  -olgu=0.0 ..\..\..\..\..\..\SRC\DPIO\MFM\DESC\stat.c;  xcc -to=OSK -tp=68k -td=. -o=0 -v=. -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_COMM -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_328 -v=..\..\..\..\..\..\SRC\DPIO\MFM\DEFS -v=..\..\..\..\..\..\SRC\DPIO\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS -dgfx -d -dMFM_DESC -eas=RELS\DESC -r  -olgu=0.0 ..\..\..\..\..\..\SRC\DPIO\MFM\DESC\modes.c;  xcc -to=OSK -tp=68k -td=. -o=0 -k -r  -olgu=0.0 ..\..\..\..\..\..\OS9\68000\LIB\systart.r RELS\DESC\cnst.r RELS\DESC\stat.r RELS\DESC\modes.r -fd=RELS\DESC\os9000;
+xcc -to=OSK -tp=68k -td=. -o=0 -v=. -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_COMM -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_328 -v=..\..\..\..\..\..\SRC\DPIO\MFM\DEFS -v=..\..\..\..\..\..\SRC\DPIO\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS -dgfx -d -dMFM_DESC -ebe=RELS\DESC -r  -olgu=0.0 ..\..\..\..\..\..\SRC\DPIO\MFM\DESC\os9.c;  rm_vsect RELS\DESC\os9.o RELS\DESC\os9.a;  xcc -to=OSK -tp=68k -td=. -o=0 -v=. -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_COMM -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_328 -v=..\..\..\..\..\..\SRC\DPIO\MFM\DEFS -v=..\..\..\..\..\..\SRC\DPIO\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS -dgfx -d -dMFM_DESC -eas=RELS\DESC -r  -olgu=0.0 RELS\DESC\os9.a;  xcc -to=OSK -tp=68k -td=. -o=0 -k -r  -olgu=0.0 ..\..\..\..\..\..\OS9\68000\LIB\descstart.r RELS\DESC\os9.r -fd=RELS\DESC\os9 -oln=gfx;
+os9merge RELS\DESC\os9 RELS\DESC\os9000 >..\..\CMDS\BOOTOBJS\MAUI\gfx;  chtype -tMT_DEVDESC ..\..\CMDS\BOOTOBJS\MAUI\gfx;  xcc -to=OSK -tp=68k -td=. -o=0 -k -r  -olgu=0.0 ..\..\..\..\..\..\OS9\68000\LIB\systart.r RELS\DESC\cnst.r RELS\DESC\stat.r RELS\DESC\modes.r -fd=RELS\DESC\os9000 -ilgu=0.0
+Module: gfx - Fixing header parity - Fixing module CRC
+chtype: changed _mext to '0x0000009E'
+chtype: changed _msize to '0x000002B4'
+chtype: changed _mtylan to '0x0F'
+xcc -to=OSK -tp=68k -td=. -o=0 -k -r  -olgu=0.0 ..\..\..\..\..\..\OS9\68000\LIB\descstart.r RELS\DESC\os9.r -fd=RELS\DESC\os9 -oln=gfx -ilgu=0.0
+os9del -qf RELS\DESC\cnst.a
+os9del -qf RELS\DESC\cnst.o
+os9del -qf RELS\DESC\cnst.r
+os9del -qf RELS\DESC\stat.r
+os9del -qf RELS\DESC\modes.r
+os9del -qf RELS\DESC\os9.a
+os9del -qf RELS\DESC\os9.o
+os9del -qf RELS\DESC\os9.r
+os9del -qf RELS\DESC\os9
+os9del -qf RELS\DESC\os9000
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" -f desc.mak TARGET=k68k OSK_DESC=gfx1 OSK.desc -f desc.mak
+* ..\..\CMDS\BOOTOBJS\MAUI\gfx1
+xcc -to=OSK -tp=68k -td=. -o=0 -v=. -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_COMM -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_328 -v=..\..\..\..\..\..\SRC\DPIO\MFM\DEFS -v=..\..\..\..\..\..\SRC\DPIO\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS -dgfx1 -d -dMFM_DESC -ebe=RELS\DESC -r  -olgu=0.0 ..\..\..\..\..\..\SRC\DPIO\MFM\DESC\cnst.c;  rm_vsect RELS\DESC\cnst.o RELS\DESC\cnst.a;  xcc -to=OSK -tp=68k -td=. -o=0 -v=. -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_COMM -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_328 -v=..\..\..\..\..\..\SRC\DPIO\MFM\DEFS -v=..\..\..\..\..\..\SRC\DPIO\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS -dgfx1 -d -dMFM_DESC -eas=RELS\DESC -r  -olgu=0.0 RELS\DESC\cnst.a;  xcc -to=OSK -tp=68k -td=. -o=0 -v=. -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_COMM -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_328 -v=..\..\..\..\..\..\SRC\DPIO\MFM\DEFS -v=..\..\..\..\..\..\SRC\DPIO\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS -dgfx1 -d -dMFM_DESC -eas=RELS\DESC -r  -olgu=0.0 ..\..\..\..\..\..\SRC\DPIO\MFM\DESC\stat.c;  xcc -to=OSK -tp=68k -td=. -o=0 -v=. -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_COMM -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_328 -v=..\..\..\..\..\..\SRC\DPIO\MFM\DEFS -v=..\..\..\..\..\..\SRC\DPIO\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS -dgfx1 -d -dMFM_DESC -eas=RELS\DESC -r  -olgu=0.0 ..\..\..\..\..\..\SRC\DPIO\MFM\DESC\modes.c;  xcc -to=OSK -tp=68k -td=. -o=0 -k -r  -olgu=0.0 ..\..\..\..\..\..\OS9\68000\LIB\systart.r RELS\DESC\cnst.r RELS\DESC\stat.r RELS\DESC\modes.r -fd=RELS\DESC\os9000;
+xcc -to=OSK -tp=68k -td=. -o=0 -v=. -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_COMM -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_328 -v=..\..\..\..\..\..\SRC\DPIO\MFM\DEFS -v=..\..\..\..\..\..\SRC\DPIO\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS -dgfx1 -d -dMFM_DESC -ebe=RELS\DESC -r  -olgu=0.0 ..\..\..\..\..\..\SRC\DPIO\MFM\DESC\os9.c;  rm_vsect RELS\DESC\os9.o RELS\DESC\os9.a;  xcc -to=OSK -tp=68k -td=. -o=0 -v=. -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_COMM -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_328 -v=..\..\..\..\..\..\SRC\DPIO\MFM\DEFS -v=..\..\..\..\..\..\SRC\DPIO\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS -dgfx1 -d -dMFM_DESC -eas=RELS\DESC -r  -olgu=0.0 RELS\DESC\os9.a;  xcc -to=OSK -tp=68k -td=. -o=0 -k -r  -olgu=0.0 ..\..\..\..\..\..\OS9\68000\LIB\descstart.r RELS\DESC\os9.r -fd=RELS\DESC\os9 -oln=gfx1;
+os9merge RELS\DESC\os9 RELS\DESC\os9000 >..\..\CMDS\BOOTOBJS\MAUI\gfx1;  chtype -tMT_DEVDESC ..\..\CMDS\BOOTOBJS\MAUI\gfx1;  xcc -to=OSK -tp=68k -td=. -o=0 -k -r  -olgu=0.0 ..\..\..\..\..\..\OS9\68000\LIB\systart.r RELS\DESC\cnst.r RELS\DESC\stat.r RELS\DESC\modes.r -fd=RELS\DESC\os9000 -ilgu=0.0
+Module: gfx1 - Fixing header parity - Fixing module CRC
+chtype: changed _mext to '0x000000A0'
+chtype: changed _msize to '0x000002B8'
+chtype: changed _mtylan to '0x0F'
+xcc -to=OSK -tp=68k -td=. -o=0 -k -r  -olgu=0.0 ..\..\..\..\..\..\OS9\68000\LIB\descstart.r RELS\DESC\os9.r -fd=RELS\DESC\os9 -oln=gfx1 -ilgu=0.0
+os9del -qf RELS\DESC\cnst.a
+os9del -qf RELS\DESC\cnst.o
+os9del -qf RELS\DESC\cnst.r
+os9del -qf RELS\DESC\stat.r
+os9del -qf RELS\DESC\modes.r
+os9del -qf RELS\DESC\os9.a
+os9del -qf RELS\DESC\os9.o
+os9del -qf RELS\DESC\os9.r
+os9del -qf RELS\DESC\os9
+os9del -qf RELS\DESC\os9000
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" -f desc.mak TARGET=k68k OSK_DESC=gfx2 OSK.desc -f desc.mak
+* ..\..\CMDS\BOOTOBJS\MAUI\gfx2
+xcc -to=OSK -tp=68k -td=. -o=0 -v=. -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_COMM -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_328 -v=..\..\..\..\..\..\SRC\DPIO\MFM\DEFS -v=..\..\..\..\..\..\SRC\DPIO\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS -dgfx2 -d -dMFM_DESC -ebe=RELS\DESC -r  -olgu=0.0 ..\..\..\..\..\..\SRC\DPIO\MFM\DESC\cnst.c;  rm_vsect RELS\DESC\cnst.o RELS\DESC\cnst.a;  xcc -to=OSK -tp=68k -td=. -o=0 -v=. -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_COMM -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_328 -v=..\..\..\..\..\..\SRC\DPIO\MFM\DEFS -v=..\..\..\..\..\..\SRC\DPIO\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS -dgfx2 -d -dMFM_DESC -eas=RELS\DESC -r  -olgu=0.0 RELS\DESC\cnst.a;  xcc -to=OSK -tp=68k -td=. -o=0 -v=. -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_COMM -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_328 -v=..\..\..\..\..\..\SRC\DPIO\MFM\DEFS -v=..\..\..\..\..\..\SRC\DPIO\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS -dgfx2 -d -dMFM_DESC -eas=RELS\DESC -r  -olgu=0.0 ..\..\..\..\..\..\SRC\DPIO\MFM\DESC\stat.c;  xcc -to=OSK -tp=68k -td=. -o=0 -v=. -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_COMM -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_328 -v=..\..\..\..\..\..\SRC\DPIO\MFM\DEFS -v=..\..\..\..\..\..\SRC\DPIO\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS -dgfx2 -d -dMFM_DESC -eas=RELS\DESC -r  -olgu=0.0 ..\..\..\..\..\..\SRC\DPIO\MFM\DESC\modes.c;  xcc -to=OSK -tp=68k -td=. -o=0 -k -r  -olgu=0.0 ..\..\..\..\..\..\OS9\68000\LIB\systart.r RELS\DESC\cnst.r RELS\DESC\stat.r RELS\DESC\modes.r -fd=RELS\DESC\os9000;
+xcc -to=OSK -tp=68k -td=. -o=0 -v=. -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_COMM -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_328 -v=..\..\..\..\..\..\SRC\DPIO\MFM\DEFS -v=..\..\..\..\..\..\SRC\DPIO\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS -dgfx2 -d -dMFM_DESC -ebe=RELS\DESC -r  -olgu=0.0 ..\..\..\..\..\..\SRC\DPIO\MFM\DESC\os9.c;  rm_vsect RELS\DESC\os9.o RELS\DESC\os9.a;  xcc -to=OSK -tp=68k -td=. -o=0 -v=. -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_COMM -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_328 -v=..\..\..\..\..\..\SRC\DPIO\MFM\DEFS -v=..\..\..\..\..\..\SRC\DPIO\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS -dgfx2 -d -dMFM_DESC -eas=RELS\DESC -r  -olgu=0.0 RELS\DESC\os9.a;  xcc -to=OSK -tp=68k -td=. -o=0 -k -r  -olgu=0.0 ..\..\..\..\..\..\OS9\68000\LIB\descstart.r RELS\DESC\os9.r -fd=RELS\DESC\os9 -oln=gfx2;
+os9merge RELS\DESC\os9 RELS\DESC\os9000 >..\..\CMDS\BOOTOBJS\MAUI\gfx2;  chtype -tMT_DEVDESC ..\..\CMDS\BOOTOBJS\MAUI\gfx2;  xcc -to=OSK -tp=68k -td=. -o=0 -k -r  -olgu=0.0 ..\..\..\..\..\..\OS9\68000\LIB\systart.r RELS\DESC\cnst.r RELS\DESC\stat.r RELS\DESC\modes.r -fd=RELS\DESC\os9000 -ilgu=0.0
+Module: gfx2 - Fixing header parity - Fixing module CRC
+chtype: changed _mext to '0x000000A0'
+chtype: changed _msize to '0x000002B8'
+chtype: changed _mtylan to '0x0F'
+xcc -to=OSK -tp=68k -td=. -o=0 -k -r  -olgu=0.0 ..\..\..\..\..\..\OS9\68000\LIB\descstart.r RELS\DESC\os9.r -fd=RELS\DESC\os9 -oln=gfx2 -ilgu=0.0
+os9del -qf RELS\DESC\cnst.a
+os9del -qf RELS\DESC\cnst.o
+os9del -qf RELS\DESC\cnst.r
+os9del -qf RELS\DESC\stat.r
+os9del -qf RELS\DESC\modes.r
+os9del -qf RELS\DESC\os9.a
+os9del -qf RELS\DESC\os9.o
+os9del -qf RELS\DESC\os9.r
+os9del -qf RELS\DESC\os9
+os9del -qf RELS\DESC\os9000
+*
+*
+*
+os9make -f drvr.mak "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _build
+*
+os9makdir -pq ..\..\CMDS\BOOTOBJS\MAUI\STB
+os9makdir -pq RELS\DRVR\HOST3
+xcc -td=. -to=OSK -cw -tp=68kc -v=. -v=. -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_328 -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_COMM -v=..\..\..\..\..\..\SRC\DPIO\MFM\DEFS -v=..\..\..\..\..\..\SRC\DPIO\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS  -eas=RELS\DRVR -r -o=7 -t=1 -s=10 -cw -iom    -l=..\..\..\..\..\..\OS9\68000\LIB\maui_ss.l -ill=..\..\..\..\..\..\OS9\68000\LIB\HOST3\maui_ss.il -l=..\..\..\..\..\..\OS9\68000\LIB\conv_lib.l -y=..\..\..\..\..\..\OS9\68000\LIB\HOST3\conv_lib.il -l=..\..\..\..\..\..\OS9\68000\LIB\cpu.l -l=..\..\..\..\..\..\OS9\68000\LIB\sys_clib.l -y=..\..\..\..\..\..\OS9\68000\LIB\HOST3\sys_clib.il -l=..\..\..\..\..\..\OS9\68000\LIB\clib.l -y=..\..\..\..\..\..\OS9\68000\LIB\HOST3\clib.il -l=..\..\..\..\..\..\OS9\68000\LIB\os_lib.l -y=..\..\..\..\..\..\OS9\68000\LIB\HOST3\os_lib.il -l=..\..\..\..\..\..\OS9\68000\LIB\sys.l ..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_COMM\gdv_main.c
+xcc -td=. -to=OSK -cw -tp=68kc -v=. -v=. -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_328 -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_COMM -v=..\..\..\..\..\..\SRC\DPIO\MFM\DEFS -v=..\..\..\..\..\..\SRC\DPIO\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS  -efe=RELS\DRVR\HOST3 -r -o=7 -t=1 -s=10 -cw -iom ..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_COMM\gdv_dev.c
+xcc -td=. -to=OSK -cw -tp=68kc -v=. -v=. -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_328 -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_COMM -v=..\..\..\..\..\..\SRC\DPIO\MFM\DEFS -v=..\..\..\..\..\..\SRC\DPIO\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS  -efe=RELS\DRVR\HOST3 -r -o=7 -t=1 -s=10 -cw -iom ..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_COMM\gdv_ep.c
+xcc -td=. -to=OSK -cw -tp=68kc -v=. -v=. -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_328 -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_COMM -v=..\..\..\..\..\..\SRC\DPIO\MFM\DEFS -v=..\..\..\..\..\..\SRC\DPIO\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS  -efe=RELS\DRVR\HOST3 -r -o=7 -t=1 -s=10 -cw -iom ..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_COMM\gdv_vp.c
+xcc -td=. -to=OSK -cw -tp=68kc -v=. -v=. -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_328 -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_COMM -v=..\..\..\..\..\..\SRC\DPIO\MFM\DEFS -v=..\..\..\..\..\..\SRC\DPIO\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS  -efe=RELS\DRVR\HOST3 -r -o=7 -t=1 -s=10 -cw -iom ..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_328\dvbkcol.c
+xcc -td=. -to=OSK -cw -tp=68kc -v=. -v=. -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_328 -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_COMM -v=..\..\..\..\..\..\SRC\DPIO\MFM\DEFS -v=..\..\..\..\..\..\SRC\DPIO\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS  -efe=RELS\DRVR\HOST3 -r -o=7 -t=1 -s=10 -cw -iom ..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_328\dvextvid.c
+xcc -td=. -to=OSK -cw -tp=68kc -v=. -v=. -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_328 -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_COMM -v=..\..\..\..\..\..\SRC\DPIO\MFM\DEFS -v=..\..\..\..\..\..\SRC\DPIO\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS  -efe=RELS\DRVR\HOST3 -r -o=7 -t=1 -s=10 -cw -iom ..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_328\dvtran.c
+xcc -td=. -to=OSK -cw -tp=68kc -v=. -v=. -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_328 -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_COMM -v=..\..\..\..\..\..\SRC\DPIO\MFM\DEFS -v=..\..\..\..\..\..\SRC\DPIO\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS  -efe=RELS\DRVR\HOST3 -r -o=7 -t=1 -s=10 -cw -iom ..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_328\dvvpmix.c
+xcc -td=. -to=OSK -cw -tp=68kc -v=. -v=. -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_328 -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_COMM -v=..\..\..\..\..\..\SRC\DPIO\MFM\DEFS -v=..\..\..\..\..\..\SRC\DPIO\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS  -efe=RELS\DRVR\HOST3 -r -o=7 -t=1 -s=10 -cw -iom ..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_328\hardware.c
+xcc -td=. -to=OSK -cw -tp=68kc -v=. -v=. -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_328 -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_COMM -v=..\..\..\..\..\..\SRC\DPIO\MFM\DEFS -v=..\..\..\..\..\..\SRC\DPIO\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS  -efe=RELS\DRVR\HOST3 -r -o=7 -t=1 -s=10 -cw -iom ..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_328\irq.c
+xcc -td=. -to=OSK -cw -tp=68kc -v=. -v=. -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_328 -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_COMM -v=..\..\..\..\..\..\SRC\DPIO\MFM\DEFS -v=..\..\..\..\..\..\SRC\DPIO\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS  -efe=RELS\DRVR\HOST3 -r -o=7 -t=1 -s=10 -cw -iom ..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_328\static.c
+xcc -td=. -to=OSK -cw -tp=68kc -v=. -v=. -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_328 -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_COMM -v=..\..\..\..\..\..\SRC\DPIO\MFM\DEFS -v=..\..\..\..\..\..\SRC\DPIO\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS  -efe=RELS\DRVR\HOST3 -r -o=7 -t=1 -s=10 -cw -iom ..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_328\updtdpy.c
+xcc -td=. -to=OSK -cw -tp=68kc -v=. -v=. -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_328 -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_COMM -v=..\..\..\..\..\..\SRC\DPIO\MFM\DEFS -v=..\..\..\..\..\..\SRC\DPIO\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS  -efe=RELS\DRVR\HOST3 -r -o=7 -t=1 -s=10 -cw -iom ..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_328\vpdmap.c
+xcc -td=. -to=OSK -cw -tp=68kc -v=. -v=. -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_328 -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_COMM -v=..\..\..\..\..\..\SRC\DPIO\MFM\DEFS -v=..\..\..\..\..\..\SRC\DPIO\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS  -efe=RELS\DRVR\HOST3 -r -o=7 -t=1 -s=10 -cw -iom ..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_328\vpdmpos.c
+xcc -td=. -to=OSK -cw -tp=68kc -v=. -v=. -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_328 -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_COMM -v=..\..\..\..\..\..\SRC\DPIO\MFM\DEFS -v=..\..\..\..\..\..\SRC\DPIO\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS  -efe=RELS\DRVR\HOST3 -r -o=7 -t=1 -s=10 -cw -iom ..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_328\vpintens.c
+xcc -td=. -to=OSK -cw -tp=68kc -v=. -v=. -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_328 -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_COMM -v=..\..\..\..\..\..\SRC\DPIO\MFM\DEFS -v=..\..\..\..\..\..\SRC\DPIO\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS  -efe=RELS\DRVR\HOST3 -r -o=7 -t=1 -s=10 -cw -iom ..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_328\vppos.c
+xcc -td=. -to=OSK -cw -tp=68kc -v=. -v=. -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_328 -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_COMM -v=..\..\..\..\..\..\SRC\DPIO\MFM\DEFS -v=..\..\..\..\..\..\SRC\DPIO\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS  -efe=RELS\DRVR\HOST3 -r -o=7 -t=1 -s=10 -cw -iom ..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_328\vprestak.c
+xcc -td=. -to=OSK -cw -tp=68kc -v=. -v=. -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_328 -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_COMM -v=..\..\..\..\..\..\SRC\DPIO\MFM\DEFS -v=..\..\..\..\..\..\SRC\DPIO\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS  -efe=RELS\DRVR\HOST3 -r -o=7 -t=1 -s=10 -cw -iom ..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_328\vpsize.c
+xcc -td=. -to=OSK -cw -tp=68kc -v=. -v=. -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_328 -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_COMM -v=..\..\..\..\..\..\SRC\DPIO\MFM\DEFS -v=..\..\..\..\..\..\SRC\DPIO\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS  -efe=RELS\DRVR\HOST3 -r -o=7 -t=1 -s=10 -cw -iom ..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_328\vpstate.c
+xcc -td=. -to=OSK -cw -tp=68kc -v=. -v=. -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_328 -v=..\..\..\..\..\..\SRC\DPIO\MFM\DRVR\GX_COMM -v=..\..\..\..\..\..\SRC\DPIO\MFM\DEFS -v=..\..\..\..\..\..\SRC\DPIO\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS  -eas=RELS\DRVR -r -o=7 -t=1 -s=10 -cw -iom    -l=..\..\..\..\..\..\OS9\68000\LIB\maui_ss.l -ill=..\..\..\..\..\..\OS9\68000\LIB\HOST3\maui_ss.il -l=..\..\..\..\..\..\OS9\68000\LIB\conv_lib.l -y=..\..\..\..\..\..\OS9\68000\LIB\HOST3\conv_lib.il -l=..\..\..\..\..\..\OS9\68000\LIB\cpu.l -l=..\..\..\..\..\..\OS9\68000\LIB\sys_clib.l -y=..\..\..\..\..\..\OS9\68000\LIB\HOST3\sys_clib.il -l=..\..\..\..\..\..\OS9\68000\LIB\clib.l -y=..\..\..\..\..\..\OS9\68000\LIB\HOST3\clib.il -l=..\..\..\..\..\..\OS9\68000\LIB\os_lib.l -y=..\..\..\..\..\..\OS9\68000\LIB\HOST3\os_lib.il -l=..\..\..\..\..\..\OS9\68000\LIB\sys.l RELS\DRVR\HOST3\gdv_dev.i  RELS\DRVR\HOST3\gdv_ep.i  RELS\DRVR\HOST3\gdv_vp.i  RELS\DRVR\HOST3\dvbkcol.i  RELS\DRVR\HOST3\dvextvid.i  RELS\DRVR\HOST3\dvtran.i  RELS\DRVR\HOST3\dvvpmix.i  RELS\DRVR\HOST3\hardware.i  RELS\DRVR\HOST3\irq.i  RELS\DRVR\HOST3\static.i  RELS\DRVR\HOST3\updtdpy.i  RELS\DRVR\HOST3\vpdmap.i  RELS\DRVR\HOST3\vpdmpos.i  RELS\DRVR\HOST3\vpintens.i  RELS\DRVR\HOST3\vppos.i  RELS\DRVR\HOST3\vprestak.i  RELS\DRVR\HOST3\vpsize.i  RELS\DRVR\HOST3\vpstate.i -fd=ifiles.r
+* ..\..\CMDS\BOOTOBJS\MAUI\gx_328
+* ..\..\CMDS\BOOTOBJS\MAUI\STB\gx_328.stb
+xcc -td=. -to=OSK -cw -olg -tp=68k  -k -r -o=7 -t=1 -s=10 -cw -iom   -l=..\..\..\..\..\..\OS9\68000\LIB\maui_ss.l -ill=..\..\..\..\..\..\OS9\68000\LIB\HOST3\maui_ss.il -l=..\..\..\..\..\..\OS9\68000\LIB\conv_lib.l -y=..\..\..\..\..\..\OS9\68000\LIB\HOST3\conv_lib.il -l=..\..\..\..\..\..\OS9\68000\LIB\cpu.l -l=..\..\..\..\..\..\OS9\68000\LIB\sys_clib.l -y=..\..\..\..\..\..\OS9\68000\LIB\HOST3\sys_clib.il -l=..\..\..\..\..\..\OS9\68000\LIB\clib.l -y=..\..\..\..\..\..\OS9\68000\LIB\HOST3\clib.il -l=..\..\..\..\..\..\OS9\68000\LIB\os_lib.l -y=..\..\..\..\..\..\OS9\68000\LIB\HOST3\os_lib.il -l=..\..\..\..\..\..\OS9\68000\LIB\sys.l ..\..\..\..\..\..\OS9\68000\LIB\DPIO\drvstart.r RELS\DRVR\gdv_main.r RELS\DRVR\ifiles.r -fd=..\..\CMDS\BOOTOBJS\MAUI\gx_328 -oln=gx_328 -olgu=0.0;  chtype -tMT_DEVDRVR ..\..\CMDS\BOOTOBJS\MAUI\gx_328;
+Module: gx_328 - Fixing header parity - Fixing module CRC
+chtype: changed _mtylan to '0x0E'
+*
+*
+*
+*
+*
+cd MP_T328ADS; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k 
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" SUBTRGT=_build  _build TARGET=k68k
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k SUBTRGT=_build _build -f=cdb.mak
+os9makdir -pq ..\..\CMDS\BOOTOBJS\MAUI
+* ..\..\CMDS\BOOTOBJS\MAUI\cdb_touch
+xcc cdb.a -to=OSK -tp=68k -k -olgu=0.0 -fd=..\..\CMDS\BOOTOBJS\MAUI\cdb_touch
+*
+*
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k SUBTRGT=_build _build -f=pmod.mak
+xcc -v=.  -v=..\..\..\..\..\..\SRC\MAUI\MP\MP_T328ADS  -v=..\..\..\..\..\..\SRC\DEFS  -v=..\..\..\..\..\..\OS9\SRC\DEFS  -v=..\..\..\..\..\..\OS9\68000\DEFS -eas=RELS -r -t=3 -s=10 -td=. -to=OSK -cw -tp=68k,ld,lc ..\..\..\..\..\..\SRC\MAUI\MP\MP_T328ADS\mppmstrt.a
+xcc -v=.  -v=..\..\..\..\..\..\SRC\MAUI\MP\MP_T328ADS  -v=..\..\..\..\..\..\SRC\DEFS  -v=..\..\..\..\..\..\OS9\SRC\DEFS  -v=..\..\..\..\..\..\OS9\68000\DEFS -efe=RELS\HOST3 -r -t=3 -s=10 -td=. -to=OSK -cw -tp=68k,ld,lc ..\..\..\..\..\..\SRC\MAUI\MP\MP_T328ADS\init.c
+xcc -v=.  -v=..\..\..\..\..\..\SRC\MAUI\MP\MP_T328ADS  -v=..\..\..\..\..\..\SRC\DEFS  -v=..\..\..\..\..\..\OS9\SRC\DEFS  -v=..\..\..\..\..\..\OS9\68000\DEFS -efe=RELS\HOST3 -r -t=3 -s=10 -td=. -to=OSK -cw -tp=68k,ld,lc ..\..\..\..\..\..\SRC\MAUI\MP\MP_T328ADS\procdata.c
+xcc -v=.  -v=..\..\..\..\..\..\SRC\MAUI\MP\MP_T328ADS  -v=..\..\..\..\..\..\SRC\DEFS  -v=..\..\..\..\..\..\OS9\SRC\DEFS  -v=..\..\..\..\..\..\OS9\68000\DEFS -efe=RELS\HOST3 -r -t=3 -s=10 -td=. -to=OSK -cw -tp=68k,ld,lc ..\..\..\..\..\..\SRC\MAUI\MP\MP_T328ADS\procmsg.c
+xcc -v=.  -v=..\..\..\..\..\..\SRC\MAUI\MP\MP_T328ADS  -v=..\..\..\..\..\..\SRC\DEFS  -v=..\..\..\..\..\..\OS9\SRC\DEFS  -v=..\..\..\..\..\..\OS9\68000\DEFS -efe=RELS\HOST3 -r -t=3 -s=10 -td=. -to=OSK -cw -tp=68k,ld,lc ..\..\..\..\..\..\SRC\MAUI\MP\MP_T328ADS\term.c
+* ..\..\CMDS\BOOTOBJS\MAUI\mp_t328ads
+* ..\..\CMDS\BOOTOBJS\MAUI\STB\mp_t328ads.stb
+xcc -l=..\..\..\..\..\..\OS9\68000\LIB\sys_clib.l -y=..\..\..\..\..\..\OS9\68000\LIB\HOST3\sys_clib.il -l=..\..\..\..\..\..\OS9\68000\LIB\clib.l -y=..\..\..\..\..\..\OS9\68000\LIB\HOST3\clib.il -l=..\..\..\..\..\..\OS9\68000\LIB\os_lib.l -y=..\..\..\..\..\..\OS9\68000\LIB\HOST3\os_lib.il -l=..\..\..\..\..\..\OS9\68000\LIB\sys.l -kr -olg -olgu=0.0 -t=3 -s=10 -td=. -to=OSK -cw -tp=68k,ld,lc RELS\mppmstrt.r  RELS\HOST3\init.i  RELS\HOST3\procdata.i  RELS\HOST3\procmsg.i  RELS\HOST3\term.i -fd=..\..\CMDS\BOOTOBJS\MAUI\mp_t328ads
+*
+*
+*
+*
+*
+cd DEMOS; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k 
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" SUBTRGT=_build  _build TARGET=k68k
+*
+cd DEMO; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _build
+os9makdir -pq ..\..\..\CMDS
+os9makdir -pq ..\..\..\CMDS\STB
+* ..\..\..\CMDS\demo
+* ..\..\..\CMDS\STB\demo.stb
+* ..\..\..\CMDS\STB\demo.dbg
+xcc -td=. -to=OSK -cw -olg -tp=68k -dDEBUG -v=..\..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\..\OS9\SRC\DEFS -v=..\..\..\..\..\..\..\OS9\68000\PORTS\MC328ADS\DEFS  -v=..\..\..\..\..\..\..\SRC\WIRELESS\DEMO\DEMO328 -l=..\..\..\..\..\..\..\OS9\68000\LIB\mauilib.l -l=..\..\..\..\..\..\..\OS9\68000\LIB\mfm.l  -l=..\..\..\..\..\..\..\OS9\68000\LIB\conv_lib.l -y=..\..\..\..\..\..\..\OS9\68000\LIB\HOST3\conv_lib.il -l=..\..\..\..\..\..\..\OS9\68000\LIB\sys_csl.l -y=..\..\..\..\..\..\..\OS9\68000\LIB\HOST3\sys_csl.il -l=..\..\..\..\..\..\..\OS9\68000\LIB\sys_clib.l -y=..\..\..\..\..\..\..\OS9\68000\LIB\HOST3\sys_clib.il -l=..\..\..\..\..\..\..\OS9\68000\LIB\csl.l -y=..\..\..\..\..\..\..\OS9\68000\LIB\HOST3\csl.il -l=..\..\..\..\..\..\..\OS9\68000\LIB\csl.l -l=..\..\..\..\..\..\..\OS9\68000\LIB\clib.l -y=..\..\..\..\..\..\..\OS9\68000\LIB\HOST3\clib.il -l=..\..\..\..\..\..\..\OS9\68000\LIB\os_csl.l -y=..\..\..\..\..\..\..\OS9\68000\LIB\HOST3\os_csl.il  -l=..\..\..\..\..\..\..\OS9\68000\LIB\os_lib.l -y=..\..\..\..\..\..\..\OS9\68000\LIB\HOST3\os_lib.il -l=..\..\..\..\..\..\..\OS9\68000\LIB\sys.l -o=7 -cw  -ola -olS -k ..\..\..\..\..\..\..\OS9\68000\LIB\ansi_cstart.r ..\..\..\..\..\..\..\SRC\WIRELESS\DEMO\DEMO328\demo.c ..\..\..\..\..\..\..\SRC\WIRELESS\DEMO\DEMO328\load.c ..\..\..\..\..\..\..\SRC\WIRELESS\DEMO\DEMO328\menu_funcs.c -fd=..\..\..\CMDS\demo
+*
+*
+*
+cd DRAW; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _build
+os9makdir -pq ..\..\..\CMDS
+os9makdir -pq ..\..\..\CMDS\STB
+* ..\..\..\CMDS\draw
+* ..\..\..\CMDS\STB\draw.stb
+* ..\..\..\CMDS\STB\draw.dbg
+xcc -td=. -to=OSK -cw -olg -tp=68k -dDEBUG -v=..\..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\..\OS9\SRC\DEFS -v=..\..\..\..\..\..\..\OS9\68000\PORTS\MC328ADS\DEFS  -v=..\..\..\..\..\..\..\SRC\WIRELESS\DEMO\DRAW -l=..\..\..\..\..\..\..\OS9\68000\LIB\maui.l -l=..\..\..\..\..\..\..\OS9\68000\LIB\mfm.l  -l=..\..\..\..\..\..\..\OS9\68000\LIB\conv_lib.l -y=..\..\..\..\..\..\..\OS9\68000\LIB\HOST3\conv_lib.il -l=..\..\..\..\..\..\..\OS9\68000\LIB\sys_csl.l -y=..\..\..\..\..\..\..\OS9\68000\LIB\HOST3\sys_csl.il -l=..\..\..\..\..\..\..\OS9\68000\LIB\sys_clib.l -y=..\..\..\..\..\..\..\OS9\68000\LIB\HOST3\sys_clib.il -l=..\..\..\..\..\..\..\OS9\68000\LIB\csl.l -y=..\..\..\..\..\..\..\OS9\68000\LIB\HOST3\csl.il -l=..\..\..\..\..\..\..\OS9\68000\LIB\csl.l -l=..\..\..\..\..\..\..\OS9\68000\LIB\clib.l -y=..\..\..\..\..\..\..\OS9\68000\LIB\HOST3\clib.il -l=..\..\..\..\..\..\..\OS9\68000\LIB\os_csl.l -y=..\..\..\..\..\..\..\OS9\68000\LIB\HOST3\os_csl.il  -l=..\..\..\..\..\..\..\OS9\68000\LIB\os_lib.l -y=..\..\..\..\..\..\..\OS9\68000\LIB\HOST3\os_lib.il -l=..\..\..\..\..\..\..\OS9\68000\LIB\sys.l -o=7 -cw  -ola -olS -k ..\..\..\..\..\..\..\OS9\68000\LIB\ansi_cstart.r ..\..\..\..\..\..\..\SRC\WIRELESS\DEMO\DRAW\draw.c -fd=..\..\..\CMDS\draw
+iopt: **** warning - Note: main() is NOT reducible, no loop optimizations done ****
+*
+*
+*
+cd MAUIDEMO; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _build
+os9makdir -pq ..\..\..\CMDS
+os9makdir -pq ..\..\..\CMDS\STB
+* ..\..\..\CMDS\mauidemo
+* ..\..\..\CMDS\STB\mauidemo.stb
+* ..\..\..\CMDS\STB\mauidemo.dbg
+xcc -td=. -to=OSK -cw -olg -tp=68k -dTEST_2BIT_DRAW  -dTEST_1BIT_DRAW  -dTEST_2BIT_IMG  -dTEST_1BIT_IMG -v=..\..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\..\OS9\SRC\DEFS -v=..\..\..\..\..\..\..\OS9\68000\PORTS\MC328ADS\DEFS  -v=..\..\..\..\..\..\..\SRC\WIRELESS\DEMO\MAUIDEMO -l=..\..\..\..\..\..\..\OS9\68000\LIB\maui.l -l=..\..\..\..\..\..\..\OS9\68000\LIB\mfm.l  -l=..\..\..\..\..\..\..\OS9\68000\LIB\conv_lib.l -y=..\..\..\..\..\..\..\OS9\68000\LIB\HOST3\conv_lib.il -l=..\..\..\..\..\..\..\OS9\68000\LIB\sys_csl.l -y=..\..\..\..\..\..\..\OS9\68000\LIB\HOST3\sys_csl.il -l=..\..\..\..\..\..\..\OS9\68000\LIB\sys_clib.l -y=..\..\..\..\..\..\..\OS9\68000\LIB\HOST3\sys_clib.il -l=..\..\..\..\..\..\..\OS9\68000\LIB\csl.l -y=..\..\..\..\..\..\..\OS9\68000\LIB\HOST3\csl.il -l=..\..\..\..\..\..\..\OS9\68000\LIB\csl.l -l=..\..\..\..\..\..\..\OS9\68000\LIB\clib.l -y=..\..\..\..\..\..\..\OS9\68000\LIB\HOST3\clib.il -l=..\..\..\..\..\..\..\OS9\68000\LIB\os_csl.l -y=..\..\..\..\..\..\..\OS9\68000\LIB\HOST3\os_csl.il  -l=..\..\..\..\..\..\..\OS9\68000\LIB\os_lib.l -y=..\..\..\..\..\..\..\OS9\68000\LIB\HOST3\os_lib.il -l=..\..\..\..\..\..\..\OS9\68000\LIB\sys.l -o=7 -cw  -ola -olS -k ..\..\..\..\..\..\..\OS9\68000\LIB\ansi_cstart.r ..\..\..\..\..\..\..\SRC\WIRELESS\DEMO\MAUIDEMO\main.c ..\..\..\..\..\..\..\SRC\WIRELESS\DEMO\MAUIDEMO\ucmfont.c ..\..\..\..\..\..\..\SRC\WIRELESS\DEMO\MAUIDEMO\load.c -fd=..\..\..\CMDS\mauidemo
+*
+*
+*
+cd PENP; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _build
+os9makdir -pq ..\..\..\CMDS
+os9makdir -pq ..\..\..\CMDS\STB
+* ..\..\..\CMDS\penp
+* ..\..\..\CMDS\STB\penp.stb
+* ..\..\..\CMDS\STB\penp.dbg
+xcc -td=. -to=OSK -cw -olg -tp=68k -dTXT_TEST -dBLT_TEST -v=..\..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\..\OS9\SRC\DEFS -v=..\..\..\..\..\..\..\OS9\68000\PORTS\MC328ADS\DEFS  -v=..\..\..\..\..\..\..\SRC\WIRELESS\DEMO\PENP -l=..\..\..\..\..\..\..\OS9\68000\LIB\maui.l -l=..\..\..\..\..\..\..\OS9\68000\LIB\mfm.l  -l=..\..\..\..\..\..\..\OS9\68000\LIB\conv_lib.l -y=..\..\..\..\..\..\..\OS9\68000\LIB\HOST3\conv_lib.il -l=..\..\..\..\..\..\..\OS9\68000\LIB\sys_csl.l -y=..\..\..\..\..\..\..\OS9\68000\LIB\HOST3\sys_csl.il -l=..\..\..\..\..\..\..\OS9\68000\LIB\sys_clib.l -y=..\..\..\..\..\..\..\OS9\68000\LIB\HOST3\sys_clib.il -l=..\..\..\..\..\..\..\OS9\68000\LIB\csl.l -y=..\..\..\..\..\..\..\OS9\68000\LIB\HOST3\csl.il -l=..\..\..\..\..\..\..\OS9\68000\LIB\csl.l -l=..\..\..\..\..\..\..\OS9\68000\LIB\clib.l -y=..\..\..\..\..\..\..\OS9\68000\LIB\HOST3\clib.il -l=..\..\..\..\..\..\..\OS9\68000\LIB\os_csl.l -y=..\..\..\..\..\..\..\OS9\68000\LIB\HOST3\os_csl.il  -l=..\..\..\..\..\..\..\OS9\68000\LIB\os_lib.l -y=..\..\..\..\..\..\..\OS9\68000\LIB\HOST3\os_lib.il -l=..\..\..\..\..\..\..\OS9\68000\LIB\sys.l -o=7 -cw  -ola -olS -k ..\..\..\..\..\..\..\OS9\68000\LIB\ansi_cstart.r ..\..\..\..\..\..\..\SRC\WIRELESS\DEMO\PENP\penp.c ..\..\..\..\..\..\..\SRC\WIRELESS\DEMO\PENP\ucmfont.c ..\..\..\..\..\..\..\SRC\WIRELESS\DEMO\PENP\load.c -fd=..\..\..\CMDS\penp
+*
+*
+*
+cd SLIDSHOW; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _build
+os9makdir -pq ..\..\..\CMDS
+os9makdir -pq ..\..\..\CMDS\STB
+* ..\..\..\CMDS\slidshow
+* ..\..\..\CMDS\STB\slidshow.stb
+* ..\..\..\CMDS\STB\slidshow.dbg
+xcc -td=. -to=OSK -cw -olg -tp=68k -dDEBUG -v=..\..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\..\OS9\SRC\DEFS -v=..\..\..\..\..\..\..\OS9\68000\PORTS\MC328ADS\DEFS  -v=..\..\..\..\..\..\..\SRC\WIRELESS\DEMO\SLIDSHOW -l=..\..\..\..\..\..\..\OS9\68000\LIB\maui.l -l=..\..\..\..\..\..\..\OS9\68000\LIB\mfm.l  -l=..\..\..\..\..\..\..\OS9\68000\LIB\conv_lib.l -y=..\..\..\..\..\..\..\OS9\68000\LIB\HOST3\conv_lib.il -l=..\..\..\..\..\..\..\OS9\68000\LIB\sys_clib.l -y=..\..\..\..\..\..\..\OS9\68000\LIB\HOST3\sys_clib.il -l=..\..\..\..\..\..\..\OS9\68000\LIB\clib.l -y=..\..\..\..\..\..\..\OS9\68000\LIB\HOST3\clib.il -l=..\..\..\..\..\..\..\OS9\68000\LIB\os_lib.l -y=..\..\..\..\..\..\..\OS9\68000\LIB\HOST3\os_lib.il -l=..\..\..\..\..\..\..\OS9\68000\LIB\sys.l -l=..\..\..\..\..\..\..\OS9\68000\LIB\sys_csl.l -y=..\..\..\..\..\..\..\OS9\68000\LIB\HOST3\sys_csl.il -l=..\..\..\..\..\..\..\OS9\68000\LIB\sys_clib.l -y=..\..\..\..\..\..\..\OS9\68000\LIB\HOST3\sys_clib.il -l=..\..\..\..\..\..\..\OS9\68000\LIB\csl.l -y=..\..\..\..\..\..\..\OS9\68000\LIB\HOST3\csl.il -l=..\..\..\..\..\..\..\OS9\68000\LIB\csl.l -l=..\..\..\..\..\..\..\OS9\68000\LIB\clib.l -y=..\..\..\..\..\..\..\OS9\68000\LIB\HOST3\clib.il -l=..\..\..\..\..\..\..\OS9\68000\LIB\os_csl.l -y=..\..\..\..\..\..\..\OS9\68000\LIB\HOST3\os_csl.il  -l=..\..\..\..\..\..\..\OS9\68000\LIB\os_lib.l -y=..\..\..\..\..\..\..\OS9\68000\LIB\HOST3\os_lib.il -l=..\..\..\..\..\..\..\OS9\68000\LIB\sys.l -o=7 -cw  -ola -olS -k ..\..\..\..\..\..\..\OS9\68000\LIB\ansi_cstart.r ..\..\..\..\..\..\..\SRC\WIRELESS\DEMO\SLIDSHOW\slidshow.c ..\..\..\..\..\..\..\SRC\WIRELESS\DEMO\SLIDSHOW\load.c ..\..\..\..\..\..\..\SRC\WIRELESS\DEMO\SLIDSHOW\usr_cmds.c -fd=..\..\..\CMDS\slidshow
+*
+*
+*
+*
+*
+*
+*
+cd PWRMAN; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _build
+*
+cd PWREXT; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" -f makefile TARGET=k68k 
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" SUBTRGT=_build  _build TARGET=k68k
+os9makdir -pq RELS
+os9makdir -pq ..\..\CMDS\BOOTOBJS\STB
+xcc -td=. -to=OSK -cw -tp=68kc -v=. -v=..\..\..\..\..\..\SRC\SYSMODS\PWRMAN\PWREXT\MC328ADS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS  -eas=RELS -r -o=7 -t=1 -s=1 -cw -iom   -l=..\..\..\..\..\..\OS9\68000\LIB\pwrman.l -l=..\..\..\..\..\..\OS9\68000\LIB\cpu.l -y=..\..\..\..\..\..\OS9\68000\LIB\HOST3\cpu.il -l=..\..\..\..\..\..\OS9\68000\LIB\sys_clib.l -y=..\..\..\..\..\..\OS9\68000\LIB\HOST3\sys_clib.il -l=..\..\..\..\..\..\OS9\68000\LIB\clib.l -y=..\..\..\..\..\..\OS9\68000\LIB\HOST3\clib.il -l=..\..\..\..\..\..\OS9\68000\LIB\os_lib.l -y=..\..\..\..\..\..\OS9\68000\LIB\HOST3\os_lib.il -l=..\..\..\..\..\..\OS9\68000\LIB\sys.l -asn ..\..\..\..\..\..\SRC\SYSMODS\PWRMAN\PWREXT\MC328ADS\extstrt.a
+xcc -td=. -to=OSK -cw -tp=68kc -v=. -v=..\..\..\..\..\..\SRC\SYSMODS\PWRMAN\PWREXT\MC328ADS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS  -efe=RELS -r -o=7 -t=1 -s=1 -cw -iom   -asn ..\..\..\..\..\..\SRC\SYSMODS\PWRMAN\PWREXT\MC328ADS\pwrext.c
+xcc -td=. -to=OSK -cw -tp=68kc -v=. -v=..\..\..\..\..\..\SRC\SYSMODS\PWRMAN\PWREXT\MC328ADS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS  -eas=RELS -r -o=7 -t=1 -s=1 -cw -iom   -l=..\..\..\..\..\..\OS9\68000\LIB\pwrman.l -l=..\..\..\..\..\..\OS9\68000\LIB\cpu.l -y=..\..\..\..\..\..\OS9\68000\LIB\HOST3\cpu.il -l=..\..\..\..\..\..\OS9\68000\LIB\sys_clib.l -y=..\..\..\..\..\..\OS9\68000\LIB\HOST3\sys_clib.il -l=..\..\..\..\..\..\OS9\68000\LIB\clib.l -y=..\..\..\..\..\..\OS9\68000\LIB\HOST3\clib.il -l=..\..\..\..\..\..\OS9\68000\LIB\os_lib.l -y=..\..\..\..\..\..\OS9\68000\LIB\HOST3\os_lib.il -l=..\..\..\..\..\..\OS9\68000\LIB\sys.l -asn RELS\pwrext.i -fd=icode.r
+* ..\..\CMDS\BOOTOBJS\pwrext
+* ..\..\CMDS\BOOTOBJS\STB\pwrext.stb
+* ..\..\CMDS\BOOTOBJS\STB\pwrext.dbg
+xcc -td=. -to=OSK -cw -olg -tp=68k -k -r -o=7 -t=1 -s=1 -cw -iom  -l=..\..\..\..\..\..\OS9\68000\LIB\pwrman.l -l=..\..\..\..\..\..\OS9\68000\LIB\cpu.l -y=..\..\..\..\..\..\OS9\68000\LIB\HOST3\cpu.il -l=..\..\..\..\..\..\OS9\68000\LIB\sys_clib.l -y=..\..\..\..\..\..\OS9\68000\LIB\HOST3\sys_clib.il -l=..\..\..\..\..\..\OS9\68000\LIB\clib.l -y=..\..\..\..\..\..\OS9\68000\LIB\HOST3\clib.il -l=..\..\..\..\..\..\OS9\68000\LIB\os_lib.l -y=..\..\..\..\..\..\OS9\68000\LIB\HOST3\os_lib.il -l=..\..\..\..\..\..\OS9\68000\LIB\sys.l  -olgu=0.0 RELS\extstrt.r RELS\icode.r -fd=..\..\CMDS\BOOTOBJS\pwrext -oln=pwrext
+*
+*
+*
+cd PWRPLCY; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" -f makefile TARGET=k68k 
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" SUBTRGT=_build  _build TARGET=k68k
+os9makdir -pq RELS
+os9makdir -pq ..\..\CMDS\BOOTOBJS\STB
+xcc -td=. -to=OSK -cw -tp=68kc -v=. -v=..\..\..\..\..\..\SRC\SYSMODS\PWRMAN\PWRPLCY\MC328ADS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS  -eas=RELS -r -o=7 -t=1 -s=1 -cw -iom   -l=..\..\..\..\..\..\OS9\68000\LIB\pwrman.l -l=..\..\..\..\..\..\OS9\68000\LIB\cpu.l -y=..\..\..\..\..\..\OS9\68000\LIB\HOST3\cpu.il -l=..\..\..\..\..\..\OS9\68000\LIB\sys_clib.l -y=..\..\..\..\..\..\OS9\68000\LIB\HOST3\sys_clib.il -l=..\..\..\..\..\..\OS9\68000\LIB\clib.l -y=..\..\..\..\..\..\OS9\68000\LIB\HOST3\clib.il -l=..\..\..\..\..\..\OS9\68000\LIB\os_lib.l -y=..\..\..\..\..\..\OS9\68000\LIB\HOST3\os_lib.il -l=..\..\..\..\..\..\OS9\68000\LIB\sys.l -asn ..\..\..\..\..\..\SRC\SYSMODS\PWRMAN\PWRPLCY\MC328ADS\plcystrt.a
+xcc -td=. -to=OSK -cw -tp=68kc -v=. -v=..\..\..\..\..\..\SRC\SYSMODS\PWRMAN\PWRPLCY\MC328ADS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS  -efe=RELS -r -o=7 -t=1 -s=1 -cw -iom   -asn ..\..\..\..\..\..\SRC\SYSMODS\PWRMAN\PWRPLCY\MC328ADS\pwrplcy.c
+xcc -td=. -to=OSK -cw -tp=68kc -v=. -v=..\..\..\..\..\..\SRC\SYSMODS\PWRMAN\PWRPLCY\MC328ADS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS  -eas=RELS -r -o=7 -t=1 -s=1 -cw -iom   -l=..\..\..\..\..\..\OS9\68000\LIB\pwrman.l -l=..\..\..\..\..\..\OS9\68000\LIB\cpu.l -y=..\..\..\..\..\..\OS9\68000\LIB\HOST3\cpu.il -l=..\..\..\..\..\..\OS9\68000\LIB\sys_clib.l -y=..\..\..\..\..\..\OS9\68000\LIB\HOST3\sys_clib.il -l=..\..\..\..\..\..\OS9\68000\LIB\clib.l -y=..\..\..\..\..\..\OS9\68000\LIB\HOST3\clib.il -l=..\..\..\..\..\..\OS9\68000\LIB\os_lib.l -y=..\..\..\..\..\..\OS9\68000\LIB\HOST3\os_lib.il -l=..\..\..\..\..\..\OS9\68000\LIB\sys.l -asn RELS\pwrplcy.i -fd=icode.r
+* ..\..\CMDS\BOOTOBJS\pwrplcy
+* ..\..\CMDS\BOOTOBJS\STB\pwrplcy.stb
+* ..\..\CMDS\BOOTOBJS\STB\pwrplcy.dbg
+xcc -td=. -to=OSK -cw -olg -tp=68k -k -r -o=7 -t=1 -s=1 -cw -iom  -l=..\..\..\..\..\..\OS9\68000\LIB\pwrman.l -l=..\..\..\..\..\..\OS9\68000\LIB\cpu.l -y=..\..\..\..\..\..\OS9\68000\LIB\HOST3\cpu.il -l=..\..\..\..\..\..\OS9\68000\LIB\sys_clib.l -y=..\..\..\..\..\..\OS9\68000\LIB\HOST3\sys_clib.il -l=..\..\..\..\..\..\OS9\68000\LIB\clib.l -y=..\..\..\..\..\..\OS9\68000\LIB\HOST3\clib.il -l=..\..\..\..\..\..\OS9\68000\LIB\os_lib.l -y=..\..\..\..\..\..\OS9\68000\LIB\HOST3\os_lib.il -l=..\..\..\..\..\..\OS9\68000\LIB\sys.l  -olgu=0.0 RELS\plcystrt.r RELS\icode.r -fd=..\..\CMDS\BOOTOBJS\pwrplcy -oln=pwrplcy
+*
+*
+*
+*
+*
+cd SYSIF; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _build
+os9makdir -pq RELS
+os9makdir -pq ..\CMDS\BOOTOBJS\STB
+xcc -td=. -to=OSK -cw -tp=68kc -v=. -v=..\..\..\..\..\SRC\SYSMODS\SYSIF\MC68328 -v=..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\OS9\SRC\DEFS -dREV2G15E -eas=RELS -r -o=7 -t=1 -s=1 -cw -iom   -l=..\..\..\..\..\OS9\68000\LIB\pwrman.l -l=..\..\..\..\..\OS9\68000\LIB\cpu.l -y=..\..\..\..\..\OS9\68000\LIB\HOST3\cpu.il -l=..\..\..\..\..\OS9\68000\LIB\sys_clib.l -y=..\..\..\..\..\OS9\68000\LIB\HOST3\sys_clib.il -l=..\..\..\..\..\OS9\68000\LIB\clib.l -y=..\..\..\..\..\OS9\68000\LIB\HOST3\clib.il -l=..\..\..\..\..\OS9\68000\LIB\os_lib.l -y=..\..\..\..\..\OS9\68000\LIB\HOST3\os_lib.il -l=..\..\..\..\..\OS9\68000\LIB\sys.l -asn ..\..\..\..\..\SRC\SYSMODS\SYSIF\MC68328\ifstart.a
+xcc -td=. -to=OSK -cw -tp=68kc -v=. -v=..\..\..\..\..\SRC\SYSMODS\SYSIF\MC68328 -v=..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\OS9\SRC\DEFS -dREV2G15E -efe=RELS -r -o=7 -t=1 -s=1 -cw -iom   -asn ..\..\..\..\..\SRC\SYSMODS\SYSIF\MC68328\cpu.c
+"..\..\..\..\..\SRC\SYSMODS\SYSIF\MC68328\cpu.c", line 191: warning: variable
+          "active" was set but never used
+  	u_int32 active; /* temp variable to see if there are any active processes */
+  	        ^
+
+"..\..\..\..\..\SRC\SYSMODS\SYSIF\MC68328\cpu.c", line 192: warning: variable
+          "srirq" was declared but never referenced
+  	status_reg srirq;
+  	           ^
+
+xcc -td=. -to=OSK -cw -tp=68kc -v=. -v=..\..\..\..\..\SRC\SYSMODS\SYSIF\MC68328 -v=..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\OS9\SRC\DEFS -dREV2G15E -efe=RELS -r -o=7 -t=1 -s=1 -cw -iom   -asn ..\..\..\..\..\SRC\SYSMODS\SYSIF\MC68328\pwrif.c
+"..\..\..\..\..\SRC\SYSMODS\SYSIF\MC68328\pwrif.c", line 49: warning: variable
+          "oldirq" was declared but never referenced
+  	status_reg oldirq;
+  	           ^
+
+xcc -td=. -to=OSK -cw -tp=68kc -v=. -v=..\..\..\..\..\SRC\SYSMODS\SYSIF\MC68328 -v=..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\OS9\SRC\DEFS -dREV2G15E -efe=RELS -r -o=7 -t=1 -s=1 -cw -iom   -asn ..\..\..\..\..\SRC\SYSMODS\SYSIF\MC68328\rtclock.c
+"..\..\..\..\..\SRC\SYSMODS\SYSIF\MC68328\rtclock.c", line 227: warning: 
+          integer conversion resulted in a change of sign
+  		return(EOS_NOTME); /* this is not a RTC interrupt */
+  		      ^
+
+"..\..\..\..\..\SRC\SYSMODS\SYSIF\MC68328\rtclock.c", line 221: warning: 
+          variable "oldsr" was declared but never referenced
+  	status_reg oldsr;
+  	           ^
+
+xcc -td=. -to=OSK -cw -tp=68kc -v=. -v=..\..\..\..\..\SRC\SYSMODS\SYSIF\MC68328 -v=..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\OS9\SRC\DEFS -dREV2G15E -eas=RELS -r -o=7 -t=1 -s=1 -cw -iom   -l=..\..\..\..\..\OS9\68000\LIB\pwrman.l -l=..\..\..\..\..\OS9\68000\LIB\cpu.l -y=..\..\..\..\..\OS9\68000\LIB\HOST3\cpu.il -l=..\..\..\..\..\OS9\68000\LIB\sys_clib.l -y=..\..\..\..\..\OS9\68000\LIB\HOST3\sys_clib.il -l=..\..\..\..\..\OS9\68000\LIB\clib.l -y=..\..\..\..\..\OS9\68000\LIB\HOST3\clib.il -l=..\..\..\..\..\OS9\68000\LIB\os_lib.l -y=..\..\..\..\..\OS9\68000\LIB\HOST3\os_lib.il -l=..\..\..\..\..\OS9\68000\LIB\sys.l -asn RELS\cpu.i RELS\pwrif.i RELS\rtclock.i -fd=icode.r
+* ..\CMDS\BOOTOBJS\sysif
+* ..\CMDS\BOOTOBJS\STB\sysif.stb
+xcc -td=. -to=OSK -cw -olg -tp=68k -g -k -r -o=7 -t=1 -s=1 -cw -iom  -l=..\..\..\..\..\OS9\68000\LIB\pwrman.l -l=..\..\..\..\..\OS9\68000\LIB\cpu.l -y=..\..\..\..\..\OS9\68000\LIB\HOST3\cpu.il -l=..\..\..\..\..\OS9\68000\LIB\sys_clib.l -y=..\..\..\..\..\OS9\68000\LIB\HOST3\sys_clib.il -l=..\..\..\..\..\OS9\68000\LIB\clib.l -y=..\..\..\..\..\OS9\68000\LIB\HOST3\clib.il -l=..\..\..\..\..\OS9\68000\LIB\os_lib.l -y=..\..\..\..\..\OS9\68000\LIB\HOST3\os_lib.il -l=..\..\..\..\..\OS9\68000\LIB\sys.l  -olgu=0.0 RELS\ifstart.r RELS\icode.r -fd=..\CMDS\BOOTOBJS\sysif -oln=sysif
+*
+*
+*
+cd UTILS; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _build
+*
+cd STARTDBG; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k 
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" SUBTRGT=_build  _build TARGET=k68k
+os9makdir -pq ..\..\CMDS\STB
+* ..\..\CMDS\startdbg
+* ..\..\CMDS\STB\startdbg.stb
+xcc -td=. -to=OSK -cw -olg -tp=68k -l=..\..\..\..\..\..\OS9\68000\LIB\sys_csl.l -y=..\..\..\..\..\..\OS9\68000\LIB\HOST3\sys_csl.il -l=..\..\..\..\..\..\OS9\68000\LIB\sys_clib.l -y=..\..\..\..\..\..\OS9\68000\LIB\HOST3\sys_clib.il -l=..\..\..\..\..\..\OS9\68000\LIB\csl.l -y=..\..\..\..\..\..\OS9\68000\LIB\HOST3\csl.il -l=..\..\..\..\..\..\OS9\68000\LIB\csl.l -l=..\..\..\..\..\..\OS9\68000\LIB\clib.l -y=..\..\..\..\..\..\OS9\68000\LIB\HOST3\clib.il -l=..\..\..\..\..\..\OS9\68000\LIB\os_csl.l -y=..\..\..\..\..\..\OS9\68000\LIB\HOST3\os_csl.il  -l=..\..\..\..\..\..\OS9\68000\LIB\os_lib.l -y=..\..\..\..\..\..\OS9\68000\LIB\HOST3\os_lib.il -l=..\..\..\..\..\..\OS9\68000\LIB\sys.l -o=7 -cw -ola  -olS -k  -olgu=0.0 ..\..\..\..\..\..\OS9\68000\LIB\ansi_cstart.r main.c -fd=..\..\CMDS\startdbg -oln=startdbg
+*
+*
+*
+*
+*
+cd ROM; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _build
+*
+cd CNFGDATA; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k 
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" SUBTRGT=_build  _build TARGET=k68k
+os9makdir -pq RELS
+os9makdir -pq ..\..\CMDS\BOOTOBJS\ROM\STB
+xcc -td=. -to=OSK -tp=68klc -eas=RELS -r  -v=..\.. -v=..\..\..\..\..\..\SRC\DEFS\ROM -v=..\..\..\..\..\..\OS9\SRC\DEFS\ROM -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS -dCONS68681   -dLLSLIP  -c ..\..\..\..\..\..\SRC\ROM\CNFGDATA\cnfgdata.c
+* ..\..\CMDS\BOOTOBJS\ROM\cnfgdata
+* ..\..\CMDS\BOOTOBJS\ROM\STB\cnfgdata.map
+* ..\..\CMDS\BOOTOBJS\ROM\STB\cnfgdata.stb
+xcc -td=. -to=OSK -cw -olg -tp=68k -k -oln=cnfgdata    -olgu=0.0 ..\..\..\..\..\..\OS9\68000\LIB\ROM\datastrt.r RELS\cnfgdata.r -fd=..\..\CMDS\BOOTOBJS\ROM\cnfgdata -b >..\..\CMDS\BOOTOBJS\ROM\STB\cnfgdata.map
+*
+*
+*
+cd ABORT328; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k 
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" SUBTRGT=_build  _build TARGET=k68k
+os9makdir -pq RELS
+os9makdir -pq ..\..\CMDS\BOOTOBJS\ROM\STB
+xcc -td=. -to=OSK -cw -tp=68kc -eas=RELS -ar -t=0 -v=..\.. -v=..\..\..\..\..\..\SRC\DEFS\HW -v=..\..\..\..\..\..\SRC\DEFS\ROM -v=..\..\..\..\..\..\OS9\SRC\DEFS\ROM  -v=..\..\..\..\..\..\OS9\68000\DEFS\MC6832X -v=..\..\..\..\..\..\OS9\SRC\ROM\CBOOT\DEFS  -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS abort328.c
+* ..\..\CMDS\BOOTOBJS\ROM\abort328
+* ..\..\CMDS\BOOTOBJS\ROM\STB\abort328.map
+* ..\..\CMDS\BOOTOBJS\ROM\STB\abort328.stb
+xcc -td=. -to=OSK -cw -olg -tp=68k -k -l=..\..\..\..\..\..\OS9\68000\LIB\ROM\p2lib.l -l=..\..\..\..\..\..\OS9\68000\LIB\clib.l -l=..\..\..\..\..\..\OS9\68000\LIB\sys.l  -ols -olgu=0.0 ..\..\..\..\..\..\OS9\68000\LIB\ROM\p2start.r RELS\abort328.r -fd=..\..\CMDS\BOOTOBJS\ROM\abort328 >..\..\CMDS\BOOTOBJS\ROM\STB\abort328.map
+*
+*
+*
+cd CNFGFUNC; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k 
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" SUBTRGT=_build  _build TARGET=k68k
+os9makdir -pq RELS
+os9makdir -pq ..\..\CMDS\BOOTOBJS\ROM\STB
+xcc -td=. -to=OSK -cw -tp=68k,sc -a -v=..\..\..\..\..\..\SRC\DEFS\ROM -v=..\..\..\..\..\..\OS9\SRC\DEFS\ROM -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS  -dRELATIVE -eas=RELS -t=0 -r ..\..\..\..\..\..\SRC\ROM\CNFGFUNC\cnfgfunc.c
+* ..\..\CMDS\BOOTOBJS\ROM\cnfgfunc
+* ..\..\CMDS\BOOTOBJS\ROM\STB\cnfgfunc.stb
+* ..\..\CMDS\BOOTOBJS\ROM\STB\cnfgfunc.dbg
+* ..\..\CMDS\BOOTOBJS\ROM\STB\cnfgfunc.map
+os9del -qf ..\..\CMDS\BOOTOBJS\ROM\cnfgfunc
+os9del -qf ..\..\CMDS\BOOTOBJS\ROM\STB\cnfgfunc.stb
+os9del -qf ..\..\CMDS\BOOTOBJS\ROM\STB\cnfgfunc.dbg
+os9del -qf ..\..\CMDS\BOOTOBJS\ROM\STB\cnfgfunc.map
+xcc -td=. -to=OSK -cw -olg -tp=68k -k -l=..\..\..\..\..\..\OS9\68000\LIB\ROM\p2lib.l -y=..\..\..\..\..\..\OS9\68000\LIB\ROM\HOST3\p2lib.il -l=..\..\..\..\..\..\OS9\68000\LIB\clib.l -y=..\..\..\..\..\..\OS9\68000\LIB\HOST3\clib.il -l=..\..\..\..\..\..\OS9\68000\LIB\os_lib.l -y=..\..\..\..\..\..\OS9\68000\LIB\HOST3\os_lib.il -l=..\..\..\..\..\..\OS9\68000\LIB\sys.l  -ols -t=0 -olgu=0.0 ..\..\..\..\..\..\OS9\68000\LIB\ROM\p2start.r RELS\cnfgfunc.r  -fd=..\..\CMDS\BOOTOBJS\ROM\cnfgfunc -ols=..\..\CMDS\BOOTOBJS\ROM\STB\cnfgfunc.map
+*
+*
+*
+cd CONSCNFG; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k 
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" SUBTRGT=_build  _build TARGET=k68k
+os9makdir -pq RELS
+os9makdir -pq ..\..\CMDS\BOOTOBJS\ROM\STB
+xcc -td=. -to=OSK -cw -tp=68kc -eas=RELS -ar -t=0 -v=..\.. -v=..\..\..\..\..\..\SRC\DEFS\ROM -v=..\..\..\..\..\..\OS9\SRC\DEFS\ROM -v=..\..\..\..\..\..\OS9\SRC\ROM\CBOOT\DEFS  -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS  -dP2MODULE -dUSECNFGDATA ..\..\..\..\..\..\SRC\ROM\SERIAL\conscnfg.c
+* ..\..\CMDS\BOOTOBJS\ROM\conscnfg
+* ..\..\CMDS\BOOTOBJS\ROM\STB\conscnfg.map
+* ..\..\CMDS\BOOTOBJS\ROM\STB\conscnfg.stb
+xcc -td=. -to=OSK -cw -olg -tp=68k -k -l=..\..\..\..\..\..\OS9\68000\LIB\ROM\p2lib.l -l=..\..\..\..\..\..\OS9\68000\LIB\clib.l -l=..\..\..\..\..\..\OS9\68000\LIB\sys.l  -ols -olgu=0.0 ..\..\..\..\..\..\OS9\68000\LIB\ROM\p2start.r RELS\conscnfg.r -fd=..\..\CMDS\BOOTOBJS\ROM\conscnfg >..\..\CMDS\BOOTOBJS\ROM\STB\conscnfg.map
+*
+*
+*
+cd COMMCNFG; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k 
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" SUBTRGT=_build  _build TARGET=k68k
+os9makdir -pq RELS
+os9makdir -pq ..\..\CMDS\BOOTOBJS\ROM\STB
+xcc -td=. -to=OSK -cw -tp=68kc -eas=RELS -ar -t=0 -v=..\.. -v=..\..\..\..\..\..\SRC\DEFS\ROM -v=..\..\..\..\..\..\OS9\SRC\DEFS\ROM -v=..\..\..\..\..\..\OS9\SRC\ROM\CBOOT\DEFS  -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS  -dP2MODULE -dUSECNFGDATA ..\..\..\..\..\..\SRC\ROM\SERIAL\commcnfg.c
+* ..\..\CMDS\BOOTOBJS\ROM\commcnfg
+* ..\..\CMDS\BOOTOBJS\ROM\STB\commcnfg.map
+* ..\..\CMDS\BOOTOBJS\ROM\STB\commcnfg.stb
+xcc -td=. -to=OSK -cw -olg -tp=68k -k -l=..\..\..\..\..\..\OS9\68000\LIB\ROM\p2lib.l -l=..\..\..\..\..\..\OS9\68000\LIB\clib.l -l=..\..\..\..\..\..\OS9\68000\LIB\sys.l  -ols -olgu=0.0 ..\..\..\..\..\..\OS9\68000\LIB\ROM\p2start.r RELS\commcnfg.r -fd=..\..\CMDS\BOOTOBJS\ROM\commcnfg >..\..\CMDS\BOOTOBJS\ROM\STB\commcnfg.map
+*
+*
+*
+cd IO68681; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k 
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" SUBTRGT=_build  _build TARGET=k68k
+os9makdir -pq RELS
+os9makdir -pq ..\..\CMDS\BOOTOBJS\ROM\STB
+xcc -td=. -to=OSK -cw -tp=68kc -eas=RELS -ar -o=7 -s=10 -v=..\..\..\..\..\..\SRC\ROM\SERIAL\68681 -v=..\..\..\..\..\..\SRC\DEFS\HW -v=..\.. -v=..\..\..\..\..\..\SRC\DEFS\ROM -v=..\..\..\..\..\..\OS9\SRC\DEFS\ROM -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS  -v=..\..\..\..\..\SRC\MACROS -v=..\..  -v=..\..\..\..\DEFS\MC6832X  -dNEWINFO -dP2MODULE ..\..\..\..\..\..\SRC\ROM\SERIAL\68681\io68681.c
+"..\..\..\..\..\..\SRC\ROM\SERIAL\68681\io68681.c", line 293: warning: 
+          function declared implicitly
+  	intmask = irq_maskget();
+  	          ^
+
+"..\..\..\..\..\..\SRC\ROM\SERIAL\68681\io68681.c", line 303: warning: 
+          function declared implicitly
+      OUT(data->uart_base+IMR, imr_image);
+      ^
+
+"..\..\..\..\..\..\SRC\ROM\SERIAL\68681\io68681.c", line 305: warning: 
+          function declared implicitly
+     	irq_restore(intmask);
+     	^
+
+"..\..\..\..\..\..\SRC\ROM\SERIAL\68681\io68681.c", line 313: warning: 
+          function declared implicitly
+  	intmask = irq_maskget();
+  	          ^
+
+"..\..\..\..\..\..\SRC\ROM\SERIAL\68681\io68681.c", line 327: warning: 
+          function declared implicitly
+      OUT(data->uart_base+IMR, imr_image);
+      ^
+
+"..\..\..\..\..\..\SRC\ROM\SERIAL\68681\io68681.c", line 329: warning: 
+          function declared implicitly
+     	irq_restore(intmask);
+     	^
+
+"..\..\..\..\..\..\SRC\ROM\SERIAL\68681\io68681.c", line 337: warning: 
+          function declared implicitly
+  	intmask = irq_maskget();
+  	          ^
+
+"..\..\..\..\..\..\SRC\ROM\SERIAL\68681\io68681.c", line 347: warning: 
+          function declared implicitly
+      OUT(data->uart_base+IMR, imr_image);
+      ^
+
+"..\..\..\..\..\..\SRC\ROM\SERIAL\68681\io68681.c", line 349: warning: 
+          function declared implicitly
+     	irq_restore(intmask);
+     	^
+
+"..\..\..\..\..\..\SRC\ROM\SERIAL\68681\io68681.c", line 360: warning: 
+          function declared implicitly
+  	chstat = IN((void *)(port+STATR));
+  	         ^
+
+"..\..\..\..\..\..\SRC\ROM\SERIAL\68681\io68681.c", line 370: warning: 
+          function declared implicitly
+  			OUT(port+CMDR, (RSTERROR<<MISCMDS));
+  			^
+
+"..\..\..\..\..\..\SRC\ROM\SERIAL\68681\io68681.c", line 512: warning: 
+          function declared implicitly
+      statimg = irq_maskget();		/* shut off interrupts   */	
+                ^
+
+"..\..\..\..\..\..\SRC\ROM\SERIAL\68681\io68681.c", line 515: warning: 
+          function declared implicitly
+      OUT(port+CMDR, RSTRX<<MISCMDS);
+      ^
+
+"..\..\..\..\..\..\SRC\ROM\SERIAL\68681\io68681.c", line 589: warning: 
+          function declared implicitly
+  	irq_restore(statimg);				/* turn on interrupts */
+  	^
+
+"..\..\..\..\..\..\SRC\ROM\SERIAL\68681\io68681.c", line 630: warning: 
+          function declared implicitly
+  	    c = IN(port+RBUF);				/* get the data */
+  	        ^
+
+"..\..\..\..\..\..\SRC\ROM\SERIAL\68681\io68681.c", line 707: warning: 
+          function declared implicitly
+  					cget = IN(port+RBUF);
+  					       ^
+
+"..\..\..\..\..\..\SRC\ROM\SERIAL\68681\io68681.c", line 735: warning: 
+          function declared implicitly
+  	} while ((IN(port+STATR) & (1<<TXRDY)) == 0);	/* wait for xmit rdy */
+  	          ^
+
+"..\..\..\..\..\..\SRC\ROM\SERIAL\68681\io68681.c", line 740: warning: 
+          function declared implicitly
+  	OUT(port+TBUF, c);					/* output the character */
+  	^
+
+"..\..\..\..\..\..\SRC\ROM\SERIAL\68681\io68681.c", line 788: warning: 
+          function declared implicitly
+             	OUT(data->uart_base+IVR, cdev->cons_vector);
+             	^
+
+"..\..\..\..\..\..\SRC\ROM\SERIAL\68681\io68681.c", line 868: warning: 
+          function declared implicitly
+          if(!(IN(data->uart_base+ISR) & (1<<CHARXRDY)))
+               ^
+
+"..\..\..\..\..\..\SRC\ROM\SERIAL\68681\io68681.c", line 873: warning: 
+          function declared implicitly
+          if(!(IN(data->uart_base+ISR) & (1<<CHBRXRDY)))
+               ^
+
+"..\..\..\..\..\..\SRC\ROM\SERIAL\68681\io68681.c", line 905: warning: 
+          function declared implicitly
+  		cget = IN((void *)(port+RBUF));			/* get the data */
+  		       ^
+
+"..\..\..\..\..\..\SRC\ROM\SERIAL\68681\io68681.c", line 944: warning: 
+          function declared implicitly
+  		while ((IN(port+STATR) & (1<<TXEMPTY)) == 0);
+  		        ^
+
+"..\..\..\..\..\..\SRC\ROM\SERIAL\68681\io68681.c", line 947: warning: 
+          function declared implicitly
+  	OUT(port+CMDR, (DISABLE<<TXCMDS) | (DISABLE<<RXCMDS));
+  	^
+
+* ..\..\CMDS\BOOTOBJS\ROM\io68681
+* ..\..\CMDS\BOOTOBJS\ROM\STB\io68681.map
+* ..\..\CMDS\BOOTOBJS\ROM\STB\io68681.stb
+xcc -td=. -to=OSK -cw -olg -tp=68k -k -l=..\..\..\..\..\..\OS9\68000\LIB\sys_clib.l -y=..\..\..\..\..\..\OS9\68000\LIB\HOST3\sys_clib.il -l=..\..\..\..\..\..\OS9\68000\LIB\clib.l -y=..\..\..\..\..\..\OS9\68000\LIB\HOST3\clib.il -l=..\..\..\..\..\..\OS9\68000\LIB\os_lib.l -y=..\..\..\..\..\..\OS9\68000\LIB\HOST3\os_lib.il -l=..\..\..\..\..\..\OS9\68000\LIB\sys.l -l=..\..\..\..\..\..\OS9\68000\LIB\cpu.l -l=..\..\..\..\..\..\OS9\68000\LIB\ROM\p2lib.l -l=..\..\..\..\..\..\OS9\68000\LIB\sys.l  -ols -oln=io68681  -olgu=0.0 ..\..\..\..\..\..\OS9\68000\LIB\ROM\p2start.r RELS\io68681.r -fd=..\..\CMDS\BOOTOBJS\ROM\io68681 >..\..\CMDS\BOOTOBJS\ROM\STB\io68681.map
+*
+*
+*
+cd M328TIMR; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k 
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" SUBTRGT=_build  _build TARGET=k68k
+os9makdir -pq RELS
+os9makdir -pq ..\..\CMDS\BOOTOBJS\ROM\STB
+xcc -td=. -to=OSK -cw -tp=68kc -eas=RELS -ar -t=0 -v=..\..\..\..\..\..\SRC\ROM\TIMERS\M328TMR -v=..\..\..\..\..\..\SRC\DEFS\HW -v=..\.. -v=..\..\..\..\..\..\SRC\DEFS\ROM -v=..\..\..\..\..\..\OS9\SRC\DEFS\ROM -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS  -dP2MODULE ..\..\..\..\..\..\SRC\ROM\TIMERS\M328TMR\m328tmr.c -fd=m328tmr1.r -dTIMER1
+* ..\..\CMDS\BOOTOBJS\ROM\m328tmr1
+* ..\..\CMDS\BOOTOBJS\ROM\STB\m328tmr1.map
+* ..\..\CMDS\BOOTOBJS\ROM\STB\m328tmr1.stb
+xcc -td=. -to=OSK -cw -olg -tp=68k -k -l=..\..\..\..\..\..\OS9\68000\LIB\cpu.l -l=..\..\..\..\..\..\OS9\68000\LIB\ROM\p2lib.l -l=..\..\..\..\..\..\OS9\68000\LIB\sys.l  -ols -olgu=0.0 ..\..\..\..\..\..\OS9\68000\LIB\ROM\p2start.r RELS\m328tmr1.r -fd=..\..\CMDS\BOOTOBJS\ROM\m328tmr1 >..\..\CMDS\BOOTOBJS\ROM\STB\m328tmr1.map
+*
+xcc -td=. -to=OSK -cw -tp=68kc -eas=RELS -ar -t=0 -v=..\..\..\..\..\..\SRC\ROM\TIMERS\M328TMR -v=..\..\..\..\..\..\SRC\DEFS\HW -v=..\.. -v=..\..\..\..\..\..\SRC\DEFS\ROM -v=..\..\..\..\..\..\OS9\SRC\DEFS\ROM -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS  -dP2MODULE ..\..\..\..\..\..\SRC\ROM\TIMERS\M328TMR\m328tmr.c -fd=m328tmr2.r -dTIMER2
+* ..\..\CMDS\BOOTOBJS\ROM\m328tmr2
+* ..\..\CMDS\BOOTOBJS\ROM\STB\m328tmr2.map
+* ..\..\CMDS\BOOTOBJS\ROM\STB\m328tmr2.stb
+xcc -td=. -to=OSK -cw -olg -tp=68k -k -l=..\..\..\..\..\..\OS9\68000\LIB\cpu.l -l=..\..\..\..\..\..\OS9\68000\LIB\ROM\p2lib.l -l=..\..\..\..\..\..\OS9\68000\LIB\sys.l  -ols -olgu=0.0 ..\..\..\..\..\..\OS9\68000\LIB\ROM\p2start.r RELS\m328tmr2.r -fd=..\..\CMDS\BOOTOBJS\ROM\m328tmr2 >..\..\CMDS\BOOTOBJS\ROM\STB\m328tmr2.map
+*
+*
+*
+*
+*
+cd ROM_CBOOT; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k _build
+*
+cd INITEXT; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k 
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" SUBTRGT=_build  _build TARGET=k68k
+os9makdir -pq RELS
+os9makdir -pq ..\..\CMDS\BOOTOBJS\NOBUG\STB
+xcc -td=. -to=OSK -cw -tp=68k -v=. -v=..\.. -v=..\..\..\..\..\..\OS9\68000\DEFS\MC6832X -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS -eas=RELS  -asaABORTINT -asn  -as=-bt initext.a
+* ..\..\CMDS\BOOTOBJS\NOBUG\initext
+* ..\..\CMDS\BOOTOBJS\NOBUG\STB\initext.map
+* ..\..\CMDS\BOOTOBJS\NOBUG\STB\initext.stb
+xcc -td=. -to=OSK -cw -olg -tp=68k -k -olr=0 -olswam  -b RELS\initext.r -fd=..\..\CMDS\BOOTOBJS\NOBUG\initext >..\..\CMDS\BOOTOBJS\NOBUG\STB\initext.map
+
+Raw binary file, "..\..\CMDS\BOOTOBJS\NOBUG\initext" has been created.
+
+Code size = 80 (0x50) bytes
+Data area size = 0 (0x0) bytes [minimum]
+*
+*
+*
+cd COMMON; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k 
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" SUBTRGT=_build  _build TARGET=k68k
+os9makdir -pq RELS
+os9makdir -pq ..\..\LIB\ROM
+xcc -td=. -to=OSK -cw -tp=68k -as=-bt -v=. -v=..\.. -v=..\..\..\..\..\..\OS9\68000\DEFS\MC6832X -v=..\..\..\..\..\..\OS9\SRC\MACROS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS -eas=RELS -r   -asaROMBUG -asaCBOOT -asaMANUAL_RAM -asaDONTENTER_DEBUGGER -b -asn ..\..\..\..\..\..\OS9\SRC\ROM\COMMON\vectors.a
+"r68 -a=_UCC -a=_MAJOR_REV=2 -a=_MINOR_REV=5 -a=_SPACE_FACTOR=1 -a=_TIME_FACTOR=1 -a=_OSK -a=_MPF68000 -a=_MPF68K -a=_FPF881 -a=_BIG_END -o=RELS\vectors.r -q -bt -m0 -u=. -u=..\.. -u=..\..\..\..\..\..\OS9\68000\DEFS\MC6832X -u=..\..\..\..\..\..\OS9\SRC\MACROS -u=..\..\..\..\..\..\SRC\DEFS -u=..\..\..\..\..\..\OS9\68000\DEFS -u=..\..\..\..\..\..\OS9\SRC\DEFS -u=c:\users\russtopia\desktop\osk\MWOS\SRC\DEFS -u=c:\users\russtopia\desktop\osk\MWOS\OS9\SRC\DEFS --bt -aROMBUG -aCBOOT -aMANUAL_RAM -aDONTENTER_DEBUGGER -n ..\..\..\..\..\..\OS9\SRC\ROM\COMMON\vectors.a"
+exit status = 0
+xcc -td=. -to=OSK -cw -tp=68k -as=-bt -v=. -v=..\.. -v=..\..\..\..\..\..\OS9\68000\DEFS\MC6832X -v=..\..\..\..\..\..\OS9\SRC\MACROS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS -eas=RELS -r   -asaROMBUG -asaCBOOT -asaMANUAL_RAM -asaDONTENTER_DEBUGGER -b -asn ..\..\..\..\..\..\OS9\SRC\ROM\COMMON\boot.a
+"r68 -a=_UCC -a=_MAJOR_REV=2 -a=_MINOR_REV=5 -a=_SPACE_FACTOR=1 -a=_TIME_FACTOR=1 -a=_OSK -a=_MPF68000 -a=_MPF68K -a=_FPF881 -a=_BIG_END -o=RELS\boot.r -q -bt -m0 -u=. -u=..\.. -u=..\..\..\..\..\..\OS9\68000\DEFS\MC6832X -u=..\..\..\..\..\..\OS9\SRC\MACROS -u=..\..\..\..\..\..\SRC\DEFS -u=..\..\..\..\..\..\OS9\68000\DEFS -u=..\..\..\..\..\..\OS9\SRC\DEFS -u=c:\users\russtopia\desktop\osk\MWOS\SRC\DEFS -u=c:\users\russtopia\desktop\osk\MWOS\OS9\SRC\DEFS --bt -aROMBUG -aCBOOT -aMANUAL_RAM -aDONTENTER_DEBUGGER -n ..\..\..\..\..\..\OS9\SRC\ROM\COMMON\boot.a"
+exit status = 0
+* ..\..\LIB\ROM\common.l
+os9merge RELS\vectors.r RELS\boot.r >..\..\LIB\ROM\common.l
+*
+*
+*
+cd SERIAL; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k 
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" SUBTRGT=_build  _build TARGET=k68k
+os9makdir -pq RELS
+os9makdir -pq ..\..\LIB\ROM
+xcc -td=. -to=OSK -cw -tp=68k,sc -v=. -v=..\.. -v=..\..\..\..\..\..\OS9\68000\DEFS\MC6832X  -v=..\..\..\..\..\..\OS9\SRC\MACROS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS  -eas=RELS -asaROMBUG -asaCBOOT  -r -asn ..\..\..\..\..\..\OS9\SRC\ROM\SERIAL\io68681.a
+* ..\..\LIB\ROM\serial.l
+os9merge RELS\io68681.r >..\..\LIB\ROM\serial.l
+*
+*
+*
+cd PORT; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k 
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" SUBTRGT=_build  _build TARGET=k68k
+os9makdir -pq RELS
+os9makdir -pq ..\..\LIB\ROM
+xcc -td=. -to=OSK -cw -tp=68k,sc -v=. -v=..\.. -v=..\..\..\..\..\..\OS9\68000\DEFS\MC6832X -v=..\..\..\..\..\..\OS9\SRC\MACROS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS  -v=..\..\..\..\..\..\OS9\SRC\ROM\CBOOT\DEFS -v=..\..\..\..\..\..\SRC\DEFS\IO\SCSI -eas=RELS -r -asb  -asaROMBUG -asaCBOOT -asaL68_WORKAROUND=0 -asn sysinit.a
+xcc -td=. -to=OSK -cw -tp=68kc -v=. -v=..\.. -v=..\..\..\..\..\..\OS9\68000\DEFS\MC6832X -v=..\..\..\..\..\..\OS9\SRC\MACROS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS  -v=..\..\..\..\..\..\OS9\SRC\ROM\CBOOT\DEFS -v=..\..\..\..\..\..\SRC\DEFS\IO\SCSI -eas=RELS -r -asb  -dCBOOT -asn syscon.c
+"syscon.c", line 67: warning: function declared implicitly
+  	iniz_boot_driver(binboot, nulstr,
+  	^
+
+iopt: **** warning - _stkhandler() missing return expression in 1 place ****
+xcc -td=. -to=OSK -cw -tp=68kc -v=. -v=..\.. -v=..\..\..\..\..\..\OS9\68000\DEFS\MC6832X -v=..\..\..\..\..\..\OS9\SRC\MACROS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68000\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS  -v=..\..\..\..\..\..\OS9\SRC\ROM\CBOOT\DEFS -v=..\..\..\..\..\..\SRC\DEFS\IO\SCSI -eas=RELS -r -asb  -dCBOOT -asn bootio.c
+"bootio.c", line 41: warning: function declared implicitly
+  	inchar = InChar();
+  	         ^
+
+"bootio.c", line 54: warning: function declared implicitly
+  	OutChar('0');
+  	^
+
+"bootio.c", line 82: warning: function declared implicitly
+  		OutChar('0');
+  		^
+
+"bootio.c", line 90: warning: function declared implicitly
+  		OutChar( (i / t) | 0x30 );
+  		^
+
+"bootio.c", line 101: warning: function declared implicitly
+  		outstr("<none>");
+  		^
+
+"bootio.c", line 111: warning: function declared implicitly
+  	OutChar(' ');
+  	^
+
+"bootio.c", line 132: warning: function declared implicitly
+  			outstr("\n\(<yes>/<no>");
+  			^
+
+"bootio.c", line 132: warning: unrecognized character escape sequence
+  			outstr("\n\(<yes>/<no>");
+  			          ^
+
+"bootio.c", line 135: warning: unrecognized character escape sequence
+  			outstr("\)? ");
+  			        ^
+
+"bootio.c", line 149: warning: function declared implicitly
+  				OutChar(BEL);
+  				^
+
+"bootio.c", line 157: warning: function declared implicitly
+  				OutChar(BEL);
+  				^
+
+"bootio.c", line 170: warning: function declared implicitly
+  				outstr("es");
+  				^
+
+"bootio.c", line 175: warning: function declared implicitly
+  				OutChar('o');
+  				^
+
+"bootio.c", line 180: warning: function declared implicitly
+  				outstr("uit");
+  				^
+
+"bootio.c", line 186: warning: function declared implicitly
+  		OutChar(BEL);
+  		^
+
+"bootio.c", line 197: warning: non-void function "rc_btlist" (declared at line
+          197) should return a value
+  error_code	rc_btlist()		{}
+            	           		 ^
+
+"bootio.c", line 198: warning: non-void function "rc_endis" (declared at line
+          198) should return a value
+  error_code	rc_endis()		{}
+            	          		 ^
+
+"bootio.c", line 199: warning: non-void function "rc_int" (declared at line
+          199) should return a value
+  error_code	rc_int()		{}
+            	        		 ^
+
+"bootio.c", line 200: warning: non-void function "rc_vmeints" (declared at
+          line 200) should return a value
+  error_code	rc_vmeints()	{}
+            	            	 ^
+
+"bootio.c", line 201: warning: non-void function "reconfig" (declared at line
+          201) should return a value
+  error_code	reconfig()		{}
+            	          		 ^
+
+iopt: **** warning - possible uninitialized variable 'newval' in ask_ynq() ****
+iopt: **** warning - rc_btlist() missing return expression in 1 place ****
+iopt: **** warning - rc_endis() missing return expression in 1 place ****
+iopt: **** warning - rc_int() missing return expression in 1 place ****
+iopt: **** warning - rc_vmeints() missing return expression in 1 place ****
+iopt: **** warning - reconfig() missing return expression in 1 place ****
+* ..\..\LIB\ROM\port.l
+os9merge RELS\sysinit.r RELS\syscon.r RELS\bootio.r >..\..\LIB\ROM\port.l
+*
+*
+*
+cd ROMCORE; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k 
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" SUBTRGT=_build  _build TARGET=k68k
+os9makdir -pq ..\..\CMDS\BOOTOBJS\NOBUG\STB
+* ..\..\CMDS\BOOTOBJS\NOBUG\romcore
+* ..\..\CMDS\BOOTOBJS\NOBUG\STB\romcore.map
+* ..\..\CMDS\BOOTOBJS\NOBUG\STB\romcore.stb
+xcc -td=. -to=OSK -cw -olg -tp=68k -k -r -olswam -olb=4   -l=..\..\..\..\..\..\OS9\SRC\ROM\LIB\sysboot.l -l=..\..\..\..\..\..\OS9\SRC\ROM\LIB\flushcache.l -l=..\..\..\..\..\..\OS9\68000\LIB\clib.l -l=..\..\..\..\..\..\OS9\68000\LIB\sys_clib.l -l=..\..\..\..\..\..\OS9\68000\LIB\os_lib.l -l=..\..\..\..\..\..\OS9\68000\LIB\sys.l -olr=400000 ..\..\LIB\ROM\common.l  ..\..\LIB\ROM\port.l  ..\..\LIB\ROM\serial.l  ..\..\..\..\..\..\OS9\SRC\ROM\LIB\rombug.l ..\..\..\..\..\..\OS9\SRC\ROM\LIB\romio.l -fd=..\..\CMDS\BOOTOBJS\NOBUG\romcore >..\..\CMDS\BOOTOBJS\NOBUG\STB\romcore.map
+
+Raw binary file, "..\..\CMDS\BOOTOBJS\NOBUG\romcore" has been created.
+
+Code size = 85698 (0x14EC2) bytes
+Data area size = 13312 (0x3400) bytes [minimum]
+* NOTE: This module also requires 3392 (0xD40) bytes of initialized data.
+Be sure to include the appropriate code in the module to handle this,
+as initialization is not performed automatically.
+*
+*
+*
+cd BOOTFILE; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k 
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" SUBTRGT=_build  _build TARGET=k68k
+os9makdir -pq ..\..\CMDS\BOOTOBJS\NOBUG
+* ..\..\CMDS\BOOTOBJS\NOBUG\bootfile
+os9del -qf  ..\..\CMDS\BOOTOBJS\NOBUG\bootfile
+cd ..\..; os9merge -z=BOOTLIST\rom.bl >CMDS\BOOTOBJS\NOBUG\bootfile
+*
+*
+*
+cd BOOTROM; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k68k 
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" SUBTRGT=_build  _build TARGET=k68k
+* ..\..\CMDS\BOOTOBJS\NOBUG\bootrom
+os9merge ..\..\CMDS\BOOTOBJS\NOBUG\romcore  ..\..\CMDS\BOOTOBJS\NOBUG\initext  ..\..\CMDS\BOOTOBJS\NOBUG\bootfile >..\..\CMDS\BOOTOBJS\NOBUG\bootrom
+padrom 0x100000 ..\..\CMDS\BOOTOBJS\NOBUG\bootrom
+*
+*
+*
+*
+*
+*
+*

@@ -1,0 +1,14 @@
+"l68 -t=os9_68k -O=..\..\CMDS\BOOTOBJS\NOBUG\initext -f=orowoe -x=2 -b=2 -g -r=0 -swam RELS\initext.r"
+Linkage map for module 'initext' in file ..\..\CMDS\BOOTOBJS\NOBUG\initex  Page 1
+
+
+'initext' psect from file: RELS\initext.r
+	C:00000000 M:00000000 D:00000000 RM:00000000 RD:00000000
+ RP_SInit  COD 0000000c | RP_SInit2 COD 0000000e | _bdata    DAT 00000000 |
+ _bidata   COD 00000040 | _birefs   COD 00000048 | _bname    COD 00000000 |
+ _btext    COD 00000000 | _codebias ABS 00000000 | _databias ABS 00000000 |
+ _dsize    ABS 00000000 | _enddata  DAT 00000000 | _etext    COD 000000a4 |
+ _jmptbl   DAT 00000000 | bdata     DAT 00000000 | bname     COD 00000000 |
+ btext     COD 00000000 | dsize     ABS 00000000 | edata     COD 00000048 |
+ end       DAT 00000000 | etext     COD 00000040 |
+exit status = 0

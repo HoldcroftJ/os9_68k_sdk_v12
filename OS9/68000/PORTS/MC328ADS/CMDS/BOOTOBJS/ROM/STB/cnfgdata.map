@@ -1,0 +1,2 @@
+"l68 -t=os9_68k -O=..\..\CMDS\BOOTOBJS\ROM\cnfgdata -f=orowoe -x=2 -b=2 -g -n=cnfgdata -gu=0.0 ..\..\..\..\..\..\OS9\68000\LIB\ROM\datastrt.r RELS\cnfgdata.r"
+exit status = 0

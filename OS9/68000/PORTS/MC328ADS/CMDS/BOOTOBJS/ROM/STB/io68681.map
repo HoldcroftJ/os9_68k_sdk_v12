@@ -1,0 +1,43 @@
+Linkage map for module 'io68681' in file ..\..\CMDS\BOOTOBJS\ROM\io68681   Page 1
+
+
+'p2start.a' psect from file: ..\..\..\..\..\..\OS9\68000\LIB\ROM\p2start.r
+	C:0000003c M:00000000 D:00000118 RM:00000118 RD:00000118
+ _btext    COD 00000000 | _bdata    DAT 00000000 | btext     COD 00000000 |
+ bdata     DAT 00000000 | Main      COD 0000003c | _enddata  DAT 00000118 |
+ end       DAT 00000118 | _bname    COD 00000b8c | bname     COD 00000b8c |
+ _etext    COD 00000b98 | etext     COD 00000b98 |
+
+'io68681.c' psect from file: RELS\io68681.r
+	C:00000076 M:00000000 D:00000118 RM:00000118 RD:00000118
+ cons_r    MEM 00000000 | _sysedit  ABS 00000014 | comm_r    MEM 00000060 |
+ stops     COD 00000079 | dbits     COD 0000007c | paritys   COD 00000085 |
+ bauds     COD 0000009a | access_shared_acr COD 000000b2 | cons_dat_r MEM 000000c0 |
+ access_shared_imr COD 000000c6 | access_shared_opcr COD 000000d8 | update_shared_acr COD 000000de |
+ comm_dat_r MEM 000000ec | update_shared_imr COD 000000f2 | update_shared_opcr COD 00000104 |
+ disable_port_rxints COD 0000010a | enable_port_rxints COD 00000134 | disable_port_txints COD 0000015e |
+ read_check COD 000001aa | notification_handler COD 00000230 | io68681_stat COD 00000268 |
+ io68681_probe COD 00000394 | io68681_check COD 0000039c | io68681_init COD 000003bc |
+ io68681_read COD 00000640 | io68681_write COD 000006c0 | io68681_irq COD 0000077a |
+ io68681_term COD 000008a2 | p2start   COD 00000908 |
+
+'inc.c' psect from file: ..\..\..\..\..\..\OS9\68000\LIB\cpu.l
+	C:00000a88 M:00000118 D:00000118 RM:00000118 RD:00000118
+ inc       COD 00000a88 |
+
+'irq.c' psect from file: ..\..\..\..\..\..\OS9\68000\LIB\cpu.l
+	C:00000a98 M:00000118 D:00000118 RM:00000118 RD:00000118
+ irq_disable COD 00000a98 | irq_maskget COD 00000aa2 | irq_enable COD 00000ab2 |
+ irq_save  COD 00000abc | irq_restore COD 00000ace | irq_change COD 00000ad6 |
+
+'outc.c' psect from file: ..\..\..\..\..\..\OS9\68000\LIB\cpu.l
+	C:00000af6 M:00000118 D:00000118 RM:00000118 RD:00000118
+ outc      COD 00000af6 |
+
+'getrinf.c' psect from file: ..\..\..\..\..\..\OS9\68000\LIB\ROM\p2lib.l
+	C:00000b04 M:00000118 D:00000118 RM:00000118 RD:00000118
+ getrinf   COD 00000b04 |
+
+'findrinf.c' psect from file: ..\..\..\..\..\..\OS9\68000\LIB\ROM\p2lib.l
+	C:00000b56 M:00000118 D:00000118 RM:00000118 RD:00000118
+ findrinf  COD 00000b56 |

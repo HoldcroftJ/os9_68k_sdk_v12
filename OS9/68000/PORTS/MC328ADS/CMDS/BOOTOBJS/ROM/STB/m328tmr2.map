@@ -1,0 +1,23 @@
+Linkage map for module 'm328tmr2' in file ..\..\CMDS\BOOTOBJS\ROM\m328tmr2  Page 1
+
+
+'p2start.a' psect from file: ..\..\..\..\..\..\OS9\68000\LIB\ROM\p2start.r
+	C:0000003c M:00000000 D:0000002a RM:0000002a RD:0000002a
+ _btext    COD 00000000 | _bdata    DAT 00000000 | btext     COD 00000000 |
+ bdata     DAT 00000000 | _enddata  DAT 0000002a | end       DAT 0000002a |
+ Main      COD 0000003c | _bname    COD 0000029a | bname     COD 0000029a |
+ _etext    COD 000002a8 | etext     COD 000002a8 |
+
+'m328tmr.c' psect from file: RELS\m328tmr2.r
+	C:00000076 M:00000000 D:0000002a RM:0000002a RD:0000002a
+ timer_r   MEM 00000000 | _sysedit  ABS 00000004 | timr_data_r MEM 00000024 |
+ m328_timer_init COD 00000076 | m328_timer_deinit COD 000000c8 | m328_timer_set COD 000000e4 |
+ m328_timer_get COD 00000128 | p2start   COD 000001bc |
+
+'getrinf.c' psect from file: ..\..\..\..\..\..\OS9\68000\LIB\ROM\p2lib.l
+	C:00000212 M:0000002a D:0000002a RM:0000002a RD:0000002a
+ getrinf   COD 00000212 |
+
+'findrinf.c' psect from file: ..\..\..\..\..\..\OS9\68000\LIB\ROM\p2lib.l
+	C:00000264 M:0000002a D:0000002a RM:0000002a RD:0000002a
+ findrinf  COD 00000264 |

@@ -1,0 +1,319 @@
+ nam IO68990
+ ttl Rudimentary I/O Routines for RUSSBOX '990' Serial Device
+
+**********************************************************************
+* IO68990:  Rudimentary I/O routines for RUSSBOX '990' serial device
+*
+* This code provides basic i/o support for both the Console
+* port and the Communications port.
+*
+* This this code assumes the console is T0, and the comm port is T1.
+*
+* Other Assumptions: none
+*
+
+
+********************
+* Edition History
+*
+* #    date     Comments                                   who
+* -- ---------- ------------------------------------------ ---
+*                     ---- OS-9/68K V3.1 Release ----
+* 01 2012-07-20 Creation.                                  rlm
+*
+edition set 1
+
+    psect iomat_a,0,0,edition,0,0
+
+    use defsfile
+
+    use <sysglob.m>
+    use <longio.m>
+
+ pag
+********************
+* Definitions
+*
+
+ ifndef CPUType
+CPUType equ 0 a non-destructive default case
+ endc
+
+
+********************
+* DELAY: macro to create delay on chip accessing
+*
+DELAY macro
+    exg     d0,d1       *switch regs
+    nop                 *sync pipelines
+    exg     d0,d1       *..and restore
+ endm
+
+ page
+
+***************
+* Subroutine ConsInit
+*   Initialize Console Port for non-interrupt I/O
+*
+* Passed: none
+* Returns: none
+* Destoys: cc
+***************
+ConsInit:
+    movem.l d0/a0,-(sp)     *save regs
+    move.w  sr,-(sp)        *save status register
+    ori.w   #IntMask,sr     *mask irqs to level 7
+    movea.l ConsPort(pc),a0 *get base address
+    move.b  #ConsCtlValue,Tn_CTLb(a0)   *set up console for non-irq mode, highest speed
+
+    moveq   #0,d1       *clear carry (no errors)
+    move    (sp)+,sr
+    movem.l (sp)+,d0/a0 *restore regs
+    rts
+
+********************
+* Subroutine ConsSet
+*     Turn off the Interrupts
+********************
+ConsSet:
+    move.l  a0,-(sp)
+    move.w  sr,-(sp)
+    ori.w   #IntMask,sr
+    movea.l ConsPort(pc),a0     *get base address
+    bclr.b  #Tn_IRQBit,Tn_CTLb(a0)
+    move.w  (sp)+,sr
+    move.l (sp)+,a0
+    rts
+
+**************
+* Subroutine PortInit
+*   Inititialize Comm Port for non-interrupt I/O
+*
+* Passed: none
+* Returns: none
+* Destroys: cc
+**************
+PortInit:
+    movem.l d0/a0,-(sp)         *save regs
+    move.w  sr,-(sp)            *save status register
+    ori.w   #IntMask,sr         *mask irqs to level 7
+    movea.l CommPort(pc),a0     *get base address
+    move.b  #ConsCtlValue,Tn_CTLb(a0)   *set up console for non-irq mode, highest speed
+
+    DELAY
+ 
+    moveq   #0,d1               *clear carry (no errors)
+    move    (sp)+,sr
+    movem.l (sp)+,d0/a0         *restore regs
+    rts
+
+***************
+* Subroutine InChar
+*   Return one (upper case) byte of input from the Acia, waiting for input
+*
+* Passed: none
+* Returns: (d0.b)=input char
+* Destroys: cc
+***************
+InChar:
+    movem.l d1/a0,-(sp)     *save regs
+    move.w  sr,-(sp)
+    ori.w   #IntMask,sr     *mask irqs to level 7
+    movea.l ConsPort(pc),a0
+InChar10:
+    btst.b  #Tn_RXFBit,Tn_CTLb(a0)  *receive char available ?
+    beq.s   InChar10                *..no; wait for one
+    move.b  Tn_RXb(a0),d0           *get data
+    move.w  (sp)+,sr
+    movem.l (sp)+,d1/a0             *restore regs
+    bsr.s   OutChar                 *echo the character
+
+ ifndef ROMBUG
+InChar30:
+    cmpi.b  #'a',d0         *lower case?
+    blo.s   InChar90        *exit if not
+    cmpi.b  #'z',d0         *lower case?
+    bhi.s   InChar90        *exit if not
+    subi.b  #('a'-'A'),d0
+ else
+InChar30:
+ endc
+InChar90:
+    rts
+
+**************
+* Subroutine InChCheck
+*   Check console for input char, returning immediately
+*
+* Passed: none
+* Returns: (d0.b) = -1 if no char, else char available
+**************
+InChChek:
+    move.l  a0,-(sp)        *save reg
+    move.w  sr,-(sp)
+    ori.w   #IntMask,sr     *mask irqs to level 7
+    movea.l ConsPort(pc),a0 *get the port address
+Check10:
+    btst.b  #Tn_RXFBit,Tn_CTLb(a0)  *is there a character ?
+    bne.s   Check20                 *yes, get the char and return
+    moveq.l #-1,d0          *flag no character
+    bra     Check30         *leave
+*Here if character available
+*
+Check20:
+    move.b  Tn_RXb(a0),d0   *get data
+Check30:
+    move.w  (sp)+,sr
+    move.l  (sp)+,a0        *get back the reg
+    rts
+
+*************
+* Subroutine ChekPort
+*   Check console for input char
+*
+* Passed: none
+* Returns: (d0.l) zero if no char, non-zero if char available
+*************
+ChekPort:
+    move.l  a0,-(sp)    *save reg
+    move.w  sr,-(sp)    *save status register
+    movea.l CommPort(pc),a0     *get the port address
+    bra.s   Check10             *finish the check
+
+
+*************
+* Subroutine InPort 
+*   Input char on aux port, waiting for input
+*
+* Passed: none
+* Returns: (d0.b) = input char
+**************
+InPort:
+    movem.l d1/a0,-(sp)     *save regs
+    move.w  sr,-(sp)
+    ori.w   #IntMask,sr     *mask irqs to level 7
+    movea.l CommPort(pc),a0
+InPort10:
+    btst.b  #Tn_RXFBit,Tn_CTLb(a0)  *receive char available ?
+    beq.s   InPort10                *..no; wait for one
+    move.b  Tn_RXb(a0),d0           *get data
+    move.w  (sp)+,sr
+    movem.l (sp)+,d1/a0             *restore regs
+    bra.s   InChar30                *handle case
+
+ 
+ page
+***************
+* Subroutine OutChar
+*   Output one character to Acia
+*
+* Passed: (d0.b)=char to write
+* Returns: none
+***************
+OutChar:
+    bsr.s   OutChar0    *output char
+    cmpi.b  #C$CR,d0    *output CR ?
+    bne.s   OutCharEx   *done if not
+    move.w  d0,-(sp)
+    moveq.l #C$LF,d0    *insert LF
+    bsr.s   OutChar0
+    move.w  (sp)+,d0    *restore d0
+OutCharEx:
+    rts
+
+OutChar0:
+    movem.l d0/a0,-(sp)
+    move.w  sr,-(sp)    *save irq status
+    ori.w   #IntMask,sr *mask irqs to level 7
+    movea.l ConsPort(pc),a0
+OutChar1:
+    btst.b  #Tn_RXFBit,Tn_CTLb(a0)  *is the receiver ready?
+    beq.s   OC10                    *no char is waiting (thus not an XOFF)
+    cmpi.b  #C$XOff,Tn_RXb(a0)      *was rcvd char an X-OFF? (note read clears CTLb_RXF)
+    bne.s   OC10                    *if no, go send character
+
+* loop, waiting for non-X-OFF character
+OC05:
+    btst.b  #Tn_RXFBit,Tn_CTLb(a0)  *is the receiver ready?
+    beq.s   OC05                    *if no, loop until new character
+    cmpi.b  #C$XOff,Tn_RXb(a0)      *non X-OFF character rec'd ?
+    beq.s   OC05                    *loop until so
+OC10:
+    move.b  d0,Tn_TXb(a0)           *write char
+
+OutChar2:
+    btst.b  #Tn_TXEBit,Tn_CTLb(a0)  *done tx?
+    beq.s   OutChar2                *loop until so
+    move.w  (sp)+,sr                *restore sr
+    movem.l (sp)+,d0/a0             *restore regs
+    rts                             *return
+
+
+**************
+* Subroutine OutPort
+*   Output a character on auxillary port
+*
+* Passed: (d0.b) = char to be output
+* Returns: none
+**************
+OutPort:
+    movem.l d0/a0,-(sp)         *save reg
+    move.w  sr,-(sp)            *save the irq mask state
+    ori.w   #IntMask,sr         *mask interrupts
+    movea.l CommPort(pc),a0     *get the port address
+    bra.s   OutChar1            *now do the output
+
+
+*************
+* Subroutine OutRaw 
+*   Output one char
+*
+* Passed: (d0.b) = char to write
+* Returns: none
+*************
+OutRaw:
+    move.l  a0,-(sp)            *save reg
+    movea.l ConsPort(pc),a0     *get the cons address
+OutRaw1:
+    move.b  d0,Tn_TXb(a0)           *send the character
+OutRaw2:
+    btst.b  #Tn_TXEBit,Tn_CTLb(a0)  *done tx?
+    beq.s   OutRaw2                 *loop until so
+    movea.l (sp)+,a0                *get back the reg
+    rts
+
+***************
+* PortDeInit and Console DeInit are needed for the newest debug
+*
+* High-level driver saves port's CTLb reg in D_Start(sysglob_base)
+* (or D_Start+2(sysglob_base for comm)
+* prior to entering console system debug. ConsDeIn is responsible for restoring
+* it before returning to high-level driver operation.
+*
+***************
+ConsDeIn:
+    move.w  sr,-(sp)    *save sr
+    ori.w   #IntMask,sr *mask all interrupts
+    movem.l a0/a3,-(sp) *save regs
+    sysglob a0
+    lea     D_Start(a0),a0
+    movea.l ConsPort(pc),a3     *get address of console port
+DeInit10:
+    cmpi.w  #M$ID12,(a0)        *has the system been started ?
+    bne     DeInitXt            *..no; then no IMR to restore
+    move.b  (a0),Tn_CTLb(a3)    *restore CTLb value from driver
+DeInitXt:
+    movem.l (sp)+,a0/a3     *restore regs
+    move.w  (sp)+,sr        *restore sr
+    rts
+
+PortDeIn:
+    move.w  sr,-(sp)    *save sr
+    ori.w   #IntMask,sr *mask all interrupts
+    movem.l a0/a3,-(sp) *save regs
+    sysglob a0
+    lea     D_Start+2(a0),a0
+    movea.l CommPort(pc),a3 *get address of console port
+    bra.s   DeInit10
+
+ ends

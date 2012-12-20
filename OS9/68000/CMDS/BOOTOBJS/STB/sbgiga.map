@@ -1,0 +1,54 @@
+Linkage map for module 'sbgiga' in file ..\..\..\..\..\..\..\..\68000\CM  Page 1
+
+
+'main' psect from file: ..\..\..\..\..\..\..\..\SRC\IO\SCSI\SCSICOM\RELS\sbglue.r
+	C:0000003c M:00000000 D:0000013c RM:0000013c RD:0000013c
+ GetStat   COD 00000096 | Init      COD 0000004a | PutStat   COD 000000a0 |
+ Read      COD 00000060 | Term      COD 000000ca | Write     COD 0000008a |
+ _bdata    DAT 00000000 | _bname    COD 00000e26 | _btext    COD 00000000 |
+ _enddata  DAT 0000013c | _etext    COD 00000e32 | bdata     DAT 00000000 |
+ bname     COD 00000e26 | btext     COD 00000000 | end       DAT 0000013c |
+ etext     COD 00000e32 |
+
+'init.c' psect from file: init.r
+	C:000000d4 M:00000000 D:0000013c RM:0000013c RD:0000013c
+ init      COD 000000d4 |
+
+'main.c' psect from file: main.r
+	C:00000170 M:00000000 D:0000013c RM:0000013c RD:0000013c
+ _sysedit  ABS 00000025 | driver_statics MEM 00000000 | pathdesc  ABS 000000c0 |
+ procdesc  ABS 000000d4 | stat      ABS 000000c8 | sys_stat  ABS 000000c4 |
+
+'read.c' psect from file: read.r
+	C:00000170 M:0000013c D:0000013c RM:0000013c RD:0000013c
+ read      COD 00000170 |
+
+'write.c' psect from file: write.r
+	C:00000206 M:0000013c D:0000013c RM:0000013c RD:0000013c
+ write     COD 00000206 |
+
+'stat.c' psect from file: stat.r
+	C:000002c0 M:0000013c D:0000013c RM:0000013c RD:0000013c
+ direct_command COD 00000308 | getstat   COD 000002c0 | putstat   COD 00000444 |
+
+'term.c' psect from file: term.r
+	C:000005bc M:0000013c D:0000013c RM:0000013c RD:0000013c
+ term      COD 000005bc |
+
+'misc.c' psect from file: misc.r
+	C:0000061e M:0000013c D:0000013c RM:0000013c RD:0000013c
+ execnoxfer COD 0000071e | execute   COD 0000080c | handlerr  COD 0000095c |
+ initdrv   COD 0000061e | scsistat  COD 0000091e |
+
+'syscalls' psect from file: ..\..\..\..\..\..\..\..\SRC\IO\SCSI\SCSICOM\RELS\syscalls.r
+	C:00000b92 M:0000013c D:0000013c RM:0000013c RD:0000013c
+ _f_chkmem COD 00000dbe | _f_datmod COD 00000b92 | _f_delprc COD 00000c30 |
+ _f_irq    COD 00000c0e | _f_link   COD 00000bae | _f_move   COD 00000dde |
+ _f_send   COD 00000c54 | _f_sleep  COD 00000c42 | _f_srqmem COD 00000be6 |
+ _f_srtmem COD 00000c66 | _f_trans  COD 00000d86 | _f_unlink COD 00000c8a |
+ _fev_creat COD 00000cf8 | _fev_delet COD 00000d30 | _fev_set  COD 00000cb8 |
+ _fev_signl COD 00000ca2 | _fev_unlnk COD 00000cec | _fev_wait COD 00000d58 |
+
+'_mul.c' psect from file: ..\..\..\..\..\..\..\..\68000\LIB\os_lib.l
+	C:00000e02 M:0000013c D:0000013c RM:0000013c RD:0000013c
+ __multiply COD 00000e02 | __umultiply COD 00000e02 |

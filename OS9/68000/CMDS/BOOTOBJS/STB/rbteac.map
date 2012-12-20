@@ -1,0 +1,68 @@
+Linkage map for module 'rbteac' in file ..\..\..\..\..\..\..\..\68000\CM  Page 1
+
+
+'main' psect from file: ..\..\..\..\..\..\..\..\SRC\IO\SCSI\SCSICOM\RELS\rbglue.r
+	C:0000003c M:00000000 D:000002a4 RM:000002a4 RD:000002a4
+ GetStat   COD 0000008a | Init      COD 0000004a | PutStat   COD 00000090 |
+ Read      COD 0000005c | Term      COD 0000009a | Write     COD 00000084 |
+ _bdata    DAT 00000000 | _bname    COD 0000190e | _btext    COD 00000000 |
+ _enddata  DAT 000002a4 | _etext    COD 0000191a | bdata     DAT 00000000 |
+ bname     COD 0000190e | btext     COD 00000000 | calldriver COD 0000006c |
+ end       DAT 000002a4 | etext     COD 0000191a |
+
+'main.c' psect from file: main.r
+	C:000000a0 M:00000000 D:000002a4 RM:000002a4 RD:000002a4
+ _sysedit  ABS 0000001f | pathdesc  ABS 00000198 | procdesc  ABS 0000019c |
+ rbteac_statics MEM 00000000 | stat      ABS 0000018c | sys_stat  ABS 00000188 |
+
+'init.c' psect from file: init.r
+	C:000000a0 M:000002a4 D:000002a4 RM:000002a4 RD:000002a4
+ init      COD 000000a0 |
+
+'read.c' psect from file: read.r
+	C:00000138 M:000002a4 D:000002a4 RM:000002a4 RD:000002a4
+ read      COD 00000138 |
+
+'write.c' psect from file: write.r
+	C:000002da M:000002a4 D:000002a4 RM:000002a4 RD:000002a4
+ write     COD 000002da |
+
+'stat.c' psect from file: stat.r
+	C:000003c4 M:000002a4 D:000002a4 RM:000002a4 RD:000002a4
+ direct_command COD 0000042e | getstat   COD 000003c4 | putstat   COD 0000058a |
+
+'term.c' psect from file: term.r
+	C:000006f2 M:000002a4 D:000002a4 RM:000002a4 RD:000002a4
+ term      COD 000006f2 |
+
+'misc.c' psect from file: misc.r
+	C:00000764 M:000002a4 D:000002a4 RM:000002a4 RD:000002a4
+ c4tol     COD 00001508 | chkfdtime COD 00001530 | copyblock COD 000013be |
+ execnoxfer COD 00000be4 | execute   COD 00000d64 | ftinitdrv COD 0000085a |
+ fttrkoffs COD 000013de | get_drive_kind COD 00000f24 | handlerr  COD 00000ffc |
+ hexchar   COD 00001494 | lxtoa     COD 00001462 | scsistat  COD 00000fbe |
+ set3l     COD 000014ec | setfdtime COD 0000157a | strcpy    COD 000014ac |
+ strncmp   COD 000014c0 | teac_desc COD 00000794 | validate_descriptor COD 00000b94 |
+
+'syscalls' psect from file: ..\..\..\..\..\..\..\..\SRC\IO\SCSI\SCSICOM\RELS\syscalls.r
+	C:000015b2 M:000002a4 D:000002a4 RM:000002a4 RD:000002a4
+ _f_chkmem COD 000017de | _f_datmod COD 000015b2 | _f_delprc COD 00001650 |
+ _f_irq    COD 0000162e | _f_link   COD 000015ce | _f_move   COD 000017fe |
+ _f_send   COD 00001674 | _f_sleep  COD 00001662 | _f_srqmem COD 00001606 |
+ _f_srtmem COD 00001686 | _f_trans  COD 000017a6 | _f_unlink COD 000016aa |
+ _fev_creat COD 00001718 | _fev_delet COD 00001750 | _fev_set  COD 000016d8 |
+ _fev_signl COD 000016c2 | _fev_unlnk COD 0000170c | _fev_wait COD 00001778 |
+
+'link.c' psect from file: ..\..\..\..\..\..\..\..\68000\LIB\os_lib.l
+	C:00001822 M:000002a4 D:000002a4 RM:000002a4 RD:000002a4
+ _os_link  COD 00001822 |
+
+'_mul.c' psect from file: ..\..\..\..\..\..\..\..\68000\LIB\os_lib.l
+	C:0000185e M:000002a4 D:000002a4 RM:000002a4 RD:000002a4
+ __multiply COD 0000185e | __umultiply COD 0000185e |
+Linkage map for module 'rbteac' in file ..\..\..\..\..\..\..\..\68000\CM  Page 2
+
+
+'_udiv.c' psect from file: ..\..\..\..\..\..\..\..\68000\LIB\os_lib.l
+	C:00001882 M:000002a4 D:000002a4 RM:000002a4 RD:000002a4
+ __udivide COD 0000188a | __umodulo COD 00001882 |

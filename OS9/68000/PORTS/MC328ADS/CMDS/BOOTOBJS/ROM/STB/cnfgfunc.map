@@ -1,0 +1,35 @@
+Linkage map for module 'cnfgfunc' in file ..\..\CMDS\BOOTOBJS\ROM\cnfgfunc  Page 1
+
+
+'p2start.a' psect from file: ..\..\..\..\..\..\OS9\68000\LIB\ROM\p2start.r
+	C:0000003c M:00000000 D:00000014 RM:00000014 RD:00000014
+ _btext    COD 00000000 | _bdata    DAT 00000000 | btext     COD 00000000 |
+ bdata     DAT 00000000 | _enddata  DAT 00000014 | end       DAT 00000014 |
+ Main      COD 0000003c | _bname    COD 00000b96 | bname     COD 00000b96 |
+ _etext    COD 00000ba4 | etext     COD 00000ba4 |
+
+'cnfgfunc.c' psect from file: RELS\cnfgfunc.r
+	C:00000076 M:00000000 D:00000014 RM:00000014 RD:00000014
+ config_r  MEM 00000000 | _sysedit  ABS 00000010 | ntfy_offset_table COD 0000009a |
+ boot_offset_table COD 000000ac | debug_offset_table COD 000000b8 | llpm_offset_table COD 000000c4 |
+ booter_offset_table COD 000000d8 | cons_offset_table COD 000000f0 | v1_llif_offset_table COD 0000011c |
+ llif_offset_table COD 00000168 | search_entry COD 000001fe | get_cons_config COD 00000254 |
+ get_debug_config COD 000003b2 | get_llif_config COD 00000442 | get_llpm_config COD 00000662 |
+ get_booter_config COD 000006ea | get_boot_config COD 00000824 | get_ntfy_config COD 000008be |
+ get_config_data COD 00000930 | p2start   COD 00000a92 |
+
+'getrinf.c' psect from file: ..\..\..\..\..\..\OS9\68000\LIB\ROM\p2lib.l
+	C:00000ac8 M:00000014 D:00000014 RM:00000014 RD:00000014
+ getrinf   COD 00000ac8 |
+
+'findrinf.c' psect from file: ..\..\..\..\..\..\OS9\68000\LIB\ROM\p2lib.l
+	C:00000b1a M:00000014 D:00000014 RM:00000014 RD:00000014
+ findrinf  COD 00000b1a |
+
+'strcmp.c' psect from file: ..\..\..\..\..\..\OS9\68000\LIB\clib.l
+	C:00000b50 M:00000014 D:00000014 RM:00000014 RD:00000014
+ strcmp    COD 00000b50 |
+
+'_mul.c' psect from file: ..\..\..\..\..\..\OS9\68000\LIB\os_lib.l
+	C:00000b72 M:00000014 D:00000014 RM:00000014 RD:00000014
+ __multiply COD 00000b72 | __umultiply COD 00000b72 |

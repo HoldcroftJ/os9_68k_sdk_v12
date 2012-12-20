@@ -1,0 +1,59 @@
+Linkage map for module 'sbteac' in file ..\..\..\..\..\..\..\68000\CMDS\  Page 1
+
+
+'main' psect from file: ..\..\..\..\..\..\..\SRC\IO\SCSI\SCSICOM\RELS\sbglue.r
+	C:0000003c M:00000000 D:00000158 RM:00000158 RD:00000158
+ GetStat   COD 00000096 | Init      COD 0000004a | PutStat   COD 000000a0 |
+ Read      COD 00000060 | Term      COD 000000ca | Write     COD 0000008a |
+ _bdata    DAT 00000000 | _bname    COD 00001206 | _btext    COD 00000000 |
+ _enddata  DAT 00000158 | _etext    COD 00001212 | bdata     DAT 00000000 |
+ bname     COD 00001206 | btext     COD 00000000 | end       DAT 00000158 |
+ etext     COD 00001212 |
+
+'init.c' psect from file: init.r
+	C:000000d4 M:00000000 D:00000158 RM:00000158 RD:00000158
+ init      COD 000000da |
+
+'main.c' psect from file: main.r
+	C:0000020c M:00000000 D:00000158 RM:00000158 RD:00000158
+ _sysedit  ABS 00000014 | driver_statics MEM 00000000 | pathdesc  ABS 000000c0 |
+ procdesc  ABS 000000d4 | stat      ABS 000000c8 | sys_stat  ABS 000000c4 |
+
+'read.c' psect from file: read.r
+	C:0000020c M:00000158 D:00000158 RM:00000158 RD:00000158
+ read      COD 0000020c |
+
+'write.c' psect from file: write.r
+	C:000002d6 M:00000158 D:00000158 RM:00000158 RD:00000158
+ write     COD 000002d6 |
+
+'stat.c' psect from file: stat.r
+	C:000003b2 M:00000158 D:00000158 RM:00000158 RD:00000158
+ direct_command COD 000003fa | getstat   COD 000003b2 | putstat   COD 00000536 |
+
+'term.c' psect from file: term.r
+	C:000007b4 M:00000158 D:00000158 RM:00000158 RD:00000158
+ term      COD 000007b4 |
+
+'misc.c' psect from file: misc.r
+	C:00000836 M:00000158 D:00000158 RM:00000158 RD:00000158
+ execnoxfer COD 00000948 | execute   COD 00000a36 | handlerr  COD 00000b86 |
+ hexchar   COD 00000eba | initdrv   COD 00000836 | lxtoa     COD 00000e88 |
+ scsistat  COD 00000b48 | strcpy    COD 00000ed2 |
+
+'syscalls' psect from file: ..\..\..\..\..\..\..\SRC\IO\SCSI\SCSICOM\RELS\syscalls.r
+	C:00000ee6 M:00000158 D:00000158 RM:00000158 RD:00000158
+ _f_chkmem COD 00001112 | _f_datmod COD 00000ee6 | _f_delprc COD 00000f84 |
+ _f_irq    COD 00000f62 | _f_link   COD 00000f02 | _f_move   COD 00001132 |
+ _f_send   COD 00000fa8 | _f_sleep  COD 00000f96 | _f_srqmem COD 00000f3a |
+ _f_srtmem COD 00000fba | _f_trans  COD 000010da | _f_unlink COD 00000fde |
+ _fev_creat COD 0000104c | _fev_delet COD 00001084 | _fev_set  COD 0000100c |
+ _fev_signl COD 00000ff6 | _fev_unlnk COD 00001040 | _fev_wait COD 000010ac |
+
+'_udiv.c' psect from file: ..\..\..\..\..\..\..\68000\LIB\os_lib.l
+	C:00001156 M:00000158 D:00000158 RM:00000158 RD:00000158
+ __udivide COD 0000115e | __umodulo COD 00001156 |
+
+'_mul.c' psect from file: ..\..\..\..\..\..\..\68000\LIB\os_lib.l
+	C:000011e2 M:00000158 D:00000158 RM:00000158 RD:00000158
+ __multiply COD 000011e2 | __umultiply COD 000011e2 |

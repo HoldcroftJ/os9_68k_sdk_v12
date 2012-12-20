@@ -1,0 +1,64 @@
+********************************
+**  Bootlist for the RUSSBOX/68k
+**
+*  OS-9 Kernel - select one variant:
+*  Development kernel - Standard memory allocator
+../../../68000/CMDS/BOOTOBJS/dker000s
+*  Development kernel - Buddy memory allocator
+*../../../68000/CMDS/BOOTOBJS/dker000b
+*  Atomic kernel - Standard memory allocator
+*../../../68000/CMDS/BOOTOBJS/akerc000s
+*  Atomic kernel - Buddy memory allocator
+*../../../68000/CMDS/BOOTOBJS/aker000b
+*
+* Ioman - select one to match selected kernel above:
+*
+../../../68000/CMDS/BOOTOBJS/ioman_DEV
+*../../../68000/CMDS/BOOTOBJS/ioman_ATOM
+*
+* Init module:
+*
+CMDS/BOOTOBJS/INITS/init
+*
+* Customization modules:
+*
+* FPU emulation module
+*
+../../../68000/CMDS/BOOTOBJS/fpu
+*
+* System clock module:
+*
+CMDS/BOOTOBJS/tk68990
+CMDS/BOOTOBJS/rtc68990
+*
+* SCF Drivers and Descriptors:
+*
+../../../68000/CMDS/BOOTOBJS/scf
+../../../68000/CMDS/BOOTOBJS/null
+../../../68000/CMDS/BOOTOBJS/nil
+../../../68000/CMDS/BOOTOBJS/pipeman
+../../../68000/CMDS/BOOTOBJS/pipe
+*../../../68000/CMDS/BOOTOBJS/pipe2
+*
+*   serial ports
+*
+CMDS/BOOTOBJS/sc68990
+CMDS/BOOTOBJS/term
+CMDS/BOOTOBJS/t0
+CMDS/BOOTOBJS/t1
+
+*
+* RBF Drivers and Descriptors:
+*
+../../../68000/CMDS/BOOTOBJS/rbf
+../../../68000/CMDS/BOOTOBJS/ram
+../../../68000/CMDS/BOOTOBJS/dd_r0
+../../../68000/CMDS/BOOTOBJS/r0
+*
+* Initial system processes:
+*
+../../../68000/CMDS/BOOTOBJS/sysgo_nodisk
+*!../../../68000/CMDS/BOOTOBJS/sysgo_shell   *needs disk - CMDS/ dir at least...
+*
+*  Additional modules can be added here.
+*

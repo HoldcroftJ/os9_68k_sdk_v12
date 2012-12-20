@@ -1,0 +1,61 @@
+Linkage map for module 'rbvccs' in file ..\..\..\..\..\..\..\68000\CMDS\  Page 1
+
+
+'main' psect from file: ..\..\..\..\..\..\..\SRC\IO\SCSI\SCSICOM\RELS\rbglue.r
+	C:0000003c M:00000000 D:00000120 RM:00000120 RD:00000120
+ GetStat   COD 0000008a | Init      COD 0000004a | PutStat   COD 00000090 |
+ Read      COD 0000005c | Term      COD 0000009a | Write     COD 00000084 |
+ _bdata    DAT 00000000 | _bname    COD 000015be | _btext    COD 00000000 |
+ _enddata  DAT 00000120 | _etext    COD 000015ca | bdata     DAT 00000000 |
+ bname     COD 000015be | btext     COD 00000000 | calldriver COD 0000006c |
+ end       DAT 00000120 | etext     COD 000015ca |
+
+'main.c' psect from file: main.r
+	C:000000a0 M:00000000 D:00000120 RM:00000120 RD:00000120
+ _sysedit  ABS 0000001b | driver_statics MEM 00000000 | pathdesc  ABS 0000009c |
+ procdesc  ABS 000000a0 | stat      ABS 00000090 | sys_stat  ABS 0000008c |
+
+'init.c' psect from file: init.r
+	C:000000a0 M:00000120 D:00000120 RM:00000120 RD:00000120
+ init      COD 000000a0 |
+
+'read.c' psect from file: read.r
+	C:00000116 M:00000120 D:00000120 RM:00000120 RD:00000120
+ read      COD 00000116 |
+
+'write.c' psect from file: write.r
+	C:0000026c M:00000120 D:00000120 RM:00000120 RD:00000120
+ write     COD 0000026c |
+
+'stat.c' psect from file: stat.r
+	C:0000036c M:00000120 D:00000120 RM:00000120 RD:00000120
+ direct_command COD 00000426 | getstat   COD 0000036c | putstat   COD 0000056a |
+
+'term.c' psect from file: term.r
+	C:000006a6 M:00000120 D:00000120 RM:00000120 RD:00000120
+ term      COD 000006a6 |
+
+'misc.c' psect from file: misc.r
+	C:000006f8 M:00000120 D:00000120 RM:00000120 RD:00000120
+ addoffsets COD 00001210 | c4tol     COD 000011ca | copysect  COD 000011f2 |
+ execnoxfer COD 00000888 | execute   COD 000009ce | handlerr  COD 00000d2a |
+ hexchar   COD 00001182 | initdrv   COD 000006f8 | lxtoa     COD 00001150 |
+ memcpy    COD 0000127c | sccsmode  COD 00000b4c | scsistat  COD 00000cec |
+ set3l     COD 000011ae | strcpy    COD 0000119a |
+
+'syscalls' psect from file: ..\..\..\..\..\..\..\SRC\IO\SCSI\SCSICOM\RELS\syscalls.r
+	C:0000129e M:00000120 D:00000120 RM:00000120 RD:00000120
+ _f_chkmem COD 000014ca | _f_datmod COD 0000129e | _f_delprc COD 0000133c |
+ _f_irq    COD 0000131a | _f_link   COD 000012ba | _f_move   COD 000014ea |
+ _f_send   COD 00001360 | _f_sleep  COD 0000134e | _f_srqmem COD 000012f2 |
+ _f_srtmem COD 00001372 | _f_trans  COD 00001492 | _f_unlink COD 00001396 |
+ _fev_creat COD 00001404 | _fev_delet COD 0000143c | _fev_set  COD 000013c4 |
+ _fev_signl COD 000013ae | _fev_unlnk COD 000013f8 | _fev_wait COD 00001464 |
+
+'_mul.c' psect from file: ..\..\..\..\..\..\..\68000\LIB\os_lib.l
+	C:0000150e M:00000120 D:00000120 RM:00000120 RD:00000120
+ __multiply COD 0000150e | __umultiply COD 0000150e |
+
+'_udiv.c' psect from file: ..\..\..\..\..\..\..\68000\LIB\os_lib.l
+	C:00001532 M:00000120 D:00000120 RM:00000120 RD:00000120
+ __udivide COD 0000153a | __umodulo COD 00001532 |

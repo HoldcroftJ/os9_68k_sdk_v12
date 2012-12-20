@@ -1,0 +1,280 @@
+<?xml version="1.0"?>
+<HAWK_DATA>
+  <PROJECT_DEFS>
+    <PROPERTIES Verbose="0" PrelinkQuiet="1" PrelinkSupressFlags="0" DisAllowExceptionHandling="1" ImplicitInclude="0" StackChecking="1" OptimizeData="0" ConstantsInCode="0" VolatileMemReads="0" ProcessorSpecificOptim="1" ProcessorSpecificPatternOptim="1" DiscardSingleCallFuncs="0" GlobalFuncInlining="1" FuncReturnValueCheck="0" CodeMotionAndCombo="1" MapFile="0" AllowExtraStack="0" CodeAddrAreaCalc="0" ModuleOwner="0" ModuleEdition="0" ModuleSticky="0" ModulePermissions="0" OwnerRead="0" OwnerWrite="0" OwnerExec="0" GroupRead="0" GroupWrite="0" GroupExec="0" PublicRead="0" PublicWrite="0" PublicExec="0" I-CodeLink="0" InstantiateMode="0" Weighting="0" OptimLevel="7" AdditionalStack="2" ModuleGroup="1" ModuleUserID="0" ModuleNumber="1" DebugCommMethod="0" DebugFastNetMethod="0" Language="0" C_Conformance="0" CPP_Conformance="0" I-CodeLinkType="0" O-CodeLinkType="0" DebugLevel="2" RevisionNumber="1" Make="os9make -f%b%e" ForcedMake="os9make -f%b%e -u MOPTS=-u"/>
+  </PROJECT_DEFS>
+  <COMPONENT_TYPES>
+    <COMPONENT_TYPE name="User State Program" id="{B49990A1-04C7-11D4-BD66-5E02AF000000}" dbg_user_state="1" tab_mask="47">
+      <PROPERTIES/>
+    </COMPONENT_TYPE>
+    <COMPONENT_TYPE name="System State Program" id="{B49990A9-04C7-11D4-BD66-5E02AF000000}" root_psect="sysansi_cstart.r" dbg_system_state="1" tab_mask="47">
+      <PROPERTIES/>
+    </COMPONENT_TYPE>
+    <COMPONENT_TYPE name="Descriptor" id="{B49990A2-04C7-11D4-BD66-5E02AF000000}" root_psect="descstart.r" tab_mask="15">
+      <PROPERTIES/>
+    </COMPONENT_TYPE>
+    <COMPONENT_TYPE name="Driver" id="{B49990A3-04C7-11D4-BD66-5E02AF000000}" root_psect="drvstart.r" dbg_system_state="1" tab_mask="47">
+      <PROPERTIES CodeAddrAreaCalc="1" StackChecking="0" I-CodeLink="1" I-CodeLinkType="0" O-CodeLinkType="0" DebugLevel="0"/>
+    </COMPONENT_TYPE>
+    <COMPONENT_TYPE name="File Manager" id="{B49990A4-04C7-11D4-BD66-5E02AF000000}" root_psect="fmstart.r" dbg_system_state="1" tab_mask="47">
+      <PROPERTIES CodeAddrAreaCalc="1" StackChecking="0" I-CodeLink="1" I-CodeLinkType="0" O-CodeLinkType="0" DebugLevel="0"/>
+    </COMPONENT_TYPE>
+    <COMPONENT_TYPE name="I-Code Library" id="{B49990A5-04C7-11D4-BD66-5E02AF000000}" tab_mask="7">
+      <PROPERTIES I-CodeLink="1" I-CodeLinkType="2" O-CodeLinkType="2" DebugLevel="0" StackChecking="0"/>
+    </COMPONENT_TYPE>
+    <COMPONENT_TYPE name="O-Code Library" id="{B49990A6-04C7-11D4-BD66-5E02AF000000}" tab_mask="7">
+      <PROPERTIES I-CodeLink="0" I-CodeLinkType="2" O-CodeLinkType="2" DebugLevel="0" StackChecking="0"/>
+    </COMPONENT_TYPE>
+    <COMPONENT_TYPE name="Subroutine Module" id="{B49990A7-04C7-11D4-BD66-5E02AF000000}" dbg_user_state="1" tab_mask="47">
+      <PROPERTIES/>
+    </COMPONENT_TYPE>
+    <COMPONENT_TYPE name="Collection" id="{B49990A8-04C7-11D4-BD66-5E02AF000000}" output="0" tab_mask="71">
+      <PROPERTIES/>
+    </COMPONENT_TYPE>
+  </COMPONENT_TYPES>
+  <UNIT_TYPES>
+    <UNIT_TYPE ext=".c" name="C Source" id="500" tab_mask="23"/>
+    <UNIT_TYPE ext=".cpp" name="C++ Source" id="510" tab_mask="23"/>
+    <UNIT_TYPE ext=".cxx" name="C++ Source" id="510" tab_mask="23"/>
+    <UNIT_TYPE ext=".h" name="Header" id="515" tab_mask="1" output="0"/>
+    <UNIT_TYPE ext=".hpp" name="Header" id="515" tab_mask="1" output="0"/>
+    <UNIT_TYPE ext="*.hxx" name="Header" id="515" tab_mask="1" output="0"/>
+    <UNIT_TYPE ext=".d" name="Header" id="515" tab_mask="1" output="0"/>
+    <UNIT_TYPE ext=".des" name="Descriptor" id="520" tab_mask="67"/>
+    <UNIT_TYPE ext=".r" name="ROF" id="530" tab_mask="7" output="0"/>
+    <UNIT_TYPE ext=".i" name="I-Code" id="540" tab_mask="7" output="0"/>
+    <UNIT_TYPE ext=".il" name="I-Code Library" id="550" tab_mask="7" output="0"/>
+    <UNIT_TYPE ext=".a" name="Assembly" id="560" tab_mask="7"/>
+    <UNIT_TYPE ext=".o" name="O-Code" id="570" tab_mask="7"/>
+    <UNIT_TYPE ext=".l" name="O-Code Library" id="580" tab_mask="7" output="0"/>
+    <UNIT_TYPE ext=".mak" name="Make" id="590" tab_mask="129" output="0"/>
+    <UNIT_TYPE ext=".cmd" name="Command" id="600" tab_mask="3" output="0"/>
+    <UNIT_TYPE ext=".bat" name="Batch" id="610" tab_mask="3" output="0"/>
+    <UNIT_TYPE ext=".*" name="Unit" id="620" tab_mask="1" output="0"/>
+  </UNIT_TYPES>
+  <COMMON_LIBS>
+    <LIB name="CPU Library" desc="CPU dependent functions." ocode="cpu.l" icode="cpu.il"/>
+    <LIB name="The non-ANSI C Library" desc="Contains functions for compatibility with old K&amp;R source code. It is strongly recommended that when writing new code, a programmer not use the sys_clib library functions." ocode="sys_clib.l" icode="sys_clib.il"/>
+    <LIB name="Termcap Library" desc="The termcap database screen manipulation functions." ocode="termlib.l"/>
+    <LIB name="Small ANSI C Library" desc="To minimize code size, smaller versions of some library functions are available in sclib.l and sclib.il." ocode="sclib.l" icode="sclib.il"/>
+    <LIB name="Unix-like Library" desc="The UNIX-like library functions." ocode="unix.l" icode="unix.il"/>
+    <LIB name="Socket Library" desc="The BSD-like socket library functions." ocode="socket.l" icode="socket.il"/>
+    <LIB name="NetDB Library" desc="The BSD-like nameservice library functions." ocode="netdb.l" icode="netdb.il"/>
+    <LIB name="NDB Library" desc="The nameservice additional library functions." ocode="ndblib.l" icode="ndblib.il"/>
+    <LIB name="ITEM Library" desc="The ITEM SoftStax library functions." ocode="item.l" icode="item.il"/>
+    <LIB name="RPC Library" desc="Remote procedure call library functions." ocode="rpc.l" icode="rpc.il"/>
+    <LIB name="Shared Maui Library" desc="The standard Maui library functions." ocode="maui.l" icode="maui.il"/>
+    <LIB name="Static Maui Libraries" desc="The static Maui library functions." ocode="mauilib.l;mfm.l" icode="mauilib.il"/>
+  </COMMON_LIBS>
+  <PROCESSORS>
+    <FAMILY name="68k" os="OSK" synccode="0x0000fc4a" be="be68k.exe">
+      <CHIP name="68000"/>
+      <CHIP name="68010"/>
+      <CHIP name="68020"/>
+      <CHIP name="68030"/>
+      <CHIP name="68040"/>
+      <CHIP name="68060"/>
+      <CHIP name="68070"/>
+      <CHIP name="68301"/>
+      <CHIP name="68302"/>
+      <CHIP name="68303"/>
+      <CHIP name="68306"/>
+      <CHIP name="68307"/>
+      <CHIP name="68322"/>
+      <CHIP name="68328"/>
+      <CHIP name="68330"/>
+      <CHIP name="68331"/>
+      <CHIP name="68332"/>
+      <CHIP name="68334"/>
+      <CHIP name="68340"/>
+      <CHIP name="68341"/>
+      <CHIP name="68349"/>
+      <CHIP name="68360"/>
+      <CHIP name="68EC030"/>
+      <CHIP name="68EC040"/>
+      <CHIP name="68f333"/>
+      <CHIP name="68LC040"/>
+      <CHIP name="CPU32"/>
+      <CHIP name="CPU32+"/>
+      <FAMILY_OPTIONS>
+        <OPTION name="Code References" default="32-bit">
+          <OPT cmd="sc" name="16-bit"/>
+          <OPT cmd="lc" name="32-bit"/>
+        </OPTION>
+        <OPTION name="Data References" default="16-bit">
+          <OPT cmd="sd" name="16-bit"/>
+          <OPT cmd="ld" name="32-bit"/>
+        </OPTION>
+        <OPTION name="Floating Point Support" default="Hardware">
+          <OPT cmd="'NIL'" name="Hardware"/>
+          <OPT cmd="fp" name="Software"/>
+        </OPTION>
+      </FAMILY_OPTIONS>
+    </FAMILY>
+    <FAMILY name="x86" os="OS9K" synccode="0x00004afc" be="be386.exe">
+      <CHIP name="80386"/>
+      <CHIP name="80486"/>
+      <CHIP name="Pentium" cmd="P5"/>
+      <FAMILY_OPTIONS>
+        <OPTION name="Data References" default="32-bit">
+          <OPT cmd="sd" name="8-bit"/>
+          <OPT cmd="ld" name="32-bit"/>
+        </OPTION>
+        <OPTION name="Floating Point Support" default="Hardware">
+          <OPT cmd="'NIL'" name="Hardware"/>
+          <OPT cmd="fp" name="Software"/>
+        </OPTION>
+      </FAMILY_OPTIONS>
+    </FAMILY>
+    <FAMILY name="PowerPC" os="OS9K" synccode="0x00000df0" be="beppc.exe">
+      <CHIP name="Generic PowerPC" cmd="PPC"/>
+      <CHIP name="MPC 505" cmd="505"/>
+      <CHIP name="MPC 601" cmd="601"/>
+      <CHIP name="MPC 602" cmd="602"/>
+      <CHIP name="MPC 603" cmd="603"/>
+      <CHIP name="MPC 604" cmd="604"/>
+      <CHIP name="MPC 821" cmd="821"/>
+      <CHIP name="MPC 860" cmd="860"/>
+      <CHIP name="PowerPC 403" cmd="403"/>
+      <FAMILY_OPTIONS>
+        <OPTION name="Constant Data References" default="16-bit">
+          <OPT cmd="scd" name="16-bit"/>
+          <OPT cmd="lcd" name="32-bit"/>
+        </OPTION>
+        <OPTION name="Data References" default="16-bit">
+          <OPT cmd="sd" name="16-bit"/>
+          <OPT cmd="ld" name="32-bit"/>
+        </OPTION>
+        <OPTION name="Floating Point Support" default="Hardware">
+          <OPT cmd="'NIL'" name="Hardware"/>
+          <OPT cmd="fp" name="Software"/>
+        </OPTION>
+      </FAMILY_OPTIONS>
+    </FAMILY>
+    <FAMILY name="ARM" os="OS9K" synccode="0x0000ff6a" be="bearm.exe">
+      <CHIP name="ARM 710A" cmd="ARM710A"/>
+      <CHIP name="ARM V4" cmd="ARMV4"/>
+      <CHIP name="ARM 7TDMI" cmd="ARM7TDMI"/>
+      <FAMILY_OPTIONS>
+        <OPTION name="Constant Data References" default="20-bit">
+          <OPT cmd="scd" name="12-bit"/>
+          <OPT cmd="lcd" name="20-bit"/>
+          <OPT cmd="vlcd" name="28-bit"/>
+        </OPTION>
+        <OPTION name="Data References" default="20-bit">
+          <OPT cmd="sd" name="12-bit"/>
+          <OPT cmd="ld" name="20-bit"/>
+          <OPT cmd="vld" name="28-bit"/>
+        </OPTION>
+        <OPTION name="Floating Point Support" default="Hardware">
+          <OPT cmd="'NIL'" name="Hardware"/>
+          <OPT cmd="fp" name="Software"/>
+        </OPTION>
+      </FAMILY_OPTIONS>
+    </FAMILY>
+    <FAMILY name="SH" os="OS9K" synccode="0x0000a909" be="besh.exe">
+      <CHIP name="SH3"/>
+      <FAMILY_OPTIONS>
+        <OPTION name="Floating Point Library" default="Static">
+          <OPT cmd="'NIL'" name="None"/>
+          <OPT cmd="fp" name="Static"/>
+          <OPT cmd="fps" name="Dynamic"/>
+        </OPTION>
+        <OPTION name="Branch Length" default="12-bit">
+          <OPT cmd="sb" name="8-bit"/>
+          <OPT cmd="mb" name="12-bit"/>
+          <OPT cmd="lb" name="32-bit"/>
+        </OPTION>
+        <OPTION name="Code References" default="16-bit">
+          <OPT cmd="sc" name="12-bit"/>
+          <OPT cmd="mc" name="16-bit"/>
+          <OPT cmd="lc" name="32-bit"/>
+        </OPTION>
+        <OPTION name="Constant Data References" default="16-bit">
+          <OPT cmd="scd" name="16-bit"/>
+          <OPT cmd="lcd" name="32-bit"/>
+        </OPTION>
+        <OPTION name="Data References" default="16-bit">
+          <OPT cmd="sd" name="16-bit"/>
+          <OPT cmd="ld" name="32-bit"/>
+        </OPTION>
+      </FAMILY_OPTIONS>
+    </FAMILY>
+    <FAMILY name="SH4" os="OS9K" synccode="0x00000591" be="besh4.exe">
+      <CHIP name="SH4"/>
+      <FAMILY_OPTIONS>
+        <OPTION name="Branch Length" default="12-bit">
+          <OPT cmd="sb" name="8-bit"/>
+          <OPT cmd="mb" name="12-bit"/>
+          <OPT cmd="lb" name="32-bit"/>
+        </OPTION>
+        <OPTION name="Code References" default="16-bit">
+          <OPT cmd="sc" name="12-bit"/>
+          <OPT cmd="mc" name="16-bit"/>
+          <OPT cmd="lc" name="32-bit"/>
+        </OPTION>
+        <OPTION name="Constant Data References" default="16-bit">
+          <OPT cmd="scd" name="16-bit"/>
+          <OPT cmd="lcd" name="32-bit"/>
+        </OPTION>
+        <OPTION name="Data References" default="16-bit">
+          <OPT cmd="sd" name="16-bit"/>
+          <OPT cmd="ld" name="32-bit"/>
+        </OPTION>
+        <OPTION name="Denormalized Floating Point Support" default="No">
+          <OPT cmd="'NIL'" name="No"/>
+          <OPT cmd="fpd" name="Yes"/>
+        </OPTION>
+      </FAMILY_OPTIONS>
+    </FAMILY>
+    <FAMILY name="SPARC" os="OS9K" synccode="0x00002a81" be="besparc.exe">
+      <CHIP name="Generic SPARC" cmd="SPARC"/>
+      <CHIP name="SPARClite" cmd="SPARCLITE"/>
+      <CHIP name="SPARC8"/>
+      <FAMILY_OPTIONS>
+        <OPTION name="Constant Data References" default="16-bit">
+          <OPT cmd="scd" name="16-bit"/>
+          <OPT cmd="lcd" name="32-bit"/>
+        </OPTION>
+        <OPTION name="Data References" default="16-bit">
+          <OPT cmd="sd" name="16-bit"/>
+          <OPT cmd="ld" name="32-bit"/>
+        </OPTION>
+      </FAMILY_OPTIONS>
+    </FAMILY>
+    <FAMILY name="MIPS" os="OS9K" synccode="0x0000ad4d" be="bemips.exe">
+      <CHIP name="Generic MIPS" cmd="MIPS"/>
+      <CHIP name="MIPS 3000" cmd="MIPS3000"/>
+      <CHIP name="MIPS 3081" cmd="IDT3081"/>
+      <CHIP name="MIPS 32" cmd="MIPS32"/>
+      <CHIP name="MIPS 64" cmd="MIPS64"/>
+      <CHIP name="MIPS 64PFP" cmd="MIPS64PFP"/>
+      <CHIP name="MIPS 4650" cmd="IDT4650"/>
+      <CHIP name="MIPS 64DFP" cmd="MIPS64DFP"/>
+      <CHIP name="MIPS 4700" cmd="IDT4700"/>
+      <CHIP name="Toshiba MIPS 3900" cmd="TX3900"/>
+      <FAMILY_OPTIONS>
+        <OPTION name="Branch Length" default="16-bit">
+          <OPT cmd="sb" name="16-bit"/>
+          <OPT cmd="lb" name="32-bit"/>
+        </OPTION>
+        <OPTION name="Code References (Functions Only)" default="16-bit">
+          <OPT cmd="sc" name="16-bit"/>
+          <OPT cmd="lc" name="32-bit"/>
+        </OPTION>
+        <OPTION name="Constant Data References" default="16-bit">
+          <OPT cmd="scd" name="16-bit"/>
+          <OPT cmd="lcd" name="32-bit"/>
+        </OPTION>
+        <OPTION name="Data References" default="16-bit">
+          <OPT cmd="sd" name="16-bit"/>
+          <OPT cmd="ld" name="32-bit"/>
+        </OPTION>
+        <OPTION name="Floating Point Support" default="Hardware">
+          <OPT cmd="'NIL'" name="Hardware"/>
+          <OPT cmd="fp" name="Software"/>
+        </OPTION>
+      </FAMILY_OPTIONS>
+    </FAMILY>
+  </PROCESSORS>
+</HAWK_DATA>

@@ -1,0 +1,712 @@
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" SUBTRGT=_build  _build TARGET=k020
+cd INIT;  os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k020 SUBTRGT=_build _build
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k020 SUBTRGT=_build _build -f=init_rom.make
+os9makdir -pq RELS 
+os9makdir -pq ..\CMDS\BOOTOBJS\INITS\STB
+r68 -qb -u=. -u=..\..\..\..\SRC\DEFS -aROMBOOT -o=RELS\init_rom.r ..\..\..\..\SRC\SYSMODS\INIT\init.a
+* ..\CMDS\BOOTOBJS\INITS\init_rom
+os9del -qf  ..\CMDS\BOOTOBJS\INITS\init_rom
+* ..\CMDS\BOOTOBJS\INITS\STB\init_rom.stb
+os9del -qf  ..\CMDS\BOOTOBJS\INITS\STB\init_rom.stb
+os9del -qf  ..\CMDS\BOOTOBJS\INITS\STB\init_rom.dbg
+l68 -l=..\..\..\..\68000\LIB\sys.l -n=init -gu=0.0 RELS\init_rom.r -O=..\CMDS\BOOTOBJS\INITS\init_rom
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k020 SUBTRGT=_build _build -f=init_dd.make
+os9makdir -pq RELS 
+os9makdir -pq ..\CMDS\BOOTOBJS\INITS\STB
+r68 -qb -u=. -u=..\..\..\..\SRC\DEFS -aDDDISK -o=RELS\init_dd.r ..\..\..\..\SRC\SYSMODS\INIT\init.a
+* ..\CMDS\BOOTOBJS\INITS\init_dd
+os9del -qf  ..\CMDS\BOOTOBJS\INITS\init_dd
+* ..\CMDS\BOOTOBJS\INITS\STB\init_dd.stb
+os9del -qf  ..\CMDS\BOOTOBJS\INITS\STB\init_dd.stb
+os9del -qf  ..\CMDS\BOOTOBJS\INITS\STB\init_dd.dbg
+l68 -l=..\..\..\..\68000\LIB\sys.l -n=init -gu=0.0 RELS\init_dd.r -O=..\CMDS\BOOTOBJS\INITS\init_dd
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k020 SUBTRGT=_build _build -f=init_d0.make
+os9makdir -pq RELS 
+os9makdir -pq ..\CMDS\BOOTOBJS\INITS\STB
+r68 -qb -u=. -u=..\..\..\..\SRC\DEFS  -o=RELS\init_d0.r ..\..\..\..\SRC\SYSMODS\INIT\init.a
+* ..\CMDS\BOOTOBJS\INITS\init_d0
+os9del -qf  ..\CMDS\BOOTOBJS\INITS\init_d0
+* ..\CMDS\BOOTOBJS\INITS\STB\init_d0.stb
+os9del -qf  ..\CMDS\BOOTOBJS\INITS\STB\init_d0.stb
+os9del -qf  ..\CMDS\BOOTOBJS\INITS\STB\init_d0.dbg
+l68 -l=..\..\..\..\68000\LIB\sys.l -n=init -gu=0.0 RELS\init_d0.r -O=..\CMDS\BOOTOBJS\INITS\init_d0
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k020 SUBTRGT=_build _build -f=init_h0.make
+os9makdir -pq RELS 
+os9makdir -pq ..\CMDS\BOOTOBJS\INITS\STB
+r68 -qb -u=. -u=..\..\..\..\SRC\DEFS -aDEVHARD -o=RELS\init_h0.r ..\..\..\..\SRC\SYSMODS\INIT\init.a
+* ..\CMDS\BOOTOBJS\INITS\init_h0
+os9del -qf  ..\CMDS\BOOTOBJS\INITS\init_h0
+* ..\CMDS\BOOTOBJS\INITS\STB\init_h0.stb
+os9del -qf  ..\CMDS\BOOTOBJS\INITS\STB\init_h0.stb
+os9del -qf  ..\CMDS\BOOTOBJS\INITS\STB\init_h0.dbg
+l68 -l=..\..\..\..\68000\LIB\sys.l -n=init -gu=0.0 RELS\init_h0.r -O=..\CMDS\BOOTOBJS\INITS\init_h0
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k020 SUBTRGT=_build _build -f=init_tape.make
+os9makdir -pq RELS 
+os9makdir -pq ..\CMDS\BOOTOBJS\INITS\STB
+r68 -qb -u=. -u=..\..\..\..\SRC\DEFS -aDEVTAPE -o=RELS\init_tape.r ..\..\..\..\SRC\SYSMODS\INIT\init.a
+* ..\CMDS\BOOTOBJS\INITS\init_tape
+os9del -qf  ..\CMDS\BOOTOBJS\INITS\init_tape
+* ..\CMDS\BOOTOBJS\INITS\STB\init_tape.stb
+os9del -qf  ..\CMDS\BOOTOBJS\INITS\STB\init_tape.stb
+os9del -qf  ..\CMDS\BOOTOBJS\INITS\STB\init_tape.dbg
+l68 -l=..\..\..\..\68000\LIB\sys.l -n=init -gu=0.0 RELS\init_tape.r -O=..\CMDS\BOOTOBJS\INITS\init_tape
+*
+*
+*
+cd SYSMODS;  os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k020 SUBTRGT=_build _build
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k020 SUBTRGT=_build _build -f=clock.make
+os9makdir -pq ..\CMDS\BOOTOBJS\STB
+os9makdir -pq RELS
+r68 -qb  -u=. -u=..\..\..\..\SRC\DEFS -u=..\..\..\..\SRC\MACROS  -u=..\..\..\..\SRC\DEFS ..\..\..\..\SRC\SYSMODS\GCLOCK\tk147.a -o=RELS\tk147.r
+* ..\CMDS\BOOTOBJS\tk147
+* ..\CMDS\BOOTOBJS\STB\tk147.stb
+l68 -g -l=..\..\..\..\68000\LIB\sys.l -gu=0.0 ..\..\..\..\68000\LIB\tickgeneric.r RELS\tk147.r -O=..\CMDS\BOOTOBJS\tk147
+r68 -qb  -u=. -u=..\..\..\..\SRC\DEFS -u=..\..\..\..\SRC\MACROS  -u=..\..\..\..\SRC\DEFS ..\..\..\..\SRC\SYSMODS\GCLOCK\rtc48t08.a -o=RELS\rtc147.r
+* ..\CMDS\BOOTOBJS\rtc147
+* ..\CMDS\BOOTOBJS\STB\rtc147.stb
+l68 -g -l=..\..\..\..\68000\LIB\sys.l -gu=0.0 RELS\rtc147.r -O=..\CMDS\BOOTOBJS\rtc147 -n=rtclock
+*
+*
+*
+cd SCF;  os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k020 SUBTRGT=_build _build
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k020 SUBTRGT=_build _build -f=scf_descriptors.make
+os9makdir -pq RELS
+os9makdir -pq ..\CMDS\BOOTOBJS\STB
+r68 -q -u=. -u=..\..\..\..\SRC\DEFS ..\..\..\..\SRC\IO\SCF\DESC\term.a -o=RELS\term.r
+* ..\CMDS\BOOTOBJS\term
+l68 -l=..\..\..\..\68000\LIB\sys.l -gu=0.0 -p=577 RELS\term.r -O=..\CMDS\BOOTOBJS\term
+r68 -q -u=. -u=..\..\..\..\SRC\DEFS ..\..\..\..\SRC\IO\SCF\DESC\t1.a -o=RELS\t1.r
+* ..\CMDS\BOOTOBJS\t1
+l68 -l=..\..\..\..\68000\LIB\sys.l -gu=0.0 -p=577 RELS\t1.r -O=..\CMDS\BOOTOBJS\t1
+r68 -q -u=. -u=..\..\..\..\SRC\DEFS ..\..\..\..\SRC\IO\SCF\DESC\t2.a -o=RELS\t2.r
+* ..\CMDS\BOOTOBJS\t2
+l68 -l=..\..\..\..\68000\LIB\sys.l -gu=0.0 -p=577 RELS\t2.r -O=..\CMDS\BOOTOBJS\t2
+r68 -q -u=. -u=..\..\..\..\SRC\DEFS ..\..\..\..\SRC\IO\SCF\DESC\t3.a -o=RELS\t3.r
+* ..\CMDS\BOOTOBJS\t3
+l68 -l=..\..\..\..\68000\LIB\sys.l -gu=0.0 -p=577 RELS\t3.r -O=..\CMDS\BOOTOBJS\t3
+r68 -q -u=. -u=..\..\..\..\SRC\DEFS ..\..\..\..\SRC\IO\SCF\DESC\p1.a -o=RELS\p1.r
+* ..\CMDS\BOOTOBJS\p1
+l68 -l=..\..\..\..\68000\LIB\sys.l -gu=0.0 -p=577 RELS\p1.r -O=..\CMDS\BOOTOBJS\p1
+r68 -q -u=. -u=..\..\..\..\SRC\DEFS ..\..\..\..\SRC\IO\SCF\DESC\p2.a -o=RELS\p2.r
+* ..\CMDS\BOOTOBJS\p2
+l68 -l=..\..\..\..\68000\LIB\sys.l -gu=0.0 -p=577 RELS\p2.r -O=..\CMDS\BOOTOBJS\p2
+r68 -q -u=. -u=..\..\..\..\SRC\DEFS ..\..\..\..\SRC\IO\SCF\DESC\p3.a -o=RELS\p3.r
+* ..\CMDS\BOOTOBJS\p3
+l68 -l=..\..\..\..\68000\LIB\sys.l -gu=0.0 -p=577 RELS\p3.r -O=..\CMDS\BOOTOBJS\p3
+r68 -q -u=. -u=..\..\..\..\SRC\DEFS ..\..\..\..\SRC\IO\SCF\DESC\p.a -o=RELS\p.r
+* ..\CMDS\BOOTOBJS\p
+l68 -l=..\..\..\..\68000\LIB\sys.l -gu=0.0 -p=577 RELS\p.r -O=..\CMDS\BOOTOBJS\p
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k020 SUBTRGT=_build _build -f=scf_drivers.make
+os9makdir -pq RELS
+os9makdir -pq ..\CMDS\BOOTOBJS\STB
+r68 -qb -u=. -u=..\..\..\..\SRC\DEFS -u=..\..\..\..\SRC\MACROS -aNODATAPORT ..\..\..\..\SRC\IO\SCF\DRVR\sc8x30.a -o=RELS\sc147.r
+* ..\CMDS\BOOTOBJS\sc147
+* ..\CMDS\BOOTOBJS\STB\sc147.stb
+l68 -g -l=..\..\..\..\68000\LIB\sys.l -gu=0.0 ..\..\..\..\68000\LIB\scfstat.l RELS\sc147.r -O=..\CMDS\BOOTOBJS\sc147
+r68 -qb -u=. -u=..\..\..\..\SRC\DEFS -u=..\..\..\..\SRC\MACROS -aNODATAPORT ..\..\..\..\SRC\IO\SCF\DRVR\scp147.a -o=RELS\scp147.r
+* ..\CMDS\BOOTOBJS\scp147
+* ..\CMDS\BOOTOBJS\STB\scp147.stb
+l68 -g -l=..\..\..\..\68000\LIB\sys.l -gu=0.0 ..\..\..\..\68000\LIB\scfstat.l RELS\scp147.r -O=..\CMDS\BOOTOBJS\scp147
+*
+*
+*
+cd RBF;  os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k020 SUBTRGT=_build _build
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k020 SUBTRGT=_build _build -f=rbf_descriptors.make
+os9makdir -pq RELS
+r68 -q -u=. -u=..\..\..\..\SRC\DEFS ..\..\..\..\SRC\IO\RBF\DESC\r0.a -o=RELS\r0.r
+r68 -q -u=. -u=..\..\..\..\SRC\DEFS -aDEVTAPE ..\..\..\..\SRC\IO\RBF\DESC\r0.a -o=RELS\r0_3M.r
+r68 -q -u=. -u=..\..\..\..\SRC\DEFS ..\..\..\..\SRC\IO\RBF\DESC\r0fmt.a -o=RELS\r0fmt.r
+* ..\CMDS\BOOTOBJS\r0
+* ..\CMDS\BOOTOBJS\dd_r0
+l68 -l=..\..\..\..\68000\LIB\sys.l -gu=0.0 RELS\r0.r -O=..\CMDS\BOOTOBJS\r0 -n=r0
+l68 -l=..\..\..\..\68000\LIB\sys.l -gu=0.0 RELS\r0.r -O=..\CMDS\BOOTOBJS\dd_r0 -n=dd
+* ..\CMDS\BOOTOBJS\r0_3M
+* ..\CMDS\BOOTOBJS\dd_r0_3M
+l68 -l=..\..\..\..\68000\LIB\sys.l -gu=0.0 RELS\r0_3M.r -O=..\CMDS\BOOTOBJS\r0_3M -n=r0
+l68 -l=..\..\..\..\68000\LIB\sys.l -gu=0.0 RELS\r0_3M.r -O=..\CMDS\BOOTOBJS\dd_r0_3M -n=dd
+* ..\CMDS\BOOTOBJS\r0fmt
+* ..\CMDS\BOOTOBJS\dd_r0fmt
+l68 -l=..\..\..\..\68000\LIB\sys.l -gu=0.0 RELS\r0fmt.r -O=..\CMDS\BOOTOBJS\r0fmt -n=r0
+l68 -l=..\..\..\..\68000\LIB\sys.l -gu=0.0 RELS\r0fmt.r -O=..\CMDS\BOOTOBJS\dd_r0fmt -n=dd
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k020 SUBTRGT=_build _build -f=rbf_teac_descriptors.make
+os9makdir -pq RELS\TEACFC1
+os9makdir -pq ..\CMDS\BOOTOBJS\TEACFC1
+r68 -q -u=. -u=..\..\..\..\SRC\DEFS  -aTEACFC1 ..\..\..\..\SRC\IO\RBF\DESC\d0.a -o=RELS\TEACFC1\d0.r
+* ..\CMDS\BOOTOBJS\TEACFC1\d0
+* ..\CMDS\BOOTOBJS\TEACFC1\dd_d0
+l68 -l=..\..\..\..\68000\LIB\sys.l -gu=0.0 RELS\TEACFC1\d0.r -O=..\CMDS\BOOTOBJS\TEACFC1\d0
+l68 -l=..\..\..\..\68000\LIB\sys.l -gu=0.0 RELS\TEACFC1\d0.r -O=..\CMDS\BOOTOBJS\TEACFC1\dd_d0 -n=dd
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k020 SUBTRGT=_build _build -f=rbf_vccs_descriptors.make
+os9makdir -pq RELS\VCCS
+r68 -q -u=. -u=..\..\..\..\SRC\DEFS  -aVCCS ..\..\..\..\SRC\IO\RBF\DESC\h0fmt.a -o=RELS\VCCS\h0fmt.r
+r68 -q -u=. -u=..\..\..\..\SRC\DEFS  -aVCCS ..\..\..\..\SRC\IO\RBF\DESC\h1fmt.a -o=RELS\VCCS\h1fmt.r
+* ..\CMDS\BOOTOBJS\VCCS\h0fmt
+l68 -l=..\..\..\..\68000\LIB\sys.l -gu=0.0 RELS\VCCS\h0fmt.r -O=..\CMDS\BOOTOBJS\VCCS\h0fmt
+* ..\CMDS\BOOTOBJS\VCCS\h1fmt
+l68 -l=..\..\..\..\68000\LIB\sys.l -gu=0.0 RELS\VCCS\h1fmt.r -O=..\CMDS\BOOTOBJS\VCCS\h1fmt
+r68 -q -u=. -u=..\..\..\..\SRC\DEFS  -aVCCS ..\..\..\..\SRC\IO\RBF\DESC\h0.a -o=RELS\VCCS\h0.r
+r68 -q -u=. -u=..\..\..\..\SRC\DEFS  -aVCCS ..\..\..\..\SRC\IO\RBF\DESC\h1.a -o=RELS\VCCS\h1.r
+* ..\CMDS\BOOTOBJS\VCCS\h0
+* ..\CMDS\BOOTOBJS\VCCS\dd_h0
+l68 -l=..\..\..\..\68000\LIB\sys.l -gu=0.0 RELS\VCCS\h0.r -O=..\CMDS\BOOTOBJS\VCCS\h0
+l68 -l=..\..\..\..\68000\LIB\sys.l -gu=0.0 RELS\VCCS\h0.r -O=..\CMDS\BOOTOBJS\VCCS\dd_h0 -n=dd
+* ..\CMDS\BOOTOBJS\VCCS\h1
+* ..\CMDS\BOOTOBJS\VCCS\dd_h1
+l68 -l=..\..\..\..\68000\LIB\sys.l -gu=0.0 RELS\VCCS\h1.r -O=..\CMDS\BOOTOBJS\VCCS\h1
+l68 -l=..\..\..\..\68000\LIB\sys.l -gu=0.0 RELS\VCCS\h1.r -O=..\CMDS\BOOTOBJS\VCCS\dd_h1 -n=dd
+*
+*
+*
+cd SBF;  os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k020 SUBTRGT=_build _build
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k020 SUBTRGT=_build _build -f=sbf_viper_descriptors.make
+os9makdir -pq RELS\VIPER
+os9makdir -pq ..\CMDS\BOOTOBJS\VIPER
+r68 -q -aVIPER -u=. -u=..\..\..\..\SRC\DEFS ..\..\..\..\SRC\IO\SBF\DESC\mt0.a -o=RELS\VIPER\mt0.r
+r68 -q -aVIPER -u=. -u=..\..\..\..\SRC\DEFS ..\..\..\..\SRC\IO\SBF\DESC\mt1.a -o=RELS\VIPER\mt1.r
+r68 -q -aVIPER -u=. -u=..\..\..\..\SRC\DEFS ..\..\..\..\SRC\IO\SBF\DESC\dat.a -o=RELS\VIPER\dat.r
+* ..\CMDS\BOOTOBJS\VIPER\mt0
+l68 -l=..\..\..\..\68000\LIB\sys.l -gu=0.0 RELS\VIPER\mt0.r -O=..\CMDS\BOOTOBJS\VIPER\mt0
+* ..\CMDS\BOOTOBJS\VIPER\mt1
+l68 -l=..\..\..\..\68000\LIB\sys.l -gu=0.0 RELS\VIPER\mt1.r -O=..\CMDS\BOOTOBJS\VIPER\mt1
+* ..\CMDS\BOOTOBJS\VIPER\dat
+l68 -l=..\..\..\..\68000\LIB\sys.l -gu=0.0 RELS\VIPER\dat.r -O=..\CMDS\BOOTOBJS\VIPER\dat
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k020 SUBTRGT=_build _build -f=sbf_exabyte_descriptors.make
+os9makdir -pq RELS\EXABYTE
+os9makdir -pq ..\CMDS\BOOTOBJS\EXABYTE
+r68 -q -aEXABYTE -u=. -u=..\..\..\..\SRC\DEFS ..\..\..\..\SRC\IO\SBF\DESC\mt2.a -o=RELS\EXABYTE\mt2.r
+* ..\CMDS\BOOTOBJS\EXABYTE\mt2
+l68 -l=..\..\..\..\68000\LIB\sys.l -gu=0.0 RELS\EXABYTE\mt2.r -O=..\CMDS\BOOTOBJS\EXABYTE\mt2
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k020 SUBTRGT=_build _build -f=sbf_teac_descriptors.make
+os9makdir -pq RELS\TEACMT2
+os9makdir -pq ..\CMDS\BOOTOBJS\TEACMT2
+r68 -q -aTEACMT2 -u=. -u=..\..\..\..\SRC\DEFS ..\..\..\..\SRC\IO\SBF\DESC\mt0.a -o=RELS\TEACMT2\mt0.r
+* ..\CMDS\BOOTOBJS\TEACMT2\mt0
+l68 -l=..\..\..\..\68000\LIB\sys.l -gu=0.0 RELS\TEACMT2\mt0.r -O=..\CMDS\BOOTOBJS\TEACMT2\mt0
+*
+*
+*
+cd SCSI;  os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k020 SUBTRGT=_build _build
+cd ..\..\..\..\SRC\IO\SCSI\SCSI33C93; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k020 SUBTRGT=_build _build -f=scsi147.make
+os9makdir -pq RELS\MVME147
+os9makdir -pq ..\..\..\..\68030\PORTS\MVME147\CMDS\BOOTOBJS\STB
+os9makdir -pq ..\SCSICOM\RELS
+xcc -x=ao -o=7 -a -r -to=osk -tp=68030c -td=.  -v=. -v=..\DEFS -v=..\..\..\..\..\SRC\DEFS\IO\SCSI -v=..\..\..\..\SRC\DEFS -v=..\..\..\..\..\SRC\DEFS -dVME147 -dSYNCHRO -dUSEDMA main.c -eas=RELS\MVME147
+xcc -x=ao -o=7 -a -r -to=osk -tp=68030c -td=.  -v=. -v=..\DEFS -v=..\..\..\..\..\SRC\DEFS\IO\SCSI -v=..\..\..\..\SRC\DEFS -v=..\..\..\..\..\SRC\DEFS -dVME147 -dSYNCHRO -dUSEDMA init.c -eas=RELS\MVME147
+xcc -x=ao -o=7 -a -r -to=osk -tp=68030c -td=.  -v=. -v=..\DEFS -v=..\..\..\..\..\SRC\DEFS\IO\SCSI -v=..\..\..\..\SRC\DEFS -v=..\..\..\..\..\SRC\DEFS -dVME147 -dSYNCHRO -dUSEDMA exec.c -eas=RELS\MVME147
+xcc -x=ao -o=7 -a -r -to=osk -tp=68030c -td=.  -v=. -v=..\DEFS -v=..\..\..\..\..\SRC\DEFS\IO\SCSI -v=..\..\..\..\SRC\DEFS -v=..\..\..\..\..\SRC\DEFS -dVME147 -dSYNCHRO -dUSEDMA term.c -eas=RELS\MVME147
+xcc -x=ao -o=7 -a -r -to=osk -tp=68030c -td=.  -v=. -v=..\DEFS -v=..\..\..\..\..\SRC\DEFS\IO\SCSI -v=..\..\..\..\SRC\DEFS -v=..\..\..\..\..\SRC\DEFS -dVME147 -dSYNCHRO -dUSEDMA kick.c -eas=RELS\MVME147
+xcc -x=ao -o=7 -a -r -to=osk -tp=68030c -td=.  -v=. -v=..\DEFS -v=..\..\..\..\..\SRC\DEFS\IO\SCSI -v=..\..\..\..\SRC\DEFS -v=..\..\..\..\..\SRC\DEFS -dVME147 -dSYNCHRO -dUSEDMA srq.c -eas=RELS\MVME147
+xcc -x=ao -o=7 -a -r -to=osk -tp=68030c -td=.  -v=. -v=..\DEFS -v=..\..\..\..\..\SRC\DEFS\IO\SCSI -v=..\..\..\..\SRC\DEFS -v=..\..\..\..\..\SRC\DEFS -dVME147 -dSYNCHRO -dUSEDMA irqsup.c -eas=RELS\MVME147
+xcc -x=ao -o=7 -a -r -to=osk -tp=68030c -td=.  -v=. -v=..\DEFS -v=..\..\..\..\..\SRC\DEFS\IO\SCSI -v=..\..\..\..\SRC\DEFS -v=..\..\..\..\..\SRC\DEFS -dVME147 -dSYNCHRO -dUSEDMA irq.c -eas=RELS\MVME147
+xcc -x=ao -o=7 -a -r -to=osk -tp=68030c -td=.  -v=. -v=..\DEFS -v=..\..\..\..\..\SRC\DEFS\IO\SCSI -v=..\..\..\..\SRC\DEFS -v=..\..\..\..\..\SRC\DEFS -dVME147 -dSYNCHRO -dUSEDMA misc.c -eas=RELS\MVME147
+cd ..\SCSICOM; os9make scsiglue.r
+r68 -qb -u=..\..\..\..\SRC\DEFS scsiglue.a -o=RELS\scsiglue.r
+cd ..\SCSICOM; os9make syscalls.r
+r68 -qb -u=..\..\..\..\SRC\DEFS syscalls.a -o=RELS\syscalls.r
+* ..\..\..\..\68030\PORTS\MVME147\CMDS\BOOTOBJS\scsi147
+* ..\..\..\..\68030\PORTS\MVME147\CMDS\BOOTOBJS\STB\scsi147.stb
+* ..\..\..\..\68030\PORTS\MVME147\CMDS\BOOTOBJS\STB\scsi147.map
+os9del -qf  ..\..\..\..\68030\PORTS\MVME147\CMDS\BOOTOBJS\scsi147
+os9del -qf  ..\..\..\..\68030\PORTS\MVME147\CMDS\BOOTOBJS\STB\scsi147.stb
+os9del -qf  ..\..\..\..\68030\PORTS\MVME147\CMDS\BOOTOBJS\STB\scsi147.map
+os9del -qf  ..\..\..\..\68030\PORTS\MVME147\CMDS\BOOTOBJS\STB\scsi147.dbg
+cd RELS\MVME147; l68 -l=..\..\..\..\..\..\68000\LIB\sys.l -O=..\..\..\..\..\..\68030\PORTS\MVME147\CMDS\BOOTOBJS\scsi147 -n=scsi147  -g -msw ..\..\..\SCSICOM\RELS\scsiglue.r main.r init.r exec.r term.r kick.r srq.r irqsup.r irq.r misc.r ..\..\..\SCSICOM\RELS\syscalls.r >..\..\..\..\..\..\68030\PORTS\MVME147\CMDS\BOOTOBJS\STB\scsi147.map
+cd ..\..\..\..\SRC\IO\RBF\DRVR\SCSI\RBVCCS; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k020 SUBTRGT=_build _build
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k020 SUBTRGT=_build _build -f=rbvccs.make
+os9makdir -pq RELS
+os9makdir -pq ..\..\..\..\..\..\68000\CMDS\BOOTOBJS\STB
+xcc -qst=. -O=2 -v=. -v=..\..\..\..\..\..\SRC\IO\SCSI\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\SRC\DEFS\IO\SCSI main.c -r=RELS
+xcc -qst=. -O=2 -v=. -v=..\..\..\..\..\..\SRC\IO\SCSI\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\SRC\DEFS\IO\SCSI init.c -r=RELS
+xcc -qst=. -O=2 -v=. -v=..\..\..\..\..\..\SRC\IO\SCSI\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\SRC\DEFS\IO\SCSI read.c -r=RELS
+xcc -qst=. -O=2 -v=. -v=..\..\..\..\..\..\SRC\IO\SCSI\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\SRC\DEFS\IO\SCSI write.c -r=RELS
+xcc -qst=. -O=2 -v=. -v=..\..\..\..\..\..\SRC\IO\SCSI\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\SRC\DEFS\IO\SCSI stat.c -r=RELS
+xcc -qst=. -O=2 -v=. -v=..\..\..\..\..\..\SRC\IO\SCSI\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\SRC\DEFS\IO\SCSI term.c -r=RELS
+xcc -qst=. -O=2 -v=. -v=..\..\..\..\..\..\SRC\IO\SCSI\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\SRC\DEFS\IO\SCSI misc.c -r=RELS
+os9makdir -pq ..\..\..\..\..\..\SRC\IO\SCSI\SCSICOM\RELS
+cd ..\..\..\..\..\..\SRC\IO\SCSI\SCSICOM; os9make rbglue.r
+r68 -qb -u=..\..\..\..\SRC\DEFS rbglue.a -o=RELS\rbglue.r
+* ..\..\..\..\..\..\68000\CMDS\BOOTOBJS\rbvccs
+* ..\..\..\..\..\..\68000\CMDS\BOOTOBJS\STB\rbvccs.stb
+* ..\..\..\..\..\..\68000\CMDS\BOOTOBJS\STB\rbvccs.map
+os9del -qf  ..\..\..\..\..\..\68000\CMDS\BOOTOBJS\rbvccs
+os9del -qf  ..\..\..\..\..\..\68000\CMDS\BOOTOBJS\STB\rbvccs.stb
+os9del -qf	 ..\..\..\..\..\..\68000\CMDS\BOOTOBJS\STB\rbvccs.map	
+os9del -qf  ..\..\..\..\..\..\68000\CMDS\BOOTOBJS\STB\rbvccs.dbg
+cd RELS; l68 -l=..\..\..\..\..\..\..\68000\LIB\sys.l -l=..\..\..\..\..\..\..\68000\LIB\os_lib.l -O=..\..\..\..\..\..\..\68000\CMDS\BOOTOBJS\rbvccs -g -msw -gu=0.0 ..\..\..\..\..\..\..\SRC\IO\SCSI\SCSICOM\RELS\rbglue.r main.r init.r read.r write.r stat.r term.r misc.r ..\..\..\..\..\..\..\SRC\IO\SCSI\SCSICOM\RELS\syscalls.r >..\..\..\..\..\..\..\68000\CMDS\BOOTOBJS\STB\rbvccs.map
+*
+*
+*
+cd ..\..\..\..\SRC\IO\RBF\DRVR\SCSI\RBTEAC; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k020 SUBTRGT=_build _build
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k020 SUBTRGT=_build _build -f=rbteac.make
+os9makdir -pq RELS\RBTEAC
+os9makdir -pq ..\..\..\..\..\..\68000\CMDS\BOOTOBJS\STB
+xcc -o=7 -x=ao -a -c -r -to=osk -tp=68k -td=.  -v=. -v=..\..\..\..\..\..\..\SRC\DEFS\IO\SCSI -v=..\..\..\..\..\..\SRC\IO\SCSI\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\SRC\DEFS main.c -eas=RELS\RBTEAC
+xcc -o=7 -x=ao -a -c -r -to=osk -tp=68k -td=.  -v=. -v=..\..\..\..\..\..\..\SRC\DEFS\IO\SCSI -v=..\..\..\..\..\..\SRC\IO\SCSI\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\SRC\DEFS init.c -eas=RELS\RBTEAC
+xcc -o=7 -x=ao -a -c -r -to=osk -tp=68k -td=.  -v=. -v=..\..\..\..\..\..\..\SRC\DEFS\IO\SCSI -v=..\..\..\..\..\..\SRC\IO\SCSI\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\SRC\DEFS read.c -eas=RELS\RBTEAC
+xcc -o=7 -x=ao -a -c -r -to=osk -tp=68k -td=.  -v=. -v=..\..\..\..\..\..\..\SRC\DEFS\IO\SCSI -v=..\..\..\..\..\..\SRC\IO\SCSI\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\SRC\DEFS write.c -eas=RELS\RBTEAC
+xcc -o=7 -x=ao -a -c -r -to=osk -tp=68k -td=.  -v=. -v=..\..\..\..\..\..\..\SRC\DEFS\IO\SCSI -v=..\..\..\..\..\..\SRC\IO\SCSI\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\SRC\DEFS stat.c -eas=RELS\RBTEAC
+xcc -o=7 -x=ao -a -c -r -to=osk -tp=68k -td=.  -v=. -v=..\..\..\..\..\..\..\SRC\DEFS\IO\SCSI -v=..\..\..\..\..\..\SRC\IO\SCSI\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\SRC\DEFS term.c -eas=RELS\RBTEAC
+xcc -o=7 -x=ao -a -c -r -to=osk -tp=68k -td=.  -v=. -v=..\..\..\..\..\..\..\SRC\DEFS\IO\SCSI -v=..\..\..\..\..\..\SRC\IO\SCSI\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\SRC\DEFS misc.c -eas=RELS\RBTEAC
+* ..\..\..\..\..\..\68000\CMDS\BOOTOBJS\rbteac
+* ..\..\..\..\..\..\68000\CMDS\BOOTOBJS\STB\rbteac.stb
+* ..\..\..\..\..\..\68000\CMDS\BOOTOBJS\STB\rbteac.map
+os9del -qf  ..\..\..\..\..\..\68000\CMDS\BOOTOBJS\rbteac
+os9del -qf  ..\..\..\..\..\..\68000\CMDS\BOOTOBJS\STB\rbteac.stb
+os9del -qf  ..\..\..\..\..\..\68000\CMDS\BOOTOBJS\STB\rbteac.map
+os9del -qf  ..\..\..\..\..\..\68000\CMDS\BOOTOBJS\STB\rbteac.dbg
+cd RELS\RBTEAC; l68 -l=..\..\..\..\..\..\..\..\68000\LIB\sys.l -l=..\..\..\..\..\..\..\..\68000\LIB\os_lib.l -O=..\..\..\..\..\..\..\..\68000\CMDS\BOOTOBJS\rbteac -g -msw -gu=0.0 ..\..\..\..\..\..\..\..\SRC\IO\SCSI\SCSICOM\RELS\rbglue.r main.r init.r read.r write.r stat.r term.r misc.r ..\..\..\..\..\..\..\..\SRC\IO\SCSI\SCSICOM\RELS\syscalls.r >..\..\..\..\..\..\..\..\68000\CMDS\BOOTOBJS\STB\rbteac.map
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k020 SUBTRGT=_build _build -f=bootfc1.make
+os9makdir -pq RELS\BOOTFTEAC
+xcc -o=7 -x=ao -a -c -r -to=osk -tp=68k -td=.  -v=. -v=..\..\..\..\..\..\SRC\ROM\CBOOT\DEFS -v=..\..\..\..\..\..\..\SRC\DEFS\IO\SCSI -v=..\..\..\..\..\..\SRC\IO\SCSI\DEFS  -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\SRC\DEFS -dCBOOT bootfteac.c -eas=RELS\BOOTFTEAC
+xcc -o=7 -x=ao -a -c -r -to=osk -tp=68k -td=.  -v=. -v=..\..\..\..\..\..\SRC\ROM\CBOOT\DEFS -v=..\..\..\..\..\..\..\SRC\DEFS\IO\SCSI -v=..\..\..\..\..\..\SRC\IO\SCSI\DEFS  -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\SRC\DEFS -dCBOOT init.c -eas=RELS\BOOTFTEAC
+xcc -o=7 -x=ao -a -c -r -to=osk -tp=68k -td=.  -v=. -v=..\..\..\..\..\..\SRC\ROM\CBOOT\DEFS -v=..\..\..\..\..\..\..\SRC\DEFS\IO\SCSI -v=..\..\..\..\..\..\SRC\IO\SCSI\DEFS  -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\SRC\DEFS -dCBOOT read.c -eas=RELS\BOOTFTEAC
+xcc -o=7 -x=ao -a -c -r -to=osk -tp=68k -td=.  -v=. -v=..\..\..\..\..\..\SRC\ROM\CBOOT\DEFS -v=..\..\..\..\..\..\..\SRC\DEFS\IO\SCSI -v=..\..\..\..\..\..\SRC\IO\SCSI\DEFS  -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\SRC\DEFS -dCBOOT misc.c -eas=RELS\BOOTFTEAC
+* ..\..\..\..\..\..\SRC\ROM\LIB\bootfc1.l
+os9del -qf  ..\..\..\..\..\..\SRC\ROM\LIB\bootfc1.l
+cd RELS\BOOTFTEAC; os9merge bootfteac.r init.r read.r misc.r >..\..\..\..\..\..\..\..\SRC\ROM\LIB\bootfc1.l
+*
+*
+*
+cd ..\..\..\..\SRC\IO\SBF\DRVR\SCSI\SBVIPER; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k020 SUBTRGT=_build _build
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k020 SUBTRGT=_build _build -f=sb8200.make
+os9makdir -pq RELS\SB8200
+os9makdir -pq ..\..\..\..\..\..\68000\CMDS\BOOTOBJS\STB
+xcc -qst=. -O=2 -v=. -v=..\..\..\..\..\..\..\SRC\DEFS\IO\SCSI -v=..\..\..\..\..\..\SRC\IO\SCSI\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\SRC\DEFS  -dEXABYTE -dVARBLK init.c -r=RELS\SB8200
+xcc -qst=. -O=2 -v=. -v=..\..\..\..\..\..\..\SRC\DEFS\IO\SCSI -v=..\..\..\..\..\..\SRC\IO\SCSI\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\SRC\DEFS  -dEXABYTE -dVARBLK main.c -r=RELS\SB8200
+xcc -qst=. -O=2 -v=. -v=..\..\..\..\..\..\..\SRC\DEFS\IO\SCSI -v=..\..\..\..\..\..\SRC\IO\SCSI\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\SRC\DEFS  -dEXABYTE -dVARBLK read.c -r=RELS\SB8200
+xcc -qst=. -O=2 -v=. -v=..\..\..\..\..\..\..\SRC\DEFS\IO\SCSI -v=..\..\..\..\..\..\SRC\IO\SCSI\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\SRC\DEFS  -dEXABYTE -dVARBLK write.c -r=RELS\SB8200
+xcc -qst=. -O=2 -v=. -v=..\..\..\..\..\..\..\SRC\DEFS\IO\SCSI -v=..\..\..\..\..\..\SRC\IO\SCSI\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\SRC\DEFS  -dEXABYTE -dVARBLK stat.c -r=RELS\SB8200
+xcc -qst=. -O=2 -v=. -v=..\..\..\..\..\..\..\SRC\DEFS\IO\SCSI -v=..\..\..\..\..\..\SRC\IO\SCSI\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\SRC\DEFS  -dEXABYTE -dVARBLK term.c -r=RELS\SB8200
+xcc -qst=. -O=2 -v=. -v=..\..\..\..\..\..\..\SRC\DEFS\IO\SCSI -v=..\..\..\..\..\..\SRC\IO\SCSI\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\SRC\DEFS  -dEXABYTE -dVARBLK misc.c -r=RELS\SB8200
+os9makdir -pq ..\..\..\..\..\..\SRC\IO\SCSI\SCSICOM\RELS
+cd ..\..\..\..\..\..\SRC\IO\SCSI\SCSICOM; os9make sbglue.r
+r68 -qb -u=..\..\..\..\SRC\DEFS sbglue.a -o=RELS\sbglue.r
+* ..\..\..\..\..\..\68000\CMDS\BOOTOBJS\sb8200
+* ..\..\..\..\..\..\68000\CMDS\BOOTOBJS\STB\sb8200.stb
+* ..\..\..\..\..\..\68000\CMDS\BOOTOBJS\STB\sb8200.map
+os9del -qf  ..\..\..\..\..\..\68000\CMDS\BOOTOBJS\sb8200
+os9del -qf  ..\..\..\..\..\..\68000\CMDS\BOOTOBJS\STB\sb8200.stb
+os9del -qf  ..\..\..\..\..\..\68000\CMDS\BOOTOBJS\STB\sb8200.map
+os9del -qf  ..\..\..\..\..\..\68000\CMDS\BOOTOBJS\STB\sb8200.dbg
+cd RELS\SB8200; l68 -l=..\..\..\..\..\..\..\..\68000\LIB\sys.l -l=..\..\..\..\..\..\..\..\68000\LIB\os_lib.l -O=..\..\..\..\..\..\..\..\68000\CMDS\BOOTOBJS\sb8200 -g -msw -gu=0.0 ..\..\..\..\..\..\..\..\SRC\IO\SCSI\SCSICOM\RELS\sbglue.r init.r main.r read.r write.r stat.r term.r misc.r ..\..\..\..\..\..\..\..\SRC\IO\SCSI\SCSICOM\RELS\syscalls.r >..\..\..\..\..\..\..\..\68000\CMDS\BOOTOBJS\STB\sb8200.map
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k020 SUBTRGT=_build _build -f=sbgiga.make
+os9makdir -pq RELS\SBGIGA
+os9makdir -pq ..\..\..\..\..\..\68000\CMDS\BOOTOBJS\STB
+xcc -qst=. -O=2 -v=. -v=..\..\..\..\..\..\..\SRC\DEFS\IO\SCSI -v=..\..\..\..\..\..\SRC\IO\SCSI\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\SRC\DEFS  -dEXABYTE init.c -r=RELS\SBGIGA
+xcc -qst=. -O=2 -v=. -v=..\..\..\..\..\..\..\SRC\DEFS\IO\SCSI -v=..\..\..\..\..\..\SRC\IO\SCSI\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\SRC\DEFS  -dEXABYTE main.c -r=RELS\SBGIGA
+xcc -qst=. -O=2 -v=. -v=..\..\..\..\..\..\..\SRC\DEFS\IO\SCSI -v=..\..\..\..\..\..\SRC\IO\SCSI\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\SRC\DEFS  -dEXABYTE read.c -r=RELS\SBGIGA
+xcc -qst=. -O=2 -v=. -v=..\..\..\..\..\..\..\SRC\DEFS\IO\SCSI -v=..\..\..\..\..\..\SRC\IO\SCSI\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\SRC\DEFS  -dEXABYTE write.c -r=RELS\SBGIGA
+xcc -qst=. -O=2 -v=. -v=..\..\..\..\..\..\..\SRC\DEFS\IO\SCSI -v=..\..\..\..\..\..\SRC\IO\SCSI\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\SRC\DEFS  -dEXABYTE stat.c -r=RELS\SBGIGA
+xcc -qst=. -O=2 -v=. -v=..\..\..\..\..\..\..\SRC\DEFS\IO\SCSI -v=..\..\..\..\..\..\SRC\IO\SCSI\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\SRC\DEFS  -dEXABYTE term.c -r=RELS\SBGIGA
+xcc -qst=. -O=2 -v=. -v=..\..\..\..\..\..\..\SRC\DEFS\IO\SCSI -v=..\..\..\..\..\..\SRC\IO\SCSI\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\SRC\DEFS  -dEXABYTE misc.c -r=RELS\SBGIGA
+* ..\..\..\..\..\..\68000\CMDS\BOOTOBJS\sbgiga
+* ..\..\..\..\..\..\68000\CMDS\BOOTOBJS\STB\sbgiga.stb
+* ..\..\..\..\..\..\68000\CMDS\BOOTOBJS\STB\sbgiga.map
+os9del -qf  ..\..\..\..\..\..\68000\CMDS\BOOTOBJS\sbgiga
+os9del -qf  ..\..\..\..\..\..\68000\CMDS\BOOTOBJS\STB\sbgiga.stb
+os9del -qf  ..\..\..\..\..\..\68000\CMDS\BOOTOBJS\STB\sbgiga.map
+os9del -qf  ..\..\..\..\..\..\68000\CMDS\BOOTOBJS\STB\sbgiga.dbg
+cd RELS\SBGIGA; l68 -l=..\..\..\..\..\..\..\..\68000\LIB\sys.l -l=..\..\..\..\..\..\..\..\68000\LIB\os_lib.l -O=..\..\..\..\..\..\..\..\68000\CMDS\BOOTOBJS\sbgiga -g -msw -gu=0.0 ..\..\..\..\..\..\..\..\SRC\IO\SCSI\SCSICOM\RELS\sbglue.r init.r main.r read.r write.r stat.r term.r misc.r ..\..\..\..\..\..\..\..\SRC\IO\SCSI\SCSICOM\RELS\syscalls.r >..\..\..\..\..\..\..\..\68000\CMDS\BOOTOBJS\STB\sbgiga.map
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k020 SUBTRGT=_build _build -f=sbviper.make
+os9makdir -pq RELS\SBVIPER
+os9makdir -pq ..\..\..\..\..\..\68000\CMDS\BOOTOBJS\STB
+xcc -qst=. -O=2 -v=. -v=..\..\..\..\..\..\..\SRC\DEFS\IO\SCSI -v=..\..\..\..\..\..\SRC\IO\SCSI\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\SRC\DEFS init.c -r=RELS\SBVIPER
+xcc -qst=. -O=2 -v=. -v=..\..\..\..\..\..\..\SRC\DEFS\IO\SCSI -v=..\..\..\..\..\..\SRC\IO\SCSI\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\SRC\DEFS main.c -r=RELS\SBVIPER
+xcc -qst=. -O=2 -v=. -v=..\..\..\..\..\..\..\SRC\DEFS\IO\SCSI -v=..\..\..\..\..\..\SRC\IO\SCSI\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\SRC\DEFS read.c -r=RELS\SBVIPER
+xcc -qst=. -O=2 -v=. -v=..\..\..\..\..\..\..\SRC\DEFS\IO\SCSI -v=..\..\..\..\..\..\SRC\IO\SCSI\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\SRC\DEFS write.c -r=RELS\SBVIPER
+xcc -qst=. -O=2 -v=. -v=..\..\..\..\..\..\..\SRC\DEFS\IO\SCSI -v=..\..\..\..\..\..\SRC\IO\SCSI\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\SRC\DEFS stat.c -r=RELS\SBVIPER
+xcc -qst=. -O=2 -v=. -v=..\..\..\..\..\..\..\SRC\DEFS\IO\SCSI -v=..\..\..\..\..\..\SRC\IO\SCSI\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\SRC\DEFS term.c -r=RELS\SBVIPER
+xcc -qst=. -O=2 -v=. -v=..\..\..\..\..\..\..\SRC\DEFS\IO\SCSI -v=..\..\..\..\..\..\SRC\IO\SCSI\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\SRC\DEFS misc.c -r=RELS\SBVIPER
+* ..\..\..\..\..\..\68000\CMDS\BOOTOBJS\sbviper
+* ..\..\..\..\..\..\68000\CMDS\BOOTOBJS\STB\sbviper.stb
+* ..\..\..\..\..\..\68000\CMDS\BOOTOBJS\STB\sbviper.map
+os9del -qf  ..\..\..\..\..\..\68000\CMDS\BOOTOBJS\sbviper
+os9del -qf  ..\..\..\..\..\..\68000\CMDS\BOOTOBJS\STB\sbviper.stb
+os9del -qf  ..\..\..\..\..\..\68000\CMDS\BOOTOBJS\STB\sbviper.map
+os9del -qf  ..\..\..\..\..\..\68000\CMDS\BOOTOBJS\STB\sbviper.dbg
+cd RELS\SBVIPER; l68 -l=..\..\..\..\..\..\..\..\68000\LIB\sys.l -l=..\..\..\..\..\..\..\..\68000\LIB\os_lib.l -O=..\..\..\..\..\..\..\..\68000\CMDS\BOOTOBJS\sbviper -g -msw -gu=0.0 ..\..\..\..\..\..\..\..\SRC\IO\SCSI\SCSICOM\RELS\sbglue.r init.r main.r read.r write.r stat.r term.r misc.r ..\..\..\..\..\..\..\..\SRC\IO\SCSI\SCSICOM\RELS\syscalls.r >..\..\..\..\..\..\..\..\68000\CMDS\BOOTOBJS\STB\sbviper.map
+*
+*
+*
+cd ..\..\..\..\SRC\IO\SBF\DRVR\SCSI\SBTEAC; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k020 SUBTRGT=_build _build
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k020 SUBTRGT=_build _build -f=sbteac.make
+os9makdir -pq RELS
+os9makdir -pq ..\..\..\..\..\..\68000\CMDS\BOOTOBJS\STB
+xcc -qst=. -O=2 -v=. -v=..\..\..\..\..\..\..\SRC\DEFS\IO\SCSI -v=..\..\..\..\..\..\SRC\IO\SCSI\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\SRC\DEFS init.c -r=RELS
+xcc -qst=. -O=2 -v=. -v=..\..\..\..\..\..\..\SRC\DEFS\IO\SCSI -v=..\..\..\..\..\..\SRC\IO\SCSI\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\SRC\DEFS main.c -r=RELS
+xcc -qst=. -O=2 -v=. -v=..\..\..\..\..\..\..\SRC\DEFS\IO\SCSI -v=..\..\..\..\..\..\SRC\IO\SCSI\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\SRC\DEFS read.c -r=RELS
+xcc -qst=. -O=2 -v=. -v=..\..\..\..\..\..\..\SRC\DEFS\IO\SCSI -v=..\..\..\..\..\..\SRC\IO\SCSI\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\SRC\DEFS write.c -r=RELS
+xcc -qst=. -O=2 -v=. -v=..\..\..\..\..\..\..\SRC\DEFS\IO\SCSI -v=..\..\..\..\..\..\SRC\IO\SCSI\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\SRC\DEFS stat.c -r=RELS
+xcc -qst=. -O=2 -v=. -v=..\..\..\..\..\..\..\SRC\DEFS\IO\SCSI -v=..\..\..\..\..\..\SRC\IO\SCSI\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\SRC\DEFS term.c -r=RELS
+xcc -qst=. -O=2 -v=. -v=..\..\..\..\..\..\..\SRC\DEFS\IO\SCSI -v=..\..\..\..\..\..\SRC\IO\SCSI\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\..\SRC\DEFS misc.c -r=RELS
+* ..\..\..\..\..\..\68000\CMDS\BOOTOBJS\sbteac
+* ..\..\..\..\..\..\68000\CMDS\BOOTOBJS\STB\sbteac.stb
+* ..\..\..\..\..\..\68000\CMDS\BOOTOBJS\STB\sbteac.map
+os9del -qf  ..\..\..\..\..\..\68000\CMDS\BOOTOBJS\sbteac
+os9del -qf  ..\..\..\..\..\..\68000\CMDS\BOOTOBJS\STB\sbteac.stb
+os9del -qf  ..\..\..\..\..\..\68000\CMDS\BOOTOBJS\STB\sbteac.map
+os9del -qf  ..\..\..\..\..\..\68000\CMDS\BOOTOBJS\STB\sbteac.dbg
+cd RELS; l68 -l=..\..\..\..\..\..\..\68000\LIB\sys.l -l=..\..\..\..\..\..\..\68000\LIB\os_lib.l -O=..\..\..\..\..\..\..\68000\CMDS\BOOTOBJS\sbteac -g -msw -gu=0.0 ..\..\..\..\..\..\..\SRC\IO\SCSI\SCSICOM\RELS\sbglue.r init.r main.r read.r write.r stat.r term.r misc.r ..\..\..\..\..\..\..\SRC\IO\SCSI\SCSICOM\RELS\syscalls.r >..\..\..\..\..\..\..\68000\CMDS\BOOTOBJS\STB\sbteac.map
+*
+*
+*
+*
+*
+cd SPF;  os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k020 SUBTRGT=_build _build
+cd ETC ; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k020 SUBTRGT=_build _build
+* ..\..\CMDS\BOOTOBJS\SPF\inetdb
+os9del -qf  ..\..\CMDS\BOOTOBJS\SPF\inetdb
+* ..\..\CMDS\BOOTOBJS\SPF\inetdb2
+os9del -qf  ..\..\CMDS\BOOTOBJS\SPF\inetdb2
+idbgen -to=OSK -tp=020 -d=. -d=..\..\..\..\..\..\SRC\ETC ..\..\CMDS\BOOTOBJS\SPF\inetdb
+Module: inetdb - Fixing header parity - Fixing module CRC
+Module: inetdb2 - Fixing header parity - Fixing module CRC
+fixmod -u ..\..\CMDS\BOOTOBJS\SPF\inetdb
+fixmod -u ..\..\CMDS\BOOTOBJS\SPF\inetdb2
+* ..\..\CMDS\BOOTOBJS\SPF\inetdb
+* ..\..\CMDS\BOOTOBJS\SPF\inetdb2
+* ..\..\CMDS\BOOTOBJS\SPF\rpcdb
+os9del -qf  ..\..\CMDS\BOOTOBJS\SPF\rpcdb
+rpcdbgen -to=OSK -tp=020 -w=..\..\..\..\..\..\SRC\ETC -o=..\..\CMDS\BOOTOBJS\SPF\rpcdb 
+Module: rpcdb - Fixing header parity - Fixing module CRC
+* ..\..\CMDS\BOOTOBJS\SPF\rpcdb
+*
+*
+cd SPLANCE ; os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k020 SUBTRGT=_build _build
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k020 SUBTRGT=_build _build -f=spfdesc.mak
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" -f spfdesc.mak TARGET=k020 TRGT_DESC=sple0 makedesc
+os9makdir -pq RELS\DESC
+os9touch RELS\DESC\sple0.date
+os9del -qf RELS\DESC\cnst.a
+os9del -qf RELS\DESC\cnst.o
+os9del -qf RELS\DESC\cnst.r
+os9del -qf RELS\DESC\stat.r
+os9del -qf RELS\DESC\os9.a
+os9del -qf RELS\DESC\os9.o
+os9del -qf RELS\DESC\os9.r
+os9del -qf RELS\DESC\spfos9
+os9del -qf RELS\DESC\spfos9k
+* ..\..\CMDS\BOOTOBJS\SPF\sple0
+os9del -qf ..\..\CMDS\BOOTOBJS\SPF\sple0
+xcc -to=OSK -tp=020 -td=. -o=0 -v=..\..\..\..\..\..\SRC\DPIO\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68020\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS -v=DEFS -v=..\..\..\..\..\..\SRC\DPIO\SPF\DRVR -v=..\..\..\..\..\..\SRC\DEFS\SPF\BSD -dsple0 -ebe=RELS\DESC ..\..\..\..\..\..\SRC\DPIO\SPF\DESC\cnst.c
+rm_vsect RELS\DESC\cnst.o RELS\DESC\cnst.a
+xcc -to=OSK -tp=020 -td=. -o=0 -v=..\..\..\..\..\..\SRC\DPIO\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68020\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS -v=DEFS -v=..\..\..\..\..\..\SRC\DPIO\SPF\DRVR -v=..\..\..\..\..\..\SRC\DEFS\SPF\BSD -dsple0 -eas=RELS\DESC RELS\DESC\cnst.a
+xcc -to=OSK -tp=020 -td=. -o=0 -v=..\..\..\..\..\..\SRC\DPIO\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68020\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS -v=DEFS -v=..\..\..\..\..\..\SRC\DPIO\SPF\DRVR -v=..\..\..\..\..\..\SRC\DEFS\SPF\BSD -dsple0 -eas=RELS\DESC ..\..\..\..\..\..\SRC\DPIO\SPF\DESC\stat.c
+xcc -to=OSK -tp=020 -td=. -o=0 -k ..\..\..\..\..\..\OS9\68000\LIB\systart.r RELS\DESC\cnst.r RELS\DESC\stat.r -fd=RELS\DESC\spfos9k
+xcc -to=OSK -tp=020 -td=. -o=0 -v=..\..\..\..\..\..\SRC\DPIO\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68020\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS -v=DEFS -v=..\..\..\..\..\..\SRC\DPIO\SPF\DRVR -v=..\..\..\..\..\..\SRC\DEFS\SPF\BSD -dsple0 -ebe=RELS\DESC ..\..\..\..\..\..\SRC\DPIO\SPF\DESC\os9.c
+rm_vsect RELS\DESC\os9.o RELS\DESC\os9.a
+xcc -to=OSK -tp=020 -td=. -o=0 -v=..\..\..\..\..\..\SRC\DPIO\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68020\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS -v=DEFS -v=..\..\..\..\..\..\SRC\DPIO\SPF\DRVR -v=..\..\..\..\..\..\SRC\DEFS\SPF\BSD -dsple0 -eas=RELS\DESC RELS\DESC\os9.a
+xcc -to=OSK -tp=020 -td=. -o=0 -k ..\..\..\..\..\..\OS9\68000\LIB\descstart.r RELS\DESC\os9.r -fd=RELS\DESC\spfos9 -oln=sple0
+os9merge RELS\DESC\spfos9 RELS\DESC\spfos9k -o=..\..\CMDS\BOOTOBJS\SPF\sple0
+chtype -tMT_DEVDESC ..\..\CMDS\BOOTOBJS\SPF\sple0
+Module: sple0 - Fixing header parity - Fixing module CRC
+chtype: changed _mext to '0x000000AA'
+chtype: changed _msize to '0x000004A2'
+chtype: changed _mtylan to '0x0F'
+fixmod -uo=0.0 ..\..\CMDS\BOOTOBJS\SPF\sple0
+Module: sple0 - Fixing header parity - Fixing module CRC
+* ..\..\CMDS\BOOTOBJS\SPF\sple0
+os9del -qf RELS\DESC\cnst.a
+os9del -qf RELS\DESC\cnst.o
+os9del -qf RELS\DESC\cnst.r
+os9del -qf RELS\DESC\stat.r
+os9del -qf RELS\DESC\os9.a
+os9del -qf RELS\DESC\os9.o
+os9del -qf RELS\DESC\os9.r
+os9del -qf RELS\DESC\spfos9
+os9del -qf RELS\DESC\spfos9k
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" -f spfdesc.mak TARGET=k020 TRGT_DESC=sple1 makedesc
+os9makdir -pq RELS\DESC
+os9touch RELS\DESC\sple1.date
+os9del -qf RELS\DESC\cnst.a
+os9del -qf RELS\DESC\cnst.o
+os9del -qf RELS\DESC\cnst.r
+os9del -qf RELS\DESC\stat.r
+os9del -qf RELS\DESC\os9.a
+os9del -qf RELS\DESC\os9.o
+os9del -qf RELS\DESC\os9.r
+os9del -qf RELS\DESC\spfos9
+os9del -qf RELS\DESC\spfos9k
+* ..\..\CMDS\BOOTOBJS\SPF\sple1
+os9del -qf ..\..\CMDS\BOOTOBJS\SPF\sple1
+xcc -to=OSK -tp=020 -td=. -o=0 -v=..\..\..\..\..\..\SRC\DPIO\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68020\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS -v=DEFS -v=..\..\..\..\..\..\SRC\DPIO\SPF\DRVR -v=..\..\..\..\..\..\SRC\DEFS\SPF\BSD -dsple1 -ebe=RELS\DESC ..\..\..\..\..\..\SRC\DPIO\SPF\DESC\cnst.c
+rm_vsect RELS\DESC\cnst.o RELS\DESC\cnst.a
+xcc -to=OSK -tp=020 -td=. -o=0 -v=..\..\..\..\..\..\SRC\DPIO\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68020\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS -v=DEFS -v=..\..\..\..\..\..\SRC\DPIO\SPF\DRVR -v=..\..\..\..\..\..\SRC\DEFS\SPF\BSD -dsple1 -eas=RELS\DESC RELS\DESC\cnst.a
+xcc -to=OSK -tp=020 -td=. -o=0 -v=..\..\..\..\..\..\SRC\DPIO\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68020\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS -v=DEFS -v=..\..\..\..\..\..\SRC\DPIO\SPF\DRVR -v=..\..\..\..\..\..\SRC\DEFS\SPF\BSD -dsple1 -eas=RELS\DESC ..\..\..\..\..\..\SRC\DPIO\SPF\DESC\stat.c
+xcc -to=OSK -tp=020 -td=. -o=0 -k ..\..\..\..\..\..\OS9\68000\LIB\systart.r RELS\DESC\cnst.r RELS\DESC\stat.r -fd=RELS\DESC\spfos9k
+xcc -to=OSK -tp=020 -td=. -o=0 -v=..\..\..\..\..\..\SRC\DPIO\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68020\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS -v=DEFS -v=..\..\..\..\..\..\SRC\DPIO\SPF\DRVR -v=..\..\..\..\..\..\SRC\DEFS\SPF\BSD -dsple1 -ebe=RELS\DESC ..\..\..\..\..\..\SRC\DPIO\SPF\DESC\os9.c
+rm_vsect RELS\DESC\os9.o RELS\DESC\os9.a
+xcc -to=OSK -tp=020 -td=. -o=0 -v=..\..\..\..\..\..\SRC\DPIO\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68020\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS -v=DEFS -v=..\..\..\..\..\..\SRC\DPIO\SPF\DRVR -v=..\..\..\..\..\..\SRC\DEFS\SPF\BSD -dsple1 -eas=RELS\DESC RELS\DESC\os9.a
+xcc -to=OSK -tp=020 -td=. -o=0 -k ..\..\..\..\..\..\OS9\68000\LIB\descstart.r RELS\DESC\os9.r -fd=RELS\DESC\spfos9 -oln=sple1
+os9merge RELS\DESC\spfos9 RELS\DESC\spfos9k -o=..\..\CMDS\BOOTOBJS\SPF\sple1
+chtype -tMT_DEVDESC ..\..\CMDS\BOOTOBJS\SPF\sple1
+Module: sple1 - Fixing header parity - Fixing module CRC
+chtype: changed _mext to '0x000000AA'
+chtype: changed _msize to '0x000004A2'
+chtype: changed _mtylan to '0x0F'
+fixmod -uo=0.0 ..\..\CMDS\BOOTOBJS\SPF\sple1
+Module: sple1 - Fixing header parity - Fixing module CRC
+* ..\..\CMDS\BOOTOBJS\SPF\sple1
+os9del -qf RELS\DESC\cnst.a
+os9del -qf RELS\DESC\cnst.o
+os9del -qf RELS\DESC\cnst.r
+os9del -qf RELS\DESC\stat.r
+os9del -qf RELS\DESC\os9.a
+os9del -qf RELS\DESC\os9.o
+os9del -qf RELS\DESC\os9.r
+os9del -qf RELS\DESC\spfos9
+os9del -qf RELS\DESC\spfos9k
+*
+*
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k020 SUBTRGT=_build _build -f=spfdrvr.mak
+*
+os9makdir -pq RELS\SPDRVR
+os9makdir -pq RELS\SPDRVR
+os9makdir -pq ..\..\CMDS\BOOTOBJS\SPF\STB
+xcc -td=. -to=OSK -cw -tp=020c -v=..\..\..\..\..\..\SRC\DPIO\SPF\DRVR -v=..\..\..\..\..\..\SRC\DPIO\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68020\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS -v=..\..\..\..\..\..\SRC\DEFS\SPF\BSD -dVME147 -eas=RELS\SPDRVR -r -o=1 -xao ..\..\..\..\..\..\SRC\DPIO\SPF\DRVR\SPLANCE\main.c
+xcc -td=. -to=OSK -cw -tp=020c -v=..\..\..\..\..\..\SRC\DPIO\SPF\DRVR -v=..\..\..\..\..\..\SRC\DPIO\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68020\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS -v=..\..\..\..\..\..\SRC\DEFS\SPF\BSD -dVME147 -efe=RELS\SPDRVR -r -o=1 -xao ..\..\..\..\..\..\SRC\DPIO\SPF\DRVR\SPLANCE\entry.c
+xcc -td=. -to=OSK -cw -tp=020c -v=..\..\..\..\..\..\SRC\DPIO\SPF\DRVR -v=..\..\..\..\..\..\SRC\DPIO\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68020\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS -v=..\..\..\..\..\..\SRC\DEFS\SPF\BSD -dVME147 -efe=RELS\SPDRVR -r -o=1 -xao ..\..\..\..\..\..\SRC\DPIO\SPF\DRVR\SPLANCE\isr.c
+xcc -td=. -to=OSK -cw -tp=020c -v=..\..\..\..\..\..\SRC\DPIO\SPF\DRVR -v=..\..\..\..\..\..\SRC\DPIO\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68020\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS -v=..\..\..\..\..\..\SRC\DEFS\SPF\BSD -dVME147 -efe=RELS\SPDRVR -r -o=1 -xao ..\..\..\..\..\..\SRC\DPIO\SPF\DRVR\SPLANCE\init.c
+"..\..\..\..\..\..\SRC\DPIO\SPF\DRVR\SPLANCE\init.c", line 278: warning: 
+          conversion from pointer to smaller integer
+  	leregs->rdp = (u_int16)ibp;	/* stuff lo 16-bits of ibp */
+  	              ^
+
+xcc -td=. -to=OSK -cw -tp=020c -v=..\..\..\..\..\..\SRC\DPIO\SPF\DRVR -v=..\..\..\..\..\..\SRC\DPIO\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68020\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS -v=..\..\..\..\..\..\SRC\DEFS\SPF\BSD -dVME147 -efe=RELS\SPDRVR -r -o=1 -xao ..\..\..\..\..\..\SRC\DPIO\SPF\DRVR\SPLANCE\term.c
+xcc -td=. -to=OSK -cw -tp=020c -v=..\..\..\..\..\..\SRC\DPIO\SPF\DRVR -v=..\..\..\..\..\..\SRC\DPIO\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68020\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS -v=..\..\..\..\..\..\SRC\DEFS\SPF\BSD -dVME147 -efe=RELS\SPDRVR -r -o=1 -xao ..\..\..\..\..\..\SRC\DPIO\SPF\DRVR\SPLANCE\..\misc.c
+xcc -td=. -to=OSK -cw -tp=020c -v=..\..\..\..\..\..\SRC\DPIO\SPF\DRVR -v=..\..\..\..\..\..\SRC\DPIO\DEFS -v=..\..\..\..\..\..\SRC\DEFS -v=..\..\..\..\..\..\OS9\68020\DEFS -v=..\..\..\..\..\..\OS9\SRC\DEFS -v=..\..\..\..\..\..\SRC\DEFS\SPF\BSD -dVME147 -eas=RELS\SPDRVR -r -o=1 -xao RELS\SPDRVR\entry.i RELS\SPDRVR\isr.i  RELS\SPDRVR\init.i RELS\SPDRVR\term.i RELS\SPDRVR\misc.i -fd=drvr.r
+* ..\..\CMDS\BOOTOBJS\SPF\sp147
+os9del -qf  ..\..\CMDS\BOOTOBJS\SPF\sp147
+* ..\..\CMDS\BOOTOBJS\SPF\STB\sp147.stb
+os9del -qf  ..\..\CMDS\BOOTOBJS\SPF\STB\sp147.stb
+os9del -qf  ..\..\CMDS\BOOTOBJS\SPF\STB\sp147.dbg
+xcc -td=. -to=OSK -cw -olg -tp=020 -tp=020c -k -r -l=..\..\..\..\..\..\OS9\68020\LIB\mbuflib.l -y=..\..\..\..\..\..\OS9\68000\LIB\HOST3\mbuflib.il -l=..\..\..\..\..\..\OS9\68000\LIB\cpu.l -y=..\..\..\..\..\..\OS9\68000\LIB\HOST3\cpu.il -l=..\..\..\..\..\..\OS9\68000\LIB\conv_lib.l -y=..\..\..\..\..\..\OS9\68000\LIB\HOST3\conv_lib.il -l=..\..\..\..\..\..\OS9\68020\LIB\sys_clib.l -y=..\..\..\..\..\..\OS9\68000\LIB\HOST3\sys_clib.il -l=..\..\..\..\..\..\OS9\68020\LIB\clib.l -y=..\..\..\..\..\..\OS9\68000\LIB\HOST3\clib.il -l=..\..\..\..\..\..\OS9\68020\LIB\os_lib.l -y=..\..\..\..\..\..\OS9\68000\LIB\HOST3\os_lib.il -l=..\..\..\..\..\..\OS9\68000\LIB\sys.l -o=1 -xao  -olgu=0.0  ..\..\..\..\..\..\OS9\68000\LIB\DPIO\drvstart.r RELS\SPDRVR\main.r RELS\SPDRVR\drvr.r -fd=..\..\CMDS\BOOTOBJS\SPF\sp147 -oln=sp147
+chtype -tMT_DEVDRVR ..\..\CMDS\BOOTOBJS\SPF\sp147
+Module: sp147 - Fixing header parity - Fixing module CRC
+chtype: changed _mmem to '0x000000A0'
+chtype: changed _mtylan to '0x0E'
+* ..\..\CMDS\BOOTOBJS\SPF\sp147
+*
+*
+*
+*
+*
+*
+*
+cd PCF;  os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k020 SUBTRGT=_build _build
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k020 SUBTRGT=_build _build -f=pcf_descriptors.make
+os9makdir -pq RELS
+os9makdir -pq ..\CMDS\BOOTOBJS
+r68 -q -u=. -u=..\..\..\..\SRC\DEFS -a=TEACFC1 ..\..\..\..\SRC\IO\PCF\DESC\pcd0.a -o=RELS\pcd0.r
+* ..\CMDS\BOOTOBJS\pcd0
+l68 -l=..\..\..\..\68000\LIB\sys.l -gu=0.0 RELS\pcd0.r -O=..\CMDS\BOOTOBJS\pcd0
+*
+*
+*
+cd BOOTS;  os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k020 SUBTRGT=_build _build
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k020 SUBTRGT=_build _build -f=rom_bootfile.make
+os9makdir -pq ..\CMDS\BOOTOBJS\BOOTFILES
+* ..\CMDS\BOOTOBJS\BOOTFILES\rom.bf
+os9del -qf  ..\CMDS\BOOTOBJS\BOOTFILES\rom.bf
+cd ..;  os9merge -b=100k -z=BOOTLISTS\rom.bl >CMDS\BOOTOBJS\BOOTFILES\rom.bf
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k020 SUBTRGT=_build _build -f=d0_bootfile.make
+os9makdir -pq ..\CMDS\BOOTOBJS\BOOTFILES
+* ..\CMDS\BOOTOBJS\BOOTFILES\d0.bf
+os9del -qf  ..\CMDS\BOOTOBJS\BOOTFILES\d0.bf
+cd ..;  os9merge -z=BOOTLISTS\d0.bl >CMDS\BOOTOBJS\BOOTFILES\d0.bf
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k020 SUBTRGT=_build _build -f=h0_bootfile.make
+os9makdir -pq ..\CMDS\BOOTOBJS\BOOTFILES
+* ..\CMDS\BOOTOBJS\BOOTFILES\h0.bf
+os9del -qf  ..\CMDS\BOOTOBJS\BOOTFILES\h0.bf
+cd ..;  os9merge -b=100k -z=BOOTLISTS\h0.bl >CMDS\BOOTOBJS\BOOTFILES\h0.bf
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k020 SUBTRGT=_build _build -f=viper_tape_bootfile.make
+os9makdir -pq ..\CMDS\BOOTOBJS\BOOTFILES
+* ..\CMDS\BOOTOBJS\BOOTFILES\viper_tape.bf
+os9del -qf  ..\CMDS\BOOTOBJS\BOOTFILES\viper_tape.bf
+cd ..;  os9merge -b=100k -z=BOOTLISTS\viper_tape.bl > CMDS\BOOTOBJS\BOOTFILES\viper_tape.bf
+*
+*
+cd ROM_CBOOT;  os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k020 SUBTRGT=_build _build
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k020 SUBTRGT=_build _build -f=rom.make
+os9makdir -pq RELS\NOBUG
+os9make "RBUG=" "CBUG=-dNOBUG" "TYPE=NOBUG"  "TARGET=rom" "ROMDBG=" -f=rom_common.make
+os9makdir -pq RELS\NOBUG
+r68 -q -aCBOOT  -aMANUAL_RAM -u=. -u=.. -u=..\..\..\..\SRC\DEFS -u=..\..\..\..\SRC\MACROS ..\..\..\..\SRC\ROM\COMMON\vectors.a -o=RELS\NOBUG\vectors.r
+r68 -q -aCBOOT  -aMANUAL_RAM -u=. -u=.. -u=..\..\..\..\SRC\DEFS -u=..\..\..\..\SRC\MACROS ..\..\..\..\SRC\ROM\COMMON\mbugboot.a -o=RELS\NOBUG\mbugboot.r
+r68 -q -aCBOOT  -aMANUAL_RAM -u=. -u=.. -u=..\..\..\..\SRC\DEFS -u=..\..\..\..\SRC\MACROS ..\..\..\..\SRC\ROM\COMMON\boot.a -o=RELS\NOBUG\boot.r
+r68 -q -aCBOOT  -aMANUAL_RAM -u=. -u=.. -u=..\..\..\..\SRC\DEFS -u=..\..\..\..\SRC\MACROS ..\..\..\..\SRC\ROM\COMMON\nvram.a -o=RELS\NOBUG\nvram.r
+* RELS\NOBUG\rom_common.l
+os9del -qf  RELS\NOBUG\rom_common.l
+cd RELS\NOBUG; os9merge  vectors.r mbugboot.r boot.r nvram.r >rom_common.l
+os9make "RBUG=" "CBUG=-dNOBUG" "TYPE=NOBUG"  "TARGET=rom" "ROMDBG=" -f=rom_serial.make
+os9makdir -pq RELS\NOBUG
+r68 -q -aCBOOT  -aNODATAPORT -u=. -u=.. -u=..\..\..\..\SRC\DEFS -u=..\..\..\..\SRC\MACROS ..\..\..\..\SRC\ROM\SERIAL\ioz8530.a -o=RELS\NOBUG\ioz8530.r
+* RELS\NOBUG\rom_serial.l
+os9del -qf  RELS\NOBUG\rom_serial.l
+cd RELS\NOBUG; os9merge  ioz8530.r >rom_serial.l
+os9make "RBUG=" "CBUG=-dNOBUG" "TYPE=NOBUG"  "TARGET=rom" "ROMDBG=" -f=rom_port.make
+os9makdir -pq RELS\NOBUG
+r68 -q -aCBOOT  -u=. -u=.. -u=..\..\..\..\SRC\ROM\MVME050 -u=..\..\..\..\SRC\DEFS -u=..\..\..\..\SRC\MACROS sysinit.a -o=RELS\NOBUG\sysinit.r
+xcc -qst=. -O=0 -dCBOOT -dVME147 -dNOBUG -dBOOTP_LE -v=. -v=.. -v=..\..\..\..\SRC\ROM\MVME050 -v=..\..\..\..\SRC\ROM\CBOOT\DEFS -v=..\..\..\..\SRC\IO\SCSI\DEFS  -v=..\..\..\..\..\SRC\DEFS\IO\SCSI -v=..\..\..\..\SRC\ROM\CBOOT\DISK\BOOT33C93 -v=..\..\..\..\SRC\DEFS -v=..\..\..\..\..\SRC\DEFS syscon.c -r=RELS\NOBUG
+* RELS\NOBUG\rom_port.l
+os9del -qf  RELS\NOBUG\rom_port.l 
+cd RELS\NOBUG; os9merge   sysinit.r syscon.r >rom_port.l
+*
+os9make "RBUG=" "CBUG=-dNOBUG" "TYPE=NOBUG"  "TARGET=rom" "ROMDBG=" -f=rom_descriptors.make
+os9makdir -pq RELS\NOBUG
+xcc -qst=. -O=2 -v=. -v=..\..\..\..\SRC\ROM\MVME050 -v=..\..\..\..\SRC\ROM\CBOOT\DEFS -v=..\..\..\..\SRC\IO\SCSI\DEFS  -v=..\..\..\..\SRC\DEFS -v=..\..\..\..\..\SRC\DEFS -dCBOOT -dVME147 ..\..\..\..\SRC\ROM\CBOOT\DISK\DESC\sccs_hbd.c -r=RELS\NOBUG
+xcc -qst=. -O=2 -v=. -v=..\..\..\..\SRC\ROM\MVME050 -v=..\..\..\..\SRC\ROM\CBOOT\DEFS -v=..\..\..\..\SRC\IO\SCSI\DEFS  -v=..\..\..\..\SRC\DEFS -v=..\..\..\..\..\SRC\DEFS -dCBOOT -dVME147 ..\..\..\..\SRC\ROM\CBOOT\DISK\DESC\fteac_fbd.c -r=RELS\NOBUG
+* RELS\NOBUG\rom_descriptors.l
+os9del -qf  RELS\NOBUG\rom_descriptors.l
+cd   RELS\NOBUG; os9merge  sccs_hbd.r fteac_fbd.r >rom_descriptors.l
+os9make "RBUG=" "CBUG=-dNOBUG" "TYPE=NOBUG"  "TARGET=rom" "ROMDBG=" -f=rom_image.make
+os9makdir -pq RELS\NOBUG
+os9makdir -pq ..\CMDS\BOOTOBJS\NOBUG\STB
+* ..\CMDS\BOOTOBJS\NOBUG\rom
+* ..\CMDS\BOOTOBJS\NOBUG\STB\rom.stb
+* ..\CMDS\BOOTOBJS\NOBUG\STB\rom.map
+os9del -qf  ..\CMDS\BOOTOBJS\NOBUG\rom
+os9del -qf  ..\CMDS\BOOTOBJS\NOBUG\STB\rom.stb
+os9del -qf  ..\CMDS\BOOTOBJS\NOBUG\STB\rom.map
+os9del -qf  ..\CMDS\BOOTOBJS\NOBUG\STB\rom.dbg
+l68 -r=FF800000 -swam -M=3k -g -b=4 -l=..\..\..\..\SRC\ROM\LIB\sysboot.l -l=..\..\..\..\SRC\ROM\LIB\flushcache.l -l=RELS\NOBUG\rom_descriptors.l  -l=..\..\..\..\68000\LIB\clib.l -l=..\..\..\..\68000\LIB\sys_clib.l -l=..\..\..\..\68000\LIB\os_lib.l -l=..\..\..\..\68000\LIB\sys.l -gu=0.0 RELS\NOBUG\rom_common.l  RELS\NOBUG\rom_port.l  RELS\NOBUG\rom_serial.l  ..\..\..\..\SRC\ROM\LIB\bt_147_33c93.l ..\..\..\..\SRC\ROM\LIB\bootsccs.l ..\..\..\..\SRC\ROM\LIB\bootfc1.l ..\..\..\..\SRC\ROM\LIB\bootviper.l ..\..\..\..\SRC\ROM\LIB\bp_tk147.l ..\..\..\..\SRC\ROM\LIB\bp_147_7990.l ..\..\..\..\SRC\ROM\LIB\inetboot.l  ..\..\..\..\SRC\ROM\LIB\romio.l -O=..\CMDS\BOOTOBJS\NOBUG\rom >..\CMDS\BOOTOBJS\NOBUG\STB\rom.map
+
+Raw binary file, "..\CMDS\BOOTOBJS\NOBUG\rom" has been created.
+
+Code size = 48658 (0xBE12) bytes
+Data area size = 15360 (0x3C00) bytes [minimum]
+* NOTE: This module also requires 1328 (0x530) bytes of initialized data.
+Be sure to include the appropriate code in the module to handle this,
+as initialization is not performed automatically.
+os9make "RBUG=" "CBUG=-dNOBUG" "TYPE=NOBUG"  "TARGET=rom" "ROMDBG=" -f=rom_initext.make
+os9makdir -pq RELS\NOBUG
+os9makdir -pq ..\CMDS\BOOTOBJS\NOBUG\STB
+r68 -q -aCBOOT   -u=. -u=.. -u=..\..\..\..\SRC\DEFS initext.a -o=RELS\NOBUG\initext.r
+* ..\CMDS\BOOTOBJS\NOBUG\initext
+* ..\CMDS\BOOTOBJS\NOBUG\STB\initext.stb
+* ..\CMDS\BOOTOBJS\NOBUG\STB\initext.map
+os9del -qf  ..\CMDS\BOOTOBJS\NOBUG\initext
+os9del -qf  ..\CMDS\BOOTOBJS\NOBUG\STB\initext.stb
+os9del -qf  ..\CMDS\BOOTOBJS\NOBUG\STB\initext.map
+os9del -qf  ..\CMDS\BOOTOBJS\NOBUG\STB\initext.dbg
+l68 -r=0 -gu=0.0 RELS\NOBUG\initext.r -O=..\CMDS\BOOTOBJS\NOBUG\initext >..\CMDS\BOOTOBJS\NOBUG\STB\initext.map
+
+Raw binary file, "..\CMDS\BOOTOBJS\NOBUG\initext" has been created.
+
+Code size = 32 (0x20) bytes
+Data area size = 0 (0x0) bytes [minimum]
+os9make "RBUG=" "CBUG=-dNOBUG" "TYPE=NOBUG"  "TARGET=rom" "ROMDBG=" -f=rom_booters.make
+* ..\CMDS\BOOTOBJS\NOBUG\booters
+os9del -qf  ..\CMDS\BOOTOBJS\NOBUG\booters
+os9merge -b100 ..\CMDS\BOOTOBJS\NOBUG\rom ..\CMDS\BOOTOBJS\NOBUG\initext >..\CMDS\BOOTOBJS\NOBUG\booters ; padrom 0x20000 ..\CMDS\BOOTOBJS\NOBUG\booters
+os9make "RBUG=" "CBUG=-dNOBUG" "TYPE=NOBUG"  "TARGET=rom" "ROMDBG=" -f=rom_bootfile.make
+os9makdir -pq ..\CMDS\BOOTOBJS\NOBUG
+* ..\CMDS\BOOTOBJS\NOBUG\bootfile
+os9del -qf  ..\CMDS\BOOTOBJS\NOBUG\bootfile
+cd ..; os9merge -b=100k -z=BOOTLISTS\rom.bl >CMDS\BOOTOBJS\NOBUG\bootfile
+padrom 0xe0000 ..\CMDS\BOOTOBJS\NOBUG\bootfile
+* ..\CMDS\BOOTOBJS\NOBUG\rommer
+os9del -qf  ..\CMDS\BOOTOBJS\NOBUG\rommer
+os9merge ..\CMDS\BOOTOBJS\NOBUG\booters ..\CMDS\BOOTOBJS\NOBUG\bootfile >..\CMDS\BOOTOBJS\NOBUG\rommer
+*
+os9make "MOPTS=" "AOPTS="  "COPTS=" "EOPTS=" "LOPTS="  HOST=mdos "DOCMD=" TARGET=k020 SUBTRGT=_build _build -f=rombug.make
+os9makdir -pq RELS\ROMBUG
+os9make "TYPE=ROMBUG" -f=rom_common.make
+os9makdir -pq RELS\ROMBUG
+r68 -q -aCBOOT -aROMBUG -aMANUAL_RAM -u=. -u=.. -u=..\..\..\..\SRC\DEFS -u=..\..\..\..\SRC\MACROS ..\..\..\..\SRC\ROM\COMMON\vectors.a -o=RELS\ROMBUG\vectors.r
+r68 -q -aCBOOT -aROMBUG -aMANUAL_RAM -u=. -u=.. -u=..\..\..\..\SRC\DEFS -u=..\..\..\..\SRC\MACROS ..\..\..\..\SRC\ROM\COMMON\mbugboot.a -o=RELS\ROMBUG\mbugboot.r
+r68 -q -aCBOOT -aROMBUG -aMANUAL_RAM -u=. -u=.. -u=..\..\..\..\SRC\DEFS -u=..\..\..\..\SRC\MACROS ..\..\..\..\SRC\ROM\COMMON\boot.a -o=RELS\ROMBUG\boot.r
+r68 -q -aCBOOT -aROMBUG -aMANUAL_RAM -u=. -u=.. -u=..\..\..\..\SRC\DEFS -u=..\..\..\..\SRC\MACROS ..\..\..\..\SRC\ROM\COMMON\nvram.a -o=RELS\ROMBUG\nvram.r
+* RELS\ROMBUG\rom_common.l
+os9del -qf  RELS\ROMBUG\rom_common.l
+cd RELS\ROMBUG; os9merge  vectors.r mbugboot.r boot.r nvram.r >rom_common.l
+os9make "TYPE=ROMBUG" -f=rom_serial.make
+os9makdir -pq RELS\ROMBUG
+r68 -q -aCBOOT -aROMBUG -aNODATAPORT -u=. -u=.. -u=..\..\..\..\SRC\DEFS -u=..\..\..\..\SRC\MACROS ..\..\..\..\SRC\ROM\SERIAL\ioz8530.a -o=RELS\ROMBUG\ioz8530.r
+* RELS\ROMBUG\rom_serial.l
+os9del -qf  RELS\ROMBUG\rom_serial.l
+cd RELS\ROMBUG; os9merge  ioz8530.r >rom_serial.l
+os9make "TYPE=ROMBUG" -f=rom_port.make
+os9makdir -pq RELS\ROMBUG
+r68 -q -aCBOOT -aROMBUG -u=. -u=.. -u=..\..\..\..\SRC\ROM\MVME050 -u=..\..\..\..\SRC\DEFS -u=..\..\..\..\SRC\MACROS sysinit.a -o=RELS\ROMBUG\sysinit.r
+xcc -qst=. -O=0 -dCBOOT -dVME147 -dBOOTP_LE -v=. -v=.. -v=..\..\..\..\SRC\ROM\MVME050 -v=..\..\..\..\SRC\ROM\CBOOT\DEFS -v=..\..\..\..\SRC\IO\SCSI\DEFS  -v=..\..\..\..\..\SRC\DEFS\IO\SCSI -v=..\..\..\..\SRC\ROM\CBOOT\DISK\BOOT33C93 -v=..\..\..\..\SRC\DEFS -v=..\..\..\..\..\SRC\DEFS syscon.c -r=RELS\ROMBUG
+* RELS\ROMBUG\rom_port.l
+os9del -qf  RELS\ROMBUG\rom_port.l 
+cd RELS\ROMBUG; os9merge   sysinit.r syscon.r >rom_port.l
+*
+os9make "TYPE=ROMBUG" -f=rom_descriptors.make
+os9makdir -pq RELS\ROMBUG
+xcc -qst=. -O=2 -v=. -v=..\..\..\..\SRC\ROM\MVME050 -v=..\..\..\..\SRC\ROM\CBOOT\DEFS -v=..\..\..\..\SRC\IO\SCSI\DEFS  -v=..\..\..\..\SRC\DEFS -v=..\..\..\..\..\SRC\DEFS -dCBOOT -dVME147 ..\..\..\..\SRC\ROM\CBOOT\DISK\DESC\sccs_hbd.c -r=RELS\ROMBUG
+xcc -qst=. -O=2 -v=. -v=..\..\..\..\SRC\ROM\MVME050 -v=..\..\..\..\SRC\ROM\CBOOT\DEFS -v=..\..\..\..\SRC\IO\SCSI\DEFS  -v=..\..\..\..\SRC\DEFS -v=..\..\..\..\..\SRC\DEFS -dCBOOT -dVME147 ..\..\..\..\SRC\ROM\CBOOT\DISK\DESC\fteac_fbd.c -r=RELS\ROMBUG
+* RELS\ROMBUG\rom_descriptors.l
+os9del -qf  RELS\ROMBUG\rom_descriptors.l
+cd   RELS\ROMBUG; os9merge  sccs_hbd.r fteac_fbd.r >rom_descriptors.l
+os9make "TYPE=ROMBUG" -f=rom_image.make
+os9makdir -pq RELS\ROMBUG
+os9makdir -pq ..\CMDS\BOOTOBJS\ROMBUG\STB
+* ..\CMDS\BOOTOBJS\ROMBUG\rombug
+* ..\CMDS\BOOTOBJS\ROMBUG\STB\rombug.stb
+* ..\CMDS\BOOTOBJS\ROMBUG\STB\rombug.map
+os9del -qf  ..\CMDS\BOOTOBJS\ROMBUG\rombug
+os9del -qf  ..\CMDS\BOOTOBJS\ROMBUG\STB\rombug.stb
+os9del -qf  ..\CMDS\BOOTOBJS\ROMBUG\STB\rombug.map
+os9del -qf  ..\CMDS\BOOTOBJS\ROMBUG\STB\rombug.dbg
+l68 -r=FF800000 -swam -M=3k -g -b=4 -l=..\..\..\..\SRC\ROM\LIB\sysboot.l -l=..\..\..\..\SRC\ROM\LIB\flushcache.l -l=RELS\ROMBUG\rom_descriptors.l  -l=..\..\..\..\68000\LIB\clib.l -l=..\..\..\..\68000\LIB\sys_clib.l -l=..\..\..\..\68000\LIB\os_lib.l -l=..\..\..\..\68000\LIB\sys.l -gu=0.0 RELS\ROMBUG\rom_common.l  RELS\ROMBUG\rom_port.l  RELS\ROMBUG\rom_serial.l  ..\..\..\..\SRC\ROM\LIB\bt_147_33c93.l ..\..\..\..\SRC\ROM\LIB\bootsccs.l ..\..\..\..\SRC\ROM\LIB\bootfc1.l ..\..\..\..\SRC\ROM\LIB\bootviper.l ..\..\..\..\SRC\ROM\LIB\bp_tk147.l ..\..\..\..\SRC\ROM\LIB\bp_147_7990.l ..\..\..\..\SRC\ROM\LIB\inetboot.l ..\..\..\..\SRC\ROM\LIB\rombug.l ..\..\..\..\SRC\ROM\LIB\romio.l -O=..\CMDS\BOOTOBJS\ROMBUG\rombug >..\CMDS\BOOTOBJS\ROMBUG\STB\rombug.map
+
+Raw binary file, "..\CMDS\BOOTOBJS\ROMBUG\rombug" has been created.
+
+Code size = 117706 (0x1CBCA) bytes
+Data area size = 24320 (0x5F00) bytes [minimum]
+* NOTE: This module also requires 3960 (0xF78) bytes of initialized data.
+Be sure to include the appropriate code in the module to handle this,
+as initialization is not performed automatically.
+os9make "TYPE=ROMBUG" -f=rom_initext.make
+os9makdir -pq RELS\ROMBUG
+os9makdir -pq ..\CMDS\BOOTOBJS\ROMBUG\STB
+r68 -q -aCBOOT -aROMBUG  -u=. -u=.. -u=..\..\..\..\SRC\DEFS initext.a -o=RELS\ROMBUG\initext.r
+* ..\CMDS\BOOTOBJS\ROMBUG\initext
+* ..\CMDS\BOOTOBJS\ROMBUG\STB\initext.stb
+* ..\CMDS\BOOTOBJS\ROMBUG\STB\initext.map
+os9del -qf  ..\CMDS\BOOTOBJS\ROMBUG\initext
+os9del -qf  ..\CMDS\BOOTOBJS\ROMBUG\STB\initext.stb
+os9del -qf  ..\CMDS\BOOTOBJS\ROMBUG\STB\initext.map
+os9del -qf  ..\CMDS\BOOTOBJS\ROMBUG\STB\initext.dbg
+l68 -r=0 -gu=0.0 RELS\ROMBUG\initext.r -O=..\CMDS\BOOTOBJS\ROMBUG\initext >..\CMDS\BOOTOBJS\ROMBUG\STB\initext.map
+
+Raw binary file, "..\CMDS\BOOTOBJS\ROMBUG\initext" has been created.
+
+Code size = 32 (0x20) bytes
+Data area size = 0 (0x0) bytes [minimum]
+os9make "TYPE=ROMBUG" -f=rom_booters.make
+* ..\CMDS\BOOTOBJS\ROMBUG\booters
+os9del -qf  ..\CMDS\BOOTOBJS\ROMBUG\booters
+os9merge -b100 ..\CMDS\BOOTOBJS\ROMBUG\rombug ..\CMDS\BOOTOBJS\ROMBUG\initext >..\CMDS\BOOTOBJS\ROMBUG\booters ; padrom 0x20000 ..\CMDS\BOOTOBJS\ROMBUG\booters
+os9make "TYPE=ROMBUG" -f=rom_bootfile.make
+os9makdir -pq ..\CMDS\BOOTOBJS\ROMBUG
+* ..\CMDS\BOOTOBJS\ROMBUG\bootfile
+os9del -qf  ..\CMDS\BOOTOBJS\ROMBUG\bootfile
+cd ..; os9merge -b=100k -z=BOOTLISTS\rom.bl >CMDS\BOOTOBJS\ROMBUG\bootfile
+padrom 0xe0000 ..\CMDS\BOOTOBJS\ROMBUG\bootfile
+* ..\CMDS\BOOTOBJS\ROMBUG\rombugger
+os9del -qf  ..\CMDS\BOOTOBJS\ROMBUG\rombugger
+os9merge  ..\CMDS\BOOTOBJS\ROMBUG\booters ..\CMDS\BOOTOBJS\ROMBUG\bootfile >..\CMDS\BOOTOBJS\ROMBUG\rombugger
+*
+*
+*
+*
+*

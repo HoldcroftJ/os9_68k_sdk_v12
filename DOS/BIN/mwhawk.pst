@@ -1,0 +1,15 @@
+
+[State]
+ConfigSetExtMode=2
+SysSetCwd='C:\users\russtopia\desktop\osk\MWOS\DOS\BIN'
+SrchSetFlags=0x0410680a
+SrchSetAgainFlags=0x04100003,0
+SrchSetAgainFlags=0x06100003,1
+FileSortMode=0x0
+MacroCurName=_API_Macro_int_handler,0
+MacroFlags=0x00000001
+StateWindowFrame=0,0,1025,558,0x43097fc8
+_DialogSizeEnable=1
+_DialogSize='DLG_COMBOPROMPT',354,202,308,108,0x00000000,''
+ProjSetConfigFlags=0x04110940
+

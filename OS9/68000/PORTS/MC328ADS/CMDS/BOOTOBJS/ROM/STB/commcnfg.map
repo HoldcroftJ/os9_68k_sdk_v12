@@ -1,0 +1,25 @@
+Linkage map for module 'commcnfg' in file ..\..\CMDS\BOOTOBJS\ROM\commcnfg  Page 1
+
+
+'p2start.a' psect from file: ..\..\..\..\..\..\OS9\68000\LIB\ROM\p2start.r
+	C:0000003c M:00000000 D:00000000 RM:00000000 RD:00000000
+ _btext    COD 00000000 | _bdata    DAT 00000000 | _enddata  DAT 00000000 |
+ btext     COD 00000000 | bdata     DAT 00000000 | end       DAT 00000000 |
+ Main      COD 0000003c | _bname    COD 00000282 | bname     COD 00000282 |
+ _etext    COD 00000290 | etext     COD 00000290 |
+
+'commcnfg.c' psect from file: RELS\commcnfg.r
+	C:00000076 M:00000000 D:00000000 RM:00000000 RD:00000000
+ _sysedit  ABS 00000008 | p2start   COD 00000076 |
+
+'getrinf.c' psect from file: ..\..\..\..\..\..\OS9\68000\LIB\ROM\p2lib.l
+	C:000001d8 M:00000000 D:00000000 RM:00000000 RD:00000000
+ getrinf   COD 000001d8 |
+
+'findrinf.c' psect from file: ..\..\..\..\..\..\OS9\68000\LIB\ROM\p2lib.l
+	C:0000022a M:00000000 D:00000000 RM:00000000 RD:00000000
+ findrinf  COD 0000022a |
+
+'strcmp.c' psect from file: ..\..\..\..\..\..\OS9\68000\LIB\clib.l
+	C:00000260 M:00000000 D:00000000 RM:00000000 RD:00000000
+ strcmp    COD 00000260 |
